@@ -1,0 +1,51 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# local sqlite database (never overwrite production data during deploy)
+prisma/dev.db
+prisma/*.db-journal
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# deploy artifacts
+enkidu.tar.gz
+*.tar.gz
+
+# cursor / editor
+.cursor/
+
+# lockfiles from other package managers (keep package-lock.json for npm)
+pnpm-lock.yaml
+yarn.lock
+bun.lockb

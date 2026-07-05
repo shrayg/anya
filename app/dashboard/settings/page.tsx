@@ -1,0 +1,113 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Shield } from "lucide-react";
+
+import { AdminUsersPanel } from "@/components/dashboard/admin-users-panel";
+import { AdminWorkspaceDashboard } from "@/components/dashboard/admin-workspace-dashboard";
+import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
+import { StaffBadge } from "@/components/dashboard/staff-badge";
+import {
+  AccountStatRail,
+  AccountUsagePanel,
+  UpgradeLink,
+} from "@/components/dashboard/account-stat-rail";
+import type { UserProfile, UserStats } from "@/lib/account-plan";
+import { formatBalance } from "@/lib/account-plan";
+import { siteConfig } from "@/config/site";
+
+export default function SettingsPage() {
+  const dashboardUser = useDashboardUser();
+  const profile = useMemo<UserProfile>(
+    () => ({
+      username: dashboardUser.username,
+      isAdmin: dashboardUser.isAdmin,
+      staffRole: dashboardUser.staffRole,
+      plan: dashboardUser.plan,
+      balance: dashboardUser.balance,
+      freeTier: dashboardUser.freeTier,
+      professionalTier: dashboardUser.professionalTier,
+      investigatorTier: dashboardUser.investigatorTier,
+      enterpriseTier: dashboardUser.enterpriseTier,
+    }),
+    [dashboardUser],
+  );
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const canManageWorkspace = dashboardUser.canManageWorkspace;
+
+  useEffect(() => {
+    fetch("/api/user/stats")
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data.error) {
+          setStats(data);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  return (
+    <div className="anya-desk px-6 py-6 md:px-8 md:py-8">
+      {canManageWorkspace ? (
+        <section className="mb-10 space-y-8" id="admin">
+          <section className="anya-hero">
+            <div className="anya-hero-main">
+              <span className="anya-hero-kicker">admin workspace</span>
+              <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
+                Admin Panel
+              </h1>
+              <p className="anya-hero-lede">
+                Manage users, plans, account status, and workspace activity for{" "}
+                {siteConfig.name}
+              </p>
+            </div>
+          </section>
+          <AdminWorkspaceDashboard />
+          <AdminUsersPanel />
+        </section>
+      ) : null}
+
+      <section className="anya-hero mb-10">
+        <div className="anya-hero-main">
+          <span className="anya-hero-kicker">settings</span>
+          <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
+            Account
+          </h1>
+          <p className="anya-hero-lede">
+            Plan, usage limits, and membership details for{" "}
+            <em>{profile?.username ?? "your account"}</em>
+            {profile?.staffRole ? (
+              <>
+                {" "}
+                <StaffBadge role={profile.staffRole} size="sm" />
+              </>
+            ) : null}
+            .
+          </p>
+          <div className="anya-hero-actions">
+            <span className="anya-pill">
+              <Shield className="size-3" />
+              2FA not enabled
+            </span>
+            <button className="anya-link-btn" type="button">
+              Enable now
+            </button>
+            <UpgradeLink />
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-8 max-w-md">
+        <AccountStatRail
+          credits={formatBalance(profile?.balance)}
+          profile={profile}
+          stats={stats}
+        />
+      </section>
+
+      <section className="max-w-2xl">
+        <AccountUsagePanel stats={stats} />
+      </section>
+    </div>
+  );
+}

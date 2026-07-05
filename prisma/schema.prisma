@@ -1,0 +1,103 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your API?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+  username  String @unique
+  password  String
+  isAdmin   Boolean @default(false)
+  staffRole String?
+  accountStatus String @default("active")
+  createdAt DateTime @default(now())
+  subscripted Boolean @default(false)
+  licenseId Int?      @unique
+  license License?
+  plan String @default("free")
+  balance Float @default(0)
+  freeTier Boolean @default(true)
+  professionalTier Boolean @default(false)
+  investigatorTier Boolean @default(false)
+  enterpriseTier Boolean @default(false)
+  searches  SearchHistory[]
+  cases     Case[]
+  payments  Payment[]
+}
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  currency    String   @default("USD")
+  type        String
+  plan        String?
+  status      String   @default("completed")
+  description String   @default("")
+  createdAt   DateTime @default(now())
+}
+
+model License {
+  id       Int      @id @default(autoincrement())
+  key      String   @unique @default(cuid())
+  redeemed Boolean  @default(false)
+  userId   Int?     @unique
+  user     User?    @relation(fields: [userId], references: [id])
+  isProfessional Boolean? @default(false)
+  isInvestigator Boolean? @default(false)
+  isEnterprise Boolean? @default(false)
+  createdAt DateTime @default(now())
+  durationInDays Int @default(30)
+  daysRemaining Int @default(30)
+}
+
+model SearchHistory {
+  id         Int          @id @default(autoincrement())
+  query      String
+  searchType String       @default("search")
+  resultData String       @default("")
+  createdAt  DateTime     @default(now())
+  userId     Int
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  caseLinks  CaseSearch[]
+}
+
+model Case {
+  id          Int          @id @default(autoincrement())
+  title       String
+  subjectName String
+  email       String?
+  phone       String?
+  username    String?
+  location    String?
+  notes       String       @default("")
+  intelData   String       @default("")
+  status      String       @default("active")
+  userId      Int
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  searches    CaseSearch[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model CaseSearch {
+  id              Int           @id @default(autoincrement())
+  caseId          Int
+  case            Case          @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  searchHistoryId Int
+  searchHistory   SearchHistory @relation(fields: [searchHistoryId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([caseId, searchHistoryId])
+}

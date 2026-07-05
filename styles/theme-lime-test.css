@@ -1,0 +1,61 @@
+/**
+ * Lime icon theme overrides — active when html.theme-lime-test is set.
+ * Revert: set TEST_LIME_ICON_THEME = false in config/branding.ts
+ */
+
+html.theme-lime-test {
+  --anya-blush: #b8f042;
+  --anya-blush-soft: color-mix(in srgb, var(--anya-blush) 14%, transparent);
+  --anya-blush-glow: color-mix(in srgb, var(--anya-blush) 38%, transparent);
+  --anya-blush-hover: #d4ff7a;
+}
+
+html.theme-lime-test .dash-nav-link-active {
+  color: var(--anya-blush);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--anya-blush) 28%, transparent),
+    0 0 18px color-mix(in srgb, var(--anya-blush) 12%, transparent);
+}
+
+html.theme-lime-test .anya-run-btn {
+  color: #101208;
+  box-shadow: 0 0 20px var(--anya-blush-glow);
+}
+
+html.theme-lime-test .anya-run-btn:hover:not(:disabled) {
+  box-shadow: 0 0 28px var(--anya-blush-glow);
+}
+
+html.theme-lime-test .anya-link-btn:hover {
+  background: var(--anya-blush-soft);
+}
+
+html.theme-lime-test .module-search-section,
+html.theme-lime-test .anya-hero-kicker,
+html.theme-lime-test .anya-hero-title em {
+  color: var(--anya-blush);
+}
+
+html.theme-lime-test .module-search-card:hover {
+  border-color: color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--anya-blush) 10%, transparent);
+}
+
+html.theme-lime-test .anya-stat-row-value--accent {
+  color: var(--anya-blush);
+}
+
+html.theme-lime-test .splash-sprinkle {
+  background-color: var(--anya-blush) !important;
+  box-shadow: 0 0 10px var(--anya-blush-glow) !important;
+}
+
+html.theme-lime-test .dash-sidebar-brand img,
+html.theme-lime-test .dash-sidebar-brand + * img {
+  box-shadow: 0 0 16px var(--anya-blush-glow);
+}
+
+html.theme-lime-test ::selection {
+  background: color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  color: #fff;
+}
