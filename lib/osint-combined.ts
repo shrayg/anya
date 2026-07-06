@@ -19,7 +19,7 @@ import {
   type SanitizedBreachResponse,
 } from "@/lib/osintcat";
 
-const COMBINED_GODSEYE_TIMEOUT_MS = 25_000;
+const COMBINED_GODSEYE_TIMEOUT_MS = 12_000;
 
 async function fetchOptionalOsintCatPlatformSearch(
   endpoint: string | undefined,
@@ -39,34 +39,48 @@ export async function fetchCombinedStealerLogs(
 ): Promise<SanitizedBreachResponse> {
   const searchType = resolveGodsEyeSearchType(query, scope);
   const parts: SanitizedBreachResponse[] = [];
-  let stealerError: Error | null = null;
-  let godseyeError: Error | null = null;
 
-  try {
-    parts.push(await fetchOsintCatStealerLogs(query));
-  } catch (err) {
-    stealerError = err instanceof Error ? err : new Error(publicSearchError());
-  }
-
-  try {
-    const godseye = await fetchGodsEyeSearchResult(
+  const [stealerResult, godseyeResult] = await Promise.allSettled([
+    fetchOsintCatStealerLogs(query),
+    fetchGodsEyeSearchResult(
       searchType,
       query,
       COMBINED_GODSEYE_TIMEOUT_MS,
-    );
+    ),
+  ]);
 
-    if (godseye.count > 0) {
-      parts.push(godseye);
-    }
-  } catch (err) {
-    godseyeError = err instanceof Error ? err : new Error(publicSearchError());
+  if (stealerResult.status === "fulfilled") {
+    parts.push(stealerResult.value);
+  }
+
+  if (
+    godseyeResult.status === "fulfilled" &&
+    godseyeResult.value.count > 0
+  ) {
+    parts.push(godseyeResult.value);
   }
 
   if (parts.length > 0) {
     return mergeSanitizedResponses(...parts);
   }
 
-  throw godseyeError ?? stealerError ?? new Error(publicSearchError("No results from intelligence indexes."));
+  const stealerError =
+    stealerResult.status === "rejected" &&
+    stealerResult.reason instanceof Error
+      ? stealerResult.reason
+      : null;
+
+  const godseyeError =
+    godseyeResult.status === "rejected" &&
+    godseyeResult.reason instanceof Error
+      ? godseyeResult.reason
+      : null;
+
+  throw (
+    godseyeError ??
+    stealerError ??
+    new Error(publicSearchError("No results from intelligence indexes."))
+  );
 }
 
 export async function fetchCombinedPlatformSearch(
@@ -75,41 +89,42 @@ export async function fetchCombinedPlatformSearch(
   godseyeType: GodsEyeSearchType,
 ): Promise<SanitizedBreachResponse> {
   const parts: SanitizedBreachResponse[] = [];
-  let godseyeError: Error | null = null;
-
-  try {
-    const osintcat = await fetchOptionalOsintCatPlatformSearch(
+  const [osintcatResult, godseyeResult] = await Promise.allSettled([
+    fetchOptionalOsintCatPlatformSearch(
       osintCatEndpoint,
       query,
-    );
-
-    if (osintcat && osintcat.count > 0) {
-      parts.push(osintcat);
-    }
-  } catch {
-    // OsintCat is optional when GodsEye is available.
-  }
-
-  try {
-    const godseye = await fetchGodsEyeSearchResult(
+    ),
+    fetchGodsEyeSearchResult(
       godseyeType,
       query,
       COMBINED_GODSEYE_TIMEOUT_MS,
-    );
+    ),
+  ]);
 
-    if (godseye.count > 0) {
-      parts.push(godseye);
-    }
-  } catch (err) {
-    godseyeError = err instanceof Error ? err : new Error(publicSearchError());
+  if (
+    osintcatResult.status === "fulfilled" &&
+    osintcatResult.value &&
+    osintcatResult.value.count > 0
+  ) {
+    parts.push(osintcatResult.value);
+  }
+
+  if (
+    godseyeResult.status === "fulfilled" &&
+    godseyeResult.value.count > 0
+  ) {
+    parts.push(godseyeResult.value);
   }
 
   if (parts.length > 0) {
     return mergeSanitizedResponses(...parts);
   }
 
-  if (godseyeError) {
-    throw godseyeError;
+  if (
+    godseyeResult.status === "rejected" &&
+    godseyeResult.reason instanceof Error
+  ) {
+    throw godseyeResult.reason;
   }
 
   return { count: 0, results: [] };
