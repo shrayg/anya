@@ -18,9 +18,10 @@ const Sprinkle = ({ delay, index }: { delay: number; index: number }) => {
       initial={{ opacity: 1, x: 0, y: 0 }}
       animate={{ opacity: 0, x, y }}
       transition={{ duration: 1, delay, ease: "easeOut" }}
-      className="absolute w-2 h-2 rounded-full bg-cyan-400 splash-sprinkle"
+      className="absolute h-2 w-2 rounded-full splash-sprinkle"
       style={{
-        boxShadow: "0 0 10px rgba(34, 211, 238, 0.8)",
+        backgroundColor: "var(--anya-blush)",
+        boxShadow: "0 0 10px var(--anya-blush-glow)",
       }}
     />
   );

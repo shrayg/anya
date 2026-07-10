@@ -8,9 +8,9 @@ export type NavItem = {
 };
 
 export const siteConfig = {
-  name: "Enkidu.Int",
-  navName: "Enkidu.Int",
-  description: "Enkidu.Int | OSINT intelligence platform for investigators",
+  name: "Anya.Int",
+  navName: "Anya.Int",
+  description: "Anya.Int | OSINT intelligence platform for investigators",
   tagline: "OSINT intelligence platform for investigators",
   defaultWorkspacePath: "/dashboard/search/ai-search",
   navItems: [
@@ -22,7 +22,7 @@ export const siteConfig = {
     { label: "Partner", href: "#", modal: "partner" },
   ] as NavItem[],
   links: {
-    telegram: "https://t.me/enkiduintelligence",
-    supportEmail: "support@enkidu.int",
+    telegram: "https://t.me/anyasearch",
+    supportEmail: "support@anya.int",
   },
 };

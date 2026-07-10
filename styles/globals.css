@@ -41,6 +41,11 @@
   border-color: color-mix(in srgb, var(--anya-blush) 35%, transparent);
 }
 
+.splash-sprinkle {
+  background-color: var(--anya-blush);
+  box-shadow: 0 0 10px var(--anya-blush-glow);
+}
+
 /* Hide scrollbar globally */
 ::-webkit-scrollbar {
   display: none;

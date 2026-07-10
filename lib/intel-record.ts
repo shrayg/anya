@@ -4,6 +4,8 @@ const BRAND = siteConfig.name.toLowerCase();
 
 const INTERNAL_SOURCE_LABELS = new Set([
   BRAND,
+  "anya.int",
+  "anya int",
   "enkidu.int",
   "enkidu int",
   "godseye",
@@ -37,6 +39,7 @@ export function isInternalSourceLabel(value: string): boolean {
   if (INTERNAL_SOURCE_LABELS.has(lower)) return true;
   if (lower.startsWith("godseye")) return true;
   if (lower.startsWith("osintcat")) return true;
+  if (lower.includes("anya.int") && !lower.includes(" · ")) return true;
   if (lower.includes("enkidu.int") && !lower.includes(" · ")) return true;
 
   return false;

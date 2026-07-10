@@ -8,6 +8,11 @@ import { isDiscordSnowflake } from "@/lib/osintcat";
 const GODSEYE_BASE = "https://godseye.cat";
 const DEFAULT_GODSEYE_SEARCH_TIMEOUT_MS = 25_000;
 
+/** GodsEye is on by default. Set GODSEYE_ENABLED=false to disable without removing keys. */
+export function isGodsEyeEnabled(): boolean {
+  return process.env.GODSEYE_ENABLED !== "false";
+}
+
 export function sanitizeGodsEyeUserError(message: string): string {
   const lower = message.toLowerCase();
 
@@ -142,10 +147,14 @@ const MODULE_TO_SEARCH_TYPE: Record<string, GodsEyeSearchType> = {
 };
 
 export function getGodsEyeApiKey(): string | undefined {
+  if (!isGodsEyeEnabled()) return undefined;
+
   return process.env.GODSEYE_API_KEY;
 }
 
 export function getGodsEyeExportApiKey(): string | undefined {
+  if (!isGodsEyeEnabled()) return undefined;
+
   return process.env.GODSEYE_EXPORT_API_KEY;
 }
 

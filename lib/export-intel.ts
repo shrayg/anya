@@ -64,7 +64,7 @@ export function safeExportFilename(label: string) {
 
   const stamp = new Date().toISOString().slice(0, 10);
 
-  return `enkidu-intel-${slug || "export"}-${stamp}.txt`;
+  return `anya-intel-${slug || "export"}-${stamp}.txt`;
 }
 
 export function downloadTextFile(filename: string, content: string) {

@@ -11,7 +11,7 @@ const PRESENCE_TTL_MS = 45_000;
 let messages: WaitingRoomMessage[] = [
   {
     id: 1,
-    username: "Enkidu.Int",
+    username: "Anya.Int",
     text: "Welcome to the community channel.",
     createdAt: new Date().toISOString(),
   },

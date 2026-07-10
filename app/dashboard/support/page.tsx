@@ -53,7 +53,7 @@ export default function CoffeeSupportPage() {
       .then((response) => response.json())
       .then((data) => {
         if (data?.user?.username) {
-          setEmail(`${data.user.username}@enkidu.local`);
+          setEmail(`${data.user.username}@anya.local`);
         }
       })
       .catch(() => undefined);
@@ -97,7 +97,7 @@ export default function CoffeeSupportPage() {
             </a>
             <DashButton variant="secondary">
               <Mail className="size-4" />
-              support@enkidu.int
+              {siteConfig.links.supportEmail}
             </DashButton>
           </div>
         </div>

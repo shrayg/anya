@@ -2,7 +2,7 @@
  * Site branding + lime test theme toggle.
  * Set `TEST_LIME_ICON_THEME` to false to restore the original pink logo + blush palette.
  */
-export const TEST_LIME_ICON_THEME = true;
+export const TEST_LIME_ICON_THEME = false;
 
 export const siteLogoSrc = TEST_LIME_ICON_THEME
   ? "/images/anya-icon-test.png"
