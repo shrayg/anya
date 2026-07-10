@@ -15,7 +15,7 @@ export default function Home() {
       <HomeBackground />
 
       <section className="relative z-20 flex min-h-[calc(100vh-12rem)] flex-col items-center justify-center gap-8 py-12 text-center">
-        <div className="flex max-w-4xl flex-col items-center gap-5">
+        <div className="flex max-w-4xl flex-col items-center gap-5 overflow-visible">
           <ShinyText
             className="z-20 text-5xl font-extrabold tracking-normal transition-all ease-in-out md:text-8xl"
             text={siteConfig.name}
