@@ -161,7 +161,7 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
             <div className="relative mb-3">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
               <DashInput
-                className="pl-9"
+                className="dash-input--icon"
                 onChange={(event) => setFilter(event.target.value)}
                 placeholder="Filter searches..."
                 value={filter}

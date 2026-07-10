@@ -401,7 +401,7 @@ export function AdminUsersPanel() {
                           {isWorkspaceAdmin ? "Revoke admin dashboard" : "Grant admin dashboard"}
                         </button>
                         <p className="mt-2 text-[10px] text-zinc-500">
-                          Admin unlocks the sidebar Admin Panel and Settings controls
+                          Admin unlocks the sidebar Admin Dashboard
                         </p>
                       </td>
                       <td className="px-3 py-4">

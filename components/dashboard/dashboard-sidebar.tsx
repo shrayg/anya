@@ -43,6 +43,15 @@ type NavItem = {
   badge?: string;
 };
 
+const SECTION_TOUR_ATTR: Record<string, string> = {
+  "Stealer Intel": "section-stealer",
+  "Breach & Leaks": "section-breach",
+  Identity: "section-identity",
+  Network: "section-network",
+  "Financial & Assets": "section-financial",
+  Platforms: "section-platforms",
+};
+
 const AI_BADGES: Record<string, string> = {
   "AI Search": "NEW",
   "AI Deep Scan": "NEW",
@@ -66,7 +75,7 @@ function isNavActive(item: NavItem, pathname: string) {
   if (item.name === "Settings") {
     return pathname.startsWith("/dashboard/settings");
   }
-  if (item.name === "Admin Panel") {
+  if (item.name === "Admin Dashboard") {
     return pathname.startsWith("/dashboard/settings");
   }
   if (item.name === "Coffee Support") {
@@ -84,11 +93,13 @@ function SidebarLink({
   pathname,
   coffee,
   collapsed,
+  dataTour,
 }: {
   item: NavItem;
   pathname: string;
   coffee?: boolean;
   collapsed?: boolean;
+  dataTour?: string;
 }) {
   const isActive = isNavActive(item, pathname);
 
@@ -100,6 +111,7 @@ function SidebarLink({
         isActive && "dash-nav-link-active",
         coffee && "dash-nav-link-coffee",
       )}
+      data-tour={dataTour}
       href={item.href}
       prefetch
       title={item.name}
@@ -203,11 +215,13 @@ export function DashboardSidebar({ username }: { username: string }) {
   const [moduleQuery, setModuleQuery] = useState("");
 
   const footerItems = useMemo<NavItem[]>(() => {
-    const items = [...footerNav];
+    const items = profile.canManageWorkspace
+      ? footerNav.filter((item) => item.name !== "Settings")
+      : [...footerNav];
 
     if (profile.canManageWorkspace) {
       items.unshift({
-        name: "Admin Panel",
+        name: "Admin Dashboard",
         href: "/dashboard/settings#admin",
         icon: Shield,
         badge: "ADMIN",
@@ -216,6 +230,10 @@ export function DashboardSidebar({ username }: { username: string }) {
 
     return items;
   }, [profile.canManageWorkspace]);
+
+  const accountHref = profile.canManageWorkspace
+    ? "/dashboard/settings#admin"
+    : "/dashboard/settings";
 
   const isModuleLocked = (slug: string) =>
     !checkModuleAccess(plan, slug, { balance }).allowed;
@@ -293,9 +311,10 @@ export function DashboardSidebar({ username }: { username: string }) {
       {!collapsed && (
         <div className="border-b border-white/6 px-4 pb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
             <input
-              className="dash-input py-2 pl-9 pr-3"
+              className="dash-input dash-input--icon py-2 pr-3"
+              data-tour="sidebar-filter"
               onChange={(event) => setModuleQuery(event.target.value)}
               placeholder="Filter modules..."
               value={moduleQuery}
@@ -304,12 +323,13 @@ export function DashboardSidebar({ username }: { username: string }) {
         </div>
       )}
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      <div className="flex-1 space-y-5 overflow-y-auto px-3 py-4" data-tour="sidebar-scroll">
         <div className="space-y-1">
           {mainNav.map((item) => (
             <SidebarLink
               key={item.name}
               collapsed={collapsed}
+              dataTour={item.name === "Case ID" ? "case-id" : undefined}
               item={item}
               pathname={pathname}
             />
@@ -337,7 +357,7 @@ export function DashboardSidebar({ username }: { username: string }) {
         ) : (
           <>
             {filteredAiItems.length > 0 && (
-              <div>
+              <div data-tour="section-ai">
                 <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   AI Intelligence
                 </p>
@@ -358,7 +378,10 @@ export function DashboardSidebar({ username }: { username: string }) {
             )}
 
             {filteredSections.map((section) => (
-              <div key={section.title}>
+              <div
+                data-tour={SECTION_TOUR_ATTR[section.title]}
+                key={section.title}
+              >
                 <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   {section.title}
                 </p>
@@ -386,6 +409,13 @@ export function DashboardSidebar({ username }: { username: string }) {
             key={item.name}
             coffee={item.name === "Coffee Support"}
             collapsed={collapsed}
+            dataTour={
+              item.name === "Settings"
+                ? "footer-settings"
+                : item.name === "Admin Dashboard"
+                  ? "footer-admin"
+                  : undefined
+            }
             item={item}
             pathname={pathname}
           />
@@ -397,7 +427,7 @@ export function DashboardSidebar({ username }: { username: string }) {
           <div className="flex flex-col items-center gap-2">
             <Link
               className="flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-white ring-2 ring-transparent"
-              href="/dashboard/settings"
+              href={accountHref}
               title={username}
             >
               {username.charAt(0).toUpperCase()}

@@ -54,7 +54,7 @@ export default function SettingsPage() {
             <div className="anya-hero-main">
               <span className="anya-hero-kicker">admin workspace</span>
               <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
-                Admin Panel
+                Admin Dashboard
               </h1>
               <p className="anya-hero-lede">
                 Manage users, plans, account status, and workspace activity for{" "}
@@ -65,49 +65,51 @@ export default function SettingsPage() {
           <AdminWorkspaceDashboard />
           <AdminUsersPanel />
         </section>
-      ) : null}
+      ) : (
+        <>
+          <section className="anya-hero mb-10">
+            <div className="anya-hero-main">
+              <span className="anya-hero-kicker">settings</span>
+              <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
+                Account
+              </h1>
+              <p className="anya-hero-lede">
+                Plan, usage limits, and membership details for{" "}
+                <em>{profile?.username ?? "your account"}</em>
+                {profile?.staffRole ? (
+                  <>
+                    {" "}
+                    <StaffBadge role={profile.staffRole} size="sm" />
+                  </>
+                ) : null}
+                .
+              </p>
+              <div className="anya-hero-actions">
+                <span className="anya-pill">
+                  <Shield className="size-3" />
+                  2FA not enabled
+                </span>
+                <button className="anya-link-btn" type="button">
+                  Enable now
+                </button>
+                <UpgradeLink />
+              </div>
+            </div>
+          </section>
 
-      <section className="anya-hero mb-10">
-        <div className="anya-hero-main">
-          <span className="anya-hero-kicker">settings</span>
-          <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
-            Account
-          </h1>
-          <p className="anya-hero-lede">
-            Plan, usage limits, and membership details for{" "}
-            <em>{profile?.username ?? "your account"}</em>
-            {profile?.staffRole ? (
-              <>
-                {" "}
-                <StaffBadge role={profile.staffRole} size="sm" />
-              </>
-            ) : null}
-            .
-          </p>
-          <div className="anya-hero-actions">
-            <span className="anya-pill">
-              <Shield className="size-3" />
-              2FA not enabled
-            </span>
-            <button className="anya-link-btn" type="button">
-              Enable now
-            </button>
-            <UpgradeLink />
-          </div>
-        </div>
-      </section>
+          <section className="mb-8 max-w-md">
+            <AccountStatRail
+              credits={formatBalance(profile?.balance)}
+              profile={profile}
+              stats={stats}
+            />
+          </section>
 
-      <section className="mb-8 max-w-md">
-        <AccountStatRail
-          credits={formatBalance(profile?.balance)}
-          profile={profile}
-          stats={stats}
-        />
-      </section>
-
-      <section className="max-w-2xl">
-        <AccountUsagePanel stats={stats} />
-      </section>
+          <section className="max-w-2xl">
+            <AccountUsagePanel stats={stats} />
+          </section>
+        </>
+      )}
     </div>
   );
 }

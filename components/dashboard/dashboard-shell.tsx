@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 
+import { DashboardTour } from "@/components/dashboard/dashboard-tour";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { FrozenAccountOverlay } from "@/components/dashboard/frozen-account-overlay";
 import { HomeBackground } from "@/components/home-background";
@@ -34,7 +35,10 @@ function DashboardShellInner({
     >
       <HomeBackground />
       <DashboardSidebar username={username} />
-      <main className={clsx("dash-main", isFrozen && "dash-main--frozen")}>{children}</main>
+      <main className={clsx("dash-main", isFrozen && "dash-main--frozen")} data-tour="main-content">
+        {children}
+      </main>
+      <DashboardTour />
       {isFrozen ? <FrozenAccountOverlay username={username} /> : null}
     </div>
   );

@@ -842,6 +842,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             {isSummary ? (
               <textarea
                 className="ui-input min-h-[7rem] flex-1 resize-y font-mono text-sm"
+                data-tour="search-input"
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Paste intel, JSON, logs, or case notes…"
                 value={query}
@@ -850,6 +851,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               <input
                 autoFocus
                 className="ui-input flex-1"
+                data-tour="search-input"
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={moduleDef.hint}
                 value={query}

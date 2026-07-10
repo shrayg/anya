@@ -34,7 +34,7 @@ export default function SearchHubPage() {
   }, [filter, sections]);
 
   return (
-    <div className="module-search px-6 py-6 md:px-8 md:py-8">
+    <div className="module-search px-6 py-6 md:px-8 md:py-8" data-tour="search-hub">
       <header className="module-search-hero">
         <h1 className="module-search-title">Pick a module</h1>
         <p className="module-search-tagline">
@@ -44,9 +44,9 @@ export default function SearchHubPage() {
       </header>
 
       <div className="relative mb-8 max-w-xl">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
         <input
-          className="ui-input py-2.5 pl-10"
+          className="ui-input ui-input--icon py-2.5"
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filter modules…"
           value={filter}
