@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ExternalLink, Shield } from "lucide-react";
 import clsx from "clsx";
 
+import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import {
   formatDiscordCreatedAt,
@@ -408,11 +409,7 @@ export function DiscordSearchResults({
         </section>
       </div>
 
-      {blurResults && (
-        <p className="mt-4 text-xs text-zinc-500">
-          Results are blurred on the Free plan. Upgrade to reveal full values.
-        </p>
-      )}
+      {blurResults ? <ResultsBlurNotice /> : null}
     </div>
   );
 }

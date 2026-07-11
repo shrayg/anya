@@ -5,6 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
 
 const PAGE_SIZE = 8;
@@ -206,11 +207,7 @@ export function SearchResultCards({
         </button>
       ) : null}
 
-      {blurResults ? (
-        <p className="text-xs text-zinc-500">
-          Results are blurred on the Free plan. Upgrade to reveal full values.
-        </p>
-      ) : null}
+      {blurResults ? <ResultsBlurNotice /> : null}
     </div>
   );
 }

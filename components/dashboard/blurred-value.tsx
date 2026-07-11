@@ -31,14 +31,14 @@ export function BlurredValue({
   }
 
   return (
-    <span>
+    <span className="blur-value-wrap">
       {chars.map((char, index) => {
         const blurred = blurIndices.has(index) && !unblurIndices.has(index);
 
         return (
           <span
             key={`${index}-${char}`}
-            className={blurred ? "rounded bg-white/15 blur-sm" : undefined}
+            className={blurred ? "blur-value-char" : undefined}
           >
             {blurred ? "█" : char}
           </span>

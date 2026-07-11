@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { themeAccent } from "@/config/branding";
 import type { AiIntelResult } from "@/lib/ai-intel";
 
@@ -141,11 +142,7 @@ export function AiSearchResults({
         </div>
       )}
 
-      {blurResults && (
-        <p className="text-xs text-zinc-500">
-          Results are blurred on the Free plan. Upgrade to reveal full values.
-        </p>
-      )}
+      {blurResults ? <ResultsBlurNotice /> : null}
 
       <p className="text-[10px] uppercase tracking-widest text-zinc-600">
         Sources: {result.sources.join(" · ")} · {result.elapsedMs}ms
