@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
@@ -24,6 +25,7 @@ import type { NavItem } from "@/config/site";
 import { getAppLandingPath } from "@/lib/plans";
 
 export const Navbar = () => {
+  const pathname = usePathname();
   const [username, setUsername] = useState<string | null>(null);
   const [appPath, setAppPath] = useState("/#search");
   const [workspaceLabel, setWorkspaceLabel] = useState("Search");
@@ -31,8 +33,8 @@ export const Navbar = () => {
   const [pricingOpen, setPricingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/auth/me")
+  const loadAuth = useCallback(() => {
+    fetch("/api/auth/me", { cache: "no-store", credentials: "include" })
       .then((response) => response.json())
       .then((data) => {
         if (data?.authenticated && data.user?.username) {
@@ -43,10 +45,23 @@ export const Navbar = () => {
           });
           setAppPath(landing);
           setWorkspaceLabel(landing.startsWith("/dashboard") ? "Workspace" : "Search");
+          return;
         }
+
+        setUsername(null);
+        setAppPath("/#search");
+        setWorkspaceLabel("Search");
       })
-      .catch(() => undefined);
+      .catch(() => {
+        setUsername(null);
+        setAppPath("/#search");
+        setWorkspaceLabel("Search");
+      });
   }, []);
+
+  useEffect(() => {
+    loadAuth();
+  }, [loadAuth, pathname]);
 
   useEffect(() => {
     if (window.location.hash !== "#pricing") return;

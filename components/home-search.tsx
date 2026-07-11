@@ -50,6 +50,15 @@ export function HomeSearch() {
   const [blurResults, setBlurResults] = useState(false);
 
   useEffect(() => {
+    if (window.location.hash === "#search") {
+      document.getElementById("search")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     Promise.all([
       fetch("/api/auth/me", { cache: "no-store" }).then((response) => response.json()),
       fetch("/api/user/stats", { cache: "no-store" })

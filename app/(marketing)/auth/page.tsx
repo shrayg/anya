@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import NextLink from "next/link";
 import Image from "next/image";
 import clsx from "clsx";
@@ -14,7 +14,6 @@ import { MIN_PASSWORD_LENGTH, MIN_USERNAME_LENGTH } from "@/lib/password-policy"
 import { getAppLandingPath } from "@/lib/plans";
 
 function AuthForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const initialAction = searchParams.get("action") === "register" ? "register" : "login";
   const [mode, setMode] = useState<"login" | "register">(initialAction);
@@ -37,6 +36,7 @@ function AuthForm() {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ username, password }),
       });
       const data = await response.json();
@@ -46,16 +46,23 @@ function AuthForm() {
         return;
       }
 
-      const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
+      const meResponse = await fetch("/api/auth/me", {
+        cache: "no-store",
+        credentials: "include",
+      });
       const meData = await meResponse.json();
 
-      router.push(
-        getAppLandingPath({
-          ...(meData.user ?? data.user ?? {}),
-          canManageWorkspace: meData.canManageWorkspace,
-        }),
-      );
-      router.refresh();
+      if (!meResponse.ok || !meData?.authenticated) {
+        setError("Login succeeded but the session could not be created. Refresh and try again.");
+        return;
+      }
+
+      const landingPath = getAppLandingPath({
+        ...(meData.user ?? data.user ?? {}),
+        canManageWorkspace: meData.canManageWorkspace,
+      });
+
+      window.location.assign(landingPath);
     } catch {
       setError("Could not reach the server.");
     } finally {

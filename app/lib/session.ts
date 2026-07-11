@@ -10,9 +10,20 @@ function shouldUseSecureCookies() {
   if (process.env.COOKIE_SECURE === "false") return false;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
-  if (appUrl) return appUrl.startsWith("https://");
+  if (appUrl) {
+    try {
+      const hostname = new URL(appUrl).hostname;
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        return false;
+      }
+    } catch {
+      // ignore invalid URL values
+    }
 
-  return false;
+    return appUrl.startsWith("https://");
+  }
+
+  return process.env.NODE_ENV === "production";
 }
 
 export async function encrypt(payload: any) {
