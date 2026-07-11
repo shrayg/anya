@@ -8,16 +8,11 @@ import { BlurredValue } from "@/components/dashboard/blurred-value";
 import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
 
 const PAGE_SIZE = 8;
-const PREVIEW_FIELD_LIMIT = 4;
 const VALUE_PREVIEW_LENGTH = 72;
 
 function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
   if (value.length <= max) return value;
   return `${value.slice(0, max)}…`;
-}
-
-function previewFields(fields: FormattedField[]) {
-  return fields.slice(0, PREVIEW_FIELD_LIMIT);
 }
 
 function ResultField({
@@ -125,7 +120,6 @@ export function SearchResultCards({
         {visibleRecords.map((record) => {
           const isExpanded = expanded.has(record.index);
           const selected = selectedExportIndex === record.index;
-          const fields = isExpanded ? record.fields : previewFields(record.fields);
 
           return (
             <article
@@ -184,22 +178,18 @@ export function SearchResultCards({
                 </div>
               </header>
 
-              {!isExpanded && record.fields.length > PREVIEW_FIELD_LIMIT ? (
-                <p className="anya-result-more-hint">
-                  +{record.fields.length - PREVIEW_FIELD_LIMIT} more fields
-                </p>
-              ) : null}
-
-              <div className="anya-result-card-body">
-                {fields.map((field) => (
-                  <ResultField
-                    blurResults={blurResults}
-                    expanded={isExpanded}
-                    field={field}
-                    key={`${record.index}-${field.key}`}
-                  />
-                ))}
-              </div>
+              {!isExpanded ? null : (
+                <div className="anya-result-card-body">
+                  {record.fields.map((field) => (
+                    <ResultField
+                      blurResults={blurResults}
+                      expanded={isExpanded}
+                      field={field}
+                      key={`${record.index}-${field.key}`}
+                    />
+                  ))}
+                </div>
+              )}
             </article>
           );
         })}

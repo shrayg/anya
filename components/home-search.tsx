@@ -223,7 +223,7 @@ export function HomeSearch() {
     });
 
   return (
-    <div className="home-search w-full max-w-3xl px-2" id="search">
+    <div className="home-search w-full max-w-5xl px-2" id="search">
       <p className="mb-3 text-sm text-zinc-400">
         What would you like to investigate?
       </p>

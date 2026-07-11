@@ -15,14 +15,8 @@ import { formatSearchRecords, type FormattedRecord } from "@/lib/search-utils";
 
 type DiscordTab = "intel" | "leaks" | "fivem";
 
-const LEAK_PAGE_SIZE = 6;
-const LEAK_PREVIEW_FIELDS = 4;
+const LEAK_PAGE_SIZE = 5;
 const LEAK_VALUE_PREVIEW = 72;
-
-function truncateLeakValue(value: string, max = LEAK_VALUE_PREVIEW) {
-  if (value.length <= max) return value;
-  return `${value.slice(0, max)}…`;
-}
 
 function DiscordLeakRecords({
   records,
@@ -70,7 +64,9 @@ function DiscordLeakRecords({
           <span className="discord-leak-meta-pill">
             {shown} record{shown === 1 ? "" : "s"}
           </span>
-          {total > shown ? `${total} total in index` : "Breach & stealer matches"}
+          <span className="discord-leak-meta-detail">
+            {total > shown ? `${total} total in index` : "Breach & stealer matches"}
+          </span>
         </p>
         {expanded.size > 0 ? (
           <button
@@ -86,9 +82,7 @@ function DiscordLeakRecords({
       <div className="discord-leak-list">
         {visibleRecords.map((record) => {
           const isExpanded = expanded.has(record.index);
-          const fields = isExpanded
-            ? record.fields
-            : record.fields.slice(0, LEAK_PREVIEW_FIELDS);
+          const fields = record.fields;
 
           return (
             <article
@@ -119,46 +113,34 @@ function DiscordLeakRecords({
                 </div>
               </header>
 
-              {!isExpanded && record.fields.length > LEAK_PREVIEW_FIELDS ? (
-                <p className="discord-leak-more-hint">
-                  +{record.fields.length - LEAK_PREVIEW_FIELDS} more fields
-                </p>
-              ) : null}
-
-              <div className="discord-leak-fields">
-                {fields.map((field) => (
-                  <div
-                    key={`${record.index}-${field.key}`}
-                    className={clsx(
-                      "discord-leak-field",
-                      field.sensitive && "discord-leak-field--sensitive",
-                    )}
-                  >
-                    <span className="discord-leak-label">{field.label}</span>
-                    <span
+              {!isExpanded ? null : (
+                <div className="discord-leak-fields">
+                  {fields.map((field) => (
+                    <div
+                      key={`${record.index}-${field.key}`}
                       className={clsx(
-                        "discord-leak-value",
-                        !isExpanded && "discord-leak-value--clamp",
-                        field.highlight && "discord-leak-value--accent",
+                        "discord-leak-field",
+                        field.sensitive && "discord-leak-field--sensitive",
                       )}
-                      title={
-                        field.value.length > LEAK_VALUE_PREVIEW
-                          ? field.value
-                          : undefined
-                      }
                     >
-                      <BlurredValue
-                        forceBlur={blurResults}
-                        text={
-                          isExpanded
+                      <span className="discord-leak-label">{field.label}</span>
+                      <span
+                        className={clsx(
+                          "discord-leak-value",
+                          field.highlight && "discord-leak-value--accent",
+                        )}
+                        title={
+                          field.value.length > LEAK_VALUE_PREVIEW
                             ? field.value
-                            : truncateLeakValue(field.value)
+                            : undefined
                         }
-                      />
-                    </span>
-                  </div>
-                ))}
-              </div>
+                      >
+                        <BlurredValue forceBlur={blurResults} text={field.value} />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </article>
           );
         })}
