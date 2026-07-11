@@ -336,7 +336,7 @@ export function hasWorkspaceDashboardAccess(
   if (user.canManageWorkspace) return true;
 
   const plan = resolveUserPlan(user);
-  return PLAN_RANK[plan] > PLAN_RANK.professional;
+  return PLAN_RANK[plan] >= PLAN_RANK.professional;
 }
 
 export function getAppLandingPath(

@@ -22,13 +22,13 @@ import { PricingModal } from "@/components/pricing-modal";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
-import { getAppLandingPath } from "@/lib/plans";
+import { getAppLandingPath, hasWorkspaceDashboardAccess } from "@/lib/plans";
 
 export const Navbar = () => {
   const pathname = usePathname();
   const [username, setUsername] = useState<string | null>(null);
-  const [appPath, setAppPath] = useState("/#search");
-  const [workspaceLabel, setWorkspaceLabel] = useState("Search");
+  const [workspacePath, setWorkspacePath] = useState("/dashboard/search/ai-search");
+  const [showWorkspace, setShowWorkspace] = useState(false);
   const [partnerOpen, setPartnerOpen] = useState(false);
   const [pricingOpen, setPricingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -39,23 +39,23 @@ export const Navbar = () => {
       .then((data) => {
         if (data?.authenticated && data.user?.username) {
           setUsername(data.user.username);
-          const landing = getAppLandingPath({
+          const user = {
             ...data.user,
             canManageWorkspace: data.canManageWorkspace,
-          });
-          setAppPath(landing);
-          setWorkspaceLabel(landing.startsWith("/dashboard") ? "Workspace" : "Search");
+          };
+          setShowWorkspace(hasWorkspaceDashboardAccess(user));
+          setWorkspacePath(getAppLandingPath(user));
           return;
         }
 
         setUsername(null);
-        setAppPath("/#search");
-        setWorkspaceLabel("Search");
+        setShowWorkspace(false);
+        setWorkspacePath("/dashboard/search/ai-search");
       })
       .catch(() => {
         setUsername(null);
-        setAppPath("/#search");
-        setWorkspaceLabel("Search");
+        setShowWorkspace(false);
+        setWorkspacePath("/dashboard/search/ai-search");
       });
   }, []);
 
@@ -160,15 +160,17 @@ export const Navbar = () => {
                 <span className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300">
                   {username}
                 </span>
-                <Button
-                  as={NextLink}
-                  className="font-semibold"
-                  color="default"
-                  href={appPath}
-                  variant="flat"
-                >
-                  {workspaceLabel}
-                </Button>
+                {showWorkspace ? (
+                  <Button
+                    as={NextLink}
+                    className="font-semibold"
+                    color="default"
+                    href={workspacePath}
+                    variant="flat"
+                  >
+                    Workspace
+                  </Button>
+                ) : null}
                 <Button
                   className="font-semibold"
                   color="default"
@@ -248,9 +250,11 @@ export const Navbar = () => {
             <NavbarMenuItem className="mt-4 flex flex-col gap-2">
               {username ? (
                 <>
-                  <Button as={NextLink} href={appPath} variant="flat">
-                    {workspaceLabel}
-                  </Button>
+                  {showWorkspace ? (
+                    <Button as={NextLink} href={workspacePath} variant="flat">
+                      Workspace
+                    </Button>
+                  ) : null}
                   <Button variant="light" onPress={handleLogout}>
                     Log out
                   </Button>
