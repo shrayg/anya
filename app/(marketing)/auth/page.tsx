@@ -11,6 +11,7 @@ import { HomeBackground } from "@/components/home-background";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import { MIN_PASSWORD_LENGTH, MIN_USERNAME_LENGTH } from "@/lib/password-policy";
+import { getAppLandingPath } from "@/lib/plans";
 
 function AuthForm() {
   const router = useRouter();
@@ -45,7 +46,15 @@ function AuthForm() {
         return;
       }
 
-      router.push(siteConfig.defaultWorkspacePath);
+      const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
+      const meData = await meResponse.json();
+
+      router.push(
+        getAppLandingPath({
+          ...(meData.user ?? data.user ?? {}),
+          canManageWorkspace: meData.canManageWorkspace,
+        }),
+      );
       router.refresh();
     } catch {
       setError("Could not reach the server.");

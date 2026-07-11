@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 
 import { useDashboardSidebar } from "@/components/dashboard/dashboard-sidebar-context";
+import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import {
   DASHBOARD_TOUR_STEPS,
   DASHBOARD_TOUR_STORAGE_KEY,
   resolveTourTarget,
   type DashboardTourStep,
 } from "@/lib/dashboard-tour";
+import { hasWorkspaceDashboardAccess } from "@/lib/plans";
 
 type SpotlightRect = {
   top: number;
@@ -66,6 +68,11 @@ function measureTooltip(
 
 export function DashboardTour() {
   const { collapsed, toggleCollapsed } = useDashboardSidebar();
+  const user = useDashboardUser();
+  const hasWorkspace = hasWorkspaceDashboardAccess({
+    ...user,
+    canManageWorkspace: user.canManageWorkspace,
+  });
   const [active, setActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
@@ -107,6 +114,8 @@ export function DashboardTour() {
   }, [active, isCentered, step]);
 
   useEffect(() => {
+    if (!hasWorkspace) return;
+
     try {
       if (localStorage.getItem(DASHBOARD_TOUR_STORAGE_KEY) === "done") {
         return;
@@ -117,9 +126,10 @@ export function DashboardTour() {
 
     const timer = window.setTimeout(() => setActive(true), 600);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [hasWorkspace]);
 
   useEffect(() => {
+    if (!hasWorkspace) return;
     if (!active || !step?.target) return;
     if (collapsed) toggleCollapsed();
   }, [active, collapsed, step?.target, toggleCollapsed]);
@@ -149,7 +159,7 @@ export function DashboardTour() {
     setStepIndex((current) => current + 1);
   };
 
-  if (!active || !step) return null;
+  if (!active || !step || !hasWorkspace) return null;
 
   return (
     <div className="dashboard-tour" role="dialog" aria-modal="true" aria-label="Workspace tour">

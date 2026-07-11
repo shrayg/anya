@@ -3,6 +3,7 @@
 import { ShieldCheck, Users } from "lucide-react";
 
 import { HomeBackground } from "@/components/home-background";
+import { HomeSearch } from "@/components/home-search";
 import { IntelligenceModulesSection } from "@/components/intelligence-modules-section";
 import ShinyText from "@/components/shiny-text";
 import { siteConfig } from "@/config/site";
@@ -23,6 +24,8 @@ export default function Home() {
             and social modules, and file intel into cases.
           </p>
         </div>
+
+        <HomeSearch />
 
         <div className="grid w-full max-w-3xl gap-3 px-2 md:grid-cols-2">
           <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-4 text-left backdrop-blur-xl">

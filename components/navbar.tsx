@@ -21,9 +21,12 @@ import { PricingModal } from "@/components/pricing-modal";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
+import { getAppLandingPath } from "@/lib/plans";
 
 export const Navbar = () => {
   const [username, setUsername] = useState<string | null>(null);
+  const [appPath, setAppPath] = useState("/#search");
+  const [workspaceLabel, setWorkspaceLabel] = useState("Search");
   const [partnerOpen, setPartnerOpen] = useState(false);
   const [pricingOpen, setPricingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -34,6 +37,12 @@ export const Navbar = () => {
       .then((data) => {
         if (data?.authenticated && data.user?.username) {
           setUsername(data.user.username);
+          const landing = getAppLandingPath({
+            ...data.user,
+            canManageWorkspace: data.canManageWorkspace,
+          });
+          setAppPath(landing);
+          setWorkspaceLabel(landing.startsWith("/dashboard") ? "Workspace" : "Search");
         }
       })
       .catch(() => undefined);
@@ -140,10 +149,10 @@ export const Navbar = () => {
                   as={NextLink}
                   className="font-semibold"
                   color="default"
-                  href={siteConfig.defaultWorkspacePath}
+                  href={appPath}
                   variant="flat"
                 >
-                  Workspace
+                  {workspaceLabel}
                 </Button>
                 <Button
                   className="font-semibold"
@@ -224,8 +233,8 @@ export const Navbar = () => {
             <NavbarMenuItem className="mt-4 flex flex-col gap-2">
               {username ? (
                 <>
-                  <Button as={NextLink} href={siteConfig.defaultWorkspacePath} variant="flat">
-                    Workspace
+                  <Button as={NextLink} href={appPath} variant="flat">
+                    {workspaceLabel}
                   </Button>
                   <Button variant="light" onPress={handleLogout}>
                     Log out

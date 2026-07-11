@@ -329,3 +329,20 @@ export function getDisplayPrice(plan: PlanDefinition, useSale = RELEASE_SALE) {
     sale: false,
   };
 }
+
+export function hasWorkspaceDashboardAccess(
+  user: UserPlanRecord & { canManageWorkspace?: boolean },
+): boolean {
+  if (user.canManageWorkspace) return true;
+
+  const plan = resolveUserPlan(user);
+  return PLAN_RANK[plan] > PLAN_RANK.professional;
+}
+
+export function getAppLandingPath(
+  user: UserPlanRecord & { canManageWorkspace?: boolean },
+): string {
+  return hasWorkspaceDashboardAccess(user)
+    ? "/dashboard/search/ai-search"
+    : "/#search";
+}

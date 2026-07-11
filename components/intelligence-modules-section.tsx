@@ -17,7 +17,9 @@ import {
   type CatalogLane,
   type CatalogModule,
 } from "@/lib/featured-modules";
+import { hasWorkspaceDashboardAccess } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
+import { useEffect, useState } from "react";
 
 function CatalogIcon({ name }: { name: string }) {
   if (hasPlatformBrandIcon(name)) {
@@ -96,6 +98,28 @@ const COMPACT_LANE_LABELS = new Set([
 ]);
 
 export function IntelligenceModulesSection() {
+  const [hideCatalog, setHideCatalog] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data?.authenticated || !data.user) return;
+
+        const homepageOnly = !hasWorkspaceDashboardAccess({
+          ...data.user,
+          canManageWorkspace: data.canManageWorkspace,
+        });
+
+        setHideCatalog(homepageOnly);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  if (hideCatalog) {
+    return null;
+  }
+
   const aiModules = CATALOG_LANES.find((lane) => lane.isAi)?.modules ?? [];
   const compactLanes = STANDARD_CATALOG_LANES.filter((lane) =>
     COMPACT_LANE_LABELS.has(lane.label),

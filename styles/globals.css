@@ -2576,3 +2576,92 @@
 .dashboard-tour-next:hover {
   background: #e4e4e7;
 }
+
+/* ── Homepage search bar ── */
+.home-search-form {
+  width: 100%;
+}
+
+.home-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.45rem 0.5rem 0.45rem 0.85rem;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 18px 40px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-search-input-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--anya-blush) 20%, transparent),
+    0 0 24px color-mix(in srgb, var(--anya-blush) 12%, transparent);
+}
+
+.home-search-icon {
+  size: 1.1rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  color: rgba(161, 161, 170, 0.95);
+}
+
+.home-search-input {
+  min-width: 0;
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.65rem 0;
+  font-size: 0.95rem;
+  color: #fff;
+  outline: none;
+}
+
+.home-search-input::placeholder {
+  color: rgba(113, 113, 122, 0.95);
+}
+
+.home-search-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #fff;
+  color: #0a0a0a;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.home-search-submit:hover:not(:disabled) {
+  background: #e4e4e7;
+}
+
+.home-search-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.home-search-error {
+  margin-top: 1rem;
+  border-left: 2px solid rgba(248, 113, 113, 0.6);
+  background: rgba(248, 113, 113, 0.08);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.86rem;
+  color: #fecaca;
+}
+
+.home-search-results {
+  margin-top: 1.25rem;
+  text-align: left;
+}

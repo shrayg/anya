@@ -3,6 +3,7 @@
 import clsx from "clsx";
 
 import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import { WorkspaceAccessGuard } from "@/components/dashboard/workspace-access-guard";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { FrozenAccountOverlay } from "@/components/dashboard/frozen-account-overlay";
 import { HomeBackground } from "@/components/home-background";
@@ -39,6 +40,7 @@ function DashboardShellInner({
         {children}
       </main>
       <DashboardTour />
+      <WorkspaceAccessGuard />
       {isFrozen ? <FrozenAccountOverlay username={username} /> : null}
     </div>
   );
