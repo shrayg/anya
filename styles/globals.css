@@ -1032,17 +1032,122 @@
 }
 
 .anya-result-value {
-  margin-top: 0.35rem;
-  word-break: break-all;
+  margin-top: 0.2rem;
+  word-break: break-word;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.82rem;
-  line-height: 1.5;
+  font-size: 0.74rem;
+  line-height: 1.35;
   color: rgba(228, 228, 231, 1);
+}
+
+.anya-result-value--clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .anya-result-card-body {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .anya-result-card--expanded .anya-result-card-body {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .anya-result-card {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
+  border-radius: 0.55rem;
+  overflow: hidden;
+}
+
+.anya-result-stack {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.anya-result-stack-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.anya-result-stack-action,
+.anya-result-load-more {
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.35rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #d4d4d8;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.anya-result-stack-action:hover,
+.anya-result-load-more:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.anya-result-load-more {
+  justify-self: center;
+}
+
+.anya-result-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.anya-result-card--selectable {
+  cursor: pointer;
+}
+
+.anya-result-card--selectable:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.anya-result-card--selected {
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anya-blush) 25%, transparent);
+}
+
+.anya-result-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.2rem;
+  color: #a1a1aa;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.anya-result-expand:hover {
+  border-color: color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  color: #fff;
+}
+
+.anya-result-expand--open {
+  transform: rotate(180deg);
+  color: var(--anya-blush);
+}
+
+.anya-result-more-hint {
+  padding: 0 1rem 0.35rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: #71717a;
 }
 
 .anya-result-card-header {
@@ -1052,7 +1157,7 @@
   gap: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.02);
-  padding: 0.85rem 1rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .anya-result-card-title {
@@ -1089,16 +1194,23 @@
 
 .anya-result-card-body {
   display: grid;
-  gap: 0.65rem;
-  padding: 0.85rem 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.65rem;
+  padding: 0.55rem 0.75rem 0.65rem;
+}
+
+.anya-result-card--expanded .anya-result-card-body {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .anya-result-field {
   border-left: 2px solid rgba(255, 255, 255, 0.08);
-  padding-left: 0.75rem;
+  padding-left: 0.55rem;
+  min-width: 0;
 }
 
 .anya-result-field--sensitive {
+  grid-column: 1 / -1;
   border-left-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
 }
 
@@ -2202,6 +2314,32 @@
   gap: 0.55rem;
 }
 
+.discord-leak-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.discord-leak-action {
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #d4d4d8;
+}
+
+.discord-leak-action:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.discord-leak-action--center {
+  justify-self: center;
+}
+
 .discord-leak-meta {
   display: flex;
   flex-wrap: wrap;
@@ -2220,9 +2358,35 @@
   color: #a1a1aa;
 }
 
+.discord-leak-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.15rem;
+  color: #a1a1aa;
+  transition: transform 0.15s ease;
+}
+
+.discord-leak-expand--open {
+  transform: rotate(180deg);
+  color: var(--anya-blush);
+}
+
+.discord-leak-more-hint {
+  padding: 0 0.55rem 0.25rem;
+  font-size: 0.58rem;
+  color: #71717a;
+}
+
 .discord-leak-list {
   display: grid;
   gap: 0.45rem;
+  max-height: min(52vh, 480px);
+  overflow-y: auto;
+  padding-right: 0.15rem;
 }
 
 .discord-leak-row {
@@ -2293,7 +2457,14 @@
   font-size: 0.68rem;
   line-height: 1.35;
   color: #e4e4e7;
-  word-break: break-all;
+  word-break: break-word;
+}
+
+.discord-leak-value--clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .discord-leak-value--accent {
@@ -2663,5 +2834,9 @@
 
 .home-search-results {
   margin-top: 1.25rem;
+  max-height: min(68vh, 640px);
+  overflow-y: auto;
+  padding-right: 0.25rem;
   text-align: left;
+  scroll-behavior: smooth;
 }

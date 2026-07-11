@@ -1,9 +1,57 @@
 "use client";
 
 import clsx from "clsx";
+import { ChevronDown } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
-import type { FormattedRecord } from "@/lib/search-utils";
+import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
+
+const PAGE_SIZE = 8;
+const PREVIEW_FIELD_LIMIT = 4;
+const VALUE_PREVIEW_LENGTH = 72;
+
+function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max)}…`;
+}
+
+function previewFields(fields: FormattedField[]) {
+  return fields.slice(0, PREVIEW_FIELD_LIMIT);
+}
+
+function ResultField({
+  field,
+  blurResults,
+  expanded,
+}: {
+  field: FormattedField;
+  blurResults: boolean;
+  expanded: boolean;
+}) {
+  const displayValue = expanded ? field.value : truncateValue(field.value);
+
+  return (
+    <div
+      className={clsx(
+        "anya-result-field",
+        field.sensitive && "anya-result-field--sensitive",
+      )}
+      title={field.value.length > VALUE_PREVIEW_LENGTH ? field.value : undefined}
+    >
+      <p className="anya-result-label">{field.label}</p>
+      <p
+        className={clsx(
+          "anya-result-value",
+          !expanded && "anya-result-value--clamp",
+          field.highlight && "text-anya-accent",
+        )}
+      >
+        <BlurredValue forceBlur={blurResults} text={displayValue} />
+      </p>
+    </div>
+  );
+}
 
 export function SearchResultCards({
   records,
@@ -11,13 +59,41 @@ export function SearchResultCards({
   totalCount,
   selectedExportIndex = null,
   onSelectExportIndex,
+  initialVisible = PAGE_SIZE,
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
   totalCount?: number;
   selectedExportIndex?: number | null;
   onSelectExportIndex?: (index: number) => void;
+  initialVisible?: number;
 }) {
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+  const [visibleCount, setVisibleCount] = useState(initialVisible);
+
+  const selectable = Boolean(onSelectExportIndex);
+  const shown = records.length;
+  const total = totalCount ?? shown;
+  const visibleRecords = useMemo(
+    () => records.slice(0, visibleCount),
+    [records, visibleCount],
+  );
+  const hiddenCount = Math.max(0, records.length - visibleCount);
+
+  const toggleExpanded = (index: number) => {
+    setExpanded((current) => {
+      const next = new Set(current);
+
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+
+      return next;
+    });
+  };
+
   if (records.length === 0) {
     return (
       <p className="border-l-2 border-zinc-500/40 bg-white/4 px-4 py-3 text-sm text-zinc-400">
@@ -26,28 +102,39 @@ export function SearchResultCards({
     );
   }
 
-  const shown = records.length;
-  const total = totalCount ?? shown;
-  const selectable = Boolean(onSelectExportIndex);
-
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-zinc-500">
-        {shown.toLocaleString()} record{shown === 1 ? "" : "s"}
-        {total > shown ? ` · ${total.toLocaleString()} total` : ""}
-      </p>
+    <div className="anya-result-stack">
+      <div className="anya-result-stack-toolbar">
+        <p className="text-xs text-zinc-500">
+          {shown.toLocaleString()} record{shown === 1 ? "" : "s"}
+          {total > shown ? ` · ${total.toLocaleString()} total` : ""}
+          {expanded.size > 0 ? ` · ${expanded.size} expanded` : " · tap ▼ to expand"}
+        </p>
+        {expanded.size > 0 ? (
+          <button
+            className="anya-result-stack-action"
+            onClick={() => setExpanded(new Set())}
+            type="button"
+          >
+            Collapse all
+          </button>
+        ) : null}
+      </div>
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        {records.map((record) => {
+      <div className="anya-result-list">
+        {visibleRecords.map((record) => {
+          const isExpanded = expanded.has(record.index);
           const selected = selectedExportIndex === record.index;
+          const fields = isExpanded ? record.fields : previewFields(record.fields);
 
           return (
             <article
               key={`${record.index}-${record.title}`}
               className={clsx(
-                "anya-result-card overflow-hidden transition",
-                selectable && "cursor-pointer hover:border-white/15",
-                selected && "border-anya-accent-soft",
+                "anya-result-card",
+                isExpanded && "anya-result-card--expanded",
+                selectable && "anya-result-card--selectable",
+                selected && "anya-result-card--selected",
               )}
               onClick={
                 selectable
@@ -68,39 +155,49 @@ export function SearchResultCards({
               tabIndex={selectable ? 0 : undefined}
             >
               <header className="anya-result-card-header">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="anya-result-card-title">{record.title}</p>
-                  {record.subtitle && (
+                  {record.subtitle ? (
                     <p className="anya-result-card-subtitle truncate">{record.subtitle}</p>
-                  )}
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {record.badge && record.badge !== record.title && (
+                  {record.badge && record.badge !== record.title ? (
                     <span className="anya-result-badge">{record.badge}</span>
-                  )}
+                  ) : null}
                   <span className="anya-result-index">#{record.index}</span>
+                  <button
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Collapse record" : "Expand record"}
+                    className={clsx(
+                      "anya-result-expand",
+                      isExpanded && "anya-result-expand--open",
+                    )}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleExpanded(record.index);
+                    }}
+                    type="button"
+                  >
+                    <ChevronDown className="size-3.5" />
+                  </button>
                 </div>
               </header>
 
+              {!isExpanded && record.fields.length > PREVIEW_FIELD_LIMIT ? (
+                <p className="anya-result-more-hint">
+                  +{record.fields.length - PREVIEW_FIELD_LIMIT} more fields
+                </p>
+              ) : null}
+
               <div className="anya-result-card-body">
-                {record.fields.map((field) => (
-                  <div
+                {fields.map((field) => (
+                  <ResultField
+                    blurResults={blurResults}
+                    expanded={isExpanded}
+                    field={field}
                     key={`${record.index}-${field.key}`}
-                    className={clsx(
-                      "anya-result-field",
-                      field.sensitive && "anya-result-field--sensitive",
-                    )}
-                  >
-                    <p className="anya-result-label">{field.label}</p>
-                    <p
-                      className={clsx(
-                        "anya-result-value",
-                        field.highlight && "text-anya-accent",
-                      )}
-                    >
-                      <BlurredValue forceBlur={blurResults} text={field.value} />
-                    </p>
-                  </div>
+                  />
                 ))}
               </div>
             </article>
@@ -108,11 +205,22 @@ export function SearchResultCards({
         })}
       </div>
 
-      {blurResults && (
+      {hiddenCount > 0 ? (
+        <button
+          className="anya-result-load-more"
+          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          type="button"
+        >
+          Show {Math.min(PAGE_SIZE, hiddenCount)} more record
+          {Math.min(PAGE_SIZE, hiddenCount) === 1 ? "" : "s"}
+        </button>
+      ) : null}
+
+      {blurResults ? (
         <p className="text-xs text-zinc-500">
           Results are blurred on the Free plan. Upgrade to reveal full values.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
