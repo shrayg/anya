@@ -17,6 +17,7 @@ import {
   type CatalogLane,
   type CatalogModule,
 } from "@/lib/featured-modules";
+import { getCatalogItemSpanClasses } from "@/lib/catalog-grid";
 import { hasWorkspaceDashboardAccess } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
 import { useEffect, useState } from "react";
@@ -29,9 +30,21 @@ function CatalogIcon({ name }: { name: string }) {
   return <TbSearch aria-hidden className="size-[18px] shrink-0 text-zinc-400" />;
 }
 
-function ModuleRow({ module }: { module: CatalogModule }) {
+function ModuleRow({
+  module,
+  index,
+  total,
+  moduleGrid,
+}: {
+  module: CatalogModule;
+  index: number;
+  total: number;
+  moduleGrid: "single" | "double" | "triple" | "quad";
+}) {
+  const spanClass = getCatalogItemSpanClasses(index, total, moduleGrid);
+
   return (
-    <li className="min-w-0">
+    <li className={clsx("min-w-0", spanClass)}>
       <Link
         className="group flex h-full w-full items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left no-underline transition hover:border-anya-accent-soft hover:bg-white/[0.05] md:gap-3.5 md:px-3.5"
         href={`/dashboard/search/${module.slug}`}
@@ -83,8 +96,14 @@ function CatalogLaneBlock({
           moduleGrid === "quad" && "sm:grid-cols-2 lg:grid-cols-4",
         )}
       >
-        {lane.modules.map((module) => (
-          <ModuleRow key={module.code} module={module} />
+        {lane.modules.map((module, index) => (
+          <ModuleRow
+            key={module.code}
+            index={index}
+            module={module}
+            moduleGrid={moduleGrid}
+            total={lane.modules.length}
+          />
         ))}
       </ul>
     </div>

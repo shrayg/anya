@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { getHubSections } from "@/lib/search-modules";
+import { getHubSectionSpanClasses } from "@/lib/catalog-grid";
 import {
   hasPlatformBrandIcon,
   PlatformBrandIcon,
@@ -85,12 +86,18 @@ export default function SearchHubPage() {
               {section.title}
             </h2>
             <div className={clsx("grid gap-3", sectionGridClass(section.title))}>
-              {section.items.map((item) => (
+              {section.items.map((item, index) => (
                 <Link
                   key={item.slug}
-                  className={`module-search-card group ${
-                    section.title === "AI Intelligence" ? "module-search-card--ai" : ""
-                  }`}
+                  className={clsx(
+                    "module-search-card group",
+                    section.title === "AI Intelligence" && "module-search-card--ai",
+                    getHubSectionSpanClasses(
+                      index,
+                      section.items.length,
+                      section.title,
+                    ),
+                  )}
                   href={`/dashboard/search/${item.slug}`}
                 >
                   <span className="module-search-card-section">{item.section}</span>
