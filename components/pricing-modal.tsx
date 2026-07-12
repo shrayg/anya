@@ -39,7 +39,7 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
       />
 
       <div
-        className="partner-modal relative z-10 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden border border-white/10 bg-black/80 shadow-2xl shadow-black/50 backdrop-blur-2xl"
+        className="partner-modal pricing-modal relative z-10 flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden border border-white/10 bg-black/85 shadow-2xl shadow-black/50 backdrop-blur-2xl"
         role="dialog"
         aria-labelledby="pricing-modal-title"
         aria-modal="true"
@@ -69,7 +69,7 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
           </h2>
         </div>
 
-        <div className="overflow-y-auto px-4 py-6 sm:px-6 sm:py-8">
+        <div className="pricing-modal-body overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
           <PricingPlansGrid onGetStarted={onClose} />
         </div>
       </div>

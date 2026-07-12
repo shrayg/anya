@@ -1518,6 +1518,225 @@
   pointer-events: none;
 }
 
+.pricing-modal-body {
+  scrollbar-gutter: stable;
+}
+
+.pricing-sale-banner {
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--anya-blush);
+}
+
+.pricing-plans-grid {
+  display: grid;
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .pricing-plans-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pricing-plans-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.125rem;
+  }
+}
+
+.pricing-plan-card {
+  position: relative;
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex-direction: column;
+  overflow: visible;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(12px);
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.pricing-plan-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+}
+
+.pricing-plan-card--highlighted {
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, rgba(255, 255, 255, 0.25));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--anya-blush) 12%, transparent),
+    rgba(255, 255, 255, 0.03)
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--anya-blush) 20%, transparent),
+    0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.pricing-plan-card--highlighted:hover {
+  border-color: color-mix(in srgb, var(--anya-blush) 55%, rgba(255, 255, 255, 0.3));
+}
+
+.pricing-plan-badge {
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+}
+
+.pricing-plan-badge span {
+  display: inline-block;
+  white-space: nowrap;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 50%, white);
+  background: color-mix(in srgb, var(--anya-blush) 22%, rgba(0, 0, 0, 0.7));
+  padding: 0.2rem 0.65rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.pricing-plan-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.35rem 1.1rem 0;
+}
+
+.pricing-plan-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.pricing-plan-description {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(212, 212, 216, 0.95);
+}
+
+.pricing-plan-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.85rem 1.1rem 1.15rem;
+}
+
+.pricing-plan-price {
+  min-height: 2.5rem;
+}
+
+.pricing-plan-price-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pricing-plan-price-original {
+  font-size: 0.72rem;
+  color: rgba(161, 161, 170, 0.9);
+  text-decoration: line-through;
+}
+
+.pricing-plan-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+
+.pricing-plan-price-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #fff;
+}
+
+.pricing-plan-price-period {
+  font-size: 0.8rem;
+  color: rgba(161, 161, 170, 1);
+}
+
+.pricing-plan-features {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pricing-plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(212, 212, 216, 0.95);
+}
+
+.pricing-plan-feature-icon {
+  margin-top: 0.15rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--anya-blush) 70%, white);
+}
+
+.pricing-plan-cta {
+  margin-top: auto;
+  height: 2.25rem;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+.pricing-plan-cta:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.pricing-plan-cta--highlighted {
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, white);
+  background: color-mix(in srgb, var(--anya-blush) 24%, rgba(255, 255, 255, 0.08));
+}
+
+.pricing-plan-cta--highlighted:hover {
+  background: color-mix(in srgb, var(--anya-blush) 32%, rgba(255, 255, 255, 0.12));
+}
+
+.pricing-footnote {
+  margin-top: 1.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: rgba(161, 161, 170, 1);
+}
+
 .anya-ai-signal-title {
   font-size: 0.78rem;
   font-weight: 700;
