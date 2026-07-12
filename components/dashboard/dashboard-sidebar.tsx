@@ -50,6 +50,7 @@ const SECTION_TOUR_ATTR: Record<string, string> = {
   Network: "section-network",
   "Financial & Assets": "section-financial",
   Platforms: "section-platforms",
+  "Dating Apps": "section-dating",
 };
 
 const AI_BADGES: Record<string, string> = {

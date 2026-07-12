@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import clsx from "clsx";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -10,6 +11,19 @@ import {
   PlatformBrandIcon,
 } from "@/components/dashboard/platform-brand-icon";
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
+
+function sectionGridClass(title: string): string {
+  switch (title) {
+    case "AI Intelligence":
+      return "sm:grid-cols-2";
+    case "Financial & Assets":
+    case "Platforms":
+    case "Dating Apps":
+      return "sm:grid-cols-2 lg:grid-cols-4";
+    default:
+      return "sm:grid-cols-2 xl:grid-cols-3";
+  }
+}
 
 export default function SearchHubPage() {
   const [filter, setFilter] = useState("");
@@ -70,7 +84,7 @@ export default function SearchHubPage() {
             <h2 className="mb-3 text-sm font-medium text-zinc-500">
               {section.title}
             </h2>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className={clsx("grid gap-3", sectionGridClass(section.title))}>
               {section.items.map((item) => (
                 <Link
                   key={item.slug}

@@ -2761,6 +2761,38 @@
   background: #e4e4e7;
 }
 
+/* ── Search bar tutorial (larger, plain-language) ── */
+.search-bar-tour-card {
+  width: min(22.5rem, calc(100vw - 2rem)) !important;
+  padding: 1.25rem 1.3rem 1.1rem;
+}
+
+.search-bar-tour-step-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--anya-blush);
+}
+
+.search-bar-tour-title {
+  font-size: 1.2rem;
+  line-height: 1.35;
+}
+
+.search-bar-tour-body {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: rgba(228, 228, 231, 0.92);
+}
+
+.search-bar-tour-next {
+  min-width: 6.25rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.9rem;
+}
+
 /* ── Homepage search bar ── */
 .home-search-form {
   width: 100%;

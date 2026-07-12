@@ -61,7 +61,7 @@ function CatalogLaneBlock({
   moduleGrid = "single",
 }: {
   lane: CatalogLane;
-  moduleGrid?: "single" | "double" | "triple";
+  moduleGrid?: "single" | "double" | "triple" | "quad";
 }) {
   return (
     <div className="rounded-xl border border-white/10 bg-black/40 p-4 backdrop-blur-sm md:p-5">
@@ -80,6 +80,7 @@ function CatalogLaneBlock({
           "m-0 grid list-none gap-1.5 p-0",
           moduleGrid === "double" && "sm:grid-cols-2",
           moduleGrid === "triple" && "sm:grid-cols-2 lg:grid-cols-3",
+          moduleGrid === "quad" && "sm:grid-cols-2 lg:grid-cols-4",
         )}
       >
         {lane.modules.map((module) => (
@@ -129,6 +130,9 @@ export function IntelligenceModulesSection() {
   );
   const platformsLane = STANDARD_CATALOG_LANES.find(
     (lane) => lane.label === "Platforms",
+  );
+  const datingLane = STANDARD_CATALOG_LANES.find(
+    (lane) => lane.label === "Dating Apps",
   );
 
   return (
@@ -221,18 +225,22 @@ export function IntelligenceModulesSection() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {compactLanes.map((lane) => (
             <CatalogLaneBlock key={lane.label} lane={lane} />
           ))}
         </div>
 
         {financialLane && (
-          <CatalogLaneBlock lane={financialLane} moduleGrid="double" />
+          <CatalogLaneBlock lane={financialLane} moduleGrid="quad" />
         )}
 
         {platformsLane && (
-          <CatalogLaneBlock lane={platformsLane} moduleGrid="triple" />
+          <CatalogLaneBlock lane={platformsLane} moduleGrid="quad" />
+        )}
+
+        {datingLane && (
+          <CatalogLaneBlock lane={datingLane} moduleGrid="quad" />
         )}
       </div>
     </section>

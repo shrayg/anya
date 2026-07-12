@@ -21,6 +21,14 @@ export const PLATFORM_SEARCH_BY_SLUG: Record<string, PlatformSearchConfig> = {
   "hash-lookup": { godseyeType: "hash" },
   "password-search": { godseyeType: "password" },
   "name-search": { godseyeType: "name" },
+  tinder: { godseyeType: "username" },
+  bumble: { godseyeType: "username" },
+  hinge: { godseyeType: "username" },
+  match: { godseyeType: "username" },
+  okcupid: { godseyeType: "username" },
+  pof: { godseyeType: "username" },
+  grindr: { godseyeType: "username" },
+  badoo: { godseyeType: "username" },
 };
 
 export function getPlatformSearchConfig(

@@ -55,6 +55,13 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     target: "[data-tour='section-platforms']",
   },
   {
+    id: "dating",
+    title: "Dating app lookups",
+    body: "Tinder, Bumble, Hinge, Match, OkCupid, Plenty of Fish, Grindr, and Badoo — search handles and profile links across breach indexes.",
+    target: "[data-tour='section-dating']",
+    fallbackTargets: ["[data-tour='section-platforms']"],
+  },
+  {
     id: "search-input",
     title: "Intelligence input",
     body: "Open any module, enter your target (email, username, domain, Discord ID, wallet, etc.), then run the search. Results can be exported or saved to a case.",

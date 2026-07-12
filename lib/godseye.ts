@@ -132,6 +132,14 @@ const SLUG_TO_SEARCH_TYPE: Record<string, GodsEyeSearchType> = {
   "hash-lookup": "hash",
   "password-search": "password",
   "name-search": "name",
+  tinder: "username",
+  bumble: "username",
+  hinge: "username",
+  match: "username",
+  okcupid: "username",
+  pof: "username",
+  grindr: "username",
+  badoo: "username",
 };
 
 const MODULE_TO_SEARCH_TYPE: Record<string, GodsEyeSearchType> = {

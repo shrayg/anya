@@ -4,11 +4,13 @@ import Link from "next/link";
 import { ArrowUp, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { SearchBarTour } from "@/components/search-bar-tour";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import type { UserProfile } from "@/lib/account-plan";
 import { getUserPlan } from "@/lib/account-plan";
 import { resolveHomeSearchRoute } from "@/lib/home-search-route";
+import { HOME_SEARCH_TOUR_STEPS, HOME_SEARCH_TOUR_STORAGE_KEY } from "@/lib/search-tour";
 import {
   checkDailySearchQuota,
   checkModuleAccess,
@@ -97,6 +99,7 @@ export function HomeSearch() {
 
     const plan = resolveUserPlan(auth.user);
     const route = resolveHomeSearchRoute(trimmed);
+    const searchQuery = route.searchQuery ?? trimmed;
     const quotaCheck = checkDailySearchQuota(plan, auth.searchesLast24h);
     const accessCheck = checkModuleAccess(plan, route.moduleSlug, {
       balance: auth.user.balance ?? 0,
@@ -129,7 +132,7 @@ export function HomeSearch() {
 
     try {
       const response = await fetch(
-        `/api/osint/${route.apiType}?query=${encodeURIComponent(trimmed)}${scopeParam}${moduleParam}`,
+        `/api/osint/${route.apiType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}`,
         { credentials: "include" },
       );
       const data = await response.json();
@@ -225,22 +228,23 @@ export function HomeSearch() {
     });
 
   return (
-    <div className="home-search w-full max-w-5xl px-2" id="search">
+    <div className="home-search w-full max-w-5xl px-2" data-tour="home-search" id="search">
       <p className="mb-3 text-sm text-zinc-400">
         What would you like to investigate?
       </p>
 
       <form className="home-search-form" onSubmit={handleSearch}>
-        <div className="home-search-input-wrap">
+        <div className="home-search-input-wrap" data-tour="home-search-input">
           <Search className="home-search-icon" />
           <input
             className="home-search-input"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search email, username, phone, domain, or Discord ID..."
+            placeholder="Email, username, phone, Discord ID, or dating profile link…"
             value={query}
           />
           <button
             className="home-search-submit"
+            data-tour="home-search-submit"
             disabled={!query.trim() || isSearching || auth.status === "loading"}
             type="submit"
           >
@@ -290,13 +294,13 @@ export function HomeSearch() {
       ) : null}
 
       {discordResult ? (
-        <div className="home-search-results">
+        <div className="home-search-results" data-tour="home-search-results">
           <DiscordSearchResults blurResults={blurResults} result={discordResult} />
         </div>
       ) : null}
 
       {records.length > 0 ? (
-        <div className="home-search-results">
+        <div className="home-search-results" data-tour="home-search-results">
           <SearchResultCards
             blurResults={blurResults}
             records={records}
@@ -304,6 +308,12 @@ export function HomeSearch() {
           />
         </div>
       ) : null}
+
+      <SearchBarTour
+        ariaLabel="Homepage search guide"
+        steps={HOME_SEARCH_TOUR_STEPS}
+        storageKey={HOME_SEARCH_TOUR_STORAGE_KEY}
+      />
     </div>
   );
 }
