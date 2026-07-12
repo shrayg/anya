@@ -1,7 +1,5 @@
 "use client";
 
-import { Card, CardBody, CardHeader } from "@heroui/card";
-import { Button } from "@heroui/button";
 import clsx from "clsx";
 import { CheckCircle } from "lucide-react";
 import NextLink from "next/link";
@@ -21,9 +19,7 @@ export function PricingPlansGrid({ className, onGetStarted }: PricingPlansGridPr
   return (
     <div className={clsx("mx-auto w-full", className)}>
       {RELEASE_SALE && (
-        <p className="pricing-sale-banner">
-          Release sale pricing active
-        </p>
+        <p className="pricing-sale-banner">Release sale pricing active</p>
       )}
 
       <div className="pricing-plans-grid">
@@ -31,7 +27,7 @@ export function PricingPlansGrid({ className, onGetStarted }: PricingPlansGridPr
           const price = getDisplayPrice(plan);
 
           return (
-            <Card
+            <article
               key={plan.id}
               className={clsx(
                 "pricing-plan-card",
@@ -44,12 +40,12 @@ export function PricingPlansGrid({ className, onGetStarted }: PricingPlansGridPr
                 </div>
               )}
 
-              <CardHeader className="pricing-plan-header">
+              <header className="pricing-plan-header">
                 <h3 className="pricing-plan-name">{plan.name}</h3>
                 <p className="pricing-plan-description">{plan.description}</p>
-              </CardHeader>
+              </header>
 
-              <CardBody className="pricing-plan-body">
+              <div className="pricing-plan-body">
                 <div className="pricing-plan-price">
                   {price.value === null ? (
                     <span className="pricing-plan-price-value">Custom</span>
@@ -73,14 +69,13 @@ export function PricingPlansGrid({ className, onGetStarted }: PricingPlansGridPr
                 <ul className="pricing-plan-features">
                   {plan.features.map((feature) => (
                     <li key={feature} className="pricing-plan-feature">
-                      <CheckCircle className="pricing-plan-feature-icon" />
+                      <CheckCircle className="pricing-plan-feature-icon" aria-hidden />
                       <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
 
-                <Button
-                  as={NextLink}
+                <NextLink
                   className={clsx(
                     "pricing-plan-cta",
                     plan.highlighted && "pricing-plan-cta--highlighted",
@@ -91,12 +86,11 @@ export function PricingPlansGrid({ className, onGetStarted }: PricingPlansGridPr
                   onClick={() => {
                     if (!plan.customPricing) onGetStarted?.();
                   }}
-                  size="sm"
                 >
                   {plan.customPricing ? "Contact Sales" : "Get Started"}
-                </Button>
-              </CardBody>
-            </Card>
+                </NextLink>
+              </div>
+            </article>
           );
         })}
       </div>

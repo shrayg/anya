@@ -123,7 +123,7 @@ export function SearchBarTour({
       // show tour if storage unavailable
     }
 
-    const timer = window.setTimeout(() => setActive(true), 700);
+    const timer = window.setTimeout(() => setActive(true), 400);
     return () => window.clearTimeout(timer);
   }, [enabled, storageKey]);
 

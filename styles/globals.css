@@ -1566,6 +1566,7 @@
   border-radius: 0.875rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
   backdrop-filter: blur(12px);
+  box-shadow: none;
   transition:
     border-color 0.2s ease,
     transform 0.2s ease,
@@ -1623,12 +1624,16 @@
 }
 
 .pricing-plan-name {
+  display: block;
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
   color: #fff;
 }
 
 .pricing-plan-description {
+  display: block;
+  margin: 0;
   font-size: 0.78rem;
   line-height: 1.45;
   color: rgba(212, 212, 216, 0.95);
@@ -1705,15 +1710,21 @@
 }
 
 .pricing-plan-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: auto;
-  height: 2.25rem;
+  height: 2.35rem;
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
   background: rgba(255, 255, 255, 0.08);
   font-size: 0.8rem;
   font-weight: 600;
   color: #fff;
+  text-decoration: none;
   backdrop-filter: blur(8px);
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .pricing-plan-cta:hover {
@@ -3013,6 +3024,26 @@
 }
 
 /* ── Homepage search bar ── */
+.home-search-guide-btn {
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--anya-blush) 10%, transparent);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--anya-blush);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.home-search-guide-btn:hover {
+  border-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 16%, transparent);
+  color: #fff;
+}
+
 .home-search-form {
   width: 100%;
 }

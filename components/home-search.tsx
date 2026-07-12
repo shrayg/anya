@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowUp, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { SearchBarTour } from "@/components/search-bar-tour";
+import { SearchBarTour, resetSearchBarTour } from "@/components/search-bar-tour";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import type { UserProfile } from "@/lib/account-plan";
@@ -50,6 +50,12 @@ export function HomeSearch() {
   const [resultCount, setResultCount] = useState(0);
   const [discordResult, setDiscordResult] = useState<DiscordSearchResult | null>(null);
   const [blurResults, setBlurResults] = useState(false);
+  const [tourSession, setTourSession] = useState(0);
+
+  const startSearchGuide = () => {
+    resetSearchBarTour(HOME_SEARCH_TOUR_STORAGE_KEY);
+    setTourSession((current) => current + 1);
+  };
 
   useEffect(() => {
     if (window.location.hash === "#search") {
@@ -229,9 +235,16 @@ export function HomeSearch() {
 
   return (
     <div className="home-search w-full max-w-5xl px-2" data-tour="home-search" id="search">
-      <p className="mb-3 text-sm text-zinc-400">
-        What would you like to investigate?
-      </p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-zinc-400">What would you like to investigate?</p>
+        <button
+          className="home-search-guide-btn"
+          onClick={startSearchGuide}
+          type="button"
+        >
+          Step-by-step guide
+        </button>
+      </div>
 
       <form className="home-search-form" onSubmit={handleSearch}>
         <div className="home-search-input-wrap" data-tour="home-search-input">
@@ -310,6 +323,7 @@ export function HomeSearch() {
       ) : null}
 
       <SearchBarTour
+        key={tourSession}
         ariaLabel="Homepage search guide"
         steps={HOME_SEARCH_TOUR_STEPS}
         storageKey={HOME_SEARCH_TOUR_STORAGE_KEY}

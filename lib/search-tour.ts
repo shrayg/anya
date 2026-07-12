@@ -6,7 +6,7 @@ export type SearchTourStep = {
   fallbackTargets?: string[];
 };
 
-export const HOME_SEARCH_TOUR_STORAGE_KEY = "anya-home-search-tour-v1";
+export const HOME_SEARCH_TOUR_STORAGE_KEY = "anya-home-search-tour-v2";
 export const WORKSPACE_SEARCH_TOUR_STORAGE_KEY = "anya-workspace-search-tour-v1";
 
 export const HOME_SEARCH_TOUR_STEPS: SearchTourStep[] = [
