@@ -6,7 +6,7 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { getHubSections } from "@/lib/search-modules";
-import { getHubSectionSpanClasses } from "@/lib/catalog-grid";
+import { catalogSpanDataAttributes, getHubSectionSpan } from "@/lib/catalog-grid";
 import {
   hasPlatformBrandIcon,
   PlatformBrandIcon,
@@ -16,13 +16,13 @@ import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 function sectionGridClass(title: string): string {
   switch (title) {
     case "AI Intelligence":
-      return "sm:grid-cols-2";
+      return "catalog-module-grid catalog-module-grid--double";
     case "Financial & Assets":
     case "Platforms":
     case "Dating Apps":
-      return "sm:grid-cols-2 lg:grid-cols-4";
+      return "catalog-module-grid catalog-module-grid--quad";
     default:
-      return "sm:grid-cols-2 xl:grid-cols-3";
+      return "catalog-module-grid catalog-module-grid--triple";
   }
 }
 
@@ -85,19 +85,22 @@ export default function SearchHubPage() {
             <h2 className="mb-3 text-sm font-medium text-zinc-500">
               {section.title}
             </h2>
-            <div className={clsx("grid gap-3", sectionGridClass(section.title))}>
-              {section.items.map((item, index) => (
+            <div className={clsx("gap-3", sectionGridClass(section.title))}>
+              {section.items.map((item, index) => {
+                const span = getHubSectionSpan(
+                  index,
+                  section.items.length,
+                  section.title,
+                );
+
+                return (
                 <Link
                   key={item.slug}
                   className={clsx(
-                    "module-search-card group",
+                    "catalog-module-item module-search-card group",
                     section.title === "AI Intelligence" && "module-search-card--ai",
-                    getHubSectionSpanClasses(
-                      index,
-                      section.items.length,
-                      section.title,
-                    ),
                   )}
+                  {...catalogSpanDataAttributes(span)}
                   href={`/dashboard/search/${item.slug}`}
                 >
                   <span className="module-search-card-section">{item.section}</span>
@@ -111,7 +114,8 @@ export default function SearchHubPage() {
                   <p className="module-search-card-hint">{item.hint}</p>
                   <span className="module-search-card-cta">Open →</span>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </section>
         ))}

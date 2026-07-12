@@ -17,7 +17,7 @@ import {
   type CatalogLane,
   type CatalogModule,
 } from "@/lib/featured-modules";
-import { getCatalogItemSpanClasses } from "@/lib/catalog-grid";
+import { catalogSpanDataAttributes, getCatalogItemSpan } from "@/lib/catalog-grid";
 import { hasWorkspaceDashboardAccess } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
 import { useEffect, useState } from "react";
@@ -41,10 +41,10 @@ function ModuleRow({
   total: number;
   moduleGrid: "single" | "double" | "triple" | "quad";
 }) {
-  const spanClass = getCatalogItemSpanClasses(index, total, moduleGrid);
+  const span = getCatalogItemSpan(index, total, moduleGrid);
 
   return (
-    <li className={clsx("min-w-0", spanClass)}>
+    <li className="catalog-module-item min-w-0" {...catalogSpanDataAttributes(span)}>
       <Link
         className="group flex h-full w-full items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left no-underline transition hover:border-anya-accent-soft hover:bg-white/[0.05] md:gap-3.5 md:px-3.5"
         href={`/dashboard/search/${module.slug}`}
@@ -90,10 +90,10 @@ function CatalogLaneBlock({
       </div>
       <ul
         className={clsx(
-          "m-0 grid list-none gap-1.5 p-0",
-          moduleGrid === "double" && "sm:grid-cols-2",
-          moduleGrid === "triple" && "sm:grid-cols-2 lg:grid-cols-3",
-          moduleGrid === "quad" && "sm:grid-cols-2 lg:grid-cols-4",
+          "catalog-module-grid m-0 list-none gap-1.5 p-0",
+          moduleGrid === "double" && "catalog-module-grid--double",
+          moduleGrid === "triple" && "catalog-module-grid--triple",
+          moduleGrid === "quad" && "catalog-module-grid--quad",
         )}
       >
         {lane.modules.map((module, index) => (

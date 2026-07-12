@@ -1,73 +1,82 @@
 type CatalogGrid = "single" | "double" | "triple" | "quad";
 
+export type CatalogGridSpan = {
+  sm?: 1 | 2;
+  lg?: 1 | 2 | 3 | 4;
+};
+
 function spanForColumns(
   index: number,
   total: number,
   columns: 2 | 3 | 4,
-  breakpoint: "sm" | "lg",
-): string | undefined {
+): 1 | 2 | 3 | 4 | undefined {
   const remainder = total % columns;
   if (remainder === 0 || index < total - remainder) return undefined;
 
   const posInLastRow = index - (total - remainder);
 
   if (remainder === 1) {
-    if (breakpoint === "sm" && columns === 2) return "sm:col-span-2";
-    if (breakpoint === "lg" && columns === 4) return "lg:col-span-4";
-    if (breakpoint === "lg" && columns === 3) return "lg:col-span-3";
-    return undefined;
+    return columns;
   }
 
   if (remainder === 2) {
-    if (breakpoint === "lg" && columns === 4) return "lg:col-span-2";
-    return undefined;
+    return (columns / 2) as 2 | 3;
   }
 
-  if (remainder === 3 && columns === 4 && breakpoint === "lg") {
-    return posInLastRow === 0 ? "lg:col-span-2" : undefined;
+  if (remainder === 3 && columns === 4) {
+    return posInLastRow === 0 ? 2 : 1;
   }
 
   return undefined;
 }
 
-export function getCatalogItemSpanClasses(
+export function getCatalogItemSpan(
   index: number,
   total: number,
   grid: CatalogGrid,
-): string | undefined {
-  const classes: string[] = [];
+): CatalogGridSpan {
+  const span: CatalogGridSpan = {};
 
   if (grid === "quad") {
-    const sm = spanForColumns(index, total, 2, "sm");
-    const lg = spanForColumns(index, total, 4, "lg");
-    if (sm) classes.push(sm);
-    if (lg) classes.push(lg);
+    const sm = spanForColumns(index, total, 2);
+    const lg = spanForColumns(index, total, 4);
+    if (sm) span.sm = sm as 1 | 2;
+    if (lg) span.lg = lg;
   } else if (grid === "triple") {
-    const sm = spanForColumns(index, total, 2, "sm");
-    const lg = spanForColumns(index, total, 3, "lg");
-    if (sm) classes.push(sm);
-    if (lg) classes.push(lg);
+    const sm = spanForColumns(index, total, 2);
+    const lg = spanForColumns(index, total, 3);
+    if (sm) span.sm = sm as 1 | 2;
+    if (lg) span.lg = lg;
   } else if (grid === "double") {
-    const sm = spanForColumns(index, total, 2, "sm");
-    if (sm) classes.push(sm);
+    const sm = spanForColumns(index, total, 2);
+    if (sm) span.sm = sm as 1 | 2;
   }
 
-  return classes.length > 0 ? classes.join(" ") : undefined;
+  return span;
 }
 
-export function getHubSectionSpanClasses(
+export function getHubSectionSpan(
   index: number,
   total: number,
   sectionTitle: string,
-): string | undefined {
+): CatalogGridSpan {
   switch (sectionTitle) {
     case "Financial & Assets":
     case "Platforms":
     case "Dating Apps":
-      return getCatalogItemSpanClasses(index, total, "quad");
+      return getCatalogItemSpan(index, total, "quad");
     case "AI Intelligence":
-      return getCatalogItemSpanClasses(index, total, "double");
+      return getCatalogItemSpan(index, total, "double");
     default:
-      return getCatalogItemSpanClasses(index, total, "triple");
+      return getCatalogItemSpan(index, total, "triple");
   }
+}
+
+export function catalogSpanDataAttributes(
+  span: CatalogGridSpan,
+): Record<string, string | undefined> {
+  return {
+    "data-span-sm": span.sm && span.sm > 1 ? String(span.sm) : undefined,
+    "data-span-lg": span.lg && span.lg > 1 ? String(span.lg) : undefined,
+  };
 }
