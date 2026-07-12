@@ -93,7 +93,7 @@ function CatalogLaneBlock({
           "catalog-module-grid m-0 list-none gap-1.5 p-0",
           moduleGrid === "double" && "catalog-module-grid--double",
           moduleGrid === "triple" && "catalog-module-grid--triple",
-          moduleGrid === "quad" && "catalog-module-grid--quad",
+          moduleGrid === "quad" && "catalog-module-grid--quad catalog-module-grid--dense",
         )}
       >
         {lane.modules.map((module, index) => (
@@ -243,7 +243,7 @@ export function IntelligenceModulesSection() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="grid gap-4">
         <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {compactLanes.map((lane) => (
             <CatalogLaneBlock key={lane.label} lane={lane} />
@@ -254,13 +254,15 @@ export function IntelligenceModulesSection() {
           <CatalogLaneBlock lane={financialLane} moduleGrid="quad" />
         )}
 
-        {platformsLane && (
-          <CatalogLaneBlock lane={platformsLane} moduleGrid="quad" />
-        )}
+        <div className="grid gap-4 xl:grid-cols-2">
+          {platformsLane && (
+            <CatalogLaneBlock lane={platformsLane} moduleGrid="quad" />
+          )}
 
-        {datingLane && (
-          <CatalogLaneBlock lane={datingLane} moduleGrid="quad" />
-        )}
+          {datingLane && (
+            <CatalogLaneBlock lane={datingLane} moduleGrid="quad" />
+          )}
+        </div>
       </div>
     </section>
   );
