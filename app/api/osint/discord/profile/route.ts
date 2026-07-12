@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireOsintAccess } from "@/lib/osint-api-auth";
+
 import { fetchDiscordProfile } from "@/lib/discord-profile";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 
 const MAX_PROFILES = 3;
 
 export async function GET(req: NextRequest) {
+  const access = await requireOsintAccess(req, "discord/profile");
+  if (access instanceof NextResponse) return access;
+
   const idsParam = req.nextUrl.searchParams.get("ids")?.trim();
   const singleId = req.nextUrl.searchParams.get("id")?.trim();
   const raw = idsParam ?? singleId ?? "";

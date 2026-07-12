@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireOsintAccess } from "@/lib/osint-api-auth";
+
 import {
   countStealerLogRows,
   extractStealerLogEntries,
@@ -10,6 +12,9 @@ import { fetchCombinedDomainOsint } from "@/lib/osint-combined";
 import { searchProxynovaCombForDomain } from "@/lib/proxynova-comb";
 
 export async function GET(req: NextRequest) {
+  const access = await requireOsintAccess(req, "domains");
+  if (access instanceof NextResponse) return access;
+
   const query = req.nextUrl.searchParams.get("query")?.trim();
 
   if (!query) {

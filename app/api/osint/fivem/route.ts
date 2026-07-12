@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireOsintAccess } from "@/lib/osint-api-auth";
+
 import { fetchDiscordProfile } from "@/lib/discord-profile";
 import {
   buildFivemSearchResult,
@@ -12,6 +14,9 @@ import { getGodsEyeApiKey } from "@/lib/godseye";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 
 export async function GET(req: NextRequest) {
+  const access = await requireOsintAccess(req, "fivem");
+  if (access instanceof NextResponse) return access;
+
   const query = req.nextUrl.searchParams.get("query")?.trim();
 
   if (!query) {

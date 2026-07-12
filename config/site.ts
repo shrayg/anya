@@ -23,6 +23,6 @@ export const siteConfig = {
   ] as NavItem[],
   links: {
     telegram: "https://t.me/anyasearch",
-    supportEmail: "support@anya.int",
+    supportEmail: "support@anyaint.com",
   },
 };

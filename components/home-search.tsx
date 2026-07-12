@@ -125,10 +125,12 @@ export function HomeSearch() {
     const scopeParam = route.scope
       ? `&scope=${encodeURIComponent(route.scope)}`
       : "";
+    const moduleParam = `&moduleSlug=${encodeURIComponent(route.moduleSlug)}`;
 
     try {
       const response = await fetch(
-        `/api/osint/${route.apiType}?query=${encodeURIComponent(trimmed)}${scopeParam}`,
+        `/api/osint/${route.apiType}?query=${encodeURIComponent(trimmed)}${scopeParam}${moduleParam}`,
+        { credentials: "include" },
       );
       const data = await response.json();
 

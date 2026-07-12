@@ -1,0 +1,6 @@
+Contact: mailto:support@anyaint.com
+Contact: https://t.me/anyasearch
+Expires: 2027-07-11T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://anyaint.com/.well-known/security.txt
+Policy: https://anyaint.com/

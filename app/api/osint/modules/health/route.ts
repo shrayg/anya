@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireAuthenticatedSession } from "@/lib/osint-api-auth";
 import {
   buildModuleHealthMap,
   probeProviders,
@@ -16,6 +17,9 @@ let cache: CachedHealth | null = null;
 const CACHE_TTL_MS = 60_000;
 
 export async function GET() {
+  const session = await requireAuthenticatedSession();
+  if (session instanceof NextResponse) return session;
+
   const now = Date.now();
 
   if (cache && cache.expiresAt > now) {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireOsintAccess } from "@/lib/osint-api-auth";
+
 import { extractDiscordIdsFromResults } from "@/lib/discord-extract";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
@@ -7,6 +9,9 @@ import type { RobloxSearchResult } from "@/lib/roblox-search";
 const MAX_LINKED_PROFILES = 3;
 
 export async function GET(req: NextRequest) {
+  const access = await requireOsintAccess(req, "roblox");
+  if (access instanceof NextResponse) return access;
+
   const query = req.nextUrl.searchParams.get("query")?.trim();
 
   if (!query) {

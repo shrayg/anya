@@ -347,7 +347,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     if (isAi) {
       try {
         const searchResponse = await fetch(
-          `/api/osint/ai?query=${encodeURIComponent(trimmed)}&mode=${aiMode}`,
+          `/api/osint/ai?query=${encodeURIComponent(trimmed)}&mode=${aiMode}&moduleSlug=${encodeURIComponent(moduleDef.slug)}`,
         );
         const data = (await searchResponse.json()) as AiIntelResult & {
           error?: string;
@@ -445,8 +445,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
     try {
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
+      const moduleParam = `&moduleSlug=${encodeURIComponent(moduleDef.slug)}`;
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(trimmed)}${scopeParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(trimmed)}${scopeParam}${moduleParam}`,
       );
       const data = await searchResponse.json();
 

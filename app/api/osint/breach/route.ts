@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireOsintAccess } from "@/lib/osint-api-auth";
+
 import { normalizeDomain } from "@/lib/domain-search";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import {
@@ -13,6 +15,9 @@ import {
 } from "@/lib/platform-search";
 
 export async function GET(req: NextRequest) {
+  const access = await requireOsintAccess(req, "breach");
+  if (access instanceof NextResponse) return access;
+
   const query = req.nextUrl.searchParams.get("query")?.trim();
   const scope = req.nextUrl.searchParams.get("scope");
 

@@ -5,12 +5,17 @@ import { useSearchParams } from "next/navigation";
 import NextLink from "next/link";
 import Image from "next/image";
 import clsx from "clsx";
-import { ArrowLeft, Clock, LogIn, UserPlus } from "lucide-react";
+import { ArrowLeft, Check, Clock, Copy, LogIn, RefreshCw, UserPlus } from "lucide-react";
 
 import { HomeBackground } from "@/components/home-background";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
-import { MIN_PASSWORD_LENGTH, MIN_USERNAME_LENGTH } from "@/lib/password-policy";
+import {
+  generateStrongPassword,
+  MIN_PASSWORD_LENGTH,
+  MIN_USERNAME_LENGTH,
+  passwordRequirementsHint,
+} from "@/lib/password-policy";
 import { getAppLandingPath } from "@/lib/plans";
 
 function AuthForm() {
@@ -19,12 +24,41 @@ function AuthForm() {
   const [mode, setMode] = useState<"login" | "register">(initialAction);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setMode(searchParams.get("action") === "register" ? "register" : "login");
   }, [searchParams]);
+
+  const handleGeneratePassword = async () => {
+    const next = generateStrongPassword(16);
+    setPassword(next);
+    setShowPassword(false);
+    setCopied(false);
+
+    try {
+      await navigator.clipboard.writeText(next);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard may be blocked; password is still filled in.
+    }
+  };
+
+  const handleCopyPassword = async () => {
+    if (!password) return;
+
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Could not copy password. Select and copy it manually.");
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -117,32 +151,69 @@ function AuthForm() {
               autoComplete="username"
               className="ui-input ui-input--lg"
               minLength={MIN_USERNAME_LENGTH}
+              maxLength={32}
+              pattern="[A-Za-z0-9_]+"
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="your handle"
+              placeholder="John Doe"
               required
               value={username}
             />
+            {mode === "register" && (
+              <p className="mt-2 text-xs text-zinc-500">
+                At least {MIN_USERNAME_LENGTH} characters. Letters, numbers, and underscores only.
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="ui-label" htmlFor="password">
-              Password
-            </label>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label className="ui-label mb-0" htmlFor="password">
+                Password
+              </label>
+              {mode === "register" && (
+                <div className="flex items-center gap-2">
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                    onClick={handleGeneratePassword}
+                    type="button"
+                  >
+                    <RefreshCw className="size-3.5" />
+                    Generate
+                  </button>
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white disabled:opacity-40"
+                    disabled={!password}
+                    onClick={handleCopyPassword}
+                    type="button"
+                  >
+                    {copied ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              )}
+            </div>
             <input
               id="password"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
-              className="ui-input ui-input--lg"
-              minLength={MIN_PASSWORD_LENGTH}
+              className="ui-input ui-input--lg font-mono"
+              minLength={mode === "register" ? MIN_PASSWORD_LENGTH : 1}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
+              placeholder="••••••••••••"
               required
-              type="password"
+              type={showPassword && mode === "register" ? "text" : "password"}
               value={password}
             />
             {mode === "register" && (
-              <p className="mt-2 text-xs text-zinc-500">
-                At least {MIN_PASSWORD_LENGTH} characters.
-              </p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-xs text-zinc-500">{passwordRequirementsHint()}</p>
+                <button
+                  className="shrink-0 text-xs text-zinc-400 underline-offset-2 hover:text-white hover:underline"
+                  onClick={() => setShowPassword((value) => !value)}
+                  type="button"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             )}
           </div>
 

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireOsintAccess } from "@/lib/osint-api-auth";
+
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
 
 export async function GET(req: NextRequest) {
+  const access = await requireOsintAccess(req, "minecraft");
+  if (access instanceof NextResponse) return access;
+
   const query = req.nextUrl.searchParams.get("query")?.trim();
 
   if (!query) {

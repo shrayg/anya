@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireOsintAccess } from "@/lib/osint-api-auth";
+
 import { PUBLIC_INTEL_SOURCE, publicSearchError, sanitizePublicText } from "@/lib/public-branding";
 import { fetchGodsEyeRawExport } from "@/lib/godseye";
 
 const HEX_ID_RE = /^[a-f0-9]{32,64}$/i;
 
 export async function GET(req: NextRequest) {
+  const access = await requireOsintAccess(req, "intelx");
+  if (access instanceof NextResponse) return access;
+
   const query = req.nextUrl.searchParams.get("query")?.trim();
   const bucket = req.nextUrl.searchParams.get("bucket")?.trim() || "leaks.public";
 
