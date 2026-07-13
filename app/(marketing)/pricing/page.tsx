@@ -30,7 +30,7 @@ export default function PricingPage() {
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-sm text-zinc-400 sm:text-base">
           Subscriptions for investigators, credit packs for pay-per-use modules, and API
-          access for automation — billed monthly or annually via Stripe.
+          access for automation — billed monthly or annually via Square.
         </p>
       </div>
 

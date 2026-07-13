@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!isSquareConfigured()) {
-    return NextResponse.redirect(`${baseUrl}/pricing?billing=stripe_unavailable`);
+    return NextResponse.redirect(`${baseUrl}/pricing?billing=payments_unavailable`);
   }
 
   try {

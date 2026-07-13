@@ -109,7 +109,7 @@ export function PricingPageContent({
         window.location.assign(data.url);
         return;
       }
-      setMessage(data.message ?? "Redirecting to Stripe…");
+      setMessage(data.message ?? "Redirecting to Square…");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
     } finally {
