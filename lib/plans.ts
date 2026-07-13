@@ -47,13 +47,12 @@ export const FREE_MODULE_SLUGS = new Set([
   "github",
 ]);
 
-/** Starter (homepage-only) modules — broader than free, still no AI / IntelX. */
+/** Starter homepage: Email, Phone, Username, Discord only. */
 export const STARTER_MODULE_SLUGS = new Set([
-  ...FREE_MODULE_SLUGS,
   "breaches",
-  "domain",
-  "ip",
-  "name-search",
+  "phone",
+  "username",
+  "discord-id",
 ]);
 
 export const AI_MODULE_SLUGS = new Set([
@@ -98,16 +97,16 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
   {
     id: "starter",
     name: "Starter",
-    description: "Homepage investigations — no panel access",
+    description: "Core identity lookups — email, phone, username, and Discord",
     monthlyPrice: 9.99,
     dailySearchLimit: 10,
     panelAccess: false,
     features: [
       "10 searches per day",
-      "Front-page search only",
-      "Discord, Roblox, Steam, GitHub & more",
+      "Email, Phone, Username, Discord ID",
+      "Linked accounts, aliases, breach exposure, profile photos",
       "No dashboard / panel access",
-      "IntelX not included",
+      "Upgrade to Professional for the full panel",
     ],
   },
   {
@@ -337,17 +336,21 @@ export function checkModuleAccess(
     if (moduleSlug === "intelx") {
       return {
         allowed: false,
-        reason: "IntelX is not available on the Free plan. Upgrade to Starter or higher.",
+        reason: "IntelX is not available on the Free plan. Upgrade to Professional or higher.",
       };
     }
 
     return {
       allowed: false,
-      reason: "Upgrade to Starter to unlock this module.",
+      reason: "Upgrade to Starter for email/phone identity search, or Professional for the full panel.",
     };
   }
 
   if (plan === "starter") {
+    if (STARTER_MODULE_SLUGS.has(moduleSlug)) {
+      return { allowed: true };
+    }
+
     if (PAY_PER_USE_MODULE_SLUGS.has(moduleSlug)) {
       return {
         allowed: false,
@@ -355,13 +358,10 @@ export function checkModuleAccess(
       };
     }
 
-    if (STARTER_MODULE_SLUGS.has(moduleSlug)) {
-      return { allowed: true };
-    }
-
     return {
       allowed: false,
-      reason: "Upgrade to Professional for panel modules and broader coverage.",
+      reason:
+        "Starter includes Email, Phone, Username, and Discord only. Upgrade to Professional for the full panel.",
     };
   }
 

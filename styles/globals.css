@@ -3319,6 +3319,121 @@
   text-align: left;
 }
 
+/* ── Starter plan identity search card ── */
+.starter-search-card {
+  display: flex;
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: auto;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background: rgba(12, 12, 14, 0.92);
+  padding: 1rem 1.1rem 1.15rem;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 22px 48px rgba(0, 0, 0, 0.45);
+  text-align: left;
+}
+
+.starter-search-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.65rem;
+}
+
+.starter-search-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(161, 161, 170, 0.95);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.starter-search-tab:hover {
+  color: #fff;
+}
+
+.starter-search-tab--active {
+  border-bottom-color: var(--anya-blush);
+  color: #fff;
+}
+
+.starter-search-field {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 0.35rem;
+}
+
+.starter-search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0;
+  font-size: 1.05rem;
+  color: #fff;
+  outline: none;
+}
+
+.starter-search-input::placeholder {
+  color: rgba(113, 113, 122, 0.95);
+}
+
+.starter-search-returns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(161, 161, 170, 0.9);
+}
+
+.starter-search-returns-label {
+  color: rgba(113, 113, 122, 1);
+}
+
+.starter-search-returns-item + .starter-search-returns-item::before {
+  content: "·";
+  margin-right: 0.45rem;
+  color: rgba(113, 113, 122, 0.9);
+}
+
+.starter-search-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--anya-blush) 28%, #4a1020);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.starter-search-submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--anya-blush) 40%, #4a1020);
+}
+
+.starter-search-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .results-blur-notice {
   margin: 0;
   padding: 0.85rem 1rem 1rem;

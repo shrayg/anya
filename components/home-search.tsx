@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUp, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import clsx from "clsx";
+import { ArrowUp, AtSign, Hash, Phone, Search, User } from "lucide-react";
+import { useEffect, useState, type ElementType } from "react";
 
 import { SearchBarTour, resetSearchBarTour } from "@/components/search-bar-tour";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
@@ -11,6 +12,13 @@ import type { UserProfile } from "@/lib/account-plan";
 import { getUserPlan } from "@/lib/account-plan";
 import { resolveHomeSearchRoute } from "@/lib/home-search-route";
 import { HOME_SEARCH_TOUR_STEPS, HOME_SEARCH_TOUR_STORAGE_KEY } from "@/lib/search-tour";
+import {
+  STARTER_SEARCH_MODES,
+  STARTER_SEARCH_RETURNS,
+  resolveStarterSearchRoute,
+  validateStarterSearchQuery,
+  type StarterSearchMode,
+} from "@/lib/starter-search";
 import {
   checkDailySearchQuota,
   checkModuleAccess,
@@ -41,9 +49,17 @@ function sanitizePublicText(value: string) {
   return value.replace(/osintcat/gi, "provider").replace(/godseye/gi, "source");
 }
 
+const MODE_ICONS: Record<StarterSearchMode, ElementType> = {
+  email: AtSign,
+  phone: Phone,
+  username: User,
+  discord: Hash,
+};
+
 export function HomeSearch() {
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
   const [query, setQuery] = useState("");
+  const [starterMode, setStarterMode] = useState<StarterSearchMode>("email");
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
   const [records, setRecords] = useState<FormattedRecord[]>([]);
@@ -90,6 +106,13 @@ export function HomeSearch() {
       .catch(() => setAuth({ status: "guest" }));
   }, []);
 
+  const plan =
+    auth.status === "authenticated" ? resolveUserPlan(auth.user) : null;
+  const useStarterSearch = plan === "starter";
+  const activeStarterMode =
+    STARTER_SEARCH_MODES.find((mode) => mode.id === starterMode) ??
+    STARTER_SEARCH_MODES[0];
+
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -103,11 +126,23 @@ export function HomeSearch() {
 
     if (auth.status === "loading") return;
 
-    const plan = resolveUserPlan(auth.user);
-    const route = resolveHomeSearchRoute(trimmed);
+    const userPlan = resolveUserPlan(auth.user);
+
+    if (userPlan === "starter") {
+      const validationError = validateStarterSearchQuery(starterMode, trimmed);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
+
+    const route =
+      userPlan === "starter"
+        ? resolveStarterSearchRoute(starterMode, trimmed)
+        : resolveHomeSearchRoute(trimmed);
     const searchQuery = route.searchQuery ?? trimmed;
-    const quotaCheck = checkDailySearchQuota(plan, auth.searchesLast24h);
-    const accessCheck = checkModuleAccess(plan, route.moduleSlug, {
+    const quotaCheck = checkDailySearchQuota(userPlan, auth.searchesLast24h);
+    const accessCheck = checkModuleAccess(userPlan, route.moduleSlug, {
       balance: auth.user.balance ?? 0,
       intelxUsedToday: auth.intelxUsedToday,
     });
@@ -129,7 +164,7 @@ export function HomeSearch() {
     }
 
     setIsSearching(true);
-    setBlurResults(Boolean(accessCheck.blurResults) || shouldBlurResults(plan));
+    setBlurResults(Boolean(accessCheck.blurResults) || shouldBlurResults(userPlan));
 
     const scopeParam = route.scope
       ? `&scope=${encodeURIComponent(route.scope)}`
@@ -246,32 +281,89 @@ export function HomeSearch() {
         </button>
       </div>
 
-      <form className="home-search-form" onSubmit={handleSearch}>
-        <div className="home-search-input-wrap" data-tour="home-search-input">
-          <Search className="home-search-icon" />
-          <input
-            className="home-search-input"
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Email, username, phone, Discord ID, or dating profile link…"
-            value={query}
-          />
+      {useStarterSearch ? (
+        <form className="starter-search-card" onSubmit={handleSearch}>
+          <div className="starter-search-tabs" role="tablist" aria-label="Search type">
+            {STARTER_SEARCH_MODES.map((mode) => {
+              const Icon = MODE_ICONS[mode.id];
+
+              return (
+                <button
+                  key={mode.id}
+                  aria-selected={starterMode === mode.id}
+                  className={clsx(
+                    "starter-search-tab",
+                    starterMode === mode.id && "starter-search-tab--active",
+                  )}
+                  onClick={() => {
+                    setStarterMode(mode.id);
+                    setError("");
+                  }}
+                  role="tab"
+                  type="button"
+                >
+                  <Icon className="size-3.5" />
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="starter-search-field" data-tour="home-search-input">
+            <input
+              className="starter-search-input"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={activeStarterMode.placeholder}
+              value={query}
+            />
+          </div>
+
+          <p className="starter-search-returns">
+            <span className="starter-search-returns-label">Returns</span>
+            {STARTER_SEARCH_RETURNS.map((item) => (
+              <span key={item} className="starter-search-returns-item">
+                {item}
+              </span>
+            ))}
+          </p>
+
           <button
-            className="home-search-submit"
+            className="starter-search-submit"
             data-tour="home-search-submit"
             disabled={!query.trim() || isSearching || auth.status === "loading"}
             type="submit"
           >
-            {isSearching ? (
-              "Running…"
-            ) : (
-              <>
-                <span className="hidden sm:inline">Search</span>
-                <ArrowUp className="size-4" />
-              </>
-            )}
+            {isSearching ? "Running…" : "See results →"}
           </button>
-        </div>
-      </form>
+        </form>
+      ) : (
+        <form className="home-search-form" onSubmit={handleSearch}>
+          <div className="home-search-input-wrap" data-tour="home-search-input">
+            <Search className="home-search-icon" />
+            <input
+              className="home-search-input"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Email, username, phone, Discord ID, or dating profile link…"
+              value={query}
+            />
+            <button
+              className="home-search-submit"
+              data-tour="home-search-submit"
+              disabled={!query.trim() || isSearching || auth.status === "loading"}
+              type="submit"
+            >
+              {isSearching ? (
+                "Running…"
+              ) : (
+                <>
+                  <span className="hidden sm:inline">Search</span>
+                  <ArrowUp className="size-4" />
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
 
       {auth.status === "guest" && (
         <p className="mt-3 text-xs text-zinc-500">
@@ -284,11 +376,12 @@ export function HomeSearch() {
 
       {auth.status === "authenticated" && planLabel && !hasWorkspace && (
         <p className="mt-3 text-xs text-zinc-500">
-          {planLabel} plan · homepage search.{" "}
+          {planLabel} plan · homepage search
+          {useStarterSearch ? " · Email, Phone, Username, Discord." : "."}{" "}
           <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/pricing">
             Upgrade to Professional
           </Link>{" "}
-          for the full module workspace.
+          for more modules.
         </p>
       )}
 
