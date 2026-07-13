@@ -35,7 +35,7 @@ npm install
 
 echo "==> Prisma generate + db push"
 npx prisma generate
-npx prisma db push
+npx prisma db push --accept-data-loss
 
 echo "==> next build"
 rm -rf .next

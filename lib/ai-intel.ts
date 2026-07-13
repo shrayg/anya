@@ -778,6 +778,8 @@ function buildSocialPivot(
     "Instagram",
     "Twitter",
     "TikTok",
+    "Tinder",
+    "Bumble",
     "Reddit",
     "GitHub",
     "Telegram",
@@ -797,6 +799,7 @@ function buildSocialPivot(
   partial.pivots.push(
     { label: "Stealer Logs", slug: "stealer-logs", reason: "Infostealer cross-check." },
     { label: "Instagram", slug: "instagram", reason: "Profile and link search." },
+    { label: "Tinder", slug: "tinder", reason: "Dating profile pivot." },
     { label: "Twitter", slug: "twitter", reason: "X / Twitter footprint." },
     { label: "Username", slug: "username", reason: "Generate handle variants." },
   );

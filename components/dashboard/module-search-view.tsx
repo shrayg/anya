@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Download, FolderPlus } from "lucide-react";
 
+import { SearchBarTour } from "@/components/search-bar-tour";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { CryptoWalletResults } from "@/components/dashboard/crypto-wallet-results";
 import {
@@ -34,6 +35,8 @@ import { normalizeEmail } from "@/lib/proxynova-comb";
 import { sanitizePublicText } from "@/lib/public-branding";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import type { DiscordSearchResult } from "@/lib/discord-profile";
+import { DASHBOARD_TOUR_STORAGE_KEY } from "@/lib/dashboard-tour";
+import { isDatingAppSlug, normalizeDatingQuery } from "@/lib/dating-search";
 import type { DomainSearchResult } from "@/lib/domain-search";
 import { extractStealerLogEntries, normalizeDomain } from "@/lib/domain-search";
 import type { FivemSearchResult } from "@/lib/fivem-search";
@@ -45,6 +48,10 @@ import {
   resolveSearchApiType,
   type SearchModuleDef,
 } from "@/lib/search-modules";
+import {
+  WORKSPACE_SEARCH_TOUR_STEPS,
+  WORKSPACE_SEARCH_TOUR_STORAGE_KEY,
+} from "@/lib/search-tour";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import type { FormattedRecord } from "@/lib/search-utils";
 import { formatSearchRecords, formatStructuredSearchData } from "@/lib/search-utils";
@@ -102,6 +109,36 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [caseOptions, setCaseOptions] = useState<CaseOption[]>([]);
   const [saveCaseId, setSaveCaseId] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+  const [workspaceSearchTourReady, setWorkspaceSearchTourReady] = useState(false);
+
+  useEffect(() => {
+    const isDashboardTourDone = () => {
+      try {
+        return localStorage.getItem(DASHBOARD_TOUR_STORAGE_KEY) === "done";
+      } catch {
+        return false;
+      }
+    };
+
+    if (isDashboardTourDone()) {
+      setWorkspaceSearchTourReady(true);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      if (isDashboardTourDone()) {
+        setWorkspaceSearchTourReady(true);
+        window.clearInterval(timer);
+      }
+    }, 500);
+
+    const stop = window.setTimeout(() => window.clearInterval(timer), 120_000);
+
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(stop);
+    };
+  }, []);
   const [savingToCase, setSavingToCase] = useState(false);
   const [blurResults, setBlurResults] = useState(false);
   const [selectedExportIndex, setSelectedExportIndex] = useState<number | null>(null);
@@ -304,6 +341,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     event.preventDefault();
 
     const trimmed = query.trim();
+    const searchQuery = isDatingAppSlug(moduleDef.slug)
+      ? normalizeDatingQuery(trimmed, moduleDef.slug)
+      : trimmed;
 
     if (!trimmed || isSearching) return;
 
@@ -447,7 +487,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
       const moduleParam = `&moduleSlug=${encodeURIComponent(moduleDef.slug)}`;
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(trimmed)}${scopeParam}${moduleParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}`,
       );
       const data = await searchResponse.json();
 
@@ -860,6 +900,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             )}
             <button
               className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
+              data-tour="search-submit"
               disabled={!query.trim() || isSearching || Boolean(moduleLocked)}
               type="submit"
             >
@@ -874,7 +915,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           )}
 
           {(records.length > 0 || aiResult || combResult || domainResult || discordResult || fivemResult || robloxResult || structuredResult) && (
-            <div className="mt-5 border-t border-white/8 pt-5">
+            <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-zinc-400">{lastSearchLabel}</p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -988,6 +1029,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           )}
         </div>
       </section>
+
+      <SearchBarTour
+        ariaLabel="Workspace search guide"
+        enabled={workspaceSearchTourReady}
+        steps={WORKSPACE_SEARCH_TOUR_STEPS}
+        storageKey={WORKSPACE_SEARCH_TOUR_STORAGE_KEY}
+      />
     </div>
   );
 }

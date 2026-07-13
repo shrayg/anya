@@ -1,13 +1,26 @@
+import { detectDatingAppFromQuery, normalizeDatingQuery } from "@/lib/dating-search";
 import { isPhoneQuery } from "@/lib/search-modules";
 
 export type HomeSearchRoute = {
   apiType: string;
   moduleSlug: string;
   scope?: string;
+  /** Normalized query sent to the API (e.g. handle extracted from a profile URL). */
+  searchQuery?: string;
 };
 
 export function resolveHomeSearchRoute(query: string): HomeSearchRoute {
   const trimmed = query.trim();
+  const datingSlug = detectDatingAppFromQuery(trimmed);
+
+  if (datingSlug) {
+    return {
+      apiType: "breach",
+      moduleSlug: datingSlug,
+      scope: datingSlug,
+      searchQuery: normalizeDatingQuery(trimmed, datingSlug),
+    };
+  }
 
   if (isPhoneQuery(trimmed)) {
     return { apiType: "breach", moduleSlug: "phone", scope: "phone" };

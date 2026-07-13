@@ -28,6 +28,7 @@ const LANE_PREFIX: Record<string, string> = {
   Network: "NET",
   "Financial & Assets": "FIN",
   Platforms: "PLT",
+  "Dating Apps": "DAT",
 };
 
 const LANE_DESCRIPTION: Record<string, string> = {
@@ -42,6 +43,8 @@ const LANE_DESCRIPTION: Record<string, string> = {
     "Wallets, BINs, IBANs, bank metadata, vehicle VIN decoding, and US insurance directories.",
   Platforms:
     "Live profile and breach-index lookups for gaming and social platforms.",
+  "Dating Apps":
+    "Dating profile and handle searches across Tinder, Bumble, Hinge, Match, and more.",
 };
 
 function toCatalogModule(

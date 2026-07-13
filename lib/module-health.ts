@@ -54,6 +54,14 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   reddit: { kind: "any", providers: ["osintcat", "godseye"] },
   github: { kind: "any", providers: ["osintcat", "godseye"] },
   fivem: { kind: "any", providers: ["godseye"] },
+  tinder: { kind: "any", providers: ["godseye"] },
+  bumble: { kind: "any", providers: ["godseye"] },
+  hinge: { kind: "any", providers: ["godseye"] },
+  match: { kind: "any", providers: ["godseye"] },
+  okcupid: { kind: "any", providers: ["godseye"] },
+  pof: { kind: "any", providers: ["godseye"] },
+  grindr: { kind: "any", providers: ["godseye"] },
+  badoo: { kind: "any", providers: ["godseye"] },
 };
 
 export type ProviderHealth = Record<ProviderId, boolean>;

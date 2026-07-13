@@ -10,6 +10,8 @@ export function PricingPlansGrid({
   className?: string;
   onGetStarted?: () => void;
 }) {
+  void onGetStarted;
+
   return (
     <PricingPageContent
       className={className}

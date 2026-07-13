@@ -349,6 +349,75 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
       ),
     ],
   },
+  {
+    title: "Dating Apps",
+    items: [
+      mod(
+        "Dating Apps",
+        "Tinder",
+        "tinder",
+        "breach",
+        "Tinder username or profile link",
+        "Search Tinder handles and profile URLs across breach and OSINT indexes.",
+      ),
+      mod(
+        "Dating Apps",
+        "Bumble",
+        "bumble",
+        "breach",
+        "Bumble username or profile link",
+        "Bumble handle and profile URL intelligence.",
+      ),
+      mod(
+        "Dating Apps",
+        "Hinge",
+        "hinge",
+        "breach",
+        "Hinge username or profile link",
+        "Hinge profile and handle footprint search.",
+      ),
+      mod(
+        "Dating Apps",
+        "Match",
+        "match",
+        "breach",
+        "Match.com username or profile link",
+        "Match.com handle and profile URL pivots.",
+      ),
+      mod(
+        "Dating Apps",
+        "OkCupid",
+        "okcupid",
+        "breach",
+        "OkCupid username or profile link",
+        "OkCupid handle and profile URL search.",
+      ),
+      mod(
+        "Dating Apps",
+        "Plenty of Fish",
+        "pof",
+        "breach",
+        "POF username or profile link",
+        "Plenty of Fish handle and profile URL intel.",
+      ),
+      mod(
+        "Dating Apps",
+        "Grindr",
+        "grindr",
+        "breach",
+        "Grindr username or profile link",
+        "Grindr handle and profile URL search.",
+      ),
+      mod(
+        "Dating Apps",
+        "Badoo",
+        "badoo",
+        "breach",
+        "Badoo username or profile link",
+        "Badoo handle and profile URL intelligence.",
+      ),
+    ],
+  },
 ];
 
 export const ALL_SEARCH_MODULES: SearchModuleDef[] = [
@@ -448,6 +517,14 @@ const SLUG_API_ROUTES: Record<string, string> = {
   tiktok: "breach",
   twitter: "breach",
   github: "breach",
+  tinder: "breach",
+  bumble: "breach",
+  hinge: "breach",
+  match: "breach",
+  okcupid: "breach",
+  pof: "breach",
+  grindr: "breach",
+  badoo: "breach",
 };
 
 export function resolveSearchApiType(
@@ -511,6 +588,14 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   reddit: true,
   github: true,
   fivem: true,
+  tinder: true,
+  bumble: true,
+  hinge: true,
+  match: true,
+  okcupid: true,
+  pof: true,
+  grindr: true,
+  badoo: true,
 };
 
 export function isModuleOperational(slug: string): boolean {

@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { IconType } from "react-icons";
 import { BsFillTelephoneFill } from "react-icons/bs";
 import {
+  SiBadoo,
   SiBitcoin,
   SiCloudflare,
   SiDatadog,
@@ -12,6 +13,7 @@ import {
   SiGmail,
   SiGooglegemini,
   SiInstagram,
+  SiOkcupid,
   SiPlaystation,
   SiReddit,
   SiRoblox,
@@ -20,9 +22,12 @@ import {
   SiSnyk,
   SiTelegram,
   SiTiktok,
+  SiTinder,
   SiX,
 } from "react-icons/si";
 import {
+  TbBrandBumble,
+  TbBrandGrindr,
   TbBrandMinecraft,
   TbBrandXbox,
   TbBuildingBank,
@@ -30,6 +35,7 @@ import {
   TbCreditCard,
   TbDatabaseSearch,
   TbHash,
+  TbHeart,
   TbHeartRateMonitor,
   TbLockPassword,
   TbShieldCheck,
@@ -79,6 +85,14 @@ const MODULE_BRANDS: Record<string, BrandIconConfig> = {
   Reddit: { Icon: SiReddit, color: "#FF4500" },
   GitHub: { Icon: SiGithub, color: "#FFFFFF" },
   FiveM: { Icon: SiFivem, color: "#F40552" },
+  Tinder: { Icon: SiTinder, color: "#FE3C72" },
+  Bumble: { Icon: TbBrandBumble, color: "#FFC629" },
+  Hinge: { Icon: TbHeart, color: "#7B3FE4" },
+  Match: { Icon: TbHeart, color: "#FF5A5F" },
+  OkCupid: { Icon: SiOkcupid, color: "#0500FF" },
+  "Plenty of Fish": { Icon: TbHeart, color: "#FF6B35" },
+  Grindr: { Icon: TbBrandGrindr, color: "#FEDD00" },
+  Badoo: { Icon: SiBadoo, color: "#783BF9" },
   "AI Search": { Icon: SiGooglegemini, color: "#8E75B2" },
   "AI Deep Scan": { Icon: SiDatadog, color: "#632CA6" },
   "Crypto AI Analyse": { Icon: SiBitcoin, color: "#F7931A" },

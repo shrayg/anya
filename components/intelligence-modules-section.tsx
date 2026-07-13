@@ -17,6 +17,7 @@ import {
   type CatalogLane,
   type CatalogModule,
 } from "@/lib/featured-modules";
+import { catalogSpanDataAttributes, getCatalogItemSpan } from "@/lib/catalog-grid";
 import { hasWorkspaceDashboardAccess } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
 import { useEffect, useState } from "react";
@@ -29,9 +30,21 @@ function CatalogIcon({ name }: { name: string }) {
   return <TbSearch aria-hidden className="size-[18px] shrink-0 text-zinc-400" />;
 }
 
-function ModuleRow({ module }: { module: CatalogModule }) {
+function ModuleRow({
+  module,
+  index,
+  total,
+  moduleGrid,
+}: {
+  module: CatalogModule;
+  index: number;
+  total: number;
+  moduleGrid: "single" | "double" | "triple" | "quad";
+}) {
+  const span = getCatalogItemSpan(index, total, moduleGrid);
+
   return (
-    <li className="min-w-0">
+    <li className="catalog-module-item min-w-0" {...catalogSpanDataAttributes(span)}>
       <Link
         className="group flex h-full w-full items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left no-underline transition hover:border-anya-accent-soft hover:bg-white/[0.05] md:gap-3.5 md:px-3.5"
         href={`/dashboard/search/${module.slug}`}
@@ -61,7 +74,7 @@ function CatalogLaneBlock({
   moduleGrid = "single",
 }: {
   lane: CatalogLane;
-  moduleGrid?: "single" | "double" | "triple";
+  moduleGrid?: "single" | "double" | "triple" | "quad";
 }) {
   return (
     <div className="rounded-xl border border-white/10 bg-black/40 p-4 backdrop-blur-sm md:p-5">
@@ -77,13 +90,20 @@ function CatalogLaneBlock({
       </div>
       <ul
         className={clsx(
-          "m-0 grid list-none gap-1.5 p-0",
-          moduleGrid === "double" && "sm:grid-cols-2",
-          moduleGrid === "triple" && "sm:grid-cols-2 lg:grid-cols-3",
+          "catalog-module-grid m-0 list-none gap-1.5 p-0",
+          moduleGrid === "double" && "catalog-module-grid--double",
+          moduleGrid === "triple" && "catalog-module-grid--triple",
+          moduleGrid === "quad" && "catalog-module-grid--quad catalog-module-grid--dense",
         )}
       >
-        {lane.modules.map((module) => (
-          <ModuleRow key={module.code} module={module} />
+        {lane.modules.map((module, index) => (
+          <ModuleRow
+            key={module.code}
+            index={index}
+            module={module}
+            moduleGrid={moduleGrid}
+            total={lane.modules.length}
+          />
         ))}
       </ul>
     </div>
@@ -129,6 +149,9 @@ export function IntelligenceModulesSection() {
   );
   const platformsLane = STANDARD_CATALOG_LANES.find(
     (lane) => lane.label === "Platforms",
+  );
+  const datingLane = STANDARD_CATALOG_LANES.find(
+    (lane) => lane.label === "Dating Apps",
   );
 
   return (
@@ -220,20 +243,26 @@ export function IntelligenceModulesSection() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4">
+        <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {compactLanes.map((lane) => (
             <CatalogLaneBlock key={lane.label} lane={lane} />
           ))}
         </div>
 
         {financialLane && (
-          <CatalogLaneBlock lane={financialLane} moduleGrid="double" />
+          <CatalogLaneBlock lane={financialLane} moduleGrid="quad" />
         )}
 
-        {platformsLane && (
-          <CatalogLaneBlock lane={platformsLane} moduleGrid="triple" />
-        )}
+        <div className="grid gap-4 xl:grid-cols-2">
+          {platformsLane && (
+            <CatalogLaneBlock lane={platformsLane} moduleGrid="quad" />
+          )}
+
+          {datingLane && (
+            <CatalogLaneBlock lane={datingLane} moduleGrid="quad" />
+          )}
+        </div>
       </div>
     </section>
   );
