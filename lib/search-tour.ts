@@ -16,6 +16,13 @@ export const HOME_SEARCH_TOUR_STEPS: SearchTourStep[] = [
     body: "This short guide walks you through the search bar step by step. It only takes a moment.",
   },
   {
+    id: "choose-type",
+    title: "Starter? Pick a search type",
+    body: "On Starter, choose Email, Phone, Username, or Discord above the search bar. Free and higher plans detect the type automatically.",
+    target: "[data-tour='home-search-modes']",
+    fallbackTargets: ["[data-tour='home-search-input']", "[data-tour='home-search']"],
+  },
+  {
     id: "type-here",
     title: "Step 1 — Type what you want to find",
     body: "Click in this box and type your target. You can search an email, a username, a phone number, a website, or a Discord ID.",

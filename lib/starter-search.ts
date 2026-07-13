@@ -29,13 +29,6 @@ export const STARTER_SEARCH_MODES: {
   },
 ];
 
-export const STARTER_SEARCH_RETURNS = [
-  "Linked accounts",
-  "Aliases",
-  "Breach exposure",
-  "Profile photos",
-] as const;
-
 export function resolveStarterSearchRoute(
   mode: StarterSearchMode,
   query: string,
@@ -58,27 +51,4 @@ export function resolveStarterSearchRoute(
         searchQuery: trimmed.replace(/^@/, ""),
       };
   }
-}
-
-export function validateStarterSearchQuery(
-  mode: StarterSearchMode,
-  query: string,
-): string | null {
-  const trimmed = query.trim();
-
-  if (!trimmed) return "Enter something to search.";
-
-  if (mode === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-    return "Enter a valid email address.";
-  }
-
-  if (mode === "discord" && !/^\d{17,20}$/.test(trimmed)) {
-    return "Enter a Discord ID (17–20 digit number).";
-  }
-
-  if (mode === "phone" && trimmed.replace(/\D/g, "").length < 7) {
-    return "Enter a valid phone number.";
-  }
-
-  return null;
 }

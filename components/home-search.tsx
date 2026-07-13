@@ -14,9 +14,7 @@ import { resolveHomeSearchRoute } from "@/lib/home-search-route";
 import { HOME_SEARCH_TOUR_STEPS, HOME_SEARCH_TOUR_STORAGE_KEY } from "@/lib/search-tour";
 import {
   STARTER_SEARCH_MODES,
-  STARTER_SEARCH_RETURNS,
   resolveStarterSearchRoute,
-  validateStarterSearchQuery,
   type StarterSearchMode,
 } from "@/lib/starter-search";
 import {
@@ -127,15 +125,6 @@ export function HomeSearch() {
     if (auth.status === "loading") return;
 
     const userPlan = resolveUserPlan(auth.user);
-
-    if (userPlan === "starter") {
-      const validationError = validateStarterSearchQuery(starterMode, trimmed);
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-    }
-
     const route =
       userPlan === "starter"
         ? resolveStarterSearchRoute(starterMode, trimmed)
@@ -268,6 +257,37 @@ export function HomeSearch() {
       canManageWorkspace: auth.canManageWorkspace,
     });
 
+  const searchBar = (
+    <div className="home-search-input-wrap" data-tour="home-search-input">
+      <Search className="home-search-icon" />
+      <input
+        className="home-search-input"
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={
+          useStarterSearch
+            ? activeStarterMode.placeholder
+            : "Email, username, phone, Discord ID, or dating profile link…"
+        }
+        value={query}
+      />
+      <button
+        className="home-search-submit"
+        data-tour="home-search-submit"
+        disabled={!query.trim() || isSearching || auth.status === "loading"}
+        type="submit"
+      >
+        {isSearching ? (
+          "Running…"
+        ) : (
+          <>
+            <span className="hidden sm:inline">Search</span>
+            <ArrowUp className="size-4" />
+          </>
+        )}
+      </button>
+    </div>
+  );
+
   return (
     <div className="home-search w-full max-w-5xl px-2" data-tour="home-search" id="search">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -281,9 +301,14 @@ export function HomeSearch() {
         </button>
       </div>
 
-      {useStarterSearch ? (
-        <form className="starter-search-card" onSubmit={handleSearch}>
-          <div className="starter-search-tabs" role="tablist" aria-label="Search type">
+      <form className="home-search-form" onSubmit={handleSearch}>
+        {useStarterSearch ? (
+          <div
+            aria-label="Search type"
+            className="starter-search-modes"
+            data-tour="home-search-modes"
+            role="tablist"
+          >
             {STARTER_SEARCH_MODES.map((mode) => {
               const Icon = MODE_ICONS[mode.id];
 
@@ -292,8 +317,8 @@ export function HomeSearch() {
                   key={mode.id}
                   aria-selected={starterMode === mode.id}
                   className={clsx(
-                    "starter-search-tab",
-                    starterMode === mode.id && "starter-search-tab--active",
+                    "starter-search-mode",
+                    starterMode === mode.id && "starter-search-mode--active",
                   )}
                   onClick={() => {
                     setStarterMode(mode.id);
@@ -308,62 +333,10 @@ export function HomeSearch() {
               );
             })}
           </div>
+        ) : null}
 
-          <div className="starter-search-field" data-tour="home-search-input">
-            <input
-              className="starter-search-input"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={activeStarterMode.placeholder}
-              value={query}
-            />
-          </div>
-
-          <p className="starter-search-returns">
-            <span className="starter-search-returns-label">Returns</span>
-            {STARTER_SEARCH_RETURNS.map((item) => (
-              <span key={item} className="starter-search-returns-item">
-                {item}
-              </span>
-            ))}
-          </p>
-
-          <button
-            className="starter-search-submit"
-            data-tour="home-search-submit"
-            disabled={!query.trim() || isSearching || auth.status === "loading"}
-            type="submit"
-          >
-            {isSearching ? "Running…" : "See results →"}
-          </button>
-        </form>
-      ) : (
-        <form className="home-search-form" onSubmit={handleSearch}>
-          <div className="home-search-input-wrap" data-tour="home-search-input">
-            <Search className="home-search-icon" />
-            <input
-              className="home-search-input"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Email, username, phone, Discord ID, or dating profile link…"
-              value={query}
-            />
-            <button
-              className="home-search-submit"
-              data-tour="home-search-submit"
-              disabled={!query.trim() || isSearching || auth.status === "loading"}
-              type="submit"
-            >
-              {isSearching ? (
-                "Running…"
-              ) : (
-                <>
-                  <span className="hidden sm:inline">Search</span>
-                  <ArrowUp className="size-4" />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      )}
+        {searchBar}
+      </form>
 
       {auth.status === "guest" && (
         <p className="mt-3 text-xs text-zinc-500">
