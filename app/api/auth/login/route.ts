@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
-import { setSessionCookie } from "@/app/lib/session";
+import { attachSessionCookie } from "@/app/lib/session";
 import {
   clearAuthFailures,
   getAuthLockoutStatus,
@@ -9,23 +9,42 @@ import {
   lockoutResponse,
   recordAuthFailure,
 } from "@/lib/auth-lockout";
+import { normalizeUsername } from "@/lib/password-policy";
 import { prisma } from "@/prisma/client";
+
+async function findUserForLogin(rawUsername: string) {
+  const trimmed = rawUsername.trim();
+  const normalized = normalizeUsername(trimmed);
+
+  const byNormalized = await prisma.user.findUnique({
+    where: { username: normalized },
+  });
+  if (byNormalized) return byNormalized;
+
+  // Legacy accounts may have been stored with original casing.
+  if (trimmed !== normalized) {
+    return prisma.user.findUnique({ where: { username: trimmed } });
+  }
+
+  return null;
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
-    const username = typeof body?.username === "string" ? body.username.trim() : "";
+    const username = typeof body?.username === "string" ? body.username : "";
     const password = typeof body?.password === "string" ? body.password : "";
 
-    if (!username || !password) {
+    if (!username.trim() || !password) {
       return NextResponse.json(
         { error: "Username and password are required" },
         { status: 400 },
       );
     }
 
+    const lockoutUsername = normalizeUsername(username);
     const ip = getClientIp(request);
-    const lockout = getAuthLockoutStatus(ip, username);
+    const lockout = getAuthLockoutStatus(ip, lockoutUsername);
 
     if (lockout.locked) {
       return NextResponse.json(lockoutResponse(lockout.retryAfterSeconds), {
@@ -34,16 +53,14 @@ export async function POST(request: Request) {
       });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
-    });
+    const user = await findUserForLogin(username);
 
     const passwordMatch = user
       ? await bcrypt.compare(password, user.password)
       : false;
 
     if (!user || !passwordMatch) {
-      const failure = recordAuthFailure(ip, username);
+      const failure = recordAuthFailure(ip, lockoutUsername);
 
       if (failure.locked) {
         return NextResponse.json(lockoutResponse(failure.retryAfterSeconds), {
@@ -65,20 +82,20 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.accountStatus === "frozen") {
-      return NextResponse.json(
-        { error: "This account is frozen. Contact support to restore access." },
-        { status: 403 },
-      );
-    }
+    // Frozen users may still sign in so they can see status / contact support.
+    clearAuthFailures(ip, lockoutUsername);
 
-    clearAuthFailures(ip, username);
-    await setSessionCookie(user.id, user.isAdmin);
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
-      user: { username: user.username, isAdmin: user.isAdmin },
+      frozen: user.accountStatus === "frozen",
+      user: {
+        username: user.username,
+        isAdmin: user.isAdmin,
+        accountStatus: user.accountStatus,
+      },
     });
+
+    return attachSessionCookie(response, user.id, user.isAdmin);
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

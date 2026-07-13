@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import "server-only";
 
 function resolveJwtSecret() {
@@ -41,7 +42,7 @@ function shouldUseSecureCookies() {
   return process.env.NODE_ENV === "production";
 }
 
-function sessionCookieOptions(expires: Date) {
+export function sessionCookieOptions(expires: Date) {
   return {
     expires,
     httpOnly: true,
@@ -51,27 +52,68 @@ function sessionCookieOptions(expires: Date) {
   };
 }
 
-export async function encrypt(payload: any) {
-  return await new SignJWT(payload)
+export type SessionPayload = {
+  userId: number;
+  isAdmin?: boolean;
+  expires?: string;
+};
+
+export async function encrypt(payload: SessionPayload) {
+  return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("24h")
     .sign(getKey());
 }
 
-export async function decrypt(input: string): Promise<any> {
+export async function decrypt(input: string): Promise<SessionPayload> {
   const { payload } = await jwtVerify(input, getKey(), {
     algorithms: ["HS256"],
   });
-  return payload;
+
+  const userId = Number(payload.userId);
+  if (!Number.isFinite(userId) || userId <= 0) {
+    throw new Error("Invalid session payload");
+  }
+
+  return {
+    userId,
+    isAdmin: Boolean(payload.isAdmin),
+    expires: typeof payload.expires === "string" ? payload.expires : undefined,
+  };
 }
 
-export async function setSessionCookie(userId: number, isAdmin: boolean) {
+export async function createSessionToken(userId: number, isAdmin: boolean) {
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const session = await encrypt({ userId, isAdmin, expires });
+  const token = await encrypt({
+    userId,
+    isAdmin,
+    expires: expires.toISOString(),
+  });
+  return { token, expires };
+}
 
+/** Attach session cookie directly to the Route Handler response (most reliable). */
+export async function attachSessionCookie(
+  response: NextResponse,
+  userId: number,
+  isAdmin: boolean,
+) {
+  const { token, expires } = await createSessionToken(userId, isAdmin);
+  response.cookies.set("session", token, sessionCookieOptions(expires));
+  return response;
+}
+
+export async function clearSessionCookie(response: NextResponse) {
+  response.cookies.set("session", "", sessionCookieOptions(new Date(0)));
+  return response;
+}
+
+/** @deprecated Prefer attachSessionCookie on the response in Route Handlers. */
+export async function setSessionCookie(userId: number, isAdmin: boolean) {
+  const { token, expires } = await createSessionToken(userId, isAdmin);
   const cookieStore = await cookies();
-  cookieStore.set("session", session, sessionCookieOptions(expires));
+  cookieStore.set("session", token, sessionCookieOptions(expires));
 }
 
 export async function getSessionCookie() {

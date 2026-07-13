@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
-import { setSessionCookie } from "@/app/lib/session";
+import { attachSessionCookie } from "@/app/lib/session";
 import {
   clearAuthFailures,
   getAuthLockoutStatus,
@@ -9,7 +9,11 @@ import {
   lockoutResponse,
 } from "@/lib/auth-lockout";
 import { isPasswordBreached } from "@/lib/hibp";
-import { validatePassword, validateUsername } from "@/lib/password-policy";
+import {
+  normalizeUsername,
+  validatePassword,
+  validateUsername,
+} from "@/lib/password-policy";
 import { prisma } from "@/prisma/client";
 
 export async function POST(request: Request) {
@@ -28,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: passwordError }, { status: 400 });
     }
 
-    const normalizedUsername = username.trim();
+    const normalizedUsername = normalizeUsername(username);
     const ip = getClientIp(request);
     const lockout = getAuthLockoutStatus(ip, normalizedUsername);
 
@@ -39,8 +43,14 @@ export async function POST(request: Request) {
       });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { username: normalizedUsername },
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: normalizedUsername },
+          { username: username.trim() },
+        ],
+      },
+      select: { id: true },
     });
 
     if (existingUser) {
@@ -68,18 +78,37 @@ export async function POST(request: Request) {
         password: hashedPassword,
         plan: "free",
         freeTier: true,
+        accountStatus: "active",
       },
     });
 
     clearAuthFailures(ip, normalizedUsername);
-    await setSessionCookie(user.id, user.isAdmin);
 
-    return NextResponse.json(
-      { success: true, user: { username: user.username, isAdmin: user.isAdmin } },
+    const response = NextResponse.json(
+      {
+        success: true,
+        user: { username: user.username, isAdmin: user.isAdmin },
+      },
       { status: 201 },
     );
+
+    return attachSessionCookie(response, user.id, user.isAdmin);
   } catch (error) {
     console.error("Register error:", error);
+
+    // Unique constraint race
+    if (
+      typeof error === "object" &&
+      error &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "Username is already taken" },
+        { status: 409 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
