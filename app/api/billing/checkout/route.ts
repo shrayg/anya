@@ -27,6 +27,11 @@ function isInterval(value: unknown): value is BillingInterval {
   return value === "monthly" || value === "annual";
 }
 
+/** Shown on Stripe Checkout line items (public HTTPS URL required). */
+function stripeProductImages(baseUrl: string): string[] {
+  return [`${baseUrl}/images/anya-logo.png`];
+}
+
 async function ensureStripeCustomer(userId: number, username: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -130,6 +135,7 @@ export async function POST(request: NextRequest) {
                 interval === "annual"
                   ? `${plan.name} plan billed annually`
                   : `${plan.name} plan billed monthly`,
+              images: stripeProductImages(baseUrl),
             },
           },
         },
@@ -196,6 +202,7 @@ export async function POST(request: NextRequest) {
             product_data: {
               name: `Anya.Int ${pack.name}`,
               description: `$${creditTotal.toFixed(2)} investigation credit`,
+              images: stripeProductImages(baseUrl),
             },
           },
         },
@@ -258,6 +265,7 @@ export async function POST(request: NextRequest) {
             product_data: {
               name: "Anya.Int API Access",
               description: API_PRODUCT.description,
+              images: stripeProductImages(baseUrl),
             },
           },
         },
