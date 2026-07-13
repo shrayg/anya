@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/button";
 import clsx from "clsx";
@@ -41,6 +41,21 @@ function checkoutHref(plan: PlanId, interval: BillingInterval) {
   return `/auth?${params.toString()}`;
 }
 
+function billingStatusMessage(status: string | null): string | null {
+  switch (status) {
+    case "success":
+      return "Payment successful. Your plan or credits are now active.";
+    case "cancelled":
+      return "Checkout cancelled. No charge was made.";
+    case "error":
+      return "Payment confirmation failed. If you were charged, contact support.";
+    case "pending":
+      return "Payment is still processing. Refresh in a moment or contact support.";
+    default:
+      return null;
+  }
+}
+
 export function PricingPageContent({
   className,
   authenticated = false,
@@ -51,6 +66,15 @@ export function PricingPageContent({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get("billing");
+    const note = billingStatusMessage(status);
+    if (note) {
+      if (status === "success" || status === "cancelled") setMessage(note);
+      else setError(note);
+    }
+  }, []);
 
   const plans = useMemo(() => getPricingPlans(), []);
 
@@ -81,7 +105,11 @@ export function PricingPageContent({
       if (!res.ok) {
         throw new Error(data.error ?? "Checkout failed");
       }
-      setMessage(data.message ?? "Request recorded. Our team will activate your purchase shortly.");
+      if (typeof data.url === "string" && data.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      setMessage(data.message ?? "Redirecting to Stripe…");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
     } finally {

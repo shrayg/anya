@@ -9,11 +9,16 @@ import {
   getPlanDefinition,
   getPlanPrice,
   normalizePlanId,
-  planUpdatesFromId,
   type BillingInterval,
   type PlanId,
 } from "@/lib/plans";
 import { recordPayment } from "@/lib/payments";
+import {
+  dollarsToCents,
+  getAppBaseUrl,
+  getStripe,
+  isStripeConfigured,
+} from "@/lib/stripe";
 import { prisma } from "@/prisma/client";
 
 export const runtime = "nodejs";
@@ -22,10 +27,41 @@ function isInterval(value: unknown): value is BillingInterval {
   return value === "monthly" || value === "annual";
 }
 
+async function ensureStripeCustomer(userId: number, username: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stripeCustomerId: true },
+  });
+
+  if (user?.stripeCustomerId) {
+    return user.stripeCustomerId;
+  }
+
+  const stripe = getStripe();
+  const customer = await stripe.customers.create({
+    name: username,
+    metadata: { userId: String(userId) },
+  });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { stripeCustomerId: customer.id },
+  });
+
+  return customer.id;
+}
+
 export async function POST(request: NextRequest) {
   const session = await getSessionCookie();
   if (!session?.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isStripeConfigured()) {
+    return NextResponse.json(
+      { error: "Stripe is not configured on this server" },
+      { status: 503 },
+    );
   }
 
   const userId = session.userId as number;
@@ -34,7 +70,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, username: true, stripeCustomerId: true },
+  });
+  if (!dbUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
   const type = (body as { type?: string }).type;
+  const stripe = getStripe();
+  const baseUrl = getAppBaseUrl(request.url);
+  const customerId = await ensureStripeCustomer(dbUser.id, dbUser.username);
 
   if (type === "subscription") {
     const planId = normalizePlanId((body as { planId?: string }).planId);
@@ -52,7 +99,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Plan requires sales contact" }, { status: 400 });
     }
 
-    await recordPayment({
+    const payment = await recordPayment({
       userId,
       amount: price.value,
       type: "subscription",
@@ -62,20 +109,58 @@ export async function POST(request: NextRequest) {
       description: `${plan.name} (${interval}) — awaiting payment confirmation`,
     });
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...planUpdatesFromId(planId),
-        billingInterval: interval,
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      client_reference_id: String(userId),
+      success_url: `${baseUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?billing=cancelled`,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: dollarsToCents(price.value),
+            recurring: {
+              interval: interval === "annual" ? "year" : "month",
+            },
+            product_data: {
+              name: `Anya.Int ${plan.name}`,
+              description:
+                interval === "annual"
+                  ? `${plan.name} plan billed annually`
+                  : `${plan.name} plan billed monthly`,
+            },
+          },
+        },
+      ],
+      metadata: {
+        paymentId: String(payment?.id ?? ""),
+        userId: String(userId),
+        type: "subscription",
+        planId,
+        interval,
+      },
+      subscription_data: {
+        metadata: {
+          userId: String(userId),
+          planId,
+          interval,
+        },
       },
     });
 
+    if (payment?.id && checkoutSession.id) {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { stripeSessionId: checkoutSession.id },
+      });
+    }
+
     return NextResponse.json({
       ok: true,
-      message: `${plan.name} activated. Payment is pending confirmation.`,
-      planId,
-      interval,
-      amount: price.value,
+      url: checkoutSession.url,
+      sessionId: checkoutSession.id,
     });
   }
 
@@ -88,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     const creditTotal = getCreditPackTotal(pack);
 
-    await recordPayment({
+    const payment = await recordPayment({
       userId,
       amount: pack.price,
       type: "balance_topup",
@@ -96,15 +181,44 @@ export async function POST(request: NextRequest) {
       description: `${pack.name}: $${creditTotal.toFixed(2)} credit (pending payment)`,
     });
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { balance: { increment: creditTotal } },
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      client_reference_id: String(userId),
+      success_url: `${baseUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?billing=cancelled`,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: dollarsToCents(pack.price),
+            product_data: {
+              name: `Anya.Int ${pack.name}`,
+              description: `$${creditTotal.toFixed(2)} investigation credit`,
+            },
+          },
+        },
+      ],
+      metadata: {
+        paymentId: String(payment?.id ?? ""),
+        userId: String(userId),
+        type: "credits",
+        packId: pack.id,
+      },
     });
+
+    if (payment?.id && checkoutSession.id) {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { stripeSessionId: checkoutSession.id },
+      });
+    }
 
     return NextResponse.json({
       ok: true,
-      message: `$${creditTotal.toFixed(2)} credit added. Payment recorded as pending.`,
-      credits: creditTotal,
+      url: checkoutSession.url,
+      sessionId: checkoutSession.id,
     });
   }
 
@@ -115,32 +229,65 @@ export async function POST(request: NextRequest) {
     }
 
     const price = getApiPrice(interval);
-    const apiKey = `anya_${crypto.randomUUID().replace(/-/g, "")}`;
 
-    await recordPayment({
+    const payment = await recordPayment({
       userId,
       amount: price.value,
       type: "api_access",
       plan: API_PRODUCT.id,
       interval,
       status: "pending",
-      description: `API Access (${interval}) — key issued pending payment confirmation`,
+      description: `API Access (${interval}) — awaiting payment confirmation`,
     });
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        apiAccess: true,
-        apiKey,
-        billingInterval: interval,
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      client_reference_id: String(userId),
+      success_url: `${baseUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?billing=cancelled`,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: dollarsToCents(price.value),
+            recurring: {
+              interval: interval === "annual" ? "year" : "month",
+            },
+            product_data: {
+              name: "Anya.Int API Access",
+              description: API_PRODUCT.description,
+            },
+          },
+        },
+      ],
+      metadata: {
+        paymentId: String(payment?.id ?? ""),
+        userId: String(userId),
+        type: "api_access",
+        interval,
+      },
+      subscription_data: {
+        metadata: {
+          userId: String(userId),
+          type: "api_access",
+          interval,
+        },
       },
     });
 
+    if (payment?.id && checkoutSession.id) {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { stripeSessionId: checkoutSession.id },
+      });
+    }
+
     return NextResponse.json({
       ok: true,
-      message: "API access enabled. Your key is available in Settings.",
-      amount: price.value,
-      interval,
+      url: checkoutSession.url,
+      sessionId: checkoutSession.id,
     });
   }
 

@@ -33,6 +33,7 @@ model User {
   professionalTier Boolean @default(false)
   investigatorTier Boolean @default(false)
   enterpriseTier Boolean @default(false)
+  stripeCustomerId String?
   searches  SearchHistory[]
   cases     Case[]
   payments  Payment[]
@@ -71,17 +72,20 @@ model SupportTicketMessage {
 }
 
 model Payment {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount      Float
-  currency    String   @default("USD")
-  type        String
-  plan        String?
-  interval    String?
-  status      String   @default("completed")
-  description String   @default("")
-  createdAt   DateTime @default(now())
+  id                   Int      @id @default(autoincrement())
+  userId               Int
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount               Float
+  currency             String   @default("USD")
+  type                 String
+  plan                 String?
+  interval             String?
+  status               String   @default("completed")
+  description          String   @default("")
+  stripeSessionId      String?  @unique
+  stripePaymentIntentId String?
+  stripeSubscriptionId String?
+  createdAt            DateTime @default(now())
 }
 
 model License {

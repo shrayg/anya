@@ -100,7 +100,7 @@ function AuthForm() {
       const interval = searchParams.get("interval") ?? "monthly";
 
       if (mode === "register" && plan && plan !== "enterprise" && plan !== "free") {
-        await fetch("/api/billing/checkout", {
+        const checkoutRes = await fetch("/api/billing/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -109,7 +109,15 @@ function AuthForm() {
             planId: plan,
             interval: interval === "annual" ? "annual" : "monthly",
           }),
-        }).catch(() => undefined);
+        }).catch(() => null);
+
+        if (checkoutRes?.ok) {
+          const checkoutData = await checkoutRes.json().catch(() => ({}));
+          if (typeof checkoutData.url === "string" && checkoutData.url) {
+            window.location.assign(checkoutData.url);
+            return;
+          }
+        }
       }
 
       window.location.assign(landingPath);
