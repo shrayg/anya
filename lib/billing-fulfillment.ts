@@ -7,6 +7,7 @@ import {
   type BillingInterval,
   type PlanId,
 } from "@/lib/plans";
+import { notifyPaymentDiscord } from "@/lib/discord-payments-webhook";
 import type { BillingMeta } from "@/lib/square";
 import { prisma } from "@/prisma/client";
 
@@ -17,6 +18,37 @@ export type FulfillBillingInput = {
   paymentReferenceId?: string | null;
   amountCents?: number | null;
 };
+
+async function sendPaymentNotification(input: {
+  userId: number;
+  amount: number;
+  type: string;
+  plan?: string | null;
+  interval?: string | null;
+  description?: string;
+  paymentId?: number | null;
+  providerRef?: string | null;
+}) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { username: true },
+    });
+
+    await notifyPaymentDiscord({
+      username: user?.username ?? `user#${input.userId}`,
+      amount: input.amount,
+      type: input.type,
+      plan: input.plan,
+      interval: input.interval,
+      description: input.description,
+      paymentId: input.paymentId,
+      providerRef: input.providerRef,
+    });
+  } catch (error) {
+    console.error("[billing] payment discord notify failed", error);
+  }
+}
 
 export async function fulfillBillingPayment(input: FulfillBillingInput) {
   const { meta, checkoutSessionId, paymentReferenceId, amountCents } = input;
@@ -52,6 +84,12 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
       return { ok: false as const, reason: "invalid_plan" };
     }
 
+    const description = existing
+      ? existing.description
+          .replace("awaiting payment confirmation", "paid via Square")
+          .replace("paid via Stripe", "paid via Square")
+      : `${planId} (${interval}) — paid via Square`;
+
     await prisma.$transaction([
       prisma.user.update({
         where: { id: userId },
@@ -68,9 +106,7 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
                 status: "completed",
                 stripeSessionId: checkoutSessionId,
                 stripePaymentIntentId: paymentReferenceId ?? undefined,
-                description: existing.description
-                  .replace("awaiting payment confirmation", "paid via Square")
-                  .replace("paid via Stripe", "paid via Square"),
+                description,
               },
             }),
           ]
@@ -83,13 +119,24 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
                 plan: planId,
                 interval,
                 status: "completed",
-                description: `${planId} (${interval}) — paid via Square`,
+                description,
                 stripeSessionId: checkoutSessionId,
                 stripePaymentIntentId: paymentReferenceId ?? undefined,
               },
             }),
           ]),
     ]);
+
+    await sendPaymentNotification({
+      userId,
+      amount,
+      type: "subscription",
+      plan: planId,
+      interval,
+      description,
+      paymentId: existing?.id ?? paymentId,
+      providerRef: paymentReferenceId ?? checkoutSessionId,
+    });
 
     return { ok: true as const, type: "subscription" as const, planId };
   }
@@ -101,6 +148,12 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
       : existing
         ? Number(existing.description.match(/\$([\d.]+)/)?.[1] ?? existing.amount)
         : amount;
+
+    const description = existing
+      ? existing.description
+          .replace("pending payment", "paid via Square")
+          .replace("paid via Stripe", "paid via Square")
+      : `Credit top-up $${creditTotal.toFixed(2)} — paid via Square`;
 
     await prisma.$transaction([
       prisma.user.update({
@@ -115,9 +168,7 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
                 status: "completed",
                 stripeSessionId: checkoutSessionId,
                 stripePaymentIntentId: paymentReferenceId ?? undefined,
-                description: existing.description
-                  .replace("pending payment", "paid via Square")
-                  .replace("paid via Stripe", "paid via Square"),
+                description,
               },
             }),
           ]
@@ -128,13 +179,22 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
                 amount,
                 type: "balance_topup",
                 status: "completed",
-                description: `Credit top-up $${creditTotal.toFixed(2)} — paid via Square`,
+                description,
                 stripeSessionId: checkoutSessionId,
                 stripePaymentIntentId: paymentReferenceId ?? undefined,
               },
             }),
           ]),
     ]);
+
+    await sendPaymentNotification({
+      userId,
+      amount,
+      type: "credits",
+      description,
+      paymentId: existing?.id ?? paymentId,
+      providerRef: paymentReferenceId ?? checkoutSessionId,
+    });
 
     return { ok: true as const, type: "credits" as const, credits: creditTotal };
   }
@@ -147,6 +207,13 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
     });
     const apiKey =
       user?.apiKey || `anya_${crypto.randomUUID().replace(/-/g, "")}`;
+
+    const description = existing
+      ? existing.description
+          .replace("awaiting payment confirmation", "paid via Square")
+          .replace("pending payment confirmation", "paid via Square")
+          .replace("paid via Stripe", "paid via Square")
+      : `API Access (${interval}) — paid via Square`;
 
     await prisma.$transaction([
       prisma.user.update({
@@ -165,10 +232,7 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
                 status: "completed",
                 stripeSessionId: checkoutSessionId,
                 stripePaymentIntentId: paymentReferenceId ?? undefined,
-                description: existing.description
-                  .replace("awaiting payment confirmation", "paid via Square")
-                  .replace("pending payment confirmation", "paid via Square")
-                  .replace("paid via Stripe", "paid via Square"),
+                description,
               },
             }),
           ]
@@ -181,13 +245,24 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
                 plan: API_PRODUCT.id,
                 interval,
                 status: "completed",
-                description: `API Access (${interval}) — paid via Square`,
+                description,
                 stripeSessionId: checkoutSessionId,
                 stripePaymentIntentId: paymentReferenceId ?? undefined,
               },
             }),
           ]),
     ]);
+
+    await sendPaymentNotification({
+      userId,
+      amount,
+      type: "api_access",
+      plan: API_PRODUCT.id,
+      interval,
+      description,
+      paymentId: existing?.id ?? paymentId,
+      providerRef: paymentReferenceId ?? checkoutSessionId,
+    });
 
     return { ok: true as const, type: "api_access" as const };
   }
