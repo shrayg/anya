@@ -1,30 +1,41 @@
 export type PlanId =
   | "free"
   | "starter"
-  | "basic"
   | "professional"
-  | "advanced"
+  | "ultimate"
   | "enterprise";
+
+/** Legacy plan strings still present in the DB — normalized by resolveUserPlan. */
+type LegacyPlanId = "basic" | "advanced";
+
+export type BillingInterval = "monthly" | "annual";
 
 export const PLAN_IDS: PlanId[] = [
   "free",
   "starter",
-  "basic",
   "professional",
-  "advanced",
+  "ultimate",
+  "enterprise",
+];
+
+/** Plans shown on the public pricing page (excludes free). */
+export const PRICING_PLAN_IDS: PlanId[] = [
+  "starter",
+  "professional",
+  "ultimate",
   "enterprise",
 ];
 
 const PLAN_RANK: Record<PlanId, number> = {
   free: 0,
   starter: 1,
-  basic: 2,
-  professional: 3,
-  advanced: 4,
-  enterprise: 5,
+  professional: 2,
+  ultimate: 3,
+  enterprise: 4,
 };
 
-export const RELEASE_SALE = true;
+/** Annual billing = 10× monthly (2 months free). */
+export const ANNUAL_MONTHS_CHARGED = 10;
 
 export const FREE_MODULE_SLUGS = new Set([
   "phone",
@@ -34,6 +45,15 @@ export const FREE_MODULE_SLUGS = new Set([
   "minecraft",
   "steam",
   "github",
+]);
+
+/** Starter (homepage-only) modules — broader than free, still no AI / IntelX. */
+export const STARTER_MODULE_SLUGS = new Set([
+  ...FREE_MODULE_SLUGS,
+  "breaches",
+  "domain",
+  "ip",
+  "name-search",
 ]);
 
 export const AI_MODULE_SLUGS = new Set([
@@ -52,76 +72,70 @@ export type PlanDefinition = {
   name: string;
   description: string;
   monthlyPrice: number | null;
-  saleMonthlyPrice?: number;
   dailySearchLimit: number;
   features: string[];
   highlighted?: boolean;
   customPricing?: boolean;
+  /** Starter has homepage search only — no /dashboard panel. */
+  panelAccess: boolean;
 };
 
 export const PLAN_DEFINITIONS: PlanDefinition[] = [
   {
     id: "free",
     name: "Free",
-    description: "Get started with core identity and platform lookups",
+    description: "Limited homepage lookups while you evaluate the platform",
     monthlyPrice: 0,
     dailySearchLimit: 5,
+    panelAccess: false,
     features: [
       "5 searches per day",
-      "Phone, Email, Username",
-      "Discord ID, Roblox, Minecraft, Steam, GitHub",
+      "Core homepage lookups",
       "Results blurred until you upgrade",
-      "IntelX not available",
+      "No dashboard / panel access",
     ],
   },
   {
     id: "starter",
     name: "Starter",
-    description: "More searches and full module access",
-    monthlyPrice: 4.99,
-    dailySearchLimit: 15,
+    description: "Homepage investigations — no panel access",
+    monthlyPrice: 9.99,
+    dailySearchLimit: 10,
+    panelAccess: false,
     features: [
-      "15 searches per day",
-      "All modules except AI Intelligence",
-      "IntelX & Stealer Logs: $0.25 per search (balance)",
-    ],
-  },
-  {
-    id: "basic",
-    name: "Basic",
-    description: "Higher daily limits for active investigators",
-    monthlyPrice: 14.99,
-    saleMonthlyPrice: 10.5,
-    dailySearchLimit: 50,
-    features: [
-      "50 searches per day",
-      "All modules except AI Intelligence",
-      "IntelX & Stealer Logs: $0.25 per search (balance)",
+      "10 searches per day",
+      "Front-page search only",
+      "Discord, Roblox, Steam, GitHub & more",
+      "No dashboard / panel access",
+      "IntelX not included",
     ],
   },
   {
     id: "professional",
     name: "Professional",
-    description: "Unlimited searches with restricted AI access",
-    monthlyPrice: 49.99,
-    saleMonthlyPrice: 29.99,
-    dailySearchLimit: Infinity,
+    description: "Full panel access for active investigators",
+    monthlyPrice: 24.99,
+    dailySearchLimit: 50,
+    panelAccess: true,
     highlighted: true,
     features: [
-      "Unlimited searches",
-      "All modules + restricted AI Intelligence",
+      "50 searches per day",
+      "Full dashboard / panel access",
+      "All modules except unrestricted AI",
+      "Restricted AI Intelligence",
       "5 IntelX searches per day included",
     ],
   },
   {
-    id: "advanced",
-    name: "Advanced",
-    description: "Full unrestricted access to everything",
-    monthlyPrice: 69.99,
-    saleMonthlyPrice: 41.99,
+    id: "ultimate",
+    name: "Ultimate",
+    description: "Unlimited searches with full AI access",
+    monthlyPrice: 49.99,
     dailySearchLimit: Infinity,
+    panelAccess: true,
     features: [
       "Unlimited searches",
+      "Full dashboard / panel access",
       "Full AI Intelligence access",
       "IntelX & Stealer Logs included",
     ],
@@ -132,15 +146,84 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     description: "Custom deployments for teams and agencies",
     monthlyPrice: null,
     dailySearchLimit: Infinity,
+    panelAccess: true,
     customPricing: true,
     features: [
       "Custom search limits",
       "Dedicated support & SLA",
-      "API access on request",
-      "Tailored onboarding",
+      "Team seats & onboarding",
+      "Priority feature requests",
     ],
   },
 ];
+
+export type CreditPack = {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  bonusCredits?: number;
+  description: string;
+  highlighted?: boolean;
+};
+
+/** Credit packs top up User.balance (USD) for pay-per-use modules. */
+export const CREDIT_PACKS: CreditPack[] = [
+  {
+    id: "credits_10",
+    name: "Starter Pack",
+    credits: 10,
+    price: 10,
+    description: "40 IntelX / Stealer searches at $0.25 each",
+  },
+  {
+    id: "credits_25",
+    name: "Investigator Pack",
+    credits: 25,
+    price: 25,
+    bonusCredits: 2.5,
+    description: "$25 + $2.50 bonus credit",
+    highlighted: true,
+  },
+  {
+    id: "credits_50",
+    name: "Ops Pack",
+    credits: 50,
+    price: 50,
+    bonusCredits: 7.5,
+    description: "$50 + $7.50 bonus credit",
+  },
+  {
+    id: "credits_100",
+    name: "Agency Pack",
+    credits: 100,
+    price: 100,
+    bonusCredits: 20,
+    description: "$100 + $20 bonus credit",
+  },
+];
+
+export type ApiProduct = {
+  id: "api_access";
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  features: string[];
+};
+
+export const API_PRODUCT: ApiProduct = {
+  id: "api_access",
+  name: "API Access",
+  description: "Programmatic access to Anya.Int intelligence endpoints",
+  monthlyPrice: 249.99,
+  features: [
+    "REST API for OSINT modules",
+    "API key authentication",
+    "Higher rate limits",
+    "Usage analytics",
+    "Email support",
+  ],
+};
 
 export type UserPlanRecord = {
   plan?: string | null;
@@ -149,7 +232,22 @@ export type UserPlanRecord = {
   professionalTier?: boolean;
   investigatorTier?: boolean;
   enterpriseTier?: boolean;
+  apiAccess?: boolean | null;
+  billingInterval?: string | null;
 };
+
+export function normalizePlanId(value: string | null | undefined): PlanId | null {
+  if (!value) return null;
+  if (PLAN_IDS.includes(value as PlanId)) return value as PlanId;
+
+  const legacy: Record<LegacyPlanId, PlanId> = {
+    basic: "professional",
+    advanced: "ultimate",
+  };
+
+  if (value in legacy) return legacy[value as LegacyPlanId];
+  return null;
+}
 
 export function isPlanId(value: string | null | undefined): value is PlanId {
   return Boolean(value && PLAN_IDS.includes(value as PlanId));
@@ -158,11 +256,12 @@ export function isPlanId(value: string | null | undefined): value is PlanId {
 export function resolveUserPlan(user: UserPlanRecord): PlanId {
   const candidates: PlanId[] = ["free"];
 
-  if (user.plan && isPlanId(user.plan)) {
-    candidates.push(user.plan);
-  }
+  const normalized = normalizePlanId(user.plan ?? null);
+  if (normalized) candidates.push(normalized);
+  else if (user.plan && isPlanId(user.plan)) candidates.push(user.plan);
+
   if (user.enterpriseTier) candidates.push("enterprise");
-  if (user.investigatorTier) candidates.push("advanced");
+  if (user.investigatorTier) candidates.push("ultimate");
   if (user.professionalTier) candidates.push("professional");
 
   return candidates.reduce((best, current) =>
@@ -172,6 +271,10 @@ export function resolveUserPlan(user: UserPlanRecord): PlanId {
 
 export function getPlanDefinition(plan: PlanId): PlanDefinition {
   return PLAN_DEFINITIONS.find((entry) => entry.id === plan) ?? PLAN_DEFINITIONS[0];
+}
+
+export function getPricingPlans(): PlanDefinition[] {
+  return PLAN_DEFINITIONS.filter((plan) => PRICING_PLAN_IDS.includes(plan.id));
 }
 
 export function getPlanLabel(plan: PlanId): string {
@@ -187,7 +290,7 @@ export function shouldBlurResults(plan: PlanId): boolean {
 }
 
 export function hasUnrestrictedAi(plan: PlanId): boolean {
-  return plan === "advanced" || plan === "enterprise";
+  return plan === "ultimate" || plan === "enterprise";
 }
 
 export function hasRestrictedAi(plan: PlanId): boolean {
@@ -211,7 +314,7 @@ export function checkModuleAccess(
   const balance = options?.balance ?? 0;
   const intelxUsedToday = options?.intelxUsedToday ?? 0;
 
-  if (plan === "enterprise" || plan === "advanced") {
+  if (plan === "enterprise" || plan === "ultimate") {
     return { allowed: true };
   }
 
@@ -244,24 +347,25 @@ export function checkModuleAccess(
     };
   }
 
-  if (PAY_PER_USE_MODULE_SLUGS.has(moduleSlug)) {
-    if (plan === "starter" || plan === "basic") {
-      if (balance < PAY_PER_USE_COST) {
-        return {
-          allowed: false,
-          reason: `IntelX and Stealer Logs cost $${PAY_PER_USE_COST.toFixed(2)} per search. Top up your balance in Settings.`,
-          requiresBalance: true,
-          balanceCost: PAY_PER_USE_COST,
-        };
-      }
-
+  if (plan === "starter") {
+    if (PAY_PER_USE_MODULE_SLUGS.has(moduleSlug)) {
       return {
-        allowed: true,
-        requiresBalance: true,
-        balanceCost: PAY_PER_USE_COST,
+        allowed: false,
+        reason: "IntelX and Stealer Logs require Professional or higher.",
       };
     }
 
+    if (STARTER_MODULE_SLUGS.has(moduleSlug)) {
+      return { allowed: true };
+    }
+
+    return {
+      allowed: false,
+      reason: "Upgrade to Professional for panel modules and broader coverage.",
+    };
+  }
+
+  if (PAY_PER_USE_MODULE_SLUGS.has(moduleSlug)) {
     if (plan === "professional" && moduleSlug === "intelx") {
       if (intelxUsedToday >= PROFESSIONAL_INTELX_DAILY_LIMIT) {
         return {
@@ -272,6 +376,23 @@ export function checkModuleAccess(
       }
 
       return { allowed: true, usesIntelxQuota: true };
+    }
+
+    if (plan === "professional" && moduleSlug === "stealer-logs") {
+      if (balance < PAY_PER_USE_COST) {
+        return {
+          allowed: false,
+          reason: `Stealer Logs cost $${PAY_PER_USE_COST.toFixed(2)} per search. Top up credits on the Pricing page.`,
+          requiresBalance: true,
+          balanceCost: PAY_PER_USE_COST,
+        };
+      }
+
+      return {
+        allowed: true,
+        requiresBalance: true,
+        balanceCost: PAY_PER_USE_COST,
+      };
     }
   }
 
@@ -304,30 +425,68 @@ export function planUpdatesFromId(plan: PlanId) {
     subscripted: plan !== "free",
     freeTier: plan === "free",
     professionalTier: plan === "professional",
-    investigatorTier: plan === "advanced",
+    investigatorTier: plan === "ultimate",
     enterpriseTier: plan === "enterprise",
   };
 }
 
-export function getDisplayPrice(plan: PlanDefinition, useSale = RELEASE_SALE) {
+export function getPlanPrice(
+  plan: PlanDefinition,
+  interval: BillingInterval = "monthly",
+): { label: string; value: number | null; monthlyEquivalent: number | null } {
   if (plan.customPricing || plan.monthlyPrice === null) {
-    return { label: "Custom", value: null as number | null, sale: false };
+    return { label: "Custom", value: null, monthlyEquivalent: null };
   }
 
-  if (useSale && plan.saleMonthlyPrice !== undefined) {
+  if (interval === "annual") {
+    const annual = Number((plan.monthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2));
     return {
-      label: plan.saleMonthlyPrice.toFixed(2),
-      value: plan.saleMonthlyPrice,
-      original: plan.monthlyPrice,
-      sale: true,
+      label: annual.toFixed(2),
+      value: annual,
+      monthlyEquivalent: Number((annual / 12).toFixed(2)),
     };
   }
 
   return {
     label: plan.monthlyPrice.toFixed(2),
     value: plan.monthlyPrice,
+    monthlyEquivalent: plan.monthlyPrice,
+  };
+}
+
+/** @deprecated Use getPlanPrice — kept for staff payment recording. */
+export function getDisplayPrice(plan: PlanDefinition) {
+  const price = getPlanPrice(plan, "monthly");
+  return {
+    label: price.label,
+    value: price.value,
     sale: false,
   };
+}
+
+export function getApiPrice(interval: BillingInterval = "monthly"): {
+  label: string;
+  value: number;
+  monthlyEquivalent: number;
+} {
+  if (interval === "annual") {
+    const annual = Number((API_PRODUCT.monthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2));
+    return {
+      label: annual.toFixed(2),
+      value: annual,
+      monthlyEquivalent: Number((annual / 12).toFixed(2)),
+    };
+  }
+
+  return {
+    label: API_PRODUCT.monthlyPrice.toFixed(2),
+    value: API_PRODUCT.monthlyPrice,
+    monthlyEquivalent: API_PRODUCT.monthlyPrice,
+  };
+}
+
+export function getCreditPackTotal(pack: CreditPack): number {
+  return pack.credits + (pack.bonusCredits ?? 0);
 }
 
 export function hasWorkspaceDashboardAccess(
@@ -336,7 +495,7 @@ export function hasWorkspaceDashboardAccess(
   if (user.canManageWorkspace) return true;
 
   const plan = resolveUserPlan(user);
-  return PLAN_RANK[plan] >= PLAN_RANK.professional;
+  return getPlanDefinition(plan).panelAccess;
 }
 
 export function getAppLandingPath(
@@ -345,4 +504,9 @@ export function getAppLandingPath(
   return hasWorkspaceDashboardAccess(user)
     ? "/dashboard/search/ai-search"
     : "/#search";
+}
+
+export function annualSavingsLabel(monthlyPrice: number): string {
+  const saved = monthlyPrice * 2;
+  return `Save $${saved.toFixed(2)}/yr`;
 }

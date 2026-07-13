@@ -11,6 +11,9 @@ export type UserProfile = {
   staffRole?: string | null;
   plan?: string;
   balance?: number;
+  billingInterval?: string;
+  apiAccess?: boolean;
+  apiKey?: string | null;
   freeTier?: boolean;
   professionalTier?: boolean;
   investigatorTier?: boolean;

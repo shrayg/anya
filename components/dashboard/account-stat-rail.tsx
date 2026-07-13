@@ -75,7 +75,7 @@ export function AccountUsagePanel({ stats }: { stats: UserStats | null }) {
 
 export function UpgradeLink() {
   return (
-    <Link className="anya-link-btn" href="/#pricing">
+    <Link className="anya-link-btn" href="/pricing">
       View plans
     </Link>
   );

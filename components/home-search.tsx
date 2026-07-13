@@ -261,15 +261,15 @@ export function HomeSearch() {
           <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/auth?action=login">
             Sign in
           </Link>{" "}
-          to run lookups. Free, Starter, and Basic plans search from here — Advanced unlocks the full workspace.
+          to run lookups. Free and Starter search from the homepage — Professional unlocks the full panel.
         </p>
       )}
 
       {auth.status === "authenticated" && planLabel && !hasWorkspace && (
         <p className="mt-3 text-xs text-zinc-500">
           {planLabel} plan · homepage search.{" "}
-          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/#pricing">
-            Upgrade to Advanced
+          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/pricing">
+            Upgrade to Professional
           </Link>{" "}
           for the full module workspace.
         </p>

@@ -26,6 +26,9 @@ model User {
   license License?
   plan String @default("free")
   balance Float @default(0)
+  billingInterval String @default("monthly")
+  apiAccess Boolean @default(false)
+  apiKey String?
   freeTier Boolean @default(true)
   professionalTier Boolean @default(false)
   investigatorTier Boolean @default(false)
@@ -33,6 +36,38 @@ model User {
   searches  SearchHistory[]
   cases     Case[]
   payments  Payment[]
+  tickets   SupportTicket[]
+  ticketMessages SupportTicketMessage[]
+}
+
+model SupportTicket {
+  id        Int      @id @default(autoincrement())
+  publicId  String   @unique @default(cuid())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  category  String   @default("general")
+  status    String   @default("open")
+  priority  String   @default("normal")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  SupportTicketMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([status, updatedAt])
+}
+
+model SupportTicketMessage {
+  id         Int      @id @default(autoincrement())
+  ticketId   Int
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   Int
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body       String
+  isStaff    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId, createdAt])
 }
 
 model Payment {
@@ -43,6 +78,7 @@ model Payment {
   currency    String   @default("USD")
   type        String
   plan        String?
+  interval    String?
   status      String   @default("completed")
   description String   @default("")
   createdAt   DateTime @default(now())

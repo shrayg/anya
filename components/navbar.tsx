@@ -65,9 +65,7 @@ export const Navbar = () => {
 
   useEffect(() => {
     if (window.location.hash !== "#pricing") return;
-
-    setPricingOpen(true);
-    window.history.replaceState(null, "", window.location.pathname);
+    window.location.replace("/pricing");
   }, []);
 
   const handleLogout = async () => {
@@ -83,7 +81,7 @@ export const Navbar = () => {
 
   const openPricingModal = () => {
     setMenuOpen(false);
-    setPricingOpen(true);
+    window.location.assign("/pricing");
   };
 
   const getModalHandler = (item: NavItem) => {

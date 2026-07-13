@@ -96,6 +96,22 @@ function AuthForm() {
         canManageWorkspace: meData.canManageWorkspace,
       });
 
+      const plan = searchParams.get("plan");
+      const interval = searchParams.get("interval") ?? "monthly";
+
+      if (mode === "register" && plan && plan !== "enterprise" && plan !== "free") {
+        await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            type: "subscription",
+            planId: plan,
+            interval: interval === "annual" ? "annual" : "monthly",
+          }),
+        }).catch(() => undefined);
+      }
+
       window.location.assign(landingPath);
     } catch {
       setError("Could not reach the server.");

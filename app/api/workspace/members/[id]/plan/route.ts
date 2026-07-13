@@ -3,9 +3,8 @@ import { NextResponse } from "next/server";
 import {
   getDisplayPrice,
   getPlanDefinition,
+  normalizePlanId,
   planUpdatesFromId,
-  PLAN_IDS,
-  type PlanId,
 } from "@/lib/plans";
 import { recordPayment } from "@/lib/payments";
 import { MEMBER_SELECT, requireWorkspaceAdmin } from "@/lib/workspace-admin-server";
@@ -22,18 +21,19 @@ export async function PUT(
     const { id } = await params;
     const userId = parseInt(id, 10);
     const { plan } = await request.json();
+    const planId = normalizePlanId(plan);
 
-    if (!plan || !PLAN_IDS.includes(plan as PlanId)) {
+    if (!planId) {
       return NextResponse.json({ error: "Invalid plan specified" }, { status: 400 });
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: planUpdatesFromId(plan as PlanId),
+      data: planUpdatesFromId(planId),
       select: MEMBER_SELECT,
     });
 
-    const planDefinition = getPlanDefinition(plan as PlanId);
+    const planDefinition = getPlanDefinition(planId);
     const price = getDisplayPrice(planDefinition);
 
     if (price.value && price.value > 0) {
@@ -41,7 +41,7 @@ export async function PUT(
         userId,
         amount: price.value,
         type: "subscription",
-        plan,
+        plan: planId,
         description: `${planDefinition.name} plan assigned by staff`,
       });
     }

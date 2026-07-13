@@ -25,6 +25,9 @@ export default function SettingsPage() {
       staffRole: dashboardUser.staffRole,
       plan: dashboardUser.plan,
       balance: dashboardUser.balance,
+      billingInterval: dashboardUser.billingInterval,
+      apiAccess: dashboardUser.apiAccess,
+      apiKey: dashboardUser.apiKey,
       freeTier: dashboardUser.freeTier,
       professionalTier: dashboardUser.professionalTier,
       investigatorTier: dashboardUser.investigatorTier,
@@ -103,6 +106,31 @@ export default function SettingsPage() {
               profile={profile}
               stats={stats}
             />
+          </section>
+
+          <section className="mb-8 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <h3 className="text-sm font-semibold text-white">Billing & API</h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              Manage credits, subscriptions, and API access on the pricing page.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <UpgradeLink />
+              <a className="anya-link-btn" href="/pricing">
+                Buy credits / API
+              </a>
+            </div>
+            {dashboardUser.apiAccess && dashboardUser.apiKey ? (
+              <div className="mt-4 rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-3">
+                <p className="text-[10px] uppercase tracking-wider text-indigo-200">API key</p>
+                <code className="mt-1 block break-all font-mono text-xs text-white">
+                  {dashboardUser.apiKey}
+                </code>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-zinc-500">
+                No API access on this account yet.
+              </p>
+            )}
           </section>
 
           <section className="max-w-2xl">

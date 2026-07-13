@@ -26,6 +26,9 @@ type MeResponseUser = {
   accountStatus?: AccountStatus;
   plan?: DashboardUser["plan"];
   balance?: number;
+  billingInterval?: string;
+  apiAccess?: boolean;
+  apiKey?: string | null;
   freeTier?: boolean;
   professionalTier?: boolean;
   investigatorTier?: boolean;
@@ -48,6 +51,9 @@ function mapMeUser(user: MeResponseUser, canManageWorkspace?: boolean): Dashboar
     accountStatus: user.accountStatus ?? "active",
     plan: user.plan ?? "free",
     balance: user.balance ?? 0,
+    billingInterval: user.billingInterval ?? "monthly",
+    apiAccess: Boolean(user.apiAccess),
+    apiKey: user.apiKey ?? null,
     freeTier: Boolean(user.freeTier),
     professionalTier: Boolean(user.professionalTier),
     investigatorTier: Boolean(user.investigatorTier),

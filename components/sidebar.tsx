@@ -30,7 +30,7 @@ const mainNav = [
   { name: "MindMap", href: "/mindmap", icon: Network, shortcut: "CTRL+K", live: true },
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Settings", href: "/app/settings", icon: Settings },
-  { name: "Pricing", href: "/#pricing", icon: CreditCard },
+  { name: "Pricing", href: "/pricing", icon: CreditCard },
   { name: "Support Center", href: "/app/support", icon: HelpCircle },
 ];
 

@@ -48,8 +48,15 @@ export const Footer = () => {
               Navigation
             </p>
             <ul className="space-y-2">
+              <li>
+                <NextLink href="/pricing">
+                  <span className="text-gray-400 hover:text-white transition-colors duration-200 text-sm">
+                    Pricing
+                  </span>
+                </NextLink>
+              </li>
               {siteConfig.navItems
-                .filter((item) => !item.modal)
+                .filter((item) => !item.modal && item.href !== "/pricing")
                 .map((item) => (
                 <li key={item.href}>
                   <NextLink href={item.href}>
