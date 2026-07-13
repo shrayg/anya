@@ -65,7 +65,7 @@ const mainNav: NavItem[] = [
 
 const footerNav: NavItem[] = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  { name: "Pricing", href: "/#pricing", icon: CreditCard },
+  { name: "Pricing", href: "/pricing", icon: CreditCard },
   { name: "Coffee Support", href: "/dashboard/support", icon: Coffee },
 ];
 

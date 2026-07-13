@@ -870,7 +870,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         {moduleLocked && (
           <p className="mt-3 border-l-2 border-amber-400/60 bg-amber-400/8 px-4 py-3 text-sm text-amber-100">
             {moduleLocked}{" "}
-            <Link className="text-anya-accent underline" href="/#pricing">
+            <Link className="text-anya-accent underline" href="/pricing">
               View plans
             </Link>
           </p>

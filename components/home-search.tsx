@@ -285,7 +285,7 @@ export function HomeSearch() {
       {auth.status === "authenticated" && planLabel && !hasWorkspace && (
         <p className="mt-3 text-xs text-zinc-500">
           {planLabel} plan · homepage search.{" "}
-          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/#pricing">
+          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/pricing">
             Upgrade to Advanced
           </Link>{" "}
           for the full module workspace.
