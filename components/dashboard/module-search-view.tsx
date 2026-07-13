@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, FolderPlus } from "lucide-react";
+import { ArrowLeft, Download, FolderPlus, Home } from "lucide-react";
 
 import { SearchBarTour } from "@/components/search-bar-tour";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
@@ -854,10 +854,16 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
   return (
     <div className="module-search px-6 py-6 md:px-8 md:py-8">
-      <Link className="module-search-back mb-6 inline-flex items-center gap-2" href="/dashboard/search">
-        <ArrowLeft className="size-4" />
-        Search hub
-      </Link>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <Link className="module-search-back inline-flex items-center gap-2" href="/dashboard/search">
+          <ArrowLeft className="size-4" />
+          Search hub
+        </Link>
+        <Link className="module-search-back inline-flex items-center gap-2" href="/">
+          <Home className="size-4" />
+          Home
+        </Link>
+      </div>
 
       <header className="module-search-hero">
         <p className="module-search-section">{moduleDef.section}</p>

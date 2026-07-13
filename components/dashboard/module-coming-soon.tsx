@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Home, Sparkles } from "lucide-react";
 
 import type { SearchModuleDef } from "@/lib/search-modules";
 import { siteConfig } from "@/config/site";
@@ -9,13 +9,19 @@ import { siteConfig } from "@/config/site";
 export function ModuleComingSoon({ moduleDef }: { moduleDef: SearchModuleDef }) {
   return (
     <div className="module-search px-6 py-6 md:px-8 md:py-8">
-      <Link
-        className="module-search-back mb-6 inline-flex items-center gap-2"
-        href={siteConfig.defaultWorkspacePath}
-      >
-        <ArrowLeft className="size-4" />
-        Back
-      </Link>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <Link
+          className="module-search-back inline-flex items-center gap-2"
+          href={siteConfig.defaultWorkspacePath}
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </Link>
+        <Link className="module-search-back inline-flex items-center gap-2" href="/">
+          <Home className="size-4" />
+          Home
+        </Link>
+      </div>
 
       <header className="module-search-hero mb-10">
         <span className="module-search-section">{moduleDef.section}</span>

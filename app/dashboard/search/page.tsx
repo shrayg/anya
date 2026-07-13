@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import clsx from "clsx";
-import { Search } from "lucide-react";
+import { Home, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { getHubSections } from "@/lib/search-modules";
@@ -54,6 +54,12 @@ export default function SearchHubPage() {
 
   return (
     <div className="module-search module-search-hub px-6 py-6 md:px-8 md:py-8" data-tour="search-hub">
+      <div className="mb-6 flex justify-end">
+        <Link className="module-search-back inline-flex items-center gap-2" href="/">
+          <Home className="size-4" />
+          Home
+        </Link>
+      </div>
       <header className="module-search-hero">
         <h1 className="module-search-title">Pick a module</h1>
         <p className="module-search-tagline">
