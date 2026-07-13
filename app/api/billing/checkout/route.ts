@@ -15,10 +15,13 @@ import {
 import { recordPayment } from "@/lib/payments";
 import {
   dollarsToCents,
+  encodeBillingMeta,
   getAppBaseUrl,
-  getStripe,
-  isStripeConfigured,
-} from "@/lib/stripe";
+  getSquareClient,
+  getSquareLocationId,
+  isSquareConfigured,
+  type BillingMeta,
+} from "@/lib/square";
 import { prisma } from "@/prisma/client";
 
 export const runtime = "nodejs";
@@ -27,33 +30,45 @@ function isInterval(value: unknown): value is BillingInterval {
   return value === "monthly" || value === "annual";
 }
 
-/** Shown on Stripe Checkout line items (public HTTPS URL required). */
-function stripeProductImages(baseUrl: string): string[] {
-  return [`${baseUrl}/images/anya-logo.png`];
-}
+async function createSquareCheckout(input: {
+  name: string;
+  description: string;
+  amountDollars: number;
+  meta: BillingMeta;
+  baseUrl: string;
+}) {
+  const client = getSquareClient();
+  const locationId = getSquareLocationId();
+  const idempotencyKey = crypto.randomUUID();
 
-async function ensureStripeCustomer(userId: number, username: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { stripeCustomerId: true },
+  const result = await client.checkout.paymentLinks.create({
+    idempotencyKey,
+    description: input.description,
+    quickPay: {
+      name: input.name,
+      priceMoney: {
+        amount: dollarsToCents(input.amountDollars),
+        currency: "USD",
+      },
+      locationId,
+    },
+    checkoutOptions: {
+      redirectUrl: `${input.baseUrl}/api/billing/confirm`,
+      askForShippingAddress: false,
+    },
+    paymentNote: encodeBillingMeta(input.meta),
   });
 
-  if (user?.stripeCustomerId) {
-    return user.stripeCustomerId;
+  const link = result.paymentLink;
+  if (!link?.id || !link.url) {
+    throw new Error("Square did not return a payment link");
   }
 
-  const stripe = getStripe();
-  const customer = await stripe.customers.create({
-    name: username,
-    metadata: { userId: String(userId) },
-  });
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: { stripeCustomerId: customer.id },
-  });
-
-  return customer.id;
+  return {
+    id: link.id,
+    url: link.url,
+    orderId: link.orderId ?? null,
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -62,9 +77,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!isStripeConfigured()) {
+  if (!isSquareConfigured()) {
     return NextResponse.json(
-      { error: "Stripe is not configured on this server" },
+      { error: "Square is not configured on this server" },
       { status: 503 },
     );
   }
@@ -77,16 +92,14 @@ export async function POST(request: NextRequest) {
 
   const dbUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true, stripeCustomerId: true },
+    select: { id: true, username: true },
   });
   if (!dbUser) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   const type = (body as { type?: string }).type;
-  const stripe = getStripe();
   const baseUrl = getAppBaseUrl(request.url);
-  const customerId = await ensureStripeCustomer(dbUser.id, dbUser.username);
 
   if (type === "subscription") {
     const planId = normalizePlanId((body as { planId?: string }).planId);
@@ -114,59 +127,39 @@ export async function POST(request: NextRequest) {
       description: `${plan.name} (${interval}) — awaiting payment confirmation`,
     });
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      client_reference_id: String(userId),
-      success_url: `${baseUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/pricing?billing=cancelled`,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: dollarsToCents(price.value),
-            recurring: {
-              interval: interval === "annual" ? "year" : "month",
-            },
-            product_data: {
-              name: `Anya.Int ${plan.name}`,
-              description:
-                interval === "annual"
-                  ? `${plan.name} plan billed annually`
-                  : `${plan.name} plan billed monthly`,
-              images: stripeProductImages(baseUrl),
-            },
-          },
-        },
-      ],
-      metadata: {
-        paymentId: String(payment?.id ?? ""),
-        userId: String(userId),
-        type: "subscription",
-        planId,
-        interval,
-      },
-      subscription_data: {
-        metadata: {
-          userId: String(userId),
-          planId,
-          interval,
-        },
-      },
+    const meta: BillingMeta = {
+      paymentId: String(payment?.id ?? ""),
+      userId: String(userId),
+      type: "subscription",
+      planId,
+      interval,
+    };
+
+    const link = await createSquareCheckout({
+      name: `Anya.Int ${plan.name}`,
+      description:
+        interval === "annual"
+          ? `${plan.name} plan billed annually`
+          : `${plan.name} plan billed monthly`,
+      amountDollars: price.value,
+      meta,
+      baseUrl,
     });
 
-    if (payment?.id && checkoutSession.id) {
+    if (payment?.id) {
       await prisma.payment.update({
         where: { id: payment.id },
-        data: { stripeSessionId: checkoutSession.id },
+        data: {
+          stripeSessionId: link.id,
+          stripePaymentIntentId: link.orderId,
+        },
       });
     }
 
     return NextResponse.json({
       ok: true,
-      url: checkoutSession.url,
-      sessionId: checkoutSession.id,
+      url: link.url,
+      sessionId: link.id,
     });
   }
 
@@ -187,45 +180,35 @@ export async function POST(request: NextRequest) {
       description: `${pack.name}: $${creditTotal.toFixed(2)} credit (pending payment)`,
     });
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer: customerId,
-      client_reference_id: String(userId),
-      success_url: `${baseUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/pricing?billing=cancelled`,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: dollarsToCents(pack.price),
-            product_data: {
-              name: `Anya.Int ${pack.name}`,
-              description: `$${creditTotal.toFixed(2)} investigation credit`,
-              images: stripeProductImages(baseUrl),
-            },
-          },
-        },
-      ],
-      metadata: {
-        paymentId: String(payment?.id ?? ""),
-        userId: String(userId),
-        type: "credits",
-        packId: pack.id,
-      },
+    const meta: BillingMeta = {
+      paymentId: String(payment?.id ?? ""),
+      userId: String(userId),
+      type: "credits",
+      packId: pack.id,
+    };
+
+    const link = await createSquareCheckout({
+      name: `Anya.Int ${pack.name}`,
+      description: `$${creditTotal.toFixed(2)} investigation credit`,
+      amountDollars: pack.price,
+      meta,
+      baseUrl,
     });
 
-    if (payment?.id && checkoutSession.id) {
+    if (payment?.id) {
       await prisma.payment.update({
         where: { id: payment.id },
-        data: { stripeSessionId: checkoutSession.id },
+        data: {
+          stripeSessionId: link.id,
+          stripePaymentIntentId: link.orderId,
+        },
       });
     }
 
     return NextResponse.json({
       ok: true,
-      url: checkoutSession.url,
-      sessionId: checkoutSession.id,
+      url: link.url,
+      sessionId: link.id,
     });
   }
 
@@ -247,55 +230,35 @@ export async function POST(request: NextRequest) {
       description: `API Access (${interval}) — awaiting payment confirmation`,
     });
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      client_reference_id: String(userId),
-      success_url: `${baseUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/pricing?billing=cancelled`,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: dollarsToCents(price.value),
-            recurring: {
-              interval: interval === "annual" ? "year" : "month",
-            },
-            product_data: {
-              name: "Anya.Int API Access",
-              description: API_PRODUCT.description,
-              images: stripeProductImages(baseUrl),
-            },
-          },
-        },
-      ],
-      metadata: {
-        paymentId: String(payment?.id ?? ""),
-        userId: String(userId),
-        type: "api_access",
-        interval,
-      },
-      subscription_data: {
-        metadata: {
-          userId: String(userId),
-          type: "api_access",
-          interval,
-        },
-      },
+    const meta: BillingMeta = {
+      paymentId: String(payment?.id ?? ""),
+      userId: String(userId),
+      type: "api_access",
+      interval,
+    };
+
+    const link = await createSquareCheckout({
+      name: "Anya.Int API Access",
+      description: API_PRODUCT.description,
+      amountDollars: price.value,
+      meta,
+      baseUrl,
     });
 
-    if (payment?.id && checkoutSession.id) {
+    if (payment?.id) {
       await prisma.payment.update({
         where: { id: payment.id },
-        data: { stripeSessionId: checkoutSession.id },
+        data: {
+          stripeSessionId: link.id,
+          stripePaymentIntentId: link.orderId,
+        },
       });
     }
 
     return NextResponse.json({
       ok: true,
-      url: checkoutSession.url,
-      sessionId: checkoutSession.id,
+      url: link.url,
+      sessionId: link.id,
     });
   }
 
