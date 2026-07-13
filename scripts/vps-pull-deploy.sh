@@ -10,6 +10,7 @@ cd "${APP_DIR}"
 echo "==> Pull latest ${BRANCH}"
 git fetch origin "${BRANCH}"
 git reset --hard "origin/${BRANCH}"
+git clean -fd
 
 if [[ -f .env.local ]]; then
   cp -a .env.local /tmp/anya.env.local.bak
