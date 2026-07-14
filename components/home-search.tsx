@@ -290,8 +290,7 @@ export function HomeSearch() {
 
   return (
     <div className="home-search w-full max-w-5xl px-2" data-tour="home-search" id="search">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-zinc-400">What would you like to investigate?</p>
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
         <button
           className="home-search-guide-btn"
           onClick={startSearchGuide}

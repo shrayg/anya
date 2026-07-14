@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { usePathname } from "next/navigation";
 
@@ -18,8 +18,13 @@ const MASTER = {
   centerY: 565,
 } as const;
 
-const HANDOFF_MS = 1.15;
-const HANDOFF_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+/** Hold the last painted frame slightly before `ended` (some browsers go black on ended). */
+const FREEZE_BEFORE_END_S = 0.08;
+
+const CROSSFADE_MS = 0.55;
+const MORPH_MS = 1.1;
+const MORPH_DELAY_MS = 0.28;
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 type Phase = "playing" | "handoff" | "done";
 
@@ -28,9 +33,7 @@ type HandoffGeometry = {
   fromY: number;
   toX: number;
   toY: number;
-  /** Final (hero) font size — locked; resize is done via GPU scale */
   fontSize: number;
-  /** fromSize / toSize — start scale so glyphs match the video end frame */
   startScale: number;
 };
 
@@ -42,7 +45,6 @@ function measureVideoEndGeometry(viewportW: number, viewportH: number) {
   return {
     x: offsetX + MASTER.centerX * scale,
     y: offsetY + MASTER.centerY * scale,
-    // Glyph box height ≈ 192px; cap-height tracks ~font-size closely for bold sans
     fontSize: MASTER.textHeight * scale * 0.92,
   };
 }
@@ -68,6 +70,22 @@ function measureHeroTarget(): {
   };
 }
 
+function holdLastFrame(video: HTMLVideoElement) {
+  try {
+    const duration = video.duration;
+    if (Number.isFinite(duration) && duration > 0) {
+      video.currentTime = Math.max(0, duration - FREEZE_BEFORE_END_S);
+    }
+    video.pause();
+  } catch {
+    try {
+      video.pause();
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export const SplashScreen = () => {
   const pathname = usePathname();
   const isHome = pathname === "/";
@@ -80,6 +98,10 @@ export const SplashScreen = () => {
 
   const bgOpacity = useMotionValue(1);
   const videoOpacity = useMotionValue(1);
+  const bridgeX = useMotionValue(0);
+  const bridgeY = useMotionValue(0);
+  const bridgeScale = useMotionValue(1);
+  const bridgeOpacity = useMotionValue(0);
 
   useEffect(() => {
     setMounted(true);
@@ -112,6 +134,9 @@ export const SplashScreen = () => {
     if (handoffStarted.current) return;
     handoffStarted.current = true;
 
+    const video = videoRef.current;
+    if (video) holdLastFrame(video);
+
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const from = measureVideoEndGeometry(window.innerWidth, window.innerHeight);
     const to = measureHeroTarget() ?? {
@@ -130,6 +155,12 @@ export const SplashScreen = () => {
 
     const startScale = Math.max(0.01, from.fontSize / to.fontSize);
 
+    // Seed bridge under the frozen video frame before we paint / crossfade
+    bridgeX.set(from.x);
+    bridgeY.set(from.y);
+    bridgeScale.set(startScale);
+    bridgeOpacity.set(1);
+
     setGeometry({
       fromX: from.x,
       fromY: from.y,
@@ -139,19 +170,73 @@ export const SplashScreen = () => {
       startScale,
     });
     setPhase("handoff");
+  }, [
+    bgOpacity,
+    bridgeOpacity,
+    bridgeScale,
+    bridgeX,
+    bridgeY,
+    finish,
+    videoOpacity,
+  ]);
 
-    // Video drops out so the live type takes over on the last frame pose
-    animate(videoOpacity, 0, {
-      duration: 0.18,
-      ease: [0.4, 0, 0.2, 1],
-    });
+  // After bridge text is in the DOM (matched to video end), crossfade video→text,
+  // then morph the text into the hero while the black veil fades.
+  useLayoutEffect(() => {
+    if (phase !== "handoff" || !geometry) return;
 
-    // Background keeps fading while the title continues its shift-up tween
-    animate(bgOpacity, 0, {
-      duration: HANDOFF_MS,
-      ease: HANDOFF_EASE,
-    });
-  }, [bgOpacity, finish, videoOpacity]);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+
+    let cancelled = false;
+    const timers: number[] = [];
+
+    // Ensure one paint with text under video at matching pose
+    timers.push(
+      window.setTimeout(() => {
+        if (cancelled) return;
+
+        // Soft reveal: freeze video dissolves into the matched live type (no black gap)
+        void animate(videoOpacity, 0, {
+          duration: CROSSFADE_MS,
+          ease: [0.4, 0, 0.2, 1],
+        });
+
+        timers.push(
+          window.setTimeout(() => {
+            if (cancelled) return;
+
+            void animate(bgOpacity, 0, {
+              duration: MORPH_MS,
+              ease: EASE,
+            });
+
+            void Promise.all([
+              animate(bridgeX, geometry.toX, { duration: MORPH_MS, ease: EASE }),
+              animate(bridgeY, geometry.toY, { duration: MORPH_MS, ease: EASE }),
+              animate(bridgeScale, 1, { duration: MORPH_MS, ease: EASE }),
+            ]).then(() => {
+              if (!cancelled) finish();
+            });
+          }, MORPH_DELAY_MS * 1000),
+        );
+      }, 32),
+    );
+
+    return () => {
+      cancelled = true;
+      timers.forEach((id) => window.clearTimeout(id));
+    };
+  }, [
+    phase,
+    geometry,
+    bgOpacity,
+    videoOpacity,
+    bridgeX,
+    bridgeY,
+    bridgeScale,
+    finish,
+  ]);
 
   useEffect(() => {
     if (!mounted || !isHome || phase !== "playing") return;
@@ -167,6 +252,16 @@ export const SplashScreen = () => {
 
     const safety = window.setTimeout(() => beginHandoff(), 7000);
 
+    const onTimeUpdate = () => {
+      const duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0) return;
+      if (video.currentTime >= duration - FREEZE_BEFORE_END_S) {
+        beginHandoff();
+      }
+    };
+
+    video.addEventListener("timeupdate", onTimeUpdate);
+
     const tryPlay = async () => {
       try {
         video.currentTime = 0;
@@ -178,7 +273,10 @@ export const SplashScreen = () => {
 
     void tryPlay();
 
-    return () => window.clearTimeout(safety);
+    return () => {
+      window.clearTimeout(safety);
+      video.removeEventListener("timeupdate", onTimeUpdate);
+    };
   }, [mounted, isHome, phase, beginHandoff]);
 
   if (!mounted || !isHome || phase === "done") {
@@ -186,7 +284,7 @@ export const SplashScreen = () => {
   }
 
   return (
-    <motion.div
+    <div
       className="fixed inset-0 z-[100] flex items-center justify-center"
       style={{
         pointerEvents: phase === "playing" ? "auto" : "none",
@@ -198,9 +296,32 @@ export const SplashScreen = () => {
         style={{ opacity: bgOpacity }}
       />
 
+      {/* Bridge type sits under the video so the dissolve never shows black */}
+      {phase === "handoff" && geometry ? (
+        <motion.span
+          className="pointer-events-none absolute left-0 top-0 z-[101] whitespace-nowrap font-extrabold tracking-normal text-[#c8c8c8]"
+          style={{
+            x: bridgeX,
+            y: bridgeY,
+            scale: bridgeScale,
+            opacity: bridgeOpacity,
+            fontSize: geometry.fontSize,
+            lineHeight: 1.15,
+            willChange: "transform",
+            backfaceVisibility: "hidden",
+            textRendering: "geometricPrecision",
+          }}
+          transformTemplate={({ x, y, scale }) =>
+            `translate3d(${x}, ${y}, 0) translate(-50%, -50%) scale(${scale})`
+          }
+        >
+          {siteConfig.name}
+        </motion.span>
+      ) : null}
+
       <motion.video
         ref={videoRef}
-        className="absolute inset-0 h-full w-full object-contain bg-black"
+        className="absolute inset-0 z-[102] h-full w-full object-contain bg-black"
         style={{ opacity: videoOpacity }}
         src={VIDEO_SRC}
         muted
@@ -209,39 +330,6 @@ export const SplashScreen = () => {
         onEnded={beginHandoff}
         onError={beginHandoff}
       />
-
-      {phase === "handoff" && geometry ? (
-        <motion.span
-          className="pointer-events-none fixed left-0 top-0 z-[101] whitespace-nowrap font-extrabold tracking-normal text-[#c8c8c8]"
-          initial={{
-            x: geometry.fromX,
-            y: geometry.fromY,
-            scale: geometry.startScale,
-          }}
-          animate={{
-            x: geometry.toX,
-            y: geometry.toY,
-            scale: 1,
-          }}
-          transition={{
-            duration: HANDOFF_MS,
-            ease: HANDOFF_EASE,
-          }}
-          transformTemplate={({ x, y, scale }) =>
-            `translate3d(${x}, ${y}, 0) translate(-50%, -50%) scale(${scale})`
-          }
-          style={{
-            fontSize: geometry.fontSize,
-            lineHeight: 1.15,
-            willChange: "transform",
-            backfaceVisibility: "hidden",
-            textRendering: "geometricPrecision",
-          }}
-          onAnimationComplete={finish}
-        >
-          {siteConfig.name}
-        </motion.span>
-      ) : null}
-    </motion.div>
+    </div>
   );
 };
