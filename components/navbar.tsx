@@ -190,8 +190,7 @@ export const Navbar = () => {
                 </Button>
                 <Button
                   as={NextLink}
-                  className="font-semibold text-black"
-                  color="default"
+                  className="font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
                   href="/auth?action=register"
                   variant="solid"
                 >
@@ -262,7 +261,12 @@ export const Navbar = () => {
                   <Button as={NextLink} href="/auth?action=login" variant="light">
                     Login
                   </Button>
-                  <Button as={NextLink} href="/auth?action=register" variant="solid">
+                  <Button
+                    as={NextLink}
+                    className="font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
+                    href="/auth?action=register"
+                    variant="solid"
+                  >
                     Register
                   </Button>
                 </>
