@@ -18,15 +18,20 @@ const MASTER = {
   centerY: 565,
 } as const;
 
+const HANDOFF_MS = 1.15;
+const HANDOFF_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 type Phase = "playing" | "handoff" | "done";
 
 type HandoffGeometry = {
   fromX: number;
   fromY: number;
-  fromSize: number;
   toX: number;
   toY: number;
-  toSize: number;
+  /** Final (hero) font size — locked; resize is done via GPU scale */
+  fontSize: number;
+  /** fromSize / toSize — start scale so glyphs match the video end frame */
+  startScale: number;
 };
 
 function measureVideoEndGeometry(viewportW: number, viewportH: number) {
@@ -52,7 +57,9 @@ function measureHeroTarget(): {
 
   const rect = target.getBoundingClientRect();
   const computed = window.getComputedStyle(target);
-  const fontSize = Number.parseFloat(computed.fontSize) || (window.innerWidth >= 768 ? 96 : 48);
+  const fontSize =
+    Number.parseFloat(computed.fontSize) ||
+    (window.innerWidth >= 768 ? 96 : 48);
 
   return {
     x: rect.left + rect.width / 2,
@@ -121,13 +128,15 @@ export const SplashScreen = () => {
       return;
     }
 
+    const startScale = Math.max(0.01, from.fontSize / to.fontSize);
+
     setGeometry({
       fromX: from.x,
       fromY: from.y,
-      fromSize: from.fontSize,
       toX: to.x,
       toY: to.y,
-      toSize: to.fontSize,
+      fontSize: to.fontSize,
+      startScale,
     });
     setPhase("handoff");
 
@@ -139,8 +148,8 @@ export const SplashScreen = () => {
 
     // Background keeps fading while the title continues its shift-up tween
     animate(bgOpacity, 0, {
-      duration: 1.05,
-      ease: [0.22, 1, 0.36, 1],
+      duration: HANDOFF_MS,
+      ease: HANDOFF_EASE,
     });
   }, [bgOpacity, finish, videoOpacity]);
 
@@ -203,29 +212,30 @@ export const SplashScreen = () => {
 
       {phase === "handoff" && geometry ? (
         <motion.span
-          className="pointer-events-none fixed z-[101] whitespace-nowrap font-extrabold tracking-normal text-[#c8c8c8]"
+          className="pointer-events-none fixed left-0 top-0 z-[101] whitespace-nowrap font-extrabold tracking-normal text-[#c8c8c8]"
           initial={{
-            left: geometry.fromX,
-            top: geometry.fromY,
-            x: "-50%",
-            y: "-50%",
-            fontSize: geometry.fromSize,
-            opacity: 1,
+            x: geometry.fromX,
+            y: geometry.fromY,
+            scale: geometry.startScale,
           }}
           animate={{
-            left: geometry.toX,
-            top: geometry.toY,
-            x: "-50%",
-            y: "-50%",
-            fontSize: geometry.toSize,
-            opacity: 1,
+            x: geometry.toX,
+            y: geometry.toY,
+            scale: 1,
           }}
           transition={{
-            duration: 1.05,
-            ease: [0.22, 1, 0.36, 1],
+            duration: HANDOFF_MS,
+            ease: HANDOFF_EASE,
           }}
+          transformTemplate={({ x, y, scale }) =>
+            `translate3d(${x}, ${y}, 0) translate(-50%, -50%) scale(${scale})`
+          }
           style={{
+            fontSize: geometry.fontSize,
             lineHeight: 1.15,
+            willChange: "transform",
+            backfaceVisibility: "hidden",
+            textRendering: "geometricPrecision",
           }}
           onAnimationComplete={finish}
         >
