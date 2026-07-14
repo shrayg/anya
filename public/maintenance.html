@@ -6,92 +6,247 @@
   <meta name="robots" content="noindex" />
   <meta http-equiv="refresh" content="30" />
   <title>Anya.Int — Updating</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bruno+Ace+SC&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
   <style>
     :root {
-      --bg: #050505;
-      --fg: #f2f2f2;
-      --muted: #9a9a9a;
+      --bg: #000000;
+      --fg: #f3f3f3;
+      --muted: #9ca3af;
       --blush: #f0a4b8;
-      --line: rgba(255, 255, 255, 0.1);
+      --blush-glow: rgba(240, 164, 184, 0.35);
+      --shine: #ffffff;
     }
+
     * { box-sizing: border-box; }
+
     html, body {
       margin: 0;
       min-height: 100%;
       background: var(--bg);
       color: var(--fg);
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
+
     body {
+      position: relative;
+      min-height: 100vh;
       display: grid;
       place-items: center;
+      overflow: hidden;
       padding: 2rem 1.25rem;
+      background: #000;
+    }
+
+    /* Homepage-style light pillar wash (CSS stand-in for the WebGL pillar) */
+    .pillar {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
       background:
-        radial-gradient(ellipse 60% 40% at 50% 0%, rgba(240, 164, 184, 0.12), transparent 60%),
-        linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+        radial-gradient(ellipse 18% 70% at 50% 45%, rgba(255, 255, 255, 0.14), transparent 70%),
+        radial-gradient(ellipse 40% 50% at 50% 0%, rgba(240, 164, 184, 0.1), transparent 55%),
+        radial-gradient(ellipse 55% 35% at 50% 100%, rgba(61, 56, 70, 0.35), transparent 60%),
+        #000;
     }
-    .card {
-      width: min(34rem, 100%);
+
+    .pillar::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: -10%;
+      width: min(28vw, 18rem);
+      height: 120%;
+      transform: translateX(-50%) rotate(25deg);
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(240, 164, 184, 0.08) 42%,
+        rgba(61, 56, 70, 0.12) 78%,
+        transparent 100%
+      );
+      filter: blur(28px);
+      opacity: 0.85;
+      animation: pillar-drift 9s ease-in-out infinite alternate;
+    }
+
+    @keyframes pillar-drift {
+      from { opacity: 0.55; transform: translateX(-52%) rotate(23deg); }
+      to { opacity: 0.9; transform: translateX(-48%) rotate(27deg); }
+    }
+
+    .scene {
+      position: relative;
+      z-index: 1;
+      width: min(40rem, 100%);
       text-align: center;
-      border: 1px solid var(--line);
-      border-radius: 1rem;
-      padding: 2.5rem 1.75rem;
-      background: rgba(12, 12, 12, 0.85);
-      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.1rem;
     }
+
+    .mark {
+      width: 3.25rem;
+      height: 3.25rem;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 24px var(--blush-glow);
+      animation: mark-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
     .brand {
-      letter-spacing: 0.22em;
+      margin: 0;
+      font-family: "Bruno Ace SC", "Manrope", sans-serif;
+      font-size: clamp(2.4rem, 8vw, 4.75rem);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+      background-image: linear-gradient(
+        110deg,
+        #9a9a9a 0%,
+        #b5b5b5 35%,
+        #ffffff 50%,
+        #b5b5b5 65%,
+        #9a9a9a 100%
+      );
+      background-size: 220% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation:
+        brand-in 1s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both,
+        shine 3.4s linear infinite;
+    }
+
+    .status {
+      margin: 0.35rem 0 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      font-size: 0.75rem;
       color: var(--blush);
-      margin: 0 0 1.25rem;
+      animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
     }
-    h1 {
-      margin: 0 0 0.85rem;
-      font-size: clamp(1.5rem, 4vw, 2rem);
-      font-weight: 650;
-      letter-spacing: -0.02em;
-      line-height: 1.2;
-    }
-    p {
-      margin: 0 auto;
-      max-width: 28rem;
-      color: var(--muted);
-      font-size: 1rem;
-      line-height: 1.55;
-    }
-    .pulse {
-      width: 0.65rem;
-      height: 0.65rem;
+
+    .status-dot {
+      width: 0.45rem;
+      height: 0.45rem;
       border-radius: 999px;
       background: var(--blush);
-      margin: 0 auto 1.25rem;
-      box-shadow: 0 0 0 0 rgba(240, 164, 184, 0.55);
-      animation: pulse 1.6s ease-out infinite;
+      box-shadow: 0 0 12px var(--blush-glow);
+      animation: pulse 1.8s ease-out infinite;
     }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(240, 164, 184, 0.5); }
-      70% { box-shadow: 0 0 0 12px rgba(240, 164, 184, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(240, 164, 184, 0); }
+
+    h1 {
+      margin: 0;
+      max-width: 22rem;
+      font-size: clamp(1.15rem, 2.6vw, 1.45rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #e8e8e8;
+      animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.26s both;
     }
+
+    .copy {
+      margin: 0;
+      max-width: 26rem;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.65;
+      font-weight: 450;
+      animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.34s both;
+    }
+
     .meta {
-      margin-top: 1.75rem;
-      font-size: 0.8rem;
-      color: #6e6e6e;
-      letter-spacing: 0.04em;
+      margin: 1.35rem 0 0;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.32);
+      animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.42s both;
+    }
+
+    @keyframes shine {
+      from { background-position: 150% center; }
+      to { background-position: -50% center; }
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(240, 164, 184, 0.55); transform: scale(1); }
+      70% { box-shadow: 0 0 0 10px rgba(240, 164, 184, 0); transform: scale(1.05); }
+      100% { box-shadow: 0 0 0 0 rgba(240, 164, 184, 0); transform: scale(1); }
+    }
+
+    @keyframes brand-in {
+      from { opacity: 0; transform: translateY(14px) scale(0.98); filter: blur(6px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes mark-in {
+      from { opacity: 0; transform: scale(0.85); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pillar::before,
+      .brand,
+      .mark,
+      .status,
+      .status-dot,
+      h1,
+      .copy,
+      .meta {
+        animation: none !important;
+      }
+      .brand {
+        -webkit-text-fill-color: #d0d0d0;
+        background: none;
+      }
     }
   </style>
 </head>
 <body>
-  <main class="card" role="status" aria-live="polite">
-    <div class="pulse" aria-hidden="true"></div>
+  <div class="pillar" aria-hidden="true"></div>
+
+  <main class="scene" role="status" aria-live="polite">
+    <img
+      class="mark"
+      src="/maintenance-assets/anya-logo.png"
+      width="52"
+      height="52"
+      alt=""
+      onerror="this.style.display='none'"
+    />
+
     <p class="brand">Anya.Int</p>
+
+    <div class="status">
+      <span class="status-dot" aria-hidden="true"></span>
+      Updating
+    </div>
+
     <h1>Site is updating right now</h1>
-    <p>
+    <p class="copy">
       We are adding new features. Please be patient — the platform will be back
       up in a couple of minutes.
     </p>
-    <p class="meta">This page refreshes automatically</p>
+    <p class="meta">Refreshes automatically</p>
   </main>
 </body>
 </html>

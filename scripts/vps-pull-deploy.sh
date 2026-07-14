@@ -7,9 +7,12 @@ BRANCH="${BRANCH:-main}"
 MAINT_DIR="${MAINT_DIR:-/var/www/anya-maintenance}"
 
 maint_on() {
-  mkdir -p "${MAINT_DIR}"
+  mkdir -p "${MAINT_DIR}/assets"
   if [[ -f "${APP_DIR}/public/maintenance.html" ]]; then
     cp -a "${APP_DIR}/public/maintenance.html" "${MAINT_DIR}/maintenance.html"
+  fi
+  if [[ -f "${APP_DIR}/public/images/anya-logo.png" ]]; then
+    cp -a "${APP_DIR}/public/images/anya-logo.png" "${MAINT_DIR}/assets/anya-logo.png"
   fi
   touch "${MAINT_DIR}/ON"
   echo "==> Maintenance mode ON"
@@ -53,8 +56,12 @@ if [[ -f /tmp/anya.dev.db.bak ]]; then
 fi
 
 # Refresh static maintenance asset after pull
+mkdir -p "${MAINT_DIR}/assets"
 if [[ -f public/maintenance.html ]]; then
   cp -a public/maintenance.html "${MAINT_DIR}/maintenance.html"
+fi
+if [[ -f public/images/anya-logo.png ]]; then
+  cp -a public/images/anya-logo.png "${MAINT_DIR}/assets/anya-logo.png"
 fi
 
 # Production defaults (edit APP_URL if your domain differs)
