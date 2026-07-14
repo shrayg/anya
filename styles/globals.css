@@ -46,6 +46,11 @@
   box-shadow: 0 0 10px var(--anya-blush-glow);
 }
 
+/* Hide hero brand while splash video + handoff tween are active */
+html[data-splash="active"] [data-splash-target] {
+  opacity: 0 !important;
+}
+
 /* Hide scrollbar globally */
 ::-webkit-scrollbar {
   display: none;

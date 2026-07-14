@@ -19,6 +19,7 @@ interface ShinyTextProps {
   pauseOnHover?: boolean;
   direction?: "left" | "right";
   delay?: number;
+  "data-splash-target"?: boolean;
 }
 
 const ShinyText: React.FC<ShinyTextProps> = ({
@@ -33,6 +34,7 @@ const ShinyText: React.FC<ShinyTextProps> = ({
   pauseOnHover = false,
   direction = "left",
   delay = 0,
+  "data-splash-target": splashTarget = false,
 }) => {
   const [isPaused, setIsPaused] = useState(false);
   const progress = useMotionValue(0);
@@ -120,6 +122,7 @@ const ShinyText: React.FC<ShinyTextProps> = ({
   return (
     <span
       className={`inline-grid overflow-visible leading-[1.15] ${className}`}
+      data-splash-target={splashTarget ? "" : undefined}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

@@ -17,6 +17,7 @@ export default function Home() {
         <div className="flex max-w-4xl flex-col items-center gap-5 overflow-visible">
           <ShinyText
             className="z-20 text-5xl font-extrabold tracking-normal transition-all ease-in-out md:text-8xl"
+            data-splash-target
             text={siteConfig.name}
           />
           <p className="max-w-2xl px-4 text-base leading-7 text-gray-300 md:text-xl">

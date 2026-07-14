@@ -1,82 +1,237 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import { motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { animate, motion, useMotionValue } from "framer-motion";
+import { usePathname } from "next/navigation";
 
-import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 
-const Sprinkle = ({ delay, index }: { delay: number; index: number }) => {
-  const angle = ((index * 137.5) % 360) * (Math.PI / 180);
-  const distance = 150 + ((index * 29) % 100);
-  const x = Math.cos(angle) * distance;
-  const y = Math.sin(angle) * distance;
+const VIDEO_SRC = "/videos/splash-intro.mp4";
 
-  return (
-    <motion.div
-      initial={{ opacity: 1, x: 0, y: 0 }}
-      animate={{ opacity: 0, x, y }}
-      transition={{ duration: 1, delay, ease: "easeOut" }}
-      className="absolute h-2 w-2 rounded-full splash-sprinkle"
-      style={{
-        backgroundColor: "var(--anya-blush)",
-        boxShadow: "0 0 10px var(--anya-blush-glow)",
-      }}
-    />
-  );
+/** Final title box in the 1920×1080 master (from last-frame pixel bounds). */
+const MASTER = {
+  width: 1920,
+  height: 1080,
+  textWidth: 848,
+  textHeight: 192,
+  centerX: 957,
+  centerY: 565,
+} as const;
+
+type Phase = "playing" | "handoff" | "done";
+
+type HandoffGeometry = {
+  fromX: number;
+  fromY: number;
+  fromSize: number;
+  toX: number;
+  toY: number;
+  toSize: number;
 };
 
+function measureVideoEndGeometry(viewportW: number, viewportH: number) {
+  const scale = Math.min(viewportW / MASTER.width, viewportH / MASTER.height);
+  const offsetX = (viewportW - MASTER.width * scale) / 2;
+  const offsetY = (viewportH - MASTER.height * scale) / 2;
+
+  return {
+    x: offsetX + MASTER.centerX * scale,
+    y: offsetY + MASTER.centerY * scale,
+    // Glyph box height ≈ 192px; cap-height tracks ~font-size closely for bold sans
+    fontSize: MASTER.textHeight * scale * 0.92,
+  };
+}
+
+function measureHeroTarget(): {
+  x: number;
+  y: number;
+  fontSize: number;
+} | null {
+  const target = document.querySelector<HTMLElement>("[data-splash-target]");
+  if (!target) return null;
+
+  const rect = target.getBoundingClientRect();
+  const computed = window.getComputedStyle(target);
+  const fontSize = Number.parseFloat(computed.fontSize) || (window.innerWidth >= 768 ? 96 : 48);
+
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+    fontSize,
+  };
+}
+
 export const SplashScreen = () => {
-  const [isVisible, setIsVisible] = useState(true);
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const handoffStarted = useRef(false);
+
   const [mounted, setMounted] = useState(false);
+  const [phase, setPhase] = useState<Phase>("playing");
+  const [geometry, setGeometry] = useState<HandoffGeometry | null>(null);
+
+  const bgOpacity = useMotionValue(1);
+  const videoOpacity = useMotionValue(1);
 
   useEffect(() => {
     setMounted(true);
-
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
   }, []);
 
-  if (!mounted) {
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (!isHome) {
+      setPhase("done");
+      return;
+    }
+
+    document.documentElement.dataset.splash = "active";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      delete document.documentElement.dataset.splash;
+      document.documentElement.style.overflow = "";
+    };
+  }, [mounted, isHome]);
+
+  const finish = useCallback(() => {
+    delete document.documentElement.dataset.splash;
+    document.documentElement.style.overflow = "";
+    setPhase("done");
+  }, []);
+
+  const beginHandoff = useCallback(() => {
+    if (handoffStarted.current) return;
+    handoffStarted.current = true;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const from = measureVideoEndGeometry(window.innerWidth, window.innerHeight);
+    const to = measureHeroTarget() ?? {
+      x: from.x,
+      y: Math.max(120, window.innerHeight * 0.28),
+      fontSize: window.innerWidth >= 768 ? 96 : 48,
+    };
+
+    if (reduced) {
+      animate(bgOpacity, 0, { duration: 0.2 });
+      animate(videoOpacity, 0, { duration: 0.15 });
+      window.setTimeout(finish, 220);
+      setPhase("handoff");
+      return;
+    }
+
+    setGeometry({
+      fromX: from.x,
+      fromY: from.y,
+      fromSize: from.fontSize,
+      toX: to.x,
+      toY: to.y,
+      toSize: to.fontSize,
+    });
+    setPhase("handoff");
+
+    // Video drops out so the live type takes over on the last frame pose
+    animate(videoOpacity, 0, {
+      duration: 0.18,
+      ease: [0.4, 0, 0.2, 1],
+    });
+
+    // Background keeps fading while the title continues its shift-up tween
+    animate(bgOpacity, 0, {
+      duration: 1.05,
+      ease: [0.22, 1, 0.36, 1],
+    });
+  }, [bgOpacity, finish, videoOpacity]);
+
+  useEffect(() => {
+    if (!mounted || !isHome || phase !== "playing") return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      beginHandoff();
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const safety = window.setTimeout(() => beginHandoff(), 7000);
+
+    const tryPlay = async () => {
+      try {
+        video.currentTime = 0;
+        await video.play();
+      } catch {
+        beginHandoff();
+      }
+    };
+
+    void tryPlay();
+
+    return () => window.clearTimeout(safety);
+  }, [mounted, isHome, phase, beginHandoff]);
+
+  if (!mounted || !isHome || phase === "done") {
     return null;
   }
 
   return (
     <motion.div
-      initial={{ opacity: 1 }}
-      animate={{ opacity: isVisible ? 1 : 0 }}
-      transition={{ duration: 0.3 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-black/40 pointer-events-none"
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      style={{
+        pointerEvents: phase === "playing" ? "auto" : "none",
+      }}
+      aria-hidden
     >
-      {Array.from({ length: 20 }).map((_, i) => (
-        <Sprinkle key={i} delay={i * 0.05} index={i} />
-      ))}
-
       <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative z-10"
-      >
-        <motion.div
-          animate={{ rotate: [10, 25, 10] }}
-          transition={{ duration: 3, ease: "easeInOut" }}
+        className="absolute inset-0 bg-black"
+        style={{ opacity: bgOpacity }}
+      />
+
+      <motion.video
+        ref={videoRef}
+        className="absolute inset-0 h-full w-full object-contain bg-black"
+        style={{ opacity: videoOpacity }}
+        src={VIDEO_SRC}
+        muted
+        playsInline
+        preload="auto"
+        onEnded={beginHandoff}
+        onError={beginHandoff}
+      />
+
+      {phase === "handoff" && geometry ? (
+        <motion.span
+          className="pointer-events-none fixed z-[101] whitespace-nowrap font-extrabold tracking-normal text-[#c8c8c8]"
+          initial={{
+            left: geometry.fromX,
+            top: geometry.fromY,
+            x: "-50%",
+            y: "-50%",
+            fontSize: geometry.fromSize,
+            opacity: 1,
+          }}
+          animate={{
+            left: geometry.toX,
+            top: geometry.toY,
+            x: "-50%",
+            y: "-50%",
+            fontSize: geometry.toSize,
+            opacity: 1,
+          }}
+          transition={{
+            duration: 1.05,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+          style={{
+            lineHeight: 1.15,
+          }}
+          onAnimationComplete={finish}
         >
-          <Image
-            src={siteLogoSrc}
-            alt={siteConfig.name}
-            width={80}
-            height={80}
-            unoptimized
-            className={siteLogoClassName}
-          />
-        </motion.div>
-      </motion.div>
+          {siteConfig.name}
+        </motion.span>
+      ) : null}
     </motion.div>
   );
 };
