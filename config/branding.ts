@@ -1,8 +1,13 @@
 /**
- * Site branding + lime test theme toggle.
- * Set `TEST_LIME_ICON_THEME` to false to restore the original pink logo + blush palette.
+ * Site branding + optional test themes.
+ * - `TEST_LIME_ICON_THEME`: lime palette + logo (marketing-wide)
+ * - `TEST_MAC_DASHBOARD_THEME`: soft MacBook-style workspace look
+ *   Flip either flag to `false` to restore the previous appearance.
  */
 export const TEST_LIME_ICON_THEME = false;
+
+/** Soft macOS-style dashboard. Set false to undo. */
+export const TEST_MAC_DASHBOARD_THEME = true;
 
 export const siteLogoSrc = TEST_LIME_ICON_THEME
   ? "/images/anya-icon-test.png"

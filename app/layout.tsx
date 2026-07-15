@@ -11,6 +11,7 @@ import {
   siteIconSrc,
   siteLogoSrc,
   TEST_LIME_ICON_THEME,
+  TEST_MAC_DASHBOARD_THEME,
 } from "@/config/branding";
 
 const brunoAceSc = Bruno_Ace_SC({
@@ -59,6 +60,7 @@ export default function RootLayout({
         fontSans.variable,
         brunoAceSc.variable,
         TEST_LIME_ICON_THEME && "theme-lime-test",
+        TEST_MAC_DASHBOARD_THEME && "theme-mac-dashboard",
       )}
     >
       <body

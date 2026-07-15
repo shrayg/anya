@@ -12,6 +12,7 @@ import {
   DashboardSidebarProvider,
   useDashboardSidebar,
 } from "@/components/dashboard/dashboard-sidebar-context";
+import { TEST_MAC_DASHBOARD_THEME } from "@/config/branding";
 
 type DashboardShellProps = {
   children: React.ReactNode;
@@ -34,10 +35,21 @@ function DashboardShellInner({
         isFrozen && "dash-shell--frozen",
       )}
     >
-      <HomeBackground />
+      {!TEST_MAC_DASHBOARD_THEME ? <HomeBackground /> : null}
       <DashboardSidebar username={username} />
       <main className={clsx("dash-main", isFrozen && "dash-main--frozen")} data-tour="main-content">
-        {children}
+        {TEST_MAC_DASHBOARD_THEME ? (
+          <div className="dash-mac-window">
+            <div className="dash-mac-window-chrome" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="dash-mac-window-body">{children}</div>
+          </div>
+        ) : (
+          children
+        )}
       </main>
       <DashboardTour />
       <WorkspaceAccessGuard />

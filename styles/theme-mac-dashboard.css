@@ -1,0 +1,253 @@
+/**
+ * Soft macOS / MacBook-style workspace overrides.
+ * Active when `html.theme-mac-dashboard` is set via `TEST_MAC_DASHBOARD_THEME`
+ * in `config/branding.ts`. Flip that flag to `false` to restore the original look.
+ */
+
+html.theme-mac-dashboard {
+  --anya-blush: #ff9fba;
+  --anya-blush-soft: color-mix(in srgb, var(--anya-blush) 14%, transparent);
+  --anya-blush-glow: color-mix(in srgb, var(--anya-blush) 28%, transparent);
+  --anya-blush-hover: #ffb4c8;
+  --mac-surface: #1c1c1e;
+  --mac-surface-elevated: #2c2c2e;
+  --mac-sidebar: rgba(44, 44, 46, 0.78);
+  --mac-border: rgba(255, 255, 255, 0.08);
+  --mac-text: #f5f5f7;
+  --mac-muted: #a1a1a6;
+}
+
+html.theme-mac-dashboard .dash-shell {
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(255, 159, 186, 0.08), transparent 45%),
+    radial-gradient(90% 70% at 100% 0%, rgba(10, 132, 255, 0.06), transparent 40%),
+    var(--mac-surface);
+  color: var(--mac-text);
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "SF Pro Display",
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.01em;
+}
+
+html.theme-mac-dashboard .dash-shell > .home-bg,
+html.theme-mac-dashboard .dash-shell > [class*="home-background"],
+html.theme-mac-dashboard .dash-shell > div:has(> canvas),
+html.theme-mac-dashboard .dash-shell .anya-home-bg {
+  display: none !important;
+}
+
+html.theme-mac-dashboard .dash-sidebar {
+  border-right: 1px solid var(--mac-border);
+  background: var(--mac-sidebar);
+  backdrop-filter: saturate(180%) blur(28px);
+  -webkit-backdrop-filter: saturate(180%) blur(28px);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.25);
+}
+
+html.theme-mac-dashboard .dash-sidebar-brand {
+  padding-top: 1.1rem;
+}
+
+html.theme-mac-dashboard .dash-sidebar-brand span {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--mac-text);
+}
+
+html.theme-mac-dashboard .dash-sidebar-toggle {
+  border-radius: 9999px;
+  border-color: var(--mac-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mac-muted);
+}
+
+html.theme-mac-dashboard .dash-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--mac-text);
+}
+
+html.theme-mac-dashboard .dash-nav-link {
+  border-radius: 0.65rem;
+  color: var(--mac-muted);
+  margin-inline: 0.45rem;
+  padding-block: 0.5rem;
+}
+
+html.theme-mac-dashboard .dash-nav-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--mac-text);
+}
+
+html.theme-mac-dashboard .dash-nav-link-active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--mac-text);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+html.theme-mac-dashboard .dash-sidebar-section-divider,
+html.theme-mac-dashboard .dash-sidebar [class*="section"] h3,
+html.theme-mac-dashboard .dash-sidebar .text-zinc-500 {
+  color: var(--mac-muted) !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+html.theme-mac-dashboard .dash-main {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  padding: 0.75rem 0.85rem 0.85rem 0.35rem;
+  overflow: hidden;
+}
+
+/* Mac window frame around workspace content */
+html.theme-mac-dashboard .dash-mac-window {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--mac-border);
+  border-radius: 1rem;
+  background: rgba(28, 28, 30, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 18px 40px rgba(0, 0, 0, 0.3);
+}
+
+html.theme-mac-dashboard .dash-mac-window-chrome {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--mac-border);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.55rem 0.85rem;
+}
+
+html.theme-mac-dashboard .dash-mac-window-chrome span {
+  display: block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.25);
+}
+
+html.theme-mac-dashboard .dash-mac-window-chrome span:nth-child(1) {
+  background: #ff5f57;
+}
+
+html.theme-mac-dashboard .dash-mac-window-chrome span:nth-child(2) {
+  background: #febc2e;
+}
+
+html.theme-mac-dashboard .dash-mac-window-chrome span:nth-child(3) {
+  background: #28c840;
+}
+
+html.theme-mac-dashboard .dash-mac-window-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+html.theme-mac-dashboard .dash-panel,
+html.theme-mac-dashboard .module-search-card,
+html.theme-mac-dashboard .catalog-module-item.module-catalog-row,
+html.theme-mac-dashboard .module-catalog-row {
+  border-radius: 0.75rem;
+  border-color: var(--mac-border);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+html.theme-mac-dashboard .module-search-card:hover,
+html.theme-mac-dashboard .module-catalog-row:hover,
+html.theme-mac-dashboard .dash-quick-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  transform: none;
+  box-shadow: none;
+}
+
+html.theme-mac-dashboard .module-search-title,
+html.theme-mac-dashboard .dash-title,
+html.theme-mac-dashboard .module-catalog-row-title,
+html.theme-mac-dashboard .module-search-card-title {
+  letter-spacing: -0.025em;
+  font-weight: 650;
+  color: var(--mac-text);
+}
+
+html.theme-mac-dashboard .module-search-tagline,
+html.theme-mac-dashboard .dash-subtitle,
+html.theme-mac-dashboard .module-catalog-row-hint,
+html.theme-mac-dashboard .module-search-card-hint,
+html.theme-mac-dashboard .module-hub-section-title {
+  color: var(--mac-muted);
+}
+
+html.theme-mac-dashboard .module-hub-section {
+  border-color: var(--mac-border);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0.9rem;
+}
+
+html.theme-mac-dashboard .ui-input,
+html.theme-mac-dashboard .home-search-input,
+html.theme-mac-dashboard input.ui-input {
+  border-radius: 0.7rem;
+  border-color: var(--mac-border);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+html.theme-mac-dashboard .ui-input:focus,
+html.theme-mac-dashboard .ui-input:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  box-shadow: 0 0 0 3px var(--anya-blush-soft);
+}
+
+html.theme-mac-dashboard .ui-btn-primary,
+html.theme-mac-dashboard .anya-run-btn,
+html.theme-mac-dashboard .dashboard-tour-next {
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html.theme-mac-dashboard .module-search-card--ai {
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--anya-blush) 10%, transparent),
+    rgba(255, 255, 255, 0.02) 55%
+  );
+}
+
+html.theme-mac-dashboard .dash-quick-card {
+  border-radius: 0.75rem;
+  border-color: var(--mac-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+html.theme-mac-dashboard .dash-quick-card-icon {
+  border-radius: 0.65rem;
+  border-color: var(--mac-border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html.theme-mac-dashboard ::selection {
+  background: color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  color: #fff;
+}
