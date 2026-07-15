@@ -32,6 +32,10 @@ export const metadata: Metadata = {
     ],
     apple: siteLogoSrc,
   },
+  other: {
+    // Cryptomus merchant domain verification
+    cryptomus: "d9415829",
+  },
 };
 
 export const viewport: Viewport = {
