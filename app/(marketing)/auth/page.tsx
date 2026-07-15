@@ -162,9 +162,15 @@ function AuthForm() {
       const meData = await meResponse.json().catch(() => ({}));
 
       if (!meResponse.ok || !meData?.authenticated) {
-        setError(
-          "Signed in, but your session cookie was not saved. Check that third-party cookies aren’t blocked, then refresh and try again.",
-        );
+        if (meResponse.status >= 500) {
+          setError(
+            "Signed in, but session verification failed on the server. Your database may be out of sync — run `npx prisma db push` and restart the dev server.",
+          );
+        } else {
+          setError(
+            "Signed in, but your session cookie was not saved. Check that third-party cookies aren’t blocked, then refresh and try again.",
+          );
+        }
         return;
       }
 
