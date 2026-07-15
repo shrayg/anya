@@ -8,6 +8,7 @@ import {
 } from "@/lib/godseye";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { getOsintCatApiKey } from "@/lib/osintcat";
+import { getCourtListenerToken } from "@/lib/us-records/courtlistener";
 
 const OSINTCAT_BASE = "https://www.osintcat.net/api";
 
@@ -16,7 +17,8 @@ export type ProviderId =
   | "godseye"
   | "godseye-export"
   | "breachvip"
-  | "builtin";
+  | "builtin"
+  | "courtlistener";
 
 export type ModuleHealthRule =
   | { kind: "off" }
@@ -35,7 +37,10 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   domain: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
   "hash-lookup": { kind: "any", providers: ["godseye"] },
   "password-search": { kind: "any", providers: ["godseye", "breachvip"] },
-  "name-search": { kind: "any", providers: ["godseye", "breachvip"] },
+  "name-search": {
+    kind: "any",
+    providers: ["godseye", "breachvip", "builtin", "courtlistener"],
+  },
   phone: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
   username: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
   ip: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
@@ -46,6 +51,9 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "vin-decoder": { kind: "any", providers: ["builtin"] },
   "car-insurance-us": { kind: "any", providers: ["builtin"] },
   "healthcare-us": { kind: "any", providers: ["builtin"] },
+  "court-records": { kind: "any", providers: ["courtlistener"] },
+  "identity-search": { kind: "any", providers: ["builtin", "courtlistener"] },
+  "npd-search": { kind: "any", providers: ["builtin", "courtlistener"] },
   "discord-id": { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
   roblox: { kind: "any", providers: ["osintcat", "godseye"] },
   minecraft: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
@@ -141,13 +149,39 @@ async function probeGodsEyeExport(): Promise<boolean> {
   return true;
 }
 
+async function probeCourtListenerHealth(): Promise<boolean> {
+  const token = getCourtListenerToken();
+  if (!token) return false;
+
+  try {
+    const res = await fetchWithTimeout(
+      "https://www.courtlistener.com/api/rest/v4/search/?q=smith&type=o&page_size=1",
+      {
+        headers: {
+          Authorization: `Token ${token}`,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+        timeoutMs: 8_000,
+      },
+    );
+
+    if (res.status === 401 || res.status === 403) return false;
+    return res.ok || res.status === 400 || res.status === 429;
+  } catch {
+    return false;
+  }
+}
+
 export async function probeProviders(): Promise<ProviderHealth> {
-  const [osintcat, godseye, godseyeExport, breachvip] = await Promise.all([
-    probeOsintCat(),
-    probeGodsEye(),
-    probeGodsEyeExport(),
-    probeBreachVip(),
-  ]);
+  const [osintcat, godseye, godseyeExport, breachvip, courtlistener] =
+    await Promise.all([
+      probeOsintCat(),
+      probeGodsEye(),
+      probeGodsEyeExport(),
+      probeBreachVip(),
+      probeCourtListenerHealth(),
+    ]);
 
   return {
     osintcat,
@@ -155,6 +189,7 @@ export async function probeProviders(): Promise<ProviderHealth> {
     "godseye-export": godseyeExport,
     breachvip,
     builtin: true,
+    courtlistener,
   };
 }
 

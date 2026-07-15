@@ -25,6 +25,7 @@ const LANE_PREFIX: Record<string, string> = {
   "Stealer Intel": "STL",
   "Breach & Leaks": "BRK",
   Identity: "ID",
+  "Public Records": "USR",
   Network: "NET",
   "Financial & Assets": "FIN",
   Platforms: "PLT",
@@ -38,6 +39,8 @@ const LANE_DESCRIPTION: Record<string, string> = {
     "Infostealer-era credential exposure indexes and storage pulls for authorized investigations.",
   "Breach & Leaks": "Credential and email exposure across public leak indexes.",
   Identity: "Phone, username, and handle pivots across platforms.",
+  "Public Records":
+    "US court dockets and composed public-registry identity signals from government indexes.",
   Network: "IP enrichment and network-context lookups.",
   "Financial & Assets":
     "Wallets, BINs, IBANs, bank metadata, vehicle VIN decoding, and US insurance directories.",

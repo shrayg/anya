@@ -1,3 +1,10 @@
+export type ModuleTool = {
+  id: string;
+  label: string;
+  /** OSINT API segment used when this tool is selected. */
+  apiType: string;
+};
+
 export type SearchModuleDef = {
   name: string;
   slug: string;
@@ -7,6 +14,10 @@ export type SearchModuleDef = {
   tagline: string;
   aiMode?: string;
   comingSoon?: boolean;
+  /** Optional in-module source tools (e.g. leak indexes vs court dockets). */
+  tools?: ModuleTool[];
+  /** Show lawful-use / FCRA notice on the module page. */
+  lawfulUseNotice?: boolean;
 };
 
 export type SearchModuleSection = {
@@ -23,8 +34,19 @@ function mod(
   tagline: string,
   aiMode?: string,
   comingSoon?: boolean,
+  extras?: Pick<SearchModuleDef, "tools" | "lawfulUseNotice">,
 ): SearchModuleDef {
-  return { name, slug, module, hint, section, tagline, aiMode, comingSoon };
+  return {
+    name,
+    slug,
+    module,
+    hint,
+    section,
+    tagline,
+    aiMode,
+    comingSoon,
+    ...extras,
+  };
 }
 
 export const AI_SEARCH_MODULES: SearchModuleDef[] = [
@@ -142,7 +164,55 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "name-search",
         "breach",
         "First and last name",
-        "Search breach indexes by real name.",
+        "Search breach indexes by real name — or pivot into court and public registries.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "leak-indexes", label: "Leak indexes", apiType: "breach" },
+            { id: "court-dockets", label: "Court dockets", apiType: "us-court" },
+            { id: "public-identity", label: "Public identity", apiType: "us-identity" },
+          ],
+          lawfulUseNotice: true,
+        },
+      ),
+    ],
+  },
+  {
+    title: "Public Records",
+    items: [
+      mod(
+        "Public Records",
+        "Court Records",
+        "court-records",
+        "us-court",
+        "John Doe, CA — or a federal docket number",
+        "US federal court dockets and filings indexed via CourtListener / RECAP.",
+        undefined,
+        undefined,
+        { lawfulUseNotice: true },
+      ),
+      mod(
+        "Public Records",
+        "Identity Search",
+        "identity-search",
+        "us-identity",
+        "John Doe, 01/01/1990 — or Name, ST",
+        "Compose public identity signals from FEC, CMS NPI, OFAC, and court indexes.",
+        undefined,
+        undefined,
+        { lawfulUseNotice: true },
+      ),
+      mod(
+        "Public Records",
+        "NPD Database Search",
+        "npd-search",
+        "us-npd",
+        "Person name, optional state or DOB",
+        "National people dossier composed from public US registries — not a single government file.",
+        undefined,
+        undefined,
+        { lawfulUseNotice: true },
       ),
     ],
   },
@@ -496,6 +566,9 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "vin-decoder": "vin",
   "car-insurance-us": "car-insurance",
   "healthcare-us": "healthcare",
+  "court-records": "us-court",
+  "identity-search": "us-identity",
+  "npd-search": "us-npd",
   "discord-id": "discord",
   roblox: "roblox",
   reddit: "reddit",
@@ -574,6 +647,9 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "vin-decoder": true,
   "car-insurance-us": true,
   "healthcare-us": true,
+  "court-records": true,
+  "identity-search": true,
+  "npd-search": true,
   "discord-id": true,
   roblox: true,
   minecraft: true,

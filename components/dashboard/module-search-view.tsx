@@ -14,6 +14,10 @@ import {
   UsProviderSearchResults,
   VinSearchResults,
 } from "@/components/dashboard/financial-search-results";
+import {
+  UsCourtSearchResults,
+  UsIdentitySearchResults,
+} from "@/components/dashboard/us-records-search-results";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
@@ -30,6 +34,10 @@ import type { CryptoWalletResult } from "@/lib/crypto-wallet";
 import type { IbanLookupResult } from "@/lib/iban-lookup";
 import type { UsProviderSearchResult } from "@/lib/us-provider-directory";
 import type { VinDecodeResult } from "@/lib/vin-decode";
+import type {
+  UsCourtSearchResult,
+  UsIdentitySearchResult,
+} from "@/lib/us-records";
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import { sanitizePublicText } from "@/lib/public-branding";
@@ -70,7 +78,10 @@ type StructuredResult =
   | { kind: "bank"; data: BankSearchResult }
   | { kind: "vin"; data: VinDecodeResult }
   | { kind: "car-insurance"; data: UsProviderSearchResult }
-  | { kind: "healthcare"; data: UsProviderSearchResult };
+  | { kind: "healthcare"; data: UsProviderSearchResult }
+  | { kind: "us-court"; data: UsCourtSearchResult }
+  | { kind: "us-identity"; data: UsIdentitySearchResult }
+  | { kind: "us-npd"; data: UsIdentitySearchResult };
 
 type CaseOption = {
   id: number;
@@ -93,6 +104,14 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const isSummary = aiMode === "summary";
 
   const [query, setQuery] = useState("");
+  const [selectedToolId, setSelectedToolId] = useState(
+    moduleDef.tools?.[0]?.id ?? "",
+  );
+
+  useEffect(() => {
+    setSelectedToolId(moduleDef.tools?.[0]?.id ?? "");
+  }, [moduleDef.slug, moduleDef.tools]);
+
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
   const [records, setRecords] = useState<FormattedRecord[]>([]);
@@ -418,6 +437,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     }
 
     let activeType = resolveSearchApiType(moduleDef, trimmed);
+    const selectedTool = moduleDef.tools?.find((tool) => tool.id === selectedToolId);
+    if (selectedTool?.apiType) {
+      activeType = selectedTool.apiType;
+    }
 
     if (activeType === "breaches" && !normalizeEmail(trimmed)) {
       setError("Enter a valid email address.");
@@ -797,6 +820,46 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         return;
       }
 
+      if (activeType === "us-court") {
+        const courtData = data as UsCourtSearchResult & { error?: string };
+
+        if (!courtData.cases?.length) {
+          setError(courtData.message || courtData.error || "No court matters matched that search.");
+          if (courtData.errors?.length) {
+            setStructuredResult({ kind: "us-court", data: courtData });
+            setRawResult(JSON.stringify(data, null, 2));
+          }
+          return;
+        }
+
+        setStructuredResult({ kind: "us-court", data: courtData });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+        return;
+      }
+
+      if (activeType === "us-identity" || activeType === "us-npd") {
+        const identityData = data as UsIdentitySearchResult & { error?: string };
+
+        if (!identityData.count) {
+          setError(
+            identityData.message || identityData.error || "No public registry matches found.",
+          );
+          if (identityData.errors?.length) {
+            setStructuredResult({ kind: activeType, data: identityData });
+            setRawResult(JSON.stringify(data, null, 2));
+          }
+          return;
+        }
+
+        setStructuredResult({ kind: activeType, data: identityData });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+        return;
+      }
+
       const formatted = formatStructuredSearchData(data);
 
       if (formatted.length === 0) {
@@ -879,6 +942,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         </h1>
         <p className="module-search-tagline">{moduleDef.tagline}</p>
         <p className="module-search-hint">{moduleDef.hint}</p>
+        {moduleDef.lawfulUseNotice ? (
+          <p className="mt-3 border-l-2 border-white/15 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+            For lawful investigative and research use only. Not a consumer reporting
+            agency and not for FCRA-covered decisions (credit, employment, housing, insurance).
+            Results are composed from public government indexes and may be incomplete.
+          </p>
+        ) : null}
         {moduleLocked && (
           <p className="mt-3 border-l-2 border-amber-400/60 bg-amber-400/8 px-4 py-3 text-sm text-amber-100">
             {moduleLocked}{" "}
@@ -891,6 +961,27 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
       <section className="ui-panel">
         <div className="ui-panel-body">
+          {moduleDef.tools && moduleDef.tools.length > 0 ? (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {moduleDef.tools.map((tool) => {
+                const active = tool.id === selectedToolId;
+                return (
+                  <button
+                    key={tool.id}
+                    className={
+                      active
+                        ? "rounded-full border border-[var(--anya-blush)]/50 bg-[var(--anya-blush)]/15 px-3 py-1 text-xs font-medium text-[var(--anya-blush)]"
+                        : "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300 hover:border-white/25"
+                    }
+                    onClick={() => setSelectedToolId(tool.id)}
+                    type="button"
+                  >
+                    {tool.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           <form className="flex flex-col gap-3 sm:flex-row sm:items-start" onSubmit={handleSearch}>
             {isSummary ? (
               <textarea
@@ -1028,6 +1119,18 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 <VinSearchResults blurResults={blurResults} result={structuredResult.data} />
               ) : structuredResult?.kind === "car-insurance" || structuredResult?.kind === "healthcare" ? (
                 <UsProviderSearchResults blurResults={blurResults} result={structuredResult.data} />
+              ) : structuredResult?.kind === "us-court" ? (
+                <UsCourtSearchResults blurResults={blurResults} result={structuredResult.data} />
+              ) : structuredResult?.kind === "us-identity" || structuredResult?.kind === "us-npd" ? (
+                <UsIdentitySearchResults
+                  blurResults={blurResults}
+                  result={structuredResult.data}
+                  title={
+                    structuredResult.kind === "us-npd"
+                      ? "NPD composed dossier"
+                      : "Public identity hits"
+                  }
+                />
               ) : records.length > 0 ? (
                 <SearchResultCards
                   blurResults={blurResults}

@@ -48,6 +48,9 @@ export function resolveOsintModuleSlug(
     vin: "vin-decoder",
     "car-insurance": "car-insurance-us",
     healthcare: "healthcare-us",
+    "us-court": "court-records",
+    "us-identity": "identity-search",
+    "us-npd": "npd-search",
     geolocate: "ip",
   };
 

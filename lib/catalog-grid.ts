@@ -73,6 +73,7 @@ export function getHubSectionSpan(
     case "Financial & Assets":
     case "Platforms":
     case "Dating Apps":
+    case "Public Records":
       return getCatalogItemSpan(index, total, "quad");
     case "AI Intelligence":
       return getCatalogItemSpan(index, total, "double");
@@ -98,6 +99,7 @@ export function hubSectionLayoutClass(title: string): string {
     case "Stealer Intel":
     case "Breach & Leaks":
     case "Identity":
+    case "Public Records":
     case "Network":
       return "module-hub-section--full";
     default:

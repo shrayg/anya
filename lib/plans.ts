@@ -66,6 +66,14 @@ export const PAY_PER_USE_MODULE_SLUGS = new Set(["intelx", "stealer-logs"]);
 export const PAY_PER_USE_COST = 0.25;
 export const PROFESSIONAL_INTELX_DAILY_LIMIT = 5;
 
+/** Public-records modules require Professional panel access (not Free/Starter homepage set). */
+export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
+  "court-records",
+  "identity-search",
+  "npd-search",
+]);
+
+
 export type PlanDefinition = {
   id: PlanId;
   name: string;
@@ -333,6 +341,14 @@ export function checkModuleAccess(
       return { allowed: true, blurResults: true };
     }
 
+    if (PUBLIC_RECORDS_MODULE_SLUGS.has(moduleSlug)) {
+      return {
+        allowed: false,
+        reason:
+          "US public records tools require Professional or higher for full panel access.",
+      };
+    }
+
     if (moduleSlug === "intelx") {
       return {
         allowed: false,
@@ -349,6 +365,14 @@ export function checkModuleAccess(
   if (plan === "starter") {
     if (STARTER_MODULE_SLUGS.has(moduleSlug)) {
       return { allowed: true };
+    }
+
+    if (PUBLIC_RECORDS_MODULE_SLUGS.has(moduleSlug)) {
+      return {
+        allowed: false,
+        reason:
+          "US public records tools require Professional or higher for full panel access.",
+      };
     }
 
     if (PAY_PER_USE_MODULE_SLUGS.has(moduleSlug)) {
