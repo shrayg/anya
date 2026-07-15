@@ -1,3 +1,4 @@
+import { probeBreachVip } from "@/lib/breachvip";
 import {
   fetchGodsEyeIngressCheck,
   fetchGodsEyeRawExport,
@@ -10,7 +11,12 @@ import { getOsintCatApiKey } from "@/lib/osintcat";
 
 const OSINTCAT_BASE = "https://www.osintcat.net/api";
 
-export type ProviderId = "osintcat" | "godseye" | "godseye-export" | "builtin";
+export type ProviderId =
+  | "osintcat"
+  | "godseye"
+  | "godseye-export"
+  | "breachvip"
+  | "builtin";
 
 export type ModuleHealthRule =
   | { kind: "off" }
@@ -25,7 +31,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "threat-brief": { kind: "any", providers: ["osintcat"] },
   intelx: { kind: "all", providers: ["godseye-export"] },
   "stealer-logs": { kind: "any", providers: ["osintcat", "godseye"] },
-  breaches: { kind: "any", providers: ["builtin", "godseye"] },
+  breaches: { kind: "any", providers: ["builtin", "godseye", "breachvip"] },
   domain: { kind: "any", providers: ["osintcat", "godseye"] },
   "hash-lookup": { kind: "any", providers: ["godseye"] },
   "password-search": { kind: "any", providers: ["godseye"] },
@@ -136,16 +142,18 @@ async function probeGodsEyeExport(): Promise<boolean> {
 }
 
 export async function probeProviders(): Promise<ProviderHealth> {
-  const [osintcat, godseye, godseyeExport] = await Promise.all([
+  const [osintcat, godseye, godseyeExport, breachvip] = await Promise.all([
     probeOsintCat(),
     probeGodsEye(),
     probeGodsEyeExport(),
+    probeBreachVip(),
   ]);
 
   return {
     osintcat,
     godseye,
     "godseye-export": godseyeExport,
+    breachvip,
     builtin: true,
   };
 }

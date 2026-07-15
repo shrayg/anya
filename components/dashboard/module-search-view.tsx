@@ -506,9 +506,15 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           message?: string;
           hasGodsEyeReport?: boolean;
           godseyeReport?: Record<string, unknown> | null;
+          hasBreachVipResults?: boolean;
+          breachVipCount?: number;
         };
 
-        if (breachData.returned === 0 && !breachData.hasGodsEyeReport) {
+        if (
+          breachData.returned === 0 &&
+          !breachData.hasGodsEyeReport &&
+          !breachData.hasBreachVipResults
+        ) {
           setError(breachData.message || "No results were found.");
           return;
         }

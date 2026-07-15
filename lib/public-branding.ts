@@ -8,7 +8,7 @@ export const PUBLIC_AI_LABEL = `${siteConfig.name} AI`;
 export const PUBLIC_INTEL_SOURCE = siteConfig.name;
 
 const PROVIDER_PATTERN =
-  /godseye|osintcat|anya\.search|anya search|anya crypto ai|anya /gi;
+  /godseye|osintcat|breach\.?vip|breachvip|proxynova|anya\.search|anya search|anya crypto ai|anya /gi;
 
 /** Strip third-party provider names from strings shown to users. */
 export function sanitizePublicText(text: string): string {
@@ -17,11 +17,15 @@ export function sanitizePublicText(text: string): string {
   let cleaned = text
     .replace(/GodsEye[^,.]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/OsintCat[^,.]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Breach\.?vip[^,.]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/BreachVIP[^,.]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/ProxyNova[^,.]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Anya\.search/gi, PUBLIC_BRAND)
     .replace(/Anya [A-Za-z ]+/gi, PUBLIC_AI_LABEL)
     .replace(/Anya/gi, PUBLIC_BRAND)
     .replace(/GODSEYE_API_KEY/gi, "intelligence API key")
-    .replace(/OSINTCAT_API_KEY/gi, "intelligence API key");
+    .replace(/OSINTCAT_API_KEY/gi, "intelligence API key")
+    .replace(/BREACH_VIP_API_KEY/gi, "intelligence API key");
 
   if (PROVIDER_PATTERN.test(cleaned)) {
     cleaned = cleaned.replace(PROVIDER_PATTERN, PUBLIC_INTEL_SOURCE);

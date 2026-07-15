@@ -12,6 +12,10 @@ const INTERNAL_SOURCE_LABELS = new Set([
   "godseye.cat",
   "osintcat",
   "osint cat",
+  "breach.vip",
+  "breachvip",
+  "breach vip",
+  "proxynova",
   "anya.search",
   "anya",
   "intelligence",
@@ -39,6 +43,7 @@ export function isInternalSourceLabel(value: string): boolean {
   if (INTERNAL_SOURCE_LABELS.has(lower)) return true;
   if (lower.startsWith("godseye")) return true;
   if (lower.startsWith("osintcat")) return true;
+  if (lower === "breach.vip" || lower.startsWith("breachvip")) return true;
   if (lower.includes("anya.int") && !lower.includes(" · ")) return true;
   if (lower.includes("enkidu.int") && !lower.includes(" · ")) return true;
 
