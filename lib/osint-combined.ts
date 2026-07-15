@@ -1,4 +1,8 @@
 import {
+  fetchBreachVipSanitized,
+  type BreachVipField,
+} from "@/lib/breachvip";
+import {
   publicSearchError,
   publicServiceUnavailable,
 } from "@/lib/public-branding";
@@ -20,6 +24,7 @@ import {
 } from "@/lib/osintcat";
 
 const COMBINED_GODSEYE_TIMEOUT_MS = 12_000;
+const COMBINED_BREACHVIP_TIMEOUT_MS = 12_000;
 
 async function fetchOptionalOsintCatPlatformSearch(
   endpoint: string | undefined,
@@ -31,6 +36,32 @@ async function fetchOptionalOsintCatPlatformSearch(
 
   const data = await fetchOsintCatEndpoint(endpoint, query);
   return sanitizeBreachResponse(data);
+}
+
+async function fetchOptionalBreachVip(
+  query: string,
+  field: BreachVipField | undefined,
+): Promise<SanitizedBreachResponse | null> {
+  if (!field) return null;
+
+  const data = await fetchBreachVipSanitized(query, field, {
+    timeoutMs: COMBINED_BREACHVIP_TIMEOUT_MS,
+  });
+
+  return data.count > 0 ? data : null;
+}
+
+function pushSettledSanitized(
+  parts: SanitizedBreachResponse[],
+  result: PromiseSettledResult<SanitizedBreachResponse | null>,
+) {
+  if (
+    result.status === "fulfilled" &&
+    result.value &&
+    result.value.count > 0
+  ) {
+    parts.push(result.value);
+  }
 }
 
 export async function fetchCombinedStealerLogs(
@@ -87,34 +118,23 @@ export async function fetchCombinedPlatformSearch(
   query: string,
   osintCatEndpoint: string | undefined,
   godseyeType: GodsEyeSearchType,
+  breachVipField?: BreachVipField,
 ): Promise<SanitizedBreachResponse> {
   const parts: SanitizedBreachResponse[] = [];
-  const [osintcatResult, godseyeResult] = await Promise.allSettled([
-    fetchOptionalOsintCatPlatformSearch(
-      osintCatEndpoint,
-      query,
-    ),
-    fetchGodsEyeSearchResult(
-      godseyeType,
-      query,
-      COMBINED_GODSEYE_TIMEOUT_MS,
-    ),
-  ]);
+  const [osintcatResult, godseyeResult, breachVipResult] =
+    await Promise.allSettled([
+      fetchOptionalOsintCatPlatformSearch(osintCatEndpoint, query),
+      fetchGodsEyeSearchResult(
+        godseyeType,
+        query,
+        COMBINED_GODSEYE_TIMEOUT_MS,
+      ),
+      fetchOptionalBreachVip(query, breachVipField),
+    ]);
 
-  if (
-    osintcatResult.status === "fulfilled" &&
-    osintcatResult.value &&
-    osintcatResult.value.count > 0
-  ) {
-    parts.push(osintcatResult.value);
-  }
-
-  if (
-    godseyeResult.status === "fulfilled" &&
-    godseyeResult.value.count > 0
-  ) {
-    parts.push(godseyeResult.value);
-  }
+  pushSettledSanitized(parts, osintcatResult);
+  pushSettledSanitized(parts, godseyeResult);
+  pushSettledSanitized(parts, breachVipResult);
 
   if (parts.length > 0) {
     return mergeSanitizedResponses(...parts);
@@ -133,18 +153,48 @@ export async function fetchCombinedPlatformSearch(
 export async function fetchGodsEyeOnlySearch(
   query: string,
   godseyeType: GodsEyeSearchType,
+  breachVipField?: BreachVipField,
 ): Promise<SanitizedBreachResponse> {
-  if (!getGodsEyeApiKey()) {
+  const hasGodsEye = Boolean(getGodsEyeApiKey());
+  const parts: SanitizedBreachResponse[] = [];
+
+  const [godseyeResult, breachVipResult] = await Promise.allSettled([
+    hasGodsEye
+      ? fetchGodsEyeSearchResult(
+          godseyeType,
+          query,
+          COMBINED_GODSEYE_TIMEOUT_MS,
+        )
+      : Promise.resolve(null),
+    fetchOptionalBreachVip(query, breachVipField),
+  ]);
+
+  pushSettledSanitized(parts, godseyeResult);
+  pushSettledSanitized(parts, breachVipResult);
+
+  if (parts.length > 0) {
+    return mergeSanitizedResponses(...parts);
+  }
+
+  if (!hasGodsEye && !breachVipField) {
     throw new Error(publicServiceUnavailable());
   }
 
-  return fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS);
+  if (
+    godseyeResult.status === "rejected" &&
+    godseyeResult.reason instanceof Error
+  ) {
+    throw godseyeResult.reason;
+  }
+
+  return { count: 0, results: [] };
 }
 
 export async function fetchCombinedOsintCatEndpoint(
   endpoint: string | undefined,
   query: string,
   godseyeType: GodsEyeSearchType,
+  breachVipField?: BreachVipField,
 ): Promise<Record<string, unknown>> {
   const payload: Record<string, unknown> = {
     query,
@@ -161,16 +211,40 @@ export async function fetchCombinedOsintCatEndpoint(
     }
   }
 
-  try {
-    payload.godseye = await fetchGodsEyeSearchResult(
+  const [godseyeResult, breachVipResult] = await Promise.allSettled([
+    fetchGodsEyeSearchResult(
       godseyeType,
       query,
       COMBINED_GODSEYE_TIMEOUT_MS,
-    );
+    ),
+    fetchOptionalBreachVip(query, breachVipField),
+  ]);
+
+  const mergedParts: SanitizedBreachResponse[] = [];
+
+  if (
+    godseyeResult.status === "fulfilled" &&
+    godseyeResult.value.count > 0
+  ) {
+    mergedParts.push(godseyeResult.value);
+  } else if (
+    godseyeResult.status === "rejected" &&
+    godseyeResult.reason instanceof Error
+  ) {
+    payload.godseyeError = godseyeResult.reason.message;
+  }
+
+  if (
+    breachVipResult.status === "fulfilled" &&
+    breachVipResult.value &&
+    breachVipResult.value.count > 0
+  ) {
+    mergedParts.push(breachVipResult.value);
+  }
+
+  if (mergedParts.length > 0) {
+    payload.godseye = mergeSanitizedResponses(...mergedParts);
     (payload.sources as string[]).push("index");
-  } catch (err) {
-    payload.godseyeError =
-      err instanceof Error ? err.message : "Index lookup failed";
   }
 
   if ((payload.sources as string[]).length === 0) {
@@ -186,32 +260,61 @@ export async function fetchCombinedBreachEndpoint(
   endpoint: string | undefined,
   query: string,
   godseyeType: GodsEyeSearchType,
+  breachVipField?: BreachVipField,
 ): Promise<SanitizedBreachResponse> {
-  return fetchCombinedPlatformSearch(query, endpoint, godseyeType);
+  return fetchCombinedPlatformSearch(
+    query,
+    endpoint,
+    godseyeType,
+    breachVipField,
+  );
 }
 
 export async function fetchCombinedDomainOsint(
   domain: string,
-): Promise<{ osintcat: OsintCatResponse | null; godseye: SanitizedBreachResponse | null }> {
+): Promise<{
+  osintcat: OsintCatResponse | null;
+  godseye: SanitizedBreachResponse | null;
+}> {
   let osintcat: OsintCatResponse | null = null;
   let godseye: SanitizedBreachResponse | null = null;
 
-  try {
-    osintcat = await fetchOsintCatEndpoint("database-search", domain, {
-      type: "domain",
-    });
-  } catch {
-    osintcat = null;
+  const [osintcatResult, godseyeResult, breachVipResult] =
+    await Promise.allSettled([
+      fetchOsintCatEndpoint("database-search", domain, {
+        type: "domain",
+      }),
+      fetchGodsEyeSearchResult(
+        "domain",
+        domain,
+        COMBINED_GODSEYE_TIMEOUT_MS,
+      ),
+      fetchOptionalBreachVip(domain, "domain"),
+    ]);
+
+  if (osintcatResult.status === "fulfilled") {
+    osintcat = osintcatResult.value;
   }
 
-  try {
-    godseye = await fetchGodsEyeSearchResult(
-      "domain",
-      domain,
-      COMBINED_GODSEYE_TIMEOUT_MS,
-    );
-  } catch {
-    godseye = null;
+  const mergedParts: SanitizedBreachResponse[] = [];
+
+  if (
+    godseyeResult.status === "fulfilled" &&
+    godseyeResult.value.count > 0
+  ) {
+    mergedParts.push(godseyeResult.value);
+  }
+
+  if (
+    breachVipResult.status === "fulfilled" &&
+    breachVipResult.value &&
+    breachVipResult.value.count > 0
+  ) {
+    mergedParts.push(breachVipResult.value);
+  }
+
+  if (mergedParts.length > 0) {
+    godseye = mergeSanitizedResponses(...mergedParts);
   }
 
   return { osintcat, godseye };

@@ -40,11 +40,16 @@ export async function GET(req: NextRequest) {
   if (platform) {
     try {
       const data = isGodsEyeOnlyPlatformConfig(platform)
-        ? await fetchGodsEyeOnlySearch(query, platform.godseyeType)
+        ? await fetchGodsEyeOnlySearch(
+            query,
+            platform.godseyeType,
+            platform.breachVipField,
+          )
         : await fetchCombinedPlatformSearch(
             query,
             platform.osintCatEndpoint,
             platform.godseyeType,
+            platform.breachVipField,
           );
 
       if (data.count === 0) {

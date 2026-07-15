@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
+import { fetchBreachVipSanitized } from "@/lib/breachvip";
 import { fetchDiscordProfile, type DiscordSearchResult } from "@/lib/discord-profile";
 import {
-  fetchGodsEyeFivem,
   fetchGodsEyeSearchSafe,
   sanitizeGodsEyeSearch,
 } from "@/lib/godseye";
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [profile, osintLeaks, godseyeLeaks] = await Promise.all([
+    const [profile, osintLeaks, godseyeLeaks, breachVipLeaks] = await Promise.all([
       fetchDiscordProfile(query),
       fetchOsintCatEndpoint("discord", query)
         .then((data) => filterDiscordResultsForId(query, data))
@@ -41,9 +41,17 @@ export async function GET(req: NextRequest) {
       fetchGodsEyeSearchSafe("discord", query)
         .then((data) => sanitizeGodsEyeSearch(data))
         .catch(() => ({ count: 0, results: [] as unknown[] })),
+      fetchBreachVipSanitized(query, "discordid").catch(() => ({
+        count: 0,
+        results: [] as unknown[],
+      })),
     ]);
 
-    const leaks = mergeSanitizedResponses(osintLeaks, godseyeLeaks);
+    const leaks = mergeSanitizedResponses(
+      osintLeaks,
+      godseyeLeaks,
+      breachVipLeaks,
+    );
 
     const response: DiscordSearchResult = {
       id: query,

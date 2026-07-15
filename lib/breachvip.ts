@@ -4,12 +4,17 @@ import {
   publicServiceUnavailable,
   sanitizePublicText,
 } from "@/lib/public-branding";
+import { extractDatabank, isInternalSourceLabel } from "@/lib/intel-record";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import type { SanitizedBreachResponse } from "@/lib/osintcat";
 import type { CombCredential } from "@/lib/proxynova-comb";
 
 const BREACHVIP_SEARCH_URL = "https://breach.vip/api/search";
 const DEFAULT_TIMEOUT_MS = 25_000;
 const MAX_RESULT_ROWS = 200;
+
+const MC_UUID_RE =
+  /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
 /** Free BreachVIP index is on by default. Set BREACH_VIP_ENABLED=false to disable. */
 export function isBreachVipEnabled(): boolean {
@@ -70,10 +75,7 @@ function asString(value: unknown): string {
   return "";
 }
 
-function firstString(
-  record: BreachVipRecord,
-  keys: string[],
-): string {
+function firstString(record: BreachVipRecord, keys: string[]): string {
   for (const key of keys) {
     const value = asString(record[key]);
     if (value) return value;
@@ -130,6 +132,52 @@ export function breachVipResultsToCredentials(
   return credentials;
 }
 
+/** Strip internal provider labels from a BreachVIP row (matches GodsEye tagging). */
+export function sanitizeBreachVipRecord(entry: unknown): unknown {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    return entry;
+  }
+
+  const record = { ...(entry as BreachVipRecord) };
+  const source = record.source;
+
+  if (typeof source === "string") {
+    const trimmed = source.trim();
+
+    if (!trimmed || isInternalSourceLabel(trimmed)) {
+      delete record.source;
+    } else {
+      record.source = trimmed;
+    }
+  }
+
+  if (typeof record._source === "string" && isInternalSourceLabel(record._source)) {
+    delete record._source;
+  }
+
+  const databank = extractDatabank(record);
+  if (databank && !record.database && !record.breach && !record.breach_name) {
+    record.database = databank;
+  }
+
+  return record;
+}
+
+export function breachVipToSanitizedResponse(
+  result: BreachVipSearchResult | null | undefined,
+): SanitizedBreachResponse {
+  if (!result || result.returned === 0) {
+    return { count: 0, results: [] };
+  }
+
+  const results = result.results.map((row) => sanitizeBreachVipRecord(row));
+
+  return {
+    count: result.totalMatches || results.length,
+    results,
+  };
+}
+
 function extractResults(payload: unknown): BreachVipRecord[] {
   if (!payload || typeof payload !== "object") return [];
 
@@ -169,7 +217,9 @@ export async function searchBreachVip(
     throw new Error("Missing search term");
   }
 
-  const fields = options?.fields?.length ? options.fields : (["email"] as BreachVipField[]);
+  const fields = options?.fields?.length
+    ? options.fields
+    : (["email"] as BreachVipField[]);
   const maxRows = Math.min(
     Math.max(1, options?.maxRows ?? MAX_RESULT_ROWS),
     MAX_RESULT_ROWS,
@@ -244,20 +294,75 @@ export async function searchBreachVip(
   };
 }
 
-export async function searchBreachVipForEmail(
-  email: string,
+/** Soft-fail BreachVIP search by one or more fields. Returns null when disabled or on error. */
+export async function searchBreachVipSafe(
+  term: string,
+  fields: BreachVipField | BreachVipField[],
   options?: Omit<BreachVipSearchOptions, "fields">,
 ): Promise<BreachVipSearchResult | null> {
   if (!isBreachVipEnabled()) return null;
 
+  const fieldList = Array.isArray(fields) ? fields : [fields];
+  if (fieldList.length === 0) return null;
+
   try {
-    return await searchBreachVip(email, {
+    return await searchBreachVip(term, {
       ...options,
-      fields: ["email"],
+      fields: fieldList,
     });
   } catch {
     return null;
   }
+}
+
+export async function searchBreachVipForEmail(
+  email: string,
+  options?: Omit<BreachVipSearchOptions, "fields">,
+): Promise<BreachVipSearchResult | null> {
+  return searchBreachVipSafe(email, "email", options);
+}
+
+export async function searchBreachVipForField(
+  term: string,
+  field: BreachVipField,
+  options?: Omit<BreachVipSearchOptions, "fields">,
+): Promise<BreachVipSearchResult | null> {
+  return searchBreachVipSafe(term, field, options);
+}
+
+export function isMinecraftUuid(query: string): boolean {
+  return MC_UUID_RE.test(query.trim());
+}
+
+/**
+ * Minecraft module only: UUID → uuid field; MC names → username field.
+ * Does not alter username/steam platform modules.
+ */
+export function resolveMinecraftBreachVipFields(
+  query: string,
+): BreachVipField[] {
+  return isMinecraftUuid(query) ? ["uuid"] : ["username"];
+}
+
+export async function searchBreachVipForMinecraft(
+  query: string,
+  options?: Omit<BreachVipSearchOptions, "fields">,
+): Promise<BreachVipSearchResult | null> {
+  return searchBreachVipSafe(
+    query,
+    resolveMinecraftBreachVipFields(query),
+    options,
+  );
+}
+
+/** Soft-fail → sanitized breach rows for merging with GodsEye/OsintCat. */
+export async function fetchBreachVipSanitized(
+  term: string,
+  fields: BreachVipField | BreachVipField[],
+  options?: Omit<BreachVipSearchOptions, "fields">,
+): Promise<SanitizedBreachResponse> {
+  const result = await searchBreachVipSafe(term, fields, options);
+  return breachVipToSanitizedResponse(result);
 }
 
 /** Lightweight probe for module health — treats HTTP 200/400 as reachable. */

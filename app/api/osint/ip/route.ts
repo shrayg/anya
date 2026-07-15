@@ -16,7 +16,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchCombinedOsintCatEndpoint("ip", query, "ip");
+    const data = await fetchCombinedOsintCatEndpoint(
+      "ip",
+      query,
+      "ip",
+      "ip",
+    );
     return NextResponse.json(normalizeIpSearchPayload(data));
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to reach API";
