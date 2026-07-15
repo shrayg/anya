@@ -7,7 +7,7 @@
 export const TEST_LIME_ICON_THEME = false;
 
 /** Soft macOS-style dashboard. Set false to undo. */
-export const TEST_MAC_DASHBOARD_THEME = true;
+export const TEST_MAC_DASHBOARD_THEME = false;
 
 export const siteLogoSrc = TEST_LIME_ICON_THEME
   ? "/images/anya-icon-test.png"
