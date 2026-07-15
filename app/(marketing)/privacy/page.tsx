@@ -6,9 +6,9 @@ export default function PrivacyPage() {
     <LegalPage title="Privacy Policy" updated="July 15, 2026">
       <LegalSection title="Overview">
         <p>
-          This Privacy Policy explains how {siteConfig.legalEntityName}{" "}
-          (“Anya.Int,” “we,” “us”) collects, uses, and shares information when
-          you use anyaint.com and related services (the “Service”).
+          This Privacy Policy explains how Anya.Int (“we,” “us,” or “our”)
+          collects, uses, and shares information when you use anyaint.com and
+          related services (the “Service”).
         </p>
         <p>
           Anya.Int provides investigative intelligence tools. It is not a

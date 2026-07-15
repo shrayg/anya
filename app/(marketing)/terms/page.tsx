@@ -8,9 +8,9 @@ export default function TermsPage() {
         <p>
           These Terms of Service (“Terms”) govern your access to and use of the
           Anya.Int website, applications, APIs, and related services (the
-          “Service”) operated by {siteConfig.legalEntityName} (“Anya.Int,” “we,”
-          “us,” or “our”). By creating an account, purchasing a plan, or using
-          the Service, you agree to these Terms, our{" "}
+          “Service”) operated by Anya.Int (“we,” “us,” or “our”). By creating an
+          account, purchasing a plan, or using the Service, you agree to these
+          Terms, our{" "}
           <a className="text-zinc-100 underline-offset-4 hover:underline" href="/privacy">
             Privacy Policy
           </a>

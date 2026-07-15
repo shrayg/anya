@@ -10,12 +10,6 @@ type LegalPageProps = {
 export function LegalPage({ title, updated, children }: LegalPageProps) {
   return (
     <article className="relative z-20 mx-auto w-full max-w-3xl px-2 pb-20 pt-6 md:pt-10">
-      <p className="mb-6 rounded-lg border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100/90">
-        Attorney-review draft. Replace the legal entity details with your filed
-        US company information and have counsel review before relying on this
-        document.
-      </p>
-
       <header className="mb-10 space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--anya-blush)]">
           Legal

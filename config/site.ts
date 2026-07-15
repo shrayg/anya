@@ -13,7 +13,7 @@ export const siteConfig = {
   description: "Anya.Int | OSINT intelligence platform for investigators",
   tagline: "OSINT intelligence platform for investigators",
   defaultWorkspacePath: "/dashboard/search/ai-search",
-  /** Replace with registered US entity name before treating policies as final. */
+  /** Brand operator name used in legal copy (Snoop-style — no LLC string required on-site). */
   legalEntityName: "Anya.Int",
   legalContactEmail: "support@anyaint.com",
   privacyContactEmail: "support@anyaint.com",
