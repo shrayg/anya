@@ -46,7 +46,7 @@
   box-shadow: 0 0 10px var(--anya-blush-glow);
 }
 
-/* Hide hero brand while splash video + handoff tween are active */
+/* Hide hero brand while splash hold + handoff tween are active */
 html[data-splash="active"] [data-splash-target] {
   opacity: 0 !important;
 }
@@ -1503,24 +1503,6 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-ai-signal--info {
   border-left-color: var(--anya-blush);
-}
-
-.partner-modal {
-  position: relative;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.25rem), calc(100% - 1.25rem) 100%, 0 100%);
-}
-
-.partner-modal::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 1.25rem;
-  height: 1.25rem;
-  background: var(--anya-blush);
-  opacity: 0.55;
-  clip-path: polygon(100% 0, 0 100%, 100% 100%);
-  pointer-events: none;
 }
 
 .pricing-modal-body {

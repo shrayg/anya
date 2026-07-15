@@ -3,7 +3,7 @@ export type SiteConfig = typeof siteConfig;
 export type NavItem = {
   label: string;
   href: string;
-  modal?: "partner" | "pricing";
+  modal?: "pricing";
   newTab?: boolean;
 };
 
@@ -20,11 +20,9 @@ export const siteConfig = {
   governingLawState: "Delaware",
   navItems: [
     { label: "Pricing", href: "/pricing" },
-    { label: "Partner", href: "#", modal: "partner" },
   ] as NavItem[],
   navMenuItems: [
     { label: "Pricing", href: "/pricing" },
-    { label: "Partner", href: "#", modal: "partner" },
   ] as NavItem[],
   links: {
     telegram: "https://t.me/anyasearch",

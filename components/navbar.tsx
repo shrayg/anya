@@ -17,7 +17,6 @@ import NextLink from "next/link";
 import clsx from "clsx";
 import Image from "next/image";
 
-import { PartnerModal } from "@/components/partner-modal";
 import { PricingModal } from "@/components/pricing-modal";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
@@ -29,7 +28,6 @@ export const Navbar = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [workspacePath, setWorkspacePath] = useState("/dashboard/search/ai-search");
   const [showWorkspace, setShowWorkspace] = useState(false);
-  const [partnerOpen, setPartnerOpen] = useState(false);
   const [pricingOpen, setPricingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -74,18 +72,12 @@ export const Navbar = () => {
     window.location.href = "/";
   };
 
-  const openPartnerModal = () => {
-    setMenuOpen(false);
-    setPartnerOpen(true);
-  };
-
   const openPricingModal = () => {
     setMenuOpen(false);
     window.location.assign("/pricing");
   };
 
   const getModalHandler = (item: NavItem) => {
-    if (item.modal === "partner") return openPartnerModal;
     if (item.modal === "pricing") return openPricingModal;
     return null;
   };
@@ -276,7 +268,6 @@ export const Navbar = () => {
         </NavbarMenu>
       </HeroUINavbar>
 
-      <PartnerModal onClose={() => setPartnerOpen(false)} open={partnerOpen} />
       <PricingModal onClose={() => setPricingOpen(false)} open={pricingOpen} />
     </>
   );
