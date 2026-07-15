@@ -251,7 +251,7 @@ function AuthForm() {
               pattern="[A-Za-z0-9_]+"
               title="Letters, numbers, and underscores only"
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="investigator_01"
+              placeholder="JohnDoe"
               required
               spellCheck={false}
               value={username}
