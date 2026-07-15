@@ -337,6 +337,18 @@ export function HomeSearch() {
         {searchBar}
       </form>
 
+      <p className="mt-3 text-center text-[11px] leading-4 text-zinc-600">
+        By searching you confirm lawful purpose and accept our{" "}
+        <Link className="text-zinc-400 underline-offset-2 hover:underline" href="/terms">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link className="text-zinc-400 underline-offset-2 hover:underline" href="/acceptable-use">
+          Acceptable Use
+        </Link>
+        . Not for FCRA-regulated decisions.
+      </p>
+
       {auth.status === "guest" && (
         <p className="mt-3 text-xs text-zinc-500">
           <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/auth?action=login">

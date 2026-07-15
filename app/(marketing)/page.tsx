@@ -21,8 +21,8 @@ export default function Home() {
             text={siteConfig.name}
           />
           <p className="max-w-2xl px-4 text-base leading-7 text-gray-300 md:text-xl">
-            {siteConfig.tagline}. Create an account, run lookups across breach
-            and social modules, and file intel into cases.
+            {siteConfig.tagline}. Create an account, run authorized lookups
+            across exposure and social modules, and file intel into cases.
           </p>
         </div>
 

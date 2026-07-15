@@ -35,7 +35,7 @@ const LANE_DESCRIPTION: Record<string, string> = {
   "AI Intelligence":
     "AI modules query multiple indexes in parallel, then synthesize results into investigator-ready briefs — not raw JSON dumps.",
   "Stealer Intel":
-    "Archived stealer dumps and IntelX storage pulls for infostealer-era credentials.",
+    "Infostealer-era credential exposure indexes and storage pulls for authorized investigations.",
   "Breach & Leaks": "Credential and email exposure across public leak indexes.",
   Identity: "Phone, username, and handle pivots across platforms.",
   Network: "IP enrichment and network-context lookups.",

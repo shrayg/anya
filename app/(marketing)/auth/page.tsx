@@ -68,6 +68,7 @@ function AuthForm() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   useEffect(() => {
     setMode(searchParams.get("action") === "register" ? "register" : "login");
@@ -118,6 +119,10 @@ function AuthForm() {
 
     try {
       if (mode === "register") {
+        if (!acceptedLegal) {
+          setError("Please agree to the Terms, Privacy Policy, and Acceptable Use Policy.");
+          return;
+        }
         const usernameError = validateUsername(username);
         if (usernameError) {
           setError(usernameError);
@@ -334,9 +339,39 @@ function AuthForm() {
             </p>
           )}
 
+          {mode === "register" && (
+            <label className="flex items-start gap-3 text-left text-xs leading-5 text-zinc-400">
+              <input
+                checked={acceptedLegal}
+                className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-black accent-[var(--anya-blush)]"
+                onChange={(event) => setAcceptedLegal(event.target.checked)}
+                required
+                type="checkbox"
+              />
+              <span>
+                I agree to the{" "}
+                <NextLink className="text-zinc-200 underline-offset-2 hover:underline" href="/terms">
+                  Terms of Service
+                </NextLink>
+                ,{" "}
+                <NextLink className="text-zinc-200 underline-offset-2 hover:underline" href="/privacy">
+                  Privacy Policy
+                </NextLink>
+                , and{" "}
+                <NextLink
+                  className="text-zinc-200 underline-offset-2 hover:underline"
+                  href="/acceptable-use"
+                >
+                  Acceptable Use Policy
+                </NextLink>
+                . I confirm I am 18+ and will use Anya.Int only for lawful purposes.
+              </span>
+            </label>
+          )}
+
           <button
             className="ui-btn ui-btn-primary ui-btn-primary--lg w-full"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (mode === "register" && !acceptedLegal)}
             type="submit"
           >
             {mode === "login" ? <LogIn className="size-5" /> : <UserPlus className="size-5" />}
