@@ -1174,7 +1174,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             </div>
           ) : null}
           {moduleDef.slug === "intelx" ? (
-            <div className="mb-4">
+            <div className="mb-4 space-y-2">
               <label className="mb-1.5 block text-xs text-zinc-400" htmlFor="intelx-bucket">
                 IntelX bucket
               </label>
@@ -1192,6 +1192,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-zinc-500">
+                Use the Storage ID (long hex) from the IntelX item. Pasteable intelx.io
+                links with only <span className="font-mono">?did=</span> cannot be
+                downloaded via the API.
+              </p>
             </div>
           ) : null}
           <form className="flex flex-col gap-3 sm:flex-row sm:items-start" onSubmit={handleSearch}>

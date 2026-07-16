@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 import {
+  fetchCsintIntelx,
   fetchCsintIntelxWithBuckets,
   isCsintEnabled,
 } from "@/lib/csint";
@@ -18,11 +19,14 @@ import {
 } from "@/lib/public-branding";
 import { fetchGodsEyeRawExport, getGodsEyeExportApiKey } from "@/lib/godseye";
 
-/** Docs call this System ID; param name is storageid. UUID form is accepted upstream. */
+/** IntelX System ID shape (UUID). API accepts this as storageid when it is a real item id. */
 const UUID_RE =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 /** Docs example storage hash is long hex (typically 40–256 chars). */
 const HEX_STORAGE_RE = /^[a-f0-9]{40,256}$/i;
+
+const WEBSITE_DID_UNSUPPORTED =
+  "Nothing found. intelx.io share links (?did=…) use a website ID that cannot be downloaded via the API. Paste the Storage ID (long hex hash) from the IntelX item / download API instead — not the link’s did parameter.";
 
 function normalizeStorageId(raw: string): {
   storageId: string;
@@ -57,6 +61,55 @@ function normalizeStorageId(raw: string): {
   return { storageId: hex || trimmed, idKind: "invalid" };
 }
 
+/**
+ * Parse pasted intelx.io URLs and raw IDs.
+ * Website `did` is not a downloadable storageid — refuse without burning quota.
+ */
+function parseIntelxQuery(raw: string): {
+  storageId: string;
+  idKind: "uuid" | "storage" | "invalid";
+  fromWebsiteDid: boolean;
+} {
+  const trimmed = raw.trim();
+
+  const looksLikeUrl =
+    /intelx\.io/i.test(trimmed) ||
+    /^https?:\/\//i.test(trimmed) ||
+    /[?&](did|storageid|systemid|sid)=/i.test(trimmed);
+
+  if (looksLikeUrl) {
+    try {
+      const url = new URL(
+        /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`,
+      );
+      const did = url.searchParams.get("did")?.trim() || "";
+      const storageParam =
+        url.searchParams.get("storageid")?.trim() ||
+        url.searchParams.get("systemid")?.trim() ||
+        url.searchParams.get("sid")?.trim() ||
+        "";
+
+      if (storageParam) {
+        const normalized = normalizeStorageId(storageParam);
+        return { ...normalized, fromWebsiteDid: false };
+      }
+
+      if (did) {
+        return {
+          storageId: did.toLowerCase(),
+          idKind: "uuid",
+          fromWebsiteDid: true,
+        };
+      }
+    } catch {
+      // Fall through to raw ID parsing.
+    }
+  }
+
+  const normalized = normalizeStorageId(trimmed);
+  return { ...normalized, fromWebsiteDid: false };
+}
+
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "intelx");
   if (access instanceof NextResponse) return access;
@@ -69,18 +122,34 @@ export async function GET(req: NextRequest) {
 
   if (!query) {
     return NextResponse.json(
-      { error: "Missing IntelX System ID or Storage ID" },
+      { error: "Missing IntelX Storage ID (long hex) or System ID" },
       { status: 400 },
     );
   }
 
-  const { storageId, idKind } = normalizeStorageId(query);
+  const { storageId, idKind, fromWebsiteDid } = parseIntelxQuery(query);
+
+  if (fromWebsiteDid) {
+    return NextResponse.json(
+      {
+        storageId,
+        idKind,
+        bucket: preferredBucket,
+        source: `${PUBLIC_INTEL_SOURCE} · IntelX`,
+        content: "",
+        error: WEBSITE_DID_UNSUPPORTED,
+        hasContent: false,
+        rejectedWebsiteDid: true,
+      },
+      { status: 404 },
+    );
+  }
 
   if (idKind === "invalid") {
     return NextResponse.json(
       {
         error:
-          "Enter an IntelX System ID (UUID) or Storage ID (long hex hash). Both are sent as storageid.",
+          "Enter an IntelX Storage ID (long hex hash) from the item download API. intelx.io ?did= share links are not supported.",
       },
       { status: 400 },
     );
@@ -101,8 +170,12 @@ export async function GET(req: NextRequest) {
   let lastError = "";
 
   // Prefer CSINT first (dedicated /api/intelx, text/plain handling, IntelX daily quota).
+  // UUIDs: one bucket only — bare website did UUIDs 404 everywhere and must not burn quota.
   if (hasCsint) {
-    const csint = await fetchCsintIntelxWithBuckets(storageId, preferredBucket);
+    const csint =
+      idKind === "uuid"
+        ? await fetchCsintIntelx(storageId, preferredBucket)
+        : await fetchCsintIntelxWithBuckets(storageId, preferredBucket);
     if (csint.content.trim()) {
       content = csint.content;
       bucket = csint.bucket;
@@ -113,6 +186,7 @@ export async function GET(req: NextRequest) {
 
   if (!content && hasGodsEyeExport) {
     // GodsEye already tries known leak buckets internally; avoid hammering capacity.
+    // No second-bucket retry for UUIDs (same hopeless-did problem).
     const godseye = await fetchGodsEyeRawExport(storageId, preferredBucket);
     if (godseye.content.trim()) {
       content = godseye.content;
@@ -121,6 +195,7 @@ export async function GET(req: NextRequest) {
     } else if (godseye.error) {
       lastError = godseye.error;
       if (
+        idKind === "storage" &&
         !/capacity|rate limit|429|quota/i.test(godseye.error) &&
         preferredBucket !== "leaks.private"
       ) {
@@ -142,9 +217,12 @@ export async function GET(req: NextRequest) {
       publicSearchError("No IntelX export content returned.");
 
     if (/HTTP 400|bad request/i.test(lastError)) {
-      error = `${error} Tip: use a System ID (UUID with dashes) or a long Storage ID hex hash from the IntelX item.`;
+      error = `${error} Tip: use a long Storage ID hex hash from the IntelX item (not an intelx.io ?did= link).`;
     } else if (/HTTP 404|not found/i.test(lastError)) {
-      error = `${error} Tip: ID was accepted but not found in tried buckets — pick the bucket that matches the IntelX item (e.g. leaks.private vs leaks.public).`;
+      error =
+        idKind === "uuid"
+          ? "Nothing found. If this UUID came from an intelx.io share link (?did=), it cannot be downloaded via the API — use the Storage ID (long hex) from the item instead."
+          : `${error} Tip: Storage ID was accepted but not found in this bucket — pick the bucket that matches the IntelX item.`;
     }
 
     return NextResponse.json(
