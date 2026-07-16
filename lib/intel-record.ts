@@ -44,6 +44,7 @@ export function isInternalSourceLabel(value: string): boolean {
   if (lower.startsWith("godseye")) return true;
   if (lower.startsWith("osintcat")) return true;
   if (lower === "breach.vip" || lower.startsWith("breachvip")) return true;
+  if (lower.includes("csint")) return true;
   if (lower.includes("anya.int") && !lower.includes(" · ")) return true;
   if (lower.includes("enkidu.int") && !lower.includes(" · ")) return true;
 

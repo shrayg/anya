@@ -6,12 +6,29 @@ import {
   fetchBreachVipSanitized,
   resolveMinecraftBreachVipFields,
 } from "@/lib/breachvip";
+import { fetchCsintMinecraft } from "@/lib/csint";
 import {
   fetchGodsEyeSearchResult,
   getGodsEyeApiKey,
 } from "@/lib/godseye";
+import { isCsintEnabled } from "@/lib/csint";
 import { mergeSanitizedResponses } from "@/lib/osintcat";
 import { publicServiceUnavailable } from "@/lib/public-branding";
+
+function detectMinecraftCsintType(
+  query: string,
+): "username" | "email" | "ip" | "uuid" {
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(query)) return "email";
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(query)) return "ip";
+  if (
+    /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(
+      query,
+    )
+  ) {
+    return "uuid";
+  }
+  return "username";
+}
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "minecraft");
@@ -25,14 +42,17 @@ export async function GET(req: NextRequest) {
 
   try {
     const hasGodsEye = Boolean(getGodsEyeApiKey());
+    const hasCsint = isCsintEnabled();
     const breachVipFields = resolveMinecraftBreachVipFields(query);
 
-    const [godseyeResult, breachVipResult] = await Promise.allSettled([
-      hasGodsEye
-        ? fetchGodsEyeSearchResult("minecraft", query, 12_000)
-        : Promise.resolve({ count: 0, results: [] as unknown[] }),
-      fetchBreachVipSanitized(query, breachVipFields, { timeoutMs: 12_000 }),
-    ]);
+    const [godseyeResult, breachVipResult, csintResult] =
+      await Promise.allSettled([
+        hasGodsEye
+          ? fetchGodsEyeSearchResult("minecraft", query, 12_000)
+          : Promise.resolve({ count: 0, results: [] as unknown[] }),
+        fetchBreachVipSanitized(query, breachVipFields, { timeoutMs: 12_000 }),
+        fetchCsintMinecraft(query, detectMinecraftCsintType(query)),
+      ]);
 
     const parts = [];
 
@@ -50,12 +70,20 @@ export async function GET(req: NextRequest) {
       parts.push(breachVipResult.value);
     }
 
+    if (
+      csintResult.status === "fulfilled" &&
+      csintResult.value &&
+      csintResult.value.count > 0
+    ) {
+      parts.push(csintResult.value);
+    }
+
     if (parts.length > 0) {
       const data = mergeSanitizedResponses(...parts);
       return NextResponse.json(data);
     }
 
-    if (!hasGodsEye && breachVipResult.status === "rejected") {
+    if (!hasGodsEye && !hasCsint && breachVipResult.status === "rejected") {
       throw new Error(publicServiceUnavailable());
     }
 

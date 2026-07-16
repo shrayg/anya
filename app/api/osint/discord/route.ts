@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 import { fetchBreachVipSanitized } from "@/lib/breachvip";
+import {
+  extractCsintDiscordLookupLeaks,
+  fetchCsintDiscordLookup,
+  fetchCsintDiscordOsint,
+} from "@/lib/csint";
 import { fetchDiscordProfile, type DiscordSearchResult } from "@/lib/discord-profile";
 import {
   fetchGodsEyeSearchSafe,
@@ -33,30 +38,38 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [profile, osintLeaks, godseyeLeaks, breachVipLeaks] = await Promise.all([
-      fetchDiscordProfile(query),
-      fetchOsintCatEndpoint("discord", query)
-        .then((data) => filterDiscordResultsForId(query, data))
-        .catch(() => ({ count: 0, results: [] as unknown[] })),
-      fetchGodsEyeSearchSafe("discord", query)
-        .then((data) => sanitizeGodsEyeSearch(data))
-        .catch(() => ({ count: 0, results: [] as unknown[] })),
-      fetchBreachVipSanitized(query, "discordid").catch(() => ({
-        count: 0,
-        results: [] as unknown[],
-      })),
-    ]);
+    const [profile, osintLeaks, godseyeLeaks, breachVipLeaks, csintOsint, csintLookup] =
+      await Promise.all([
+        fetchDiscordProfile(query),
+        fetchOsintCatEndpoint("discord", query)
+          .then((data) => filterDiscordResultsForId(query, data))
+          .catch(() => ({ count: 0, results: [] as unknown[] })),
+        fetchGodsEyeSearchSafe("discord", query)
+          .then((data) => sanitizeGodsEyeSearch(data))
+          .catch(() => ({ count: 0, results: [] as unknown[] })),
+        fetchBreachVipSanitized(query, "discordid").catch(() => ({
+          count: 0,
+          results: [] as unknown[],
+        })),
+        fetchCsintDiscordOsint(query).catch(() => null),
+        fetchCsintDiscordLookup(query).catch(() => null),
+      ]);
 
     const leaks = mergeSanitizedResponses(
       osintLeaks,
       godseyeLeaks,
       breachVipLeaks,
+      csintOsint ?? { count: 0, results: [] },
+      extractCsintDiscordLookupLeaks(csintLookup, query),
     );
 
-    const response: DiscordSearchResult = {
+    const response: DiscordSearchResult & {
+      enrichment?: Record<string, unknown> | null;
+    } = {
       id: query,
       profile,
       leaks,
+      enrichment: csintLookup,
     };
 
     return NextResponse.json(response);

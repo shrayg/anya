@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 import { searchBreachVipForEmail } from "@/lib/breachvip";
+import {
+  csintRowsToCredentials,
+  fetchCsintUniversalSearch,
+} from "@/lib/csint";
 import { fetchGodsEyeEmailReport } from "@/lib/godseye";
 import {
   normalizeEmail,
@@ -50,21 +54,27 @@ export async function GET(req: NextRequest) {
   const start = Number(req.nextUrl.searchParams.get("start") ?? 0);
   const limit = Number(req.nextUrl.searchParams.get("limit") ?? 100);
 
-  const [combResult, godseyeReport, breachVip] = await Promise.all([
+  const [combResult, godseyeReport, breachVip, csint] = await Promise.all([
     searchProxynovaCombForEmail(email, { start, limit }),
     fetchGodsEyeEmailReport(email),
     searchBreachVipForEmail(email, { maxRows: limit }),
+    fetchCsintUniversalSearch(email, "email", 15_000),
   ]);
 
+  const csintCredentials = csint
+    ? csintRowsToCredentials(csint.results)
+    : [];
+
   const mergedCredentials = mergeCredentials(
-    combResult.credentials,
-    breachVip?.credentials ?? [],
+    mergeCredentials(combResult.credentials, breachVip?.credentials ?? []),
+    csintCredentials,
   );
 
   const breachVipExtra = breachVip?.totalMatches ?? 0;
+  const csintExtra = csint?.count ?? 0;
   const merged: CombSearchResult = {
     ...combResult,
-    totalMatches: combResult.totalMatches + breachVipExtra,
+    totalMatches: combResult.totalMatches + breachVipExtra + csintExtra,
     returned: mergedCredentials.length,
     credentials: mergedCredentials,
   };
@@ -80,7 +90,8 @@ export async function GET(req: NextRequest) {
   if (
     merged.returned === 0 &&
     !godseyeReport &&
-    !(breachVip && breachVip.returned > 0)
+    !(breachVip && breachVip.returned > 0) &&
+    !csintExtra
   ) {
     return NextResponse.json({
       ...response,

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
+import {
+  detectCsintCryptoSymbol,
+  fetchCsintCrypto,
+} from "@/lib/csint";
 import { PUBLIC_INTEL_SOURCE } from "@/lib/public-branding";
 import { lookupCryptoWallet } from "@/lib/crypto-wallet";
 import { fetchGodsEyeSearchSafe } from "@/lib/godseye";
@@ -17,15 +21,22 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [wallet, godseye] = await Promise.all([
+    const symbol = detectCsintCryptoSymbol(query);
+    const [wallet, godseye, csint] = await Promise.all([
       lookupCryptoWallet(query),
       fetchGodsEyeSearchSafe("crypto", query),
+      symbol ? fetchCsintCrypto(query, symbol) : Promise.resolve(null),
     ]);
 
     return NextResponse.json({
       ...wallet,
       godseye,
-      sources: ["On-chain", ...(godseye ? [PUBLIC_INTEL_SOURCE] : [])],
+      enrichment: csint,
+      sources: [
+        "On-chain",
+        ...(godseye ? [PUBLIC_INTEL_SOURCE] : []),
+        ...(csint ? [PUBLIC_INTEL_SOURCE] : []),
+      ],
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Wallet lookup failed";

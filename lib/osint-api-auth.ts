@@ -60,6 +60,12 @@ export function resolveOsintModuleSlug(
     "us-state-directory": "state-records-directory",
     "us-intl-directory": "international-records-directory",
     geolocate: "ip",
+    "email-analyze": "email-analyze",
+    "tiktok-recon": "tiktok-recon",
+    "share-resolver": "share-resolver",
+    "image-geolocate": "image-geolocate",
+    "contact-enrich": "contact-enrich",
+    "shodan-host": "shodan-host",
   };
 
   return defaults[fallbackApiSegment] ?? null;

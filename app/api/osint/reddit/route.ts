@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
+import { fetchCsintReddit } from "@/lib/csint";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
+import { PUBLIC_INTEL_SOURCE } from "@/lib/public-branding";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "reddit");
@@ -15,16 +17,30 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchGodsEyeOnlySearch(query, "reddit");
+    const [indexData, profile] = await Promise.all([
+      fetchGodsEyeOnlySearch(query, "reddit").catch(() => ({
+        count: 0,
+        results: [] as unknown[],
+      })),
+      fetchCsintReddit(query),
+    ]);
 
-    if (data.count === 0) {
+    if (profile) {
       return NextResponse.json({
-        ...data,
+        ...indexData,
+        profile,
+        source: PUBLIC_INTEL_SOURCE,
+      });
+    }
+
+    if (indexData.count === 0) {
+      return NextResponse.json({
+        ...indexData,
         message: "No results were found.",
       });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(indexData);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to reach API";
 

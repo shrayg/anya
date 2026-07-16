@@ -53,6 +53,7 @@ cp .env.example .env.local
 | `GODSEYE_API_KEY` | Yes | GodsEye public search API key |
 | `OSINTCAT_API_KEY` | Recommended | OsintCat breach / stealer index key |
 | `GODSEYE_EXPORT_API_KEY` | Optional | IntelX raw export (IntelX module) |
+| `CSINT_API_KEY` | Recommended | csint.pro unified intelligence API key |
 
 **Never commit `.env.local` or API keys.**
 

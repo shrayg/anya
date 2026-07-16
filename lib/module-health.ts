@@ -1,4 +1,5 @@
 import { probeBreachVip } from "@/lib/breachvip";
+import { probeCsint } from "@/lib/csint";
 import {
   fetchGodsEyeIngressCheck,
   fetchGodsEyeRawExport,
@@ -18,6 +19,7 @@ export type ProviderId =
   | "godseye"
   | "godseye-export"
   | "breachvip"
+  | "csint"
   | "builtin"
   | "courtlistener"
   | "instagram";
@@ -34,19 +36,23 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "crypto-ai": { kind: "any", providers: ["osintcat"] },
   "threat-brief": { kind: "any", providers: ["osintcat"] },
   intelx: { kind: "all", providers: ["godseye-export"] },
-  "stealer-logs": { kind: "any", providers: ["osintcat", "godseye"] },
-  breaches: { kind: "any", providers: ["builtin", "godseye", "breachvip"] },
-  domain: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
-  "hash-lookup": { kind: "any", providers: ["godseye"] },
-  "password-search": { kind: "any", providers: ["godseye", "breachvip"] },
+  "stealer-logs": { kind: "any", providers: ["osintcat", "godseye", "csint"] },
+  breaches: { kind: "any", providers: ["builtin", "godseye", "breachvip", "csint"] },
+  domain: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
+  "hash-lookup": { kind: "any", providers: ["godseye", "csint"] },
+  "password-search": { kind: "any", providers: ["godseye", "breachvip", "csint"] },
   "name-search": {
     kind: "any",
-    providers: ["godseye", "breachvip", "builtin", "courtlistener"],
+    providers: ["godseye", "breachvip", "builtin", "courtlistener", "csint"],
   },
-  phone: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
-  username: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
-  ip: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
-  "crypto-wallet": { kind: "any", providers: ["builtin", "godseye"] },
+  "email-analyze": { kind: "any", providers: ["csint"] },
+  "contact-enrich": { kind: "any", providers: ["csint"] },
+  phone: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
+  username: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
+  ip: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
+  "shodan-host": { kind: "any", providers: ["csint"] },
+  "image-geolocate": { kind: "any", providers: ["csint", "godseye"] },
+  "crypto-wallet": { kind: "any", providers: ["builtin", "godseye", "csint"] },
   "bin-lookup": { kind: "any", providers: ["builtin"] },
   "iban-check": { kind: "any", providers: ["builtin"] },
   "bank-search": { kind: "any", providers: ["builtin", "godseye"] },
@@ -63,28 +69,36 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "national-sor": { kind: "any", providers: ["builtin"] },
   "state-records-directory": { kind: "any", providers: ["builtin"] },
   "international-records-directory": { kind: "any", providers: ["builtin"] },
-  "discord-id": { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
+  "discord-id": {
+    kind: "any",
+    providers: ["osintcat", "godseye", "breachvip", "csint"],
+  },
   roblox: { kind: "any", providers: ["osintcat", "godseye"] },
-  minecraft: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
-  steam: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
+  minecraft: {
+    kind: "any",
+    providers: ["osintcat", "godseye", "breachvip", "csint"],
+  },
+  steam: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
   xbox: { kind: "off" },
   playstation: { kind: "off" },
-  telegram: { kind: "any", providers: ["osintcat", "godseye"] },
-  instagram: { kind: "any", providers: ["instagram", "godseye"] },
-  snapchat: { kind: "any", providers: ["osintcat", "godseye"] },
-  tiktok: { kind: "any", providers: ["osintcat", "godseye"] },
-  twitter: { kind: "any", providers: ["osintcat", "godseye"] },
-  reddit: { kind: "any", providers: ["osintcat", "godseye"] },
-  github: { kind: "any", providers: ["osintcat", "godseye"] },
+  telegram: { kind: "any", providers: ["osintcat", "godseye", "csint"] },
+  instagram: { kind: "any", providers: ["instagram", "godseye", "csint"] },
+  snapchat: { kind: "any", providers: ["osintcat", "godseye", "csint"] },
+  tiktok: { kind: "any", providers: ["osintcat", "godseye", "csint"] },
+  "tiktok-recon": { kind: "any", providers: ["csint"] },
+  "share-resolver": { kind: "any", providers: ["csint"] },
+  twitter: { kind: "any", providers: ["osintcat", "godseye", "csint"] },
+  reddit: { kind: "any", providers: ["osintcat", "godseye", "csint"] },
+  github: { kind: "any", providers: ["osintcat", "godseye", "csint"] },
   fivem: { kind: "any", providers: ["godseye"] },
-  tinder: { kind: "any", providers: ["godseye"] },
-  bumble: { kind: "any", providers: ["godseye"] },
-  hinge: { kind: "any", providers: ["godseye"] },
-  match: { kind: "any", providers: ["godseye"] },
-  okcupid: { kind: "any", providers: ["godseye"] },
-  pof: { kind: "any", providers: ["godseye"] },
-  grindr: { kind: "any", providers: ["godseye"] },
-  badoo: { kind: "any", providers: ["godseye"] },
+  tinder: { kind: "any", providers: ["godseye", "csint"] },
+  bumble: { kind: "any", providers: ["godseye", "csint"] },
+  hinge: { kind: "any", providers: ["godseye", "csint"] },
+  match: { kind: "any", providers: ["godseye", "csint"] },
+  okcupid: { kind: "any", providers: ["godseye", "csint"] },
+  pof: { kind: "any", providers: ["godseye", "csint"] },
+  grindr: { kind: "any", providers: ["godseye", "csint"] },
+  badoo: { kind: "any", providers: ["godseye", "csint"] },
 };
 
 export type ProviderHealth = Record<ProviderId, boolean>;
@@ -187,21 +201,30 @@ async function probeInstagram(): Promise<boolean> {
 }
 
 export async function probeProviders(): Promise<ProviderHealth> {
-  const [osintcat, godseye, godseyeExport, breachvip, courtlistener, instagram] =
-    await Promise.all([
-      probeOsintCat(),
-      probeGodsEye(),
-      probeGodsEyeExport(),
-      probeBreachVip(),
-      probeCourtListenerHealth(),
-      probeInstagram(),
-    ]);
+  const [
+    osintcat,
+    godseye,
+    godseyeExport,
+    breachvip,
+    csint,
+    courtlistener,
+    instagram,
+  ] = await Promise.all([
+    probeOsintCat(),
+    probeGodsEye(),
+    probeGodsEyeExport(),
+    probeBreachVip(),
+    probeCsint(),
+    probeCourtListenerHealth(),
+    probeInstagram(),
+  ]);
 
   return {
     osintcat,
     godseye,
     "godseye-export": godseyeExport,
     breachvip,
+    csint,
     builtin: true,
     courtlistener,
     instagram,
