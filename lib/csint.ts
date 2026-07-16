@@ -829,6 +829,131 @@ export async function fetchCsintOathnetStealer(
   }
 }
 
+/**
+ * Only keep Discord→Roblox payloads that resolve a real Roblox username, user id,
+ * or profile URL. Empty stubs / success:false / empty arrays count as no result.
+ */
+export function normalizeDiscordToRobloxPayload(
+  payload: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.success === false) return null;
+
+  const candidates: unknown[] = [
+    payload,
+    payload.data,
+    payload.result,
+    payload.roblox,
+    payload.account,
+    payload.user,
+  ];
+
+  if (Array.isArray(payload.results)) {
+    candidates.push(...payload.results);
+  }
+  if (Array.isArray(payload.data)) {
+    candidates.push(...payload.data);
+  }
+
+  const data = payload.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const nested = data as Record<string, unknown>;
+    if (nested.success === false) return null;
+    candidates.push(
+      nested.roblox,
+      nested.user,
+      nested.account,
+      nested.result,
+      nested.data,
+    );
+    if (Array.isArray(nested.results)) candidates.push(...nested.results);
+  }
+
+  for (const candidate of candidates) {
+    const resolved = tryNormalizeRobloxAccount(candidate);
+    if (resolved) return resolved;
+  }
+
+  return null;
+}
+
+function tryNormalizeRobloxAccount(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const record = value as Record<string, unknown>;
+  if (record.success === false) return null;
+
+  if (Array.isArray(record.results) && record.results.length === 0) {
+    const hasOwnIdentity =
+      asString(record.username) ||
+      asString(record.roblox_username) ||
+      asString(record.robloxUsername) ||
+      asString(record.userId) ||
+      asString(record.roblox_id) ||
+      asString(record.robloxId);
+    if (!hasOwnIdentity) return null;
+  }
+
+  const username = asString(
+    record.username ??
+      record.roblox_username ??
+      record.robloxUsername ??
+      record.RobloxUsername,
+  );
+
+  let userId = asString(
+    record.userId ??
+      record.roblox_id ??
+      record.robloxId ??
+      record.userid ??
+      record.RobloxId,
+  );
+
+  if (!userId) {
+    const maybe = asString(record.user_id ?? record.id);
+    // Prefer Roblox-sized numeric ids; skip Discord snowflakes (17–20 digits).
+    if (maybe && /^\d{1,16}$/.test(maybe)) {
+      userId = maybe;
+    }
+  }
+
+  let profileUrl = asString(
+    record.profileUrl ??
+      record.profile_url ??
+      record.profile ??
+      record.url ??
+      record.link,
+  );
+
+  if (profileUrl && !/roblox\.com/i.test(profileUrl)) {
+    profileUrl = "";
+  }
+
+  if (!profileUrl && userId && /^\d+$/.test(userId)) {
+    profileUrl = `https://www.roblox.com/users/${userId}/profile`;
+  }
+
+  if (!profileUrl && username) {
+    const handle = username.replace(/^@/, "");
+    if (handle) {
+      profileUrl = `https://www.roblox.com/users/profile?username=${encodeURIComponent(handle)}`;
+    }
+  }
+
+  if (!username && !userId && !profileUrl) return null;
+
+  const out: Record<string, unknown> = {
+    source: PUBLIC_INTEL_SOURCE,
+  };
+  if (username) out.username = username;
+  if (userId) out.userId = userId;
+  if (profileUrl) out.profileUrl = profileUrl;
+
+  return out;
+}
+
 export async function fetchCsintOathnetDiscordToRoblox(
   discordId: string,
 ): Promise<Record<string, unknown> | null> {
@@ -837,9 +962,15 @@ export async function fetchCsintOathnetDiscordToRoblox(
   if (!cleaned) return null;
 
   try {
-    return await csintPost("/oathnet/discord-to-roblox", {
+    const payload = await csintPost("/oathnet/discord-to-roblox", {
       discord_id: cleaned,
     });
+    const resolved = normalizeDiscordToRobloxPayload(payload);
+    if (!resolved) return null;
+    return {
+      ...resolved,
+      discord_id: cleaned,
+    };
   } catch {
     return null;
   }

@@ -33,17 +33,32 @@ export async function GET(req: NextRequest) {
       MAX_LINKED_PROFILES,
     );
 
+    const results = Array.isArray(data.results) ? [...data.results] : [];
+    // When a Discord snowflake resolves a Roblox account but the Roblox index
+    // is empty, surface that account as the sole result.
+    if (discordToRoblox && results.length === 0) {
+      results.push(discordToRoblox);
+    }
+
+    const count =
+      results.length === 0
+        ? 0
+        : Math.max(
+            typeof data.count === "number" ? data.count : 0,
+            results.length,
+          );
+
     const response: RobloxSearchResult & {
-      discordToRoblox?: Record<string, unknown> | null;
+      discordToRoblox?: Record<string, unknown>;
     } = {
       query,
-      count: data.count,
-      results: data.results,
+      count,
+      results,
       linkedDiscordIds,
-      discordToRoblox,
+      ...(discordToRoblox ? { discordToRoblox } : {}),
     };
 
-    if (data.count === 0 && !discordToRoblox) {
+    if (count === 0) {
       return NextResponse.json({
         ...response,
         message: "No results were found.",

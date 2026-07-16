@@ -661,7 +661,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       }
 
       if (activeType === "roblox") {
-        const robloxData = data as RobloxSearchResult & { error?: string };
+        const robloxData = data as RobloxSearchResult & {
+          error?: string;
+          message?: string;
+          discordToRoblox?: Record<string, unknown> | null;
+        };
         const hasResults =
           Array.isArray(robloxData.results) && robloxData.results.length > 0;
         const hasLinked =
@@ -669,19 +673,50 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             robloxData.linkedDiscordIds.length > 0) ||
           (Array.isArray(robloxData.linkedDiscord) &&
             robloxData.linkedDiscord.length > 0);
+        const hasDiscordToRoblox = Boolean(
+          robloxData.discordToRoblox &&
+            (typeof robloxData.discordToRoblox.username === "string" ||
+              typeof robloxData.discordToRoblox.userId === "string" ||
+              typeof robloxData.discordToRoblox.profileUrl === "string"),
+        );
 
         if (robloxData.error) {
           setError(robloxData.error);
           return;
         }
 
-        if (!hasResults && !hasLinked) {
-          setError("No results were found.");
+        if (!hasResults && !hasLinked && !hasDiscordToRoblox) {
+          setError(robloxData.message || "No results were found.");
           return;
         }
 
         setRobloxResult(robloxData);
         setRawResult(JSON.stringify(robloxData, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+        return;
+      }
+
+      if (activeType === "oathnet-roblox") {
+        const linkData = data as {
+          results?: unknown[];
+          count?: number;
+          message?: string;
+          error?: string;
+        };
+        const results = Array.isArray(linkData.results) ? linkData.results : [];
+
+        if (results.length === 0) {
+          setError(linkData.message || linkData.error || "No results were found.");
+          return;
+        }
+
+        const formatted = formatSearchRecords(results);
+        setRecords(formatted);
+        setResultCount(
+          typeof linkData.count === "number" ? linkData.count : results.length,
+        );
+        setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
         return;
@@ -831,7 +866,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const results = data.results as unknown[];
 
         if (results.length === 0) {
-          setError("No results were found.");
+          setError(
+            (typeof data.message === "string" && data.message) ||
+              "No results were found.",
+          );
           return;
         }
 

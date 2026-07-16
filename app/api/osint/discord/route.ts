@@ -74,13 +74,14 @@ export async function GET(req: NextRequest) {
 
     const response: DiscordSearchResult & {
       enrichment?: Record<string, unknown> | null;
-      robloxLink?: Record<string, unknown> | null;
+      robloxLink?: Record<string, unknown>;
     } = {
       id: query,
       profile,
       leaks,
       enrichment: csintLookup,
-      robloxLink,
+      // Only attach when a real Roblox username/id/profile was resolved.
+      ...(robloxLink ? { robloxLink } : {}),
     };
 
     return NextResponse.json(response);

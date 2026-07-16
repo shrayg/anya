@@ -12,6 +12,12 @@ import {
   publicServiceUnavailable,
 } from "@/lib/public-branding";
 
+const NO_RESULTS = {
+  count: 0,
+  results: [] as unknown[],
+  message: "No results were found.",
+};
+
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "oathnet-roblox");
   if (access instanceof NextResponse) return access;
@@ -37,16 +43,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchCsintOathnetDiscordToRoblox(query);
+    const account = await fetchCsintOathnetDiscordToRoblox(query);
 
-    if (!data) {
-      return NextResponse.json({
-        discord_id: query,
-        message: "No linked Roblox account was found.",
-      });
+    if (!account) {
+      return NextResponse.json({ ...NO_RESULTS, query });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      query,
+      count: 1,
+      results: [account],
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : publicSearchError();
