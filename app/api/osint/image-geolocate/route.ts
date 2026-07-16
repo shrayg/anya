@@ -56,22 +56,32 @@ export async function GET(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await imageRes.arrayBuffer());
-    if (buffer.byteLength > 8 * 1024 * 1024) {
+    if (buffer.byteLength < 2_000) {
       return NextResponse.json(
-        { error: "Image is too large (max 8MB)." },
+        { error: "Image is too small. Use a real photo URL, not an icon." },
+        { status: 400 },
+      );
+    }
+    if (buffer.byteLength > 4 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Image is too large (max 4MB)." },
         { status: 400 },
       );
     }
 
-    const base64 = `data:${contentType};base64,${buffer.toString("base64")}`;
+    const base64 = buffer.toString("base64");
 
     try {
       const data = await fetchCsintImageGeolocate(base64);
       return NextResponse.json(data);
-    } catch {
-      const fallback = await fetchGodsEyeGeolocate({ image: base64 });
+    } catch (csintErr) {
+      const fallback = await fetchGodsEyeGeolocate({
+        image: `data:${contentType};base64,${base64}`,
+      });
       if (!fallback) {
-        throw new Error(publicServiceUnavailable());
+        throw csintErr instanceof Error
+          ? csintErr
+          : new Error(publicServiceUnavailable());
       }
       return NextResponse.json({
         source: PUBLIC_INTEL_SOURCE,

@@ -85,9 +85,17 @@ async function csintPost(
 
   if (!res.ok) {
     const msg =
-      (typeof data.error === "string" && data.error) ||
       (typeof data.message === "string" && data.message) ||
+      (typeof data.error === "string" && data.error) ||
       `HTTP ${res.status}`;
+    throw new Error(sanitizeCsintError(msg));
+  }
+
+  if (data.success === false) {
+    const msg =
+      (typeof data.message === "string" && data.message) ||
+      (typeof data.error === "string" && data.error) ||
+      publicSearchError();
     throw new Error(sanitizeCsintError(msg));
   }
 
@@ -190,6 +198,8 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
             raw: trimmed || breachName,
             source: PUBLIC_INTEL_SOURCE,
           });
+        } else if (Array.isArray(value)) {
+          collectRows(value, out);
         } else if (value && typeof value === "object") {
           out.push({
             ...(value as Record<string, unknown>),
@@ -503,7 +513,17 @@ export async function fetchCsintEmailAnalyze(
 export async function fetchCsintImageGeolocate(
   imageBase64: string,
 ): Promise<Record<string, unknown>> {
-  return csintPost("/geolocate", { image: imageBase64 }, 45_000);
+  // Provider accepts raw base64 or data-URL; prefer raw payload.
+  const trimmed = imageBase64.trim();
+  const raw = trimmed.includes(",")
+    ? trimmed.slice(trimmed.indexOf(",") + 1)
+    : trimmed.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "");
+
+  if (!raw || raw.length < 100) {
+    throw new Error("Image is too small or invalid. Use a real photo URL.");
+  }
+
+  return csintPost("/geolocate", { image: raw }, 45_000);
 }
 
 export async function fetchCsintMelissaLookup(
@@ -517,45 +537,28 @@ export async function fetchCsintMinecraft(
   type: "username" | "email" | "ip" | "password" | "uuid" = "username",
 ): Promise<SanitizedBreachResponse | null> {
   if (!isCsintEnabled()) return null;
-  try {
-    const payload = await csintPost("/crowsint/minecraft", {
-      query: query.trim(),
-      type,
-    });
-    const results: Record<string, unknown>[] = [];
-    collectRows(payload, results);
-    if (results.length === 0 && Object.keys(payload).length > 0) {
-      results.push({ ...payload, source: PUBLIC_INTEL_SOURCE });
-    }
-    return { count: results.length, results };
-  } catch {
-    return null;
-  }
+
+  // crowsint/minecraft is gone from csint.pro — use universal search instead.
+  const searchType: CsintSearchType =
+    type === "email" ? "email" : type === "ip" ? "ip" : "username";
+
+  return fetchCsintUniversalSearch(query, searchType);
 }
 
 export async function fetchCsintGithub(
   username: string,
 ): Promise<SanitizedBreachResponse | null> {
   if (!isCsintEnabled()) return null;
-  try {
-    const cleaned = username.trim().replace(/^@/, "");
-    const [crows, intel] = await Promise.allSettled([
-      csintPost("/crowsint/github", { username: cleaned }),
-      csintPost("/intelfetch/github", { username: cleaned, extensive: true }),
-    ]);
 
-    const results: Record<string, unknown>[] = [];
-    for (const settled of [crows, intel]) {
-      if (settled.status !== "fulfilled") continue;
-      collectRows(settled.value, results);
-      if (results.length === 0) {
-        results.push({ ...settled.value, source: PUBLIC_INTEL_SOURCE });
-      }
-    }
-    return { count: results.length, results };
-  } catch {
-    return null;
-  }
+  // intelfetch/github is metered and often 429; crowsint/github no longer exists.
+  // Universal username search covers GitHub-linked breach hits without burning quota.
+  return fetchCsintUniversalSearch(username.trim().replace(/^@/, ""), "username");
+}
+
+export async function fetchCsintMinecraftServer(
+  server: string,
+): Promise<Record<string, unknown>> {
+  return csintPost("/intelfetch/minecraft", { server: server.trim() });
 }
 
 export async function fetchCsintHashLookup(
