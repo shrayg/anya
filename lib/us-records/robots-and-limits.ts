@@ -1,13 +1,27 @@
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
-export const US_RECORDS_UA =
+export const PUBLIC_RECORDS_UA =
   "Anya.Int/1.0 (+https://anyaint.com; public-records research; contact support@anyaint.com)";
+
+export const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 export const SOURCE_LIMITS = {
   courtlistener: { timeoutMs: 12_000, ttlMs: 6 * 60 * 60 * 1000 },
   openfec: { timeoutMs: 10_000, ttlMs: 6 * 60 * 60 * 1000 },
   nppes: { timeoutMs: 10_000, ttlMs: 6 * 60 * 60 * 1000 },
   ofac: { timeoutMs: 30_000, ttlMs: 24 * 60 * 60 * 1000 },
+  "va-sor": { timeoutMs: 20_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "va-ocis": { timeoutMs: 25_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "fbi-wanted": { timeoutMs: 12_000, ttlMs: 2 * 60 * 60 * 1000 },
+  interpol: { timeoutMs: 15_000, ttlMs: 6 * 60 * 60 * 1000 },
+  opensanctions: { timeoutMs: 15_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "un-sanctions": { timeoutMs: 30_000, ttlMs: 24 * 60 * 60 * 1000 },
+  nsopw: { timeoutMs: 25_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "sam-gov": { timeoutMs: 15_000, ttlMs: 12 * 60 * 60 * 1000 },
+  "bop-inmate": { timeoutMs: 20_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "state-portal": { timeoutMs: 5_000, ttlMs: 24 * 60 * 60 * 1000 },
+  "country-portal": { timeoutMs: 5_000, ttlMs: 24 * 60 * 60 * 1000 },
 } as const;
 
 const lastCallAt = new Map<string, number>();
@@ -21,60 +35,87 @@ export async function paceSource(source: string, minIntervalMs: number): Promise
   lastCallAt.set(source, Date.now());
 }
 
-export async function fetchUsRecordsJson<T>(
+type FetchOpts = {
+  source: keyof typeof SOURCE_LIMITS;
+  headers?: Record<string, string>;
+  minIntervalMs?: number;
+  method?: "GET" | "POST";
+  body?: string;
+  userAgent?: string;
+};
+
+async function fetchPublicRecords(
   url: string,
-  options: {
-    source: keyof typeof SOURCE_LIMITS;
-    headers?: Record<string, string>;
-    minIntervalMs?: number;
-  },
-): Promise<T> {
+  options: FetchOpts,
+  accept: string,
+): Promise<Response> {
   const limits = SOURCE_LIMITS[options.source];
   await paceSource(options.source, options.minIntervalMs ?? 250);
 
-  const res = await fetchWithTimeout(url, {
-    method: "GET",
+  return fetchWithTimeout(url, {
+    method: options.method ?? "GET",
     cache: "no-store",
     timeoutMs: limits.timeoutMs,
     headers: {
-      Accept: "application/json",
-      "User-Agent": US_RECORDS_UA,
+      Accept: accept,
+      "User-Agent": options.userAgent ?? PUBLIC_RECORDS_UA,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...(options.headers ?? {}),
     },
+    body: options.body,
   });
+}
 
+export async function fetchUsRecordsJson<T>(
+  url: string,
+  options: Omit<FetchOpts, "method" | "body"> & { method?: "GET" | "POST"; body?: string },
+): Promise<T> {
+  const res = await fetchPublicRecords(url, options, "application/json");
   if (!res.ok) {
     throw new Error(`${options.source} HTTP ${res.status}`);
   }
-
   return (await res.json()) as T;
 }
 
 export async function fetchUsRecordsText(
   url: string,
+  options: Omit<FetchOpts, "method" | "body">,
+): Promise<string> {
+  const res = await fetchPublicRecords(url, options, "text/csv,text/plain,application/xml,*/*");
+  if (!res.ok) {
+    throw new Error(`${options.source} HTTP ${res.status}`);
+  }
+  return res.text();
+}
+
+export async function fetchUsRecordsPostJson<T>(
+  url: string,
   options: {
     source: keyof typeof SOURCE_LIMITS;
     headers?: Record<string, string>;
     minIntervalMs?: number;
+    userAgent?: string;
+    body: unknown;
   },
-): Promise<string> {
-  const limits = SOURCE_LIMITS[options.source];
-  await paceSource(options.source, options.minIntervalMs ?? 250);
-
-  const res = await fetchWithTimeout(url, {
-    method: "GET",
-    cache: "no-store",
-    timeoutMs: limits.timeoutMs,
-    headers: {
-      Accept: "text/csv,text/plain,*/*",
-      "User-Agent": US_RECORDS_UA,
-      ...(options.headers ?? {}),
+): Promise<T> {
+  const res = await fetchPublicRecords(
+    url,
+    {
+      source: options.source,
+      headers: options.headers,
+      minIntervalMs: options.minIntervalMs,
+      userAgent: options.userAgent,
+      method: "POST",
+      body: JSON.stringify(options.body),
     },
-  });
-
+    "application/json",
+  );
   if (!res.ok) {
-    throw new Error(`${options.source} HTTP ${res.status}`);
+    const text = await res.text();
+    throw new Error(`${options.source} HTTP ${res.status}: ${text.slice(0, 120)}`);
   }
-
-  return res.text();
+  return (await res.json()) as T;
 }
+
+/** @deprecated Use PUBLIC_RECORDS_UA */
+export const US_RECORDS_UA = PUBLIC_RECORDS_UA;

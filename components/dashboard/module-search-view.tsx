@@ -17,7 +17,9 @@ import {
 import {
   UsCourtSearchResults,
   UsIdentitySearchResults,
+  UsVaSorSearchResults,
 } from "@/components/dashboard/us-records-search-results";
+import { InstagramSearchResults } from "@/components/dashboard/instagram-search-results";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
@@ -37,11 +39,14 @@ import type { VinDecodeResult } from "@/lib/vin-decode";
 import type {
   UsCourtSearchResult,
   UsIdentitySearchResult,
+  UsVaSorSearchResult,
 } from "@/lib/us-records";
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import { sanitizePublicText } from "@/lib/public-branding";
 import { isDiscordSnowflake } from "@/lib/osintcat";
+import type { InstagramSearchResult } from "@/lib/instagram-search";
+import { normalizeInstagramUsername } from "@/lib/instagram-search";
 import type { DiscordSearchResult } from "@/lib/discord-profile";
 import { DASHBOARD_TOUR_STORAGE_KEY } from "@/lib/dashboard-tour";
 import { isDatingAppSlug, normalizeDatingQuery } from "@/lib/dating-search";
@@ -81,7 +86,34 @@ type StructuredResult =
   | { kind: "healthcare"; data: UsProviderSearchResult }
   | { kind: "us-court"; data: UsCourtSearchResult }
   | { kind: "us-identity"; data: UsIdentitySearchResult }
-  | { kind: "us-npd"; data: UsIdentitySearchResult };
+  | { kind: "us-npd"; data: UsIdentitySearchResult }
+  | { kind: "us-va-sor"; data: UsVaSorSearchResult }
+  | { kind: "us-global"; data: UsIdentitySearchResult }
+  | { kind: "us-sanctions"; data: UsIdentitySearchResult }
+  | { kind: "us-wanted"; data: UsIdentitySearchResult }
+  | { kind: "us-sor-national"; data: UsVaSorSearchResult }
+  | { kind: "us-state-directory"; data: UsIdentitySearchResult }
+  | { kind: "us-intl-directory"; data: UsIdentitySearchResult };
+
+const PUBLIC_RECORDS_COMPOSE_KINDS = new Set([
+  "us-identity",
+  "us-npd",
+  "us-global",
+  "us-sanctions",
+  "us-wanted",
+  "us-state-directory",
+  "us-intl-directory",
+]);
+
+const PUBLIC_RECORDS_COMPOSE_TITLES: Record<string, string> = {
+  "us-identity": "Public identity hits",
+  "us-npd": "NPD composed dossier",
+  "us-global": "Global public records dossier",
+  "us-sanctions": "Sanctions & watchlists",
+  "us-wanted": "Wanted persons",
+  "us-state-directory": "US state records directory",
+  "us-intl-directory": "International records directory",
+};
 
 type CaseOption = {
   id: number;
@@ -122,6 +154,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [discordResult, setDiscordResult] = useState<DiscordSearchResult | null>(null);
   const [fivemResult, setFivemResult] = useState<FivemSearchResult | null>(null);
   const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(null);
+  const [instagramResult, setInstagramResult] = useState<InstagramSearchResult | null>(null);
   const [structuredResult, setStructuredResult] = useState<StructuredResult | null>(null);
   const [rawResult, setRawResult] = useState("");
   const [lastSearchLabel, setLastSearchLabel] = useState("");
@@ -186,9 +219,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       records.length > 0 ||
       Boolean(combResult) ||
       Boolean(robloxResult) ||
+      Boolean(instagramResult) ||
       Boolean(fivemResult) ||
       Boolean(domainResult),
-    [combResult, domainResult, fivemResult, records.length, robloxResult],
+    [combResult, domainResult, fivemResult, instagramResult, records.length, robloxResult],
   );
 
   const handleSelectExportIndex = (index: number) => {
@@ -264,6 +298,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       discordResult ||
       fivemResult ||
       robloxResult ||
+      instagramResult ||
       structuredResult;
 
     if (!hasResults || casesLoaded) {
@@ -298,6 +333,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     discordResult,
     fivemResult,
     robloxResult,
+    instagramResult,
     domainResult,
     records.length,
     structuredResult,
@@ -376,6 +412,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     setDiscordResult(null);
     setFivemResult(null);
     setRobloxResult(null);
+    setInstagramResult(null);
     setStructuredResult(null);
     setRawResult("");
     setSaveMessage("");
@@ -474,6 +511,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
     if (moduleDef.slug === "fivem" && !isDiscordSnowflake(trimmed)) {
       setError("FiveM lookups require a Discord snowflake ID (17–20 digits).");
+      setIsSearching(false);
+      return;
+    }
+
+    if (moduleDef.slug === "instagram" && !normalizeInstagramUsername(trimmed)) {
+      setError("Enter a valid Instagram username or profile URL.");
       setIsSearching(false);
       return;
     }
@@ -618,6 +661,38 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         setRobloxResult(robloxData);
         setRawResult(JSON.stringify(robloxData, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+        return;
+      }
+
+      if (activeType === "instagram") {
+        const instagramData = data as InstagramSearchResult & {
+          error?: string;
+          message?: string;
+        };
+
+        if (instagramData.error) {
+          setError(instagramData.error);
+          return;
+        }
+
+        const hasGraph =
+          instagramData.followers.length > 0 ||
+          instagramData.following.length > 0 ||
+          Boolean(instagramData.profile);
+        const hasLeaks = instagramData.leaks.count > 0;
+
+        if (!hasGraph && !hasLeaks) {
+          setError(
+            instagramData.message ||
+              "No Instagram graph or breach data was returned.",
+          );
+          return;
+        }
+
+        setInstagramResult(instagramData);
+        setRawResult(JSON.stringify(instagramData, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
         return;
@@ -822,8 +897,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
       if (activeType === "us-court") {
         const courtData = data as UsCourtSearchResult & { error?: string };
+        const portalCount = courtData.portals?.length ?? 0;
+        const hitCount = (courtData.cases?.length ?? 0) + portalCount;
 
-        if (!courtData.cases?.length) {
+        if (!hitCount) {
           setError(courtData.message || courtData.error || "No court matters matched that search.");
           if (courtData.errors?.length) {
             setStructuredResult({ kind: "us-court", data: courtData });
@@ -839,21 +916,58 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         return;
       }
 
-      if (activeType === "us-identity" || activeType === "us-npd") {
+      if (PUBLIC_RECORDS_COMPOSE_KINDS.has(activeType)) {
         const identityData = data as UsIdentitySearchResult & { error?: string };
+        const kind = activeType as
+          | "us-identity"
+          | "us-npd"
+          | "us-global"
+          | "us-sanctions"
+          | "us-wanted"
+          | "us-state-directory"
+          | "us-intl-directory";
 
         if (!identityData.count) {
           setError(
             identityData.message || identityData.error || "No public registry matches found.",
           );
-          if (identityData.errors?.length) {
-            setStructuredResult({ kind: activeType, data: identityData });
+          if (identityData.errors?.length || identityData.portals?.length) {
+            setStructuredResult({ kind, data: identityData });
             setRawResult(JSON.stringify(data, null, 2));
           }
           return;
         }
 
-        setStructuredResult({ kind: activeType, data: identityData });
+        setStructuredResult({ kind, data: identityData });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+        return;
+      }
+
+      if (activeType === "us-va-sor" || activeType === "us-sor-national") {
+        const sorData = data as UsVaSorSearchResult & { error?: string };
+
+        if (!sorData.count) {
+          setError(
+            sorData.message ||
+              sorData.error ||
+              "No sex offender registry matches found.",
+          );
+          if (sorData.errors?.length) {
+            setStructuredResult({
+              kind: activeType === "us-sor-national" ? "us-sor-national" : "us-va-sor",
+              data: sorData,
+            });
+            setRawResult(JSON.stringify(data, null, 2));
+          }
+          return;
+        }
+
+        setStructuredResult({
+          kind: activeType === "us-sor-national" ? "us-sor-national" : "us-va-sor",
+          data: sorData,
+        });
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
@@ -1017,7 +1131,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             </p>
           )}
 
-          {(records.length > 0 || aiResult || combResult || domainResult || discordResult || fivemResult || robloxResult || structuredResult) && (
+          {(records.length > 0 || aiResult || combResult || domainResult || discordResult || fivemResult || robloxResult || instagramResult || structuredResult) && (
             <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-zinc-400">{lastSearchLabel}</p>
@@ -1091,6 +1205,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                   result={robloxResult}
                   selectedExportIndex={selectedExportIndex}
                 />
+              ) : instagramResult ? (
+                <InstagramSearchResults
+                  blurResults={blurResults}
+                  onSelectExportIndex={handleSelectExportIndex}
+                  result={instagramResult}
+                  selectedExportIndex={selectedExportIndex}
+                />
               ) : discordResult ? (
                 <DiscordSearchResults blurResults={blurResults} result={discordResult} />
               ) : domainResult ? (
@@ -1121,14 +1242,14 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 <UsProviderSearchResults blurResults={blurResults} result={structuredResult.data} />
               ) : structuredResult?.kind === "us-court" ? (
                 <UsCourtSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "us-identity" || structuredResult?.kind === "us-npd" ? (
+              ) : structuredResult?.kind === "us-va-sor" || structuredResult?.kind === "us-sor-national" ? (
+                <UsVaSorSearchResults blurResults={blurResults} result={structuredResult.data} />
+              ) : structuredResult && PUBLIC_RECORDS_COMPOSE_KINDS.has(structuredResult.kind) ? (
                 <UsIdentitySearchResults
                   blurResults={blurResults}
                   result={structuredResult.data}
                   title={
-                    structuredResult.kind === "us-npd"
-                      ? "NPD composed dossier"
-                      : "Public identity hits"
+                    PUBLIC_RECORDS_COMPOSE_TITLES[structuredResult.kind] || "Public records hits"
                   }
                 />
               ) : records.length > 0 ? (

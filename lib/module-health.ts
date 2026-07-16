@@ -8,6 +8,7 @@ import {
 } from "@/lib/godseye";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { getOsintCatApiKey } from "@/lib/osintcat";
+import { probeInstagramAvailability } from "@/lib/instagram-search";
 import { getCourtListenerToken } from "@/lib/us-records/courtlistener";
 
 const OSINTCAT_BASE = "https://www.osintcat.net/api";
@@ -18,7 +19,8 @@ export type ProviderId =
   | "godseye-export"
   | "breachvip"
   | "builtin"
-  | "courtlistener";
+  | "courtlistener"
+  | "instagram";
 
 export type ModuleHealthRule =
   | { kind: "off" }
@@ -51,9 +53,16 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "vin-decoder": { kind: "any", providers: ["builtin"] },
   "car-insurance-us": { kind: "any", providers: ["builtin"] },
   "healthcare-us": { kind: "any", providers: ["builtin"] },
-  "court-records": { kind: "any", providers: ["courtlistener"] },
+  "court-records": { kind: "any", providers: ["courtlistener", "builtin"] },
   "identity-search": { kind: "any", providers: ["builtin", "courtlistener"] },
   "npd-search": { kind: "any", providers: ["builtin", "courtlistener"] },
+  "va-sex-offender": { kind: "any", providers: ["builtin"] },
+  "global-public-records": { kind: "any", providers: ["builtin", "courtlistener"] },
+  "sanctions-watchlists": { kind: "any", providers: ["builtin"] },
+  "wanted-persons": { kind: "any", providers: ["builtin"] },
+  "national-sor": { kind: "any", providers: ["builtin"] },
+  "state-records-directory": { kind: "any", providers: ["builtin"] },
+  "international-records-directory": { kind: "any", providers: ["builtin"] },
   "discord-id": { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
   roblox: { kind: "any", providers: ["osintcat", "godseye"] },
   minecraft: { kind: "any", providers: ["osintcat", "godseye", "breachvip"] },
@@ -61,7 +70,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   xbox: { kind: "off" },
   playstation: { kind: "off" },
   telegram: { kind: "any", providers: ["osintcat", "godseye"] },
-  instagram: { kind: "any", providers: ["osintcat", "godseye"] },
+  instagram: { kind: "any", providers: ["instagram", "godseye"] },
   snapchat: { kind: "any", providers: ["osintcat", "godseye"] },
   tiktok: { kind: "any", providers: ["osintcat", "godseye"] },
   twitter: { kind: "any", providers: ["osintcat", "godseye"] },
@@ -173,14 +182,19 @@ async function probeCourtListenerHealth(): Promise<boolean> {
   }
 }
 
+async function probeInstagram(): Promise<boolean> {
+  return probeInstagramAvailability();
+}
+
 export async function probeProviders(): Promise<ProviderHealth> {
-  const [osintcat, godseye, godseyeExport, breachvip, courtlistener] =
+  const [osintcat, godseye, godseyeExport, breachvip, courtlistener, instagram] =
     await Promise.all([
       probeOsintCat(),
       probeGodsEye(),
       probeGodsEyeExport(),
       probeBreachVip(),
       probeCourtListenerHealth(),
+      probeInstagram(),
     ]);
 
   return {
@@ -190,6 +204,7 @@ export async function probeProviders(): Promise<ProviderHealth> {
     breachvip,
     builtin: true,
     courtlistener,
+    instagram,
   };
 }
 

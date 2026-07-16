@@ -40,7 +40,7 @@ const LANE_DESCRIPTION: Record<string, string> = {
   "Breach & Leaks": "Credential and email exposure across public leak indexes.",
   Identity: "Phone, username, and handle pivots across platforms.",
   "Public Records":
-    "US court dockets and composed public-registry identity signals from government indexes.",
+    "US federal, state, sanctions, wanted, court, sex-offender, and international government registry sources.",
   Network: "IP enrichment and network-context lookups.",
   "Financial & Assets":
     "Wallets, BINs, IBANs, bank metadata, vehicle VIN decoding, and US insurance directories.",

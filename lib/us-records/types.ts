@@ -1,11 +1,25 @@
-export type UsRecordsSourceId =
+export type PublicRecordsSourceId =
   | "courtlistener"
   | "openfec"
   | "nppes"
-  | "ofac";
+  | "ofac"
+  | "va-sor"
+  | "va-ocis"
+  | "fbi-wanted"
+  | "interpol"
+  | "opensanctions"
+  | "un-sanctions"
+  | "nsopw"
+  | "sam-gov"
+  | "bop-inmate"
+  | "state-portal"
+  | "country-portal";
+
+/** @deprecated Use PublicRecordsSourceId */
+export type UsRecordsSourceId = PublicRecordsSourceId;
 
 export type SourceMeta = {
-  id: UsRecordsSourceId;
+  id: PublicRecordsSourceId;
   label: string;
   jurisdiction?: string;
   retrievedAt: string;
@@ -14,7 +28,7 @@ export type SourceMeta = {
 };
 
 export type SourceError = {
-  id: UsRecordsSourceId;
+  id: PublicRecordsSourceId;
   label: string;
   message: string;
 };
@@ -34,41 +48,62 @@ export type CourtCaseHit = {
 export type PersonHit = {
   id: string;
   name: string;
-  kind: "candidate" | "provider" | "sanctions" | "other";
+  kind:
+    | "candidate"
+    | "provider"
+    | "sanctions"
+    | "sex-offender"
+    | "wanted"
+    | "inmate"
+    | "business"
+    | "other";
   subtitle?: string;
   state?: string;
+  country?: string;
   details: Array<{ label: string; value: string }>;
   source: SourceMeta;
 };
 
-export type UsCourtSearchResult = {
-  query: string;
-  parsed: ParsedUsQuery;
-  count: number;
-  cases: CourtCaseHit[];
-  sources: string[];
-  errors: SourceError[];
-  message?: string;
+export type PublicPortalHit = {
+  id: string;
+  title: string;
+  summary: string;
+  source: SourceMeta;
 };
 
-export type UsIdentitySearchResult = {
+export type PublicRecordsSearchResult = {
   query: string;
-  parsed: ParsedUsQuery;
+  parsed: ParsedPublicQuery;
   count: number;
   people: PersonHit[];
   cases: CourtCaseHit[];
+  portals: PublicPortalHit[];
   sources: string[];
   errors: SourceError[];
   message?: string;
 };
 
-export type ParsedUsQuery = {
+export type UsCourtSearchResult = PublicRecordsSearchResult;
+export type UsIdentitySearchResult = PublicRecordsSearchResult;
+export type UsVaSorSearchResult = Pick<
+  PublicRecordsSearchResult,
+  "query" | "parsed" | "count" | "people" | "sources" | "errors" | "message"
+>;
+
+export type ParsedPublicQuery = {
   raw: string;
   fullName?: string;
   firstName?: string;
   lastName?: string;
   state?: string;
+  country?: string;
+  county?: string;
+  city?: string;
+  zip?: string;
   dob?: string;
   caseNumber?: string;
-  mode: "person" | "case" | "raw";
+  mode: "person" | "case" | "entity" | "raw";
 };
+
+/** @deprecated Use ParsedPublicQuery */
+export type ParsedUsQuery = ParsedPublicQuery;

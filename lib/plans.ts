@@ -71,6 +71,13 @@ export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
   "court-records",
   "identity-search",
   "npd-search",
+  "va-sex-offender",
+  "global-public-records",
+  "sanctions-watchlists",
+  "wanted-persons",
+  "national-sor",
+  "state-records-directory",
+  "international-records-directory",
 ]);
 
 

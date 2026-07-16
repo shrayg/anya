@@ -38,6 +38,7 @@ export function resolveOsintModuleSlug(
     discord: "discord-id",
     "discord/profile": "discord-id",
     roblox: "roblox",
+    instagram: "instagram",
     reddit: "reddit",
     minecraft: "minecraft",
     fivem: "fivem",
@@ -51,6 +52,13 @@ export function resolveOsintModuleSlug(
     "us-court": "court-records",
     "us-identity": "identity-search",
     "us-npd": "npd-search",
+    "us-va-sor": "va-sex-offender",
+    "us-global": "global-public-records",
+    "us-sanctions": "sanctions-watchlists",
+    "us-wanted": "wanted-persons",
+    "us-sor-national": "national-sor",
+    "us-state-directory": "state-records-directory",
+    "us-intl-directory": "international-records-directory",
     geolocate: "ip",
   };
 
