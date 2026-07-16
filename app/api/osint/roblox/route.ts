@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
+import { fetchCsintOathnetDiscordToRoblox } from "@/lib/csint";
 import { extractDiscordIdsFromResults } from "@/lib/discord-extract";
+import { isDiscordSnowflake } from "@/lib/osintcat";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
 
@@ -19,20 +21,29 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchGodsEyeOnlySearch(query, "roblox");
+    const [data, discordToRoblox] = await Promise.all([
+      fetchGodsEyeOnlySearch(query, "roblox"),
+      isDiscordSnowflake(query)
+        ? fetchCsintOathnetDiscordToRoblox(query)
+        : Promise.resolve(null),
+    ]);
+
     const linkedDiscordIds = extractDiscordIdsFromResults(data.results).slice(
       0,
       MAX_LINKED_PROFILES,
     );
 
-    const response: RobloxSearchResult = {
+    const response: RobloxSearchResult & {
+      discordToRoblox?: Record<string, unknown> | null;
+    } = {
       query,
       count: data.count,
       results: data.results,
       linkedDiscordIds,
+      discordToRoblox,
     };
 
-    if (data.count === 0) {
+    if (data.count === 0 && !discordToRoblox) {
       return NextResponse.json({
         ...response,
         message: "No results were found.",

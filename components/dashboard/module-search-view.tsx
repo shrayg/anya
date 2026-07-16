@@ -509,6 +509,27 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       return;
     }
 
+    if (moduleDef.slug === "oathnet-roblox" && !isDiscordSnowflake(trimmed)) {
+      setError("Enter a valid Discord snowflake ID (17–20 digits).");
+      setIsSearching(false);
+      return;
+    }
+
+    if (moduleDef.slug === "fraud-footprint") {
+      const tool = moduleDef.tools?.find((t) => t.id === selectedToolId);
+      const api = tool?.apiType || "seon-email";
+      if (api === "seon-email" && !normalizeEmail(trimmed)) {
+        setError("Enter a valid email address.");
+        setIsSearching(false);
+        return;
+      }
+      if (api === "seon-phone" && !isPhoneQuery(trimmed)) {
+        setError("Enter a valid phone number (10–15 digits).");
+        setIsSearching(false);
+        return;
+      }
+    }
+
     if (moduleDef.slug === "fivem" && !isDiscordSnowflake(trimmed)) {
       setError("FiveM lookups require a Discord snowflake ID (17–20 digits).");
       setIsSearching(false);

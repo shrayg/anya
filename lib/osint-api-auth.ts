@@ -66,6 +66,10 @@ export function resolveOsintModuleSlug(
     "image-geolocate": "image-geolocate",
     "contact-enrich": "contact-enrich",
     "shodan-host": "shodan-host",
+    "seon-email": "fraud-footprint",
+    "seon-phone": "fraud-footprint",
+    breachbase: "breachbase",
+    "oathnet-roblox": "oathnet-roblox",
   };
 
   return defaults[fallbackApiSegment] ?? null;

@@ -3,10 +3,11 @@ import {
   type BreachVipField,
 } from "@/lib/breachvip";
 import {
+  fetchCsintAdditiveBreachSearch,
+  fetchCsintAdditiveStealerSearch,
   fetchCsintGithub,
   fetchCsintHashLookup,
   fetchCsintMinecraft,
-  fetchCsintUniversalSearch,
   isCsintEnabled,
   mapGodsEyeTypeToCsint,
 } from "@/lib/csint";
@@ -53,7 +54,20 @@ async function fetchOptionalCsintUniversal(
     return fetchCsintGithub(query);
   }
 
-  return fetchCsintUniversalSearch(
+  return fetchCsintAdditiveBreachSearch(
+    query,
+    mapGodsEyeTypeToCsint(godseyeType),
+    COMBINED_CSINT_TIMEOUT_MS,
+  );
+}
+
+async function fetchOptionalCsintStealer(
+  query: string,
+  godseyeType: GodsEyeSearchType | string,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isCsintEnabled()) return null;
+
+  return fetchCsintAdditiveStealerSearch(
     query,
     mapGodsEyeTypeToCsint(godseyeType),
     COMBINED_CSINT_TIMEOUT_MS,
@@ -112,7 +126,7 @@ export async function fetchCombinedStealerLogs(
       query,
       COMBINED_GODSEYE_TIMEOUT_MS,
     ),
-    fetchOptionalCsintUniversal(query, searchType),
+    fetchOptionalCsintStealer(query, searchType),
   ]);
 
   if (stealerResult.status === "fulfilled") {
@@ -341,7 +355,7 @@ export async function fetchCombinedDomainOsint(
         COMBINED_GODSEYE_TIMEOUT_MS,
       ),
       fetchOptionalBreachVip(domain, "domain"),
-      fetchCsintUniversalSearch(domain, "username", COMBINED_CSINT_TIMEOUT_MS),
+      fetchCsintAdditiveBreachSearch(domain, "username", COMBINED_CSINT_TIMEOUT_MS),
     ]);
 
   if (osintcatResult.status === "fulfilled") {

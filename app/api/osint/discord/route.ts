@@ -7,6 +7,7 @@ import {
   extractCsintDiscordLookupLeaks,
   fetchCsintDiscordLookup,
   fetchCsintDiscordOsint,
+  fetchCsintOathnetDiscordToRoblox,
 } from "@/lib/csint";
 import { fetchDiscordProfile, type DiscordSearchResult } from "@/lib/discord-profile";
 import {
@@ -38,22 +39,30 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [profile, osintLeaks, godseyeLeaks, breachVipLeaks, csintOsint, csintLookup] =
-      await Promise.all([
-        fetchDiscordProfile(query),
-        fetchOsintCatEndpoint("discord", query)
-          .then((data) => filterDiscordResultsForId(query, data))
-          .catch(() => ({ count: 0, results: [] as unknown[] })),
-        fetchGodsEyeSearchSafe("discord", query)
-          .then((data) => sanitizeGodsEyeSearch(data))
-          .catch(() => ({ count: 0, results: [] as unknown[] })),
-        fetchBreachVipSanitized(query, "discordid").catch(() => ({
-          count: 0,
-          results: [] as unknown[],
-        })),
-        fetchCsintDiscordOsint(query).catch(() => null),
-        fetchCsintDiscordLookup(query).catch(() => null),
-      ]);
+    const [
+      profile,
+      osintLeaks,
+      godseyeLeaks,
+      breachVipLeaks,
+      csintOsint,
+      csintLookup,
+      robloxLink,
+    ] = await Promise.all([
+      fetchDiscordProfile(query),
+      fetchOsintCatEndpoint("discord", query)
+        .then((data) => filterDiscordResultsForId(query, data))
+        .catch(() => ({ count: 0, results: [] as unknown[] })),
+      fetchGodsEyeSearchSafe("discord", query)
+        .then((data) => sanitizeGodsEyeSearch(data))
+        .catch(() => ({ count: 0, results: [] as unknown[] })),
+      fetchBreachVipSanitized(query, "discordid").catch(() => ({
+        count: 0,
+        results: [] as unknown[],
+      })),
+      fetchCsintDiscordOsint(query).catch(() => null),
+      fetchCsintDiscordLookup(query).catch(() => null),
+      fetchCsintOathnetDiscordToRoblox(query).catch(() => null),
+    ]);
 
     const leaks = mergeSanitizedResponses(
       osintLeaks,
@@ -65,11 +74,13 @@ export async function GET(req: NextRequest) {
 
     const response: DiscordSearchResult & {
       enrichment?: Record<string, unknown> | null;
+      robloxLink?: Record<string, unknown> | null;
     } = {
       id: query,
       profile,
       leaks,
       enrichment: csintLookup,
+      robloxLink,
     };
 
     return NextResponse.json(response);

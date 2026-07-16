@@ -39,14 +39,43 @@ function sanitizeCsintError(message: string): string {
   if (!cleaned) return publicSearchError();
 
   const lower = cleaned.toLowerCase();
-  if (lower.includes("rate") && (lower.includes("limit") || lower.includes("429"))) {
+  if (
+    lower.includes("quota") ||
+    lower.includes("credit") ||
+    (lower.includes("limit") &&
+      (lower.includes("exceed") || lower.includes("reached") || lower.includes("daily")))
+  ) {
+    return "Provider quota exceeded for this source. Try again later.";
+  }
+  if (
+    (lower.includes("rate") && (lower.includes("limit") || lower.includes("429"))) ||
+    lower.includes("too many requests") ||
+    lower.includes("429")
+  ) {
     return "Too many searches right now. Wait a minute and try again.";
+  }
+  if (
+    lower.includes("cloudflare") ||
+    lower.includes("cf-ray") ||
+    lower.includes("attention required")
+  ) {
+    return "Provider temporarily blocked this request. Try again later.";
   }
   if (lower.includes("unauthorized") || lower.includes("invalid api")) {
     return publicServiceUnavailable();
   }
 
   return cleaned;
+}
+
+/** Soft-fail stub — quota/CF-blocked providers must not be hammered. */
+export const CSINT_QUOTA_BLOCKED_MESSAGE =
+  "This intelligence source is temporarily unavailable due to provider limits.";
+
+export async function fetchCsintQuotaBlockedStub(
+  _label?: string,
+): Promise<null> {
+  return null;
 }
 
 async function csintPost(
@@ -146,6 +175,88 @@ function asString(value: unknown): string {
   return "";
 }
 
+const META_KEYS = new Set([
+  "success",
+  "credits",
+  "credit",
+  "service",
+  "source",
+  "query",
+  "type",
+  "message",
+  "error",
+  "errors",
+  "status",
+  "took",
+  "time",
+  "elapsed",
+  "count",
+  "total",
+  "size",
+]);
+
+function pushBreachMapEntry(
+  breachName: string,
+  value: unknown,
+  out: Record<string, unknown>[],
+) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const [left, ...rest] = trimmed.split(":");
+    out.push({
+      database: breachName,
+      email: left?.includes("@") ? left : undefined,
+      username: left && !left.includes("@") ? left : undefined,
+      password: rest.length > 0 ? rest.join(":") : trimmed || undefined,
+      raw: trimmed || breachName,
+      source: PUBLIC_INTEL_SOURCE,
+    });
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    collectRows(value, out);
+    return;
+  }
+
+  if (value && typeof value === "object") {
+    out.push({
+      ...(value as Record<string, unknown>),
+      database: breachName,
+      source: PUBLIC_INTEL_SOURCE,
+    });
+    return;
+  }
+
+  out.push({
+    database: breachName,
+    source: PUBLIC_INTEL_SOURCE,
+  });
+}
+
+function looksLikeBreachMap(record: Record<string, unknown>): boolean {
+  const entries = Object.entries(record).filter(([key]) => !META_KEYS.has(key));
+  if (entries.length === 0) return false;
+
+  return entries.every(([, value]) => {
+    if (value == null || value === "") return true;
+    if (typeof value === "string") return true;
+    if (Array.isArray(value)) return true;
+    if (typeof value === "object") {
+      const nested = value as Record<string, unknown>;
+      return Boolean(
+        asString(nested.email) ||
+          asString(nested.username) ||
+          asString(nested.password) ||
+          asString(nested.hash) ||
+          asString(nested.ip) ||
+          asString(nested.phone),
+      );
+    }
+    return false;
+  });
+}
+
 function collectRows(node: unknown, out: Record<string, unknown>[]): void {
   if (!node) return;
 
@@ -158,24 +269,29 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
 
   const record = node as Record<string, unknown>;
 
-  // Nested source wrappers from unified search
-  if (
-    record.data &&
-    typeof record.data === "object" &&
-    (record.success === true || record.success === false)
-  ) {
+  // Nested source wrappers from unified search (snusbase/breachvip/etc.)
+  if (record.data && typeof record.data === "object") {
     collectRows(record.data, out);
-    return;
+    if (
+      record.success === true ||
+      record.success === false ||
+      typeof record.service === "string"
+    ) {
+      return;
+    }
   }
 
   for (const key of [
     "results",
+    "result",
     "records",
     "entries",
     "items",
     "leaks",
     "breach_data",
     "rows",
+    "hits",
+    "found",
   ]) {
     const nested = record[key];
     if (Array.isArray(nested)) {
@@ -187,34 +303,19 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
       for (const [breachName, value] of Object.entries(
         nested as Record<string, unknown>,
       )) {
-        if (typeof value === "string") {
-          const trimmed = value.trim();
-          const [left, ...rest] = trimmed.split(":");
-          out.push({
-            database: breachName,
-            email: left?.includes("@") ? left : undefined,
-            username: left && !left.includes("@") ? left : undefined,
-            password: rest.length > 0 ? rest.join(":") : trimmed || undefined,
-            raw: trimmed || breachName,
-            source: PUBLIC_INTEL_SOURCE,
-          });
-        } else if (Array.isArray(value)) {
-          collectRows(value, out);
-        } else if (value && typeof value === "object") {
-          out.push({
-            ...(value as Record<string, unknown>),
-            database: breachName,
-            source: PUBLIC_INTEL_SOURCE,
-          });
-        } else {
-          out.push({
-            database: breachName,
-            source: PUBLIC_INTEL_SOURCE,
-          });
-        }
+        pushBreachMapEntry(breachName, value, out);
       }
       return;
     }
+  }
+
+  // Unkeyed breach map at this level (common in nested snusbase payloads)
+  if (looksLikeBreachMap(record) && !asString(record.email) && !asString(record.username)) {
+    for (const [breachName, value] of Object.entries(record)) {
+      if (META_KEYS.has(breachName)) continue;
+      pushBreachMapEntry(breachName, value, out);
+    }
+    return;
   }
 
   // Leaf-ish record with identifiable fields
@@ -226,10 +327,55 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
     asString(record.phone) ||
     asString(record.hash) ||
     asString(record.name) ||
-    asString(record.ip_address)
+    asString(record.ip_address) ||
+    asString(record.discord_id) ||
+    asString(record.roblox_id) ||
+    asString(record.user_id)
   ) {
     out.push({ ...record, source: PUBLIC_INTEL_SOURCE });
   }
+}
+
+function payloadToSanitized(
+  payload: Record<string, unknown>,
+): SanitizedBreachResponse {
+  const results: Record<string, unknown>[] = [];
+  collectRows(payload, results);
+
+  const seen = new Set<string>();
+  const deduped: Record<string, unknown>[] = [];
+  for (const row of results) {
+    const key = JSON.stringify(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(row);
+    if (deduped.length >= MAX_ROWS) break;
+  }
+
+  return { count: deduped.length, results: deduped };
+}
+
+function mergeOptionalSanitized(
+  ...parts: Array<SanitizedBreachResponse | null | undefined>
+): SanitizedBreachResponse | null {
+  const merged: Record<string, unknown>[] = [];
+  const seen = new Set<string>();
+
+  for (const part of parts) {
+    if (!part?.results?.length) continue;
+    for (const row of part.results) {
+      if (!row || typeof row !== "object") continue;
+      const key = JSON.stringify(row);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(row as Record<string, unknown>);
+      if (merged.length >= MAX_ROWS) {
+        return { count: merged.length, results: merged };
+      }
+    }
+  }
+
+  return merged.length > 0 ? { count: merged.length, results: merged } : null;
 }
 
 function flattenUniversalResults(
@@ -239,11 +385,20 @@ function flattenUniversalResults(
   const results = payload.results;
 
   if (results && typeof results === "object" && !Array.isArray(results)) {
-    for (const value of Object.values(results as Record<string, unknown>)) {
+    for (const [sourceKey, value] of Object.entries(
+      results as Record<string, unknown>,
+    )) {
+      const before = rows.length;
       collectRows(value, rows);
+      // Tag rows that came from a named nested source when they lack database
+      for (let i = before; i < rows.length; i++) {
+        if (!asString(rows[i].database) && !META_KEYS.has(sourceKey)) {
+          rows[i] = { ...rows[i], database: sourceKey };
+        }
+      }
     }
   } else {
-    collectRows(results, rows);
+    collectRows(results ?? payload, rows);
   }
 
   const seen = new Set<string>();
@@ -569,15 +724,191 @@ export async function fetchCsintHashLookup(
     const payload = await csintPost("/snusbase/hash-lookup", {
       hash: hash.trim(),
     });
-    const results: Record<string, unknown>[] = [];
-    collectRows(payload, results);
-    if (results.length === 0 && Object.keys(payload).length > 0) {
-      results.push({ ...payload, source: PUBLIC_INTEL_SOURCE });
+    const sanitized = payloadToSanitized(payload);
+    if (sanitized.count > 0) return sanitized;
+    if (Object.keys(payload).length > 0) {
+      return {
+        count: 1,
+        results: [{ ...payload, source: PUBLIC_INTEL_SOURCE }],
+      };
     }
-    return { count: results.length, results };
+    return { count: 0, results: [] };
   } catch {
     return null;
   }
+}
+
+export function snusbaseTypesForCsint(
+  type: CsintSearchType | string,
+): string[] {
+  switch ((type || "").toLowerCase()) {
+    case "email":
+      return ["email"];
+    case "phone":
+      return ["username"];
+    case "ip":
+      return ["lastip"];
+    case "hash":
+      return ["hash"];
+    case "password":
+      return ["password"];
+    case "name":
+      return ["name"];
+    case "username":
+    default:
+      return ["username"];
+  }
+}
+
+export async function fetchCsintSnusbaseSearch(
+  term: string,
+  types: string[],
+  wildcard = false,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isCsintEnabled()) return null;
+  const cleaned = term.trim();
+  if (!cleaned || types.length === 0) return null;
+
+  try {
+    const payload = await csintPost("/snusbase/search", {
+      terms: [cleaned],
+      types,
+      wildcard,
+    });
+    return payloadToSanitized(payload);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchCsintBreachBase(
+  term: string,
+  searchType?: string,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isCsintEnabled()) return null;
+  const cleaned = term.trim();
+  if (!cleaned) return null;
+
+  try {
+    const body: Record<string, unknown> = { term: cleaned };
+    if (searchType) body.search_type = searchType;
+    const payload = await csintPost("/breachbase", body);
+    return payloadToSanitized(payload);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchCsintOathnetBreach(
+  query: string,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isCsintEnabled()) return null;
+  const cleaned = query.trim();
+  if (!cleaned) return null;
+
+  try {
+    const payload = await csintPost("/oathnet/breach", { query: cleaned });
+    return payloadToSanitized(payload);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchCsintOathnetStealer(
+  query: string,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isCsintEnabled()) return null;
+  const cleaned = query.trim();
+  if (!cleaned) return null;
+
+  try {
+    const payload = await csintPost("/oathnet/stealer", { query: cleaned });
+    return payloadToSanitized(payload);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchCsintOathnetDiscordToRoblox(
+  discordId: string,
+): Promise<Record<string, unknown> | null> {
+  if (!isCsintEnabled()) return null;
+  const cleaned = discordId.trim();
+  if (!cleaned) return null;
+
+  try {
+    return await csintPost("/oathnet/discord-to-roblox", {
+      discord_id: cleaned,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchCsintSeonEmail(
+  email: string,
+): Promise<Record<string, unknown>> {
+  return csintPost("/seon/email", { email: email.trim() });
+}
+
+export async function fetchCsintSeonPhone(
+  phone: string,
+): Promise<Record<string, unknown>> {
+  return csintPost("/seon/phone", { phone: phone.trim() });
+}
+
+/**
+ * Parallel additive CSINT breach sources (universal + BreachBase + Snusbase + OathNet).
+ * Soft-fails individually so one down provider does not wipe the rest.
+ */
+export async function fetchCsintAdditiveBreachSearch(
+  query: string,
+  type: CsintSearchType = "auto",
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isCsintEnabled()) return null;
+
+  const cleaned = query.trim();
+  if (!cleaned) return null;
+
+  const resolvedType =
+    type === "auto" ? detectCsintSearchType(cleaned) : type;
+  const snusTypes = snusbaseTypesForCsint(resolvedType);
+
+  const [universal, breachBase, snusbase, oathnet] = await Promise.all([
+    fetchCsintUniversalSearch(cleaned, resolvedType, timeoutMs),
+    fetchCsintBreachBase(cleaned, resolvedType),
+    fetchCsintSnusbaseSearch(cleaned, snusTypes),
+    fetchCsintOathnetBreach(cleaned),
+  ]);
+
+  return mergeOptionalSanitized(universal, breachBase, snusbase, oathnet);
+}
+
+/**
+ * Stealer-oriented additive sources (universal + OathNet stealer + BreachBase).
+ */
+export async function fetchCsintAdditiveStealerSearch(
+  query: string,
+  type: CsintSearchType = "auto",
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isCsintEnabled()) return null;
+
+  const cleaned = query.trim();
+  if (!cleaned) return null;
+
+  const resolvedType =
+    type === "auto" ? detectCsintSearchType(cleaned) : type;
+
+  const [universal, stealer, breachBase, oathnet] = await Promise.all([
+    fetchCsintUniversalSearch(cleaned, resolvedType, timeoutMs),
+    fetchCsintOathnetStealer(cleaned),
+    fetchCsintBreachBase(cleaned, resolvedType),
+    fetchCsintOathnetBreach(cleaned),
+  ]);
+
+  return mergeOptionalSanitized(universal, stealer, breachBase, oathnet);
 }
 
 export async function fetchCsintShodanHost(

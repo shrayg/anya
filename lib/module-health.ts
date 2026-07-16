@@ -46,6 +46,9 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
     providers: ["godseye", "breachvip", "builtin", "courtlistener", "csint"],
   },
   "email-analyze": { kind: "any", providers: ["csint"] },
+  "fraud-footprint": { kind: "any", providers: ["csint"] },
+  breachbase: { kind: "any", providers: ["csint"] },
+  "oathnet-roblox": { kind: "any", providers: ["csint"] },
   "contact-enrich": { kind: "any", providers: ["csint"] },
   phone: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
   username: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
@@ -73,7 +76,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
     kind: "any",
     providers: ["osintcat", "godseye", "breachvip", "csint"],
   },
-  roblox: { kind: "any", providers: ["osintcat", "godseye"] },
+  roblox: { kind: "any", providers: ["osintcat", "godseye", "csint"] },
   minecraft: {
     kind: "any",
     providers: ["osintcat", "godseye", "breachvip", "csint"],

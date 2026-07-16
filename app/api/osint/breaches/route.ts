@@ -5,7 +5,7 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 import { searchBreachVipForEmail } from "@/lib/breachvip";
 import {
   csintRowsToCredentials,
-  fetchCsintUniversalSearch,
+  fetchCsintAdditiveBreachSearch,
 } from "@/lib/csint";
 import { fetchGodsEyeEmailReport } from "@/lib/godseye";
 import {
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     searchProxynovaCombForEmail(email, { start, limit }),
     fetchGodsEyeEmailReport(email),
     searchBreachVipForEmail(email, { maxRows: limit }),
-    fetchCsintUniversalSearch(email, "email", 15_000),
+    fetchCsintAdditiveBreachSearch(email, "email", 15_000),
   ]);
 
   const csintCredentials = csint
