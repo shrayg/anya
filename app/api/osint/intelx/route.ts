@@ -178,7 +178,7 @@ export async function GET(req: NextRequest) {
         : await fetchCsintIntelxWithBuckets(storageId, preferredBucket);
     if (csint.content.trim()) {
       content = csint.content;
-      bucket = csint.bucket;
+      bucket = isIntelxBucket(csint.bucket) ? csint.bucket : preferredBucket;
     } else if (csint.error) {
       lastError = csint.error;
     }

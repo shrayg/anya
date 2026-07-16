@@ -13,6 +13,7 @@ import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import {
   DEFAULT_INTELX_BUCKET,
   isIntelxBucket,
+  type IntelxBucket,
 } from "@/lib/intelx-buckets";
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
 import type { CombCredential } from "@/lib/proxynova-comb";
@@ -1289,18 +1290,18 @@ export async function fetchCsintShodanHost(
 
 export async function fetchCsintIntelx(
   storageId: string,
-  bucket = DEFAULT_INTELX_BUCKET,
-): Promise<{ content: string; error?: string; bucket: string }> {
+  bucket: IntelxBucket | string = DEFAULT_INTELX_BUCKET,
+): Promise<{ content: string; error?: string; bucket: IntelxBucket }> {
+  const resolvedBucket = isIntelxBucket(bucket) ? bucket : DEFAULT_INTELX_BUCKET;
+
   if (!isCsintEnabled()) {
-    return { content: "", error: publicServiceUnavailable(), bucket };
+    return { content: "", error: publicServiceUnavailable(), bucket: resolvedBucket };
   }
 
   const apiKey = getCsintApiKey();
   if (!apiKey) {
-    return { content: "", error: publicServiceUnavailable(), bucket };
+    return { content: "", error: publicServiceUnavailable(), bucket: resolvedBucket };
   }
-
-  const resolvedBucket = isIntelxBucket(bucket) ? bucket : DEFAULT_INTELX_BUCKET;
 
   try {
     const res = await fetchWithTimeout(`${CSINT_BASE}/intelx`, {
@@ -1362,14 +1363,14 @@ export async function fetchCsintIntelx(
 export async function fetchCsintIntelxWithBuckets(
   storageId: string,
   preferredBucket?: string | null,
-): Promise<{ content: string; error?: string; bucket: string }> {
+): Promise<{ content: string; error?: string; bucket: IntelxBucket }> {
   // Keep fan-out small — IntelX is limited to ~50 requests/day (+ ~3 rps).
   const preferred = preferredBucket?.trim();
-  const ordered = [
+  const ordered: IntelxBucket[] = [
     preferred && isIntelxBucket(preferred) ? preferred : null,
     DEFAULT_INTELX_BUCKET,
     "leaks.private",
-  ].filter((b, i, arr): b is string => Boolean(b) && arr.indexOf(b) === i);
+  ].filter((b, i, arr): b is IntelxBucket => Boolean(b) && arr.indexOf(b) === i);
 
   let lastError = "No IntelX content returned.";
 
