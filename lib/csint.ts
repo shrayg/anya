@@ -980,16 +980,251 @@ export async function fetchCsintOathnetDiscordToRoblox(
   }
 }
 
+const SEON_META_KEYS = new Set([
+  "success",
+  "error",
+  "errors",
+  "message",
+  "credits",
+  "credit",
+  "service",
+  "source",
+  "status",
+  "took",
+  "time",
+  "elapsed",
+]);
+
+function unwrapSeonPayload(
+  payload: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const nested = payload.data;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (SEON_META_KEYS.has(key) || key === "data") continue;
+    rest[key] = value;
+  }
+
+  return Object.keys(rest).length > 0 ? rest : null;
+}
+
+function pushScalarFields(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+  keys: string[],
+  rename?: Record<string, string>,
+) {
+  for (const key of keys) {
+    const value = source[key];
+    if (value === null || value === undefined || value === "") continue;
+    if (typeof value === "object") continue;
+    const outKey = rename?.[key] ?? key;
+    target[outKey] = value;
+  }
+}
+
+function seonRegisteredAccounts(accountDetails: unknown): string[] {
+  if (!accountDetails || typeof accountDetails !== "object") return [];
+
+  const registered: string[] = [];
+  for (const [name, info] of Object.entries(
+    accountDetails as Record<string, unknown>,
+  )) {
+    if (!info || typeof info !== "object" || Array.isArray(info)) continue;
+    if ((info as Record<string, unknown>).registered === true) {
+      registered.push(name.replace(/_/g, " "));
+    }
+  }
+
+  return registered.sort((a, b) => a.localeCompare(b));
+}
+
+function seonBreachSummary(breachDetails: unknown): Record<string, unknown> | null {
+  if (!breachDetails || typeof breachDetails !== "object" || Array.isArray(breachDetails)) {
+    return null;
+  }
+
+  const breach = breachDetails as Record<string, unknown>;
+  const out: Record<string, unknown> = { category: "Breach history" };
+  pushScalarFields(out, breach, [
+    "haveibeenpwned_listed",
+    "number_of_breaches",
+    "first_breach",
+  ]);
+
+  if (Array.isArray(breach.breaches) && breach.breaches.length > 0) {
+    out.breaches = breach.breaches
+      .slice(0, 50)
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return String(entry ?? "");
+        const row = entry as Record<string, unknown>;
+        const name = asString(row.name) || "Unknown";
+        const date = asString(row.date);
+        return date ? `${name} (${date})` : name;
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  return Object.keys(out).length > 1 ? out : null;
+}
+
+function seonRiskRules(appliedRules: unknown): Record<string, unknown> | null {
+  if (!Array.isArray(appliedRules) || appliedRules.length === 0) return null;
+
+  const rules = appliedRules
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return "";
+      const row = entry as Record<string, unknown>;
+      const id = asString(row.id);
+      const name = asString(row.name);
+      const op = asString(row.operation);
+      const score =
+        typeof row.score === "number" || typeof row.score === "string"
+          ? String(row.score)
+          : "";
+      const scoreBit = score ? ` (${op || "+"}${score})` : "";
+      const label = [id, name].filter(Boolean).join(": ");
+      return `${label}${scoreBit}`.trim();
+    })
+    .filter(Boolean);
+
+  if (rules.length === 0) return null;
+
+  return {
+    category: "Risk rules",
+    rule_count: rules.length,
+    rules: rules.join("; "),
+  };
+}
+
+function seonDomainCard(
+  domainDetails: unknown,
+): Record<string, unknown> | null {
+  if (!domainDetails || typeof domainDetails !== "object" || Array.isArray(domainDetails)) {
+    return null;
+  }
+
+  const domain = domainDetails as Record<string, unknown>;
+  const out: Record<string, unknown> = { category: "Domain details" };
+  pushScalarFields(out, domain, [
+    "domain",
+    "tld",
+    "registered",
+    "created",
+    "updated",
+    "expires",
+    "registrar_name",
+    "registered_to",
+    "disposable",
+    "free",
+    "custom",
+    "dmarc_enforced",
+    "spf_strict",
+    "valid_mx",
+    "accept_all",
+    "suspicious_tld",
+    "website_exists",
+  ]);
+
+  return Object.keys(out).length > 1 ? out : null;
+}
+
+/**
+ * CSINT SEON wraps useful signals under `data` and returns meta like
+ * `{ success, source }`. Flatten into SearchResultCards-friendly rows.
+ */
+export function normalizeSeonFootprint(
+  payload: Record<string, unknown>,
+  kind: "email" | "phone",
+): { count: number; results: Record<string, unknown>[] } {
+  const root = unwrapSeonPayload(payload);
+  if (!root) {
+    return { count: 0, results: [] };
+  }
+
+  const results: Record<string, unknown>[] = [];
+
+  const reputation: Record<string, unknown> = {
+    category: kind === "email" ? "Email reputation" : "Phone reputation",
+  };
+
+  if (kind === "email") {
+    pushScalarFields(reputation, root, ["email", "score", "deliverable"]);
+  } else {
+    pushScalarFields(
+      reputation,
+      root,
+      ["number", "phone", "score", "valid", "disposable", "type", "country", "carrier"],
+      { number: "phone" },
+    );
+  }
+
+  if (Object.keys(reputation).length > 1) {
+    results.push(reputation);
+  }
+
+  const domainCard = seonDomainCard(root.domain_details);
+  if (domainCard) results.push(domainCard);
+
+  const registered = seonRegisteredAccounts(root.account_details);
+  if (registered.length > 0) {
+    results.push({
+      category: "Digital footprint",
+      registered_account_count: registered.length,
+      registered_accounts: registered.join(", "),
+    });
+  }
+
+  const breachCard = seonBreachSummary(root.breach_details);
+  if (breachCard) results.push(breachCard);
+
+  const rulesCard = seonRiskRules(root.applied_rules);
+  if (rulesCard) results.push(rulesCard);
+
+  // Fallback: flatten leftover scalars if nested sections were empty.
+  if (results.length === 0) {
+    const flat: Record<string, unknown> = {
+      category: kind === "email" ? "Email reputation" : "Phone reputation",
+    };
+    for (const [key, value] of Object.entries(root)) {
+      if (
+        SEON_META_KEYS.has(key) ||
+        key === "account_details" ||
+        key === "domain_details" ||
+        key === "breach_details" ||
+        key === "applied_rules" ||
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        typeof value === "object"
+      ) {
+        continue;
+      }
+      flat[key] = value;
+    }
+    if (Object.keys(flat).length > 1) results.push(flat);
+  }
+
+  return { count: results.length, results };
+}
+
 export async function fetchCsintSeonEmail(
   email: string,
 ): Promise<Record<string, unknown>> {
-  return csintPost("/seon/email", { email: email.trim() });
+  const payload = await csintPost("/seon/email", { email: email.trim() });
+  return normalizeSeonFootprint(payload, "email");
 }
 
 export async function fetchCsintSeonPhone(
   phone: string,
 ): Promise<Record<string, unknown>> {
-  return csintPost("/seon/phone", { phone: phone.trim() });
+  const payload = await csintPost("/seon/phone", { phone: phone.trim() });
+  return normalizeSeonFootprint(payload, "phone");
 }
 
 /**

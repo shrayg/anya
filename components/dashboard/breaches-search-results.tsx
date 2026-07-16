@@ -3,7 +3,6 @@
 import clsx from "clsx";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
-import { isInternalSourceLabel } from "@/lib/intel-record";
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 
 export function BreachesSearchResults({
@@ -18,20 +17,10 @@ export function BreachesSearchResults({
   onSelectExportIndex?: (index: number) => void;
 }) {
   const selectable = Boolean(onSelectExportIndex);
-  const sourceLabel =
-    result.source && !isInternalSourceLabel(result.source) ? result.source : null;
 
   return (
     <div className="space-y-4">
-      <div
-        className={`grid gap-2 ${sourceLabel ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}
-      >
-        {sourceLabel ? (
-          <div className="anya-result-strip">
-            <p className="anya-result-label">Source</p>
-            <p className="anya-result-value">{sourceLabel}</p>
-          </div>
-        ) : null}
+      <div className="grid gap-2 sm:grid-cols-2">
         <div className="anya-result-strip">
           <p className="anya-result-label">Total matches</p>
           <p className="anya-result-value">{result.totalMatches.toLocaleString()}</p>

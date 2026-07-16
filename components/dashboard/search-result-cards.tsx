@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
@@ -16,6 +16,10 @@ function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
   return `${value.slice(0, max)}…`;
 }
 
+function indexesOf(records: FormattedRecord[]): Set<number> {
+  return new Set(records.map((record) => record.index));
+}
+
 function ResultField({
   field,
   blurResults,
@@ -25,22 +29,30 @@ function ResultField({
   blurResults: boolean;
   expanded: boolean;
 }) {
-  const displayValue = expanded ? field.value : truncateValue(field.value);
+  const isBlock = Boolean(field.block);
+  const displayValue =
+    expanded || isBlock ? field.value : truncateValue(field.value);
 
   return (
     <div
       className={clsx(
         "anya-result-field",
         field.sensitive && "anya-result-field--sensitive",
+        isBlock && "anya-result-field--block",
       )}
-      title={field.value.length > VALUE_PREVIEW_LENGTH ? field.value : undefined}
+      title={
+        !isBlock && field.value.length > VALUE_PREVIEW_LENGTH
+          ? field.value
+          : undefined
+      }
     >
       <p className="anya-result-label">{field.label}</p>
       <p
         className={clsx(
           "anya-result-value",
-          !expanded && "anya-result-value--clamp",
-          field.highlight && "text-anya-accent",
+          isBlock && "anya-result-value--block",
+          !expanded && !isBlock && "anya-result-value--clamp",
+          field.highlight && !isBlock && "text-anya-accent",
         )}
       >
         <BlurredValue forceBlur={blurResults} text={displayValue} />
@@ -64,8 +76,18 @@ export function SearchResultCards({
   onSelectExportIndex?: (index: number) => void;
   initialVisible?: number;
 }) {
-  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+  const [expanded, setExpanded] = useState<Set<number>>(() => indexesOf(records));
   const [visibleCount, setVisibleCount] = useState(initialVisible);
+
+  const resultsKey = useMemo(
+    () => records.map((record) => `${record.index}:${record.title}`).join("|"),
+    [records],
+  );
+
+  useEffect(() => {
+    setExpanded(indexesOf(records));
+    setVisibleCount(initialVisible);
+  }, [resultsKey, initialVisible, records]);
 
   const selectable = Boolean(onSelectExportIndex);
   const shown = records.length;
@@ -75,6 +97,11 @@ export function SearchResultCards({
     [records, visibleCount],
   );
   const hiddenCount = Math.max(0, records.length - visibleCount);
+  const expandedVisible = visibleRecords.filter((record) =>
+    expanded.has(record.index),
+  ).length;
+  const allVisibleExpanded =
+    visibleRecords.length > 0 && expandedVisible === visibleRecords.length;
 
   const toggleExpanded = (index: number) => {
     setExpanded((current) => {
@@ -104,9 +131,11 @@ export function SearchResultCards({
         <p className="text-xs text-zinc-500">
           {shown.toLocaleString()} record{shown === 1 ? "" : "s"}
           {total > shown ? ` · ${total.toLocaleString()} total` : ""}
-          {expanded.size > 0 ? ` · ${expanded.size} expanded` : " · tap ▼ to expand"}
+          {expandedVisible > 0
+            ? ` · ${expandedVisible} expanded`
+            : " · collapsed"}
         </p>
-        {expanded.size > 0 ? (
+        {allVisibleExpanded ? (
           <button
             className="anya-result-stack-action"
             onClick={() => setExpanded(new Set())}
@@ -114,7 +143,15 @@ export function SearchResultCards({
           >
             Collapse all
           </button>
-        ) : null}
+        ) : (
+          <button
+            className="anya-result-stack-action"
+            onClick={() => setExpanded(indexesOf(visibleRecords))}
+            type="button"
+          >
+            Expand all
+          </button>
+        )}
       </div>
 
       <div className="anya-result-list">
@@ -199,7 +236,19 @@ export function SearchResultCards({
       {hiddenCount > 0 ? (
         <button
           className="anya-result-load-more"
-          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          onClick={() => {
+            setVisibleCount((count) => {
+              const next = Math.min(records.length, count + PAGE_SIZE);
+              setExpanded((current) => {
+                const merged = new Set(current);
+                for (const record of records.slice(0, next)) {
+                  merged.add(record.index);
+                }
+                return merged;
+              });
+              return next;
+            });
+          }}
           type="button"
         >
           Show {Math.min(PAGE_SIZE, hiddenCount)} more record

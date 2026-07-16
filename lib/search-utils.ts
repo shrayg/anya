@@ -11,6 +11,8 @@ export type FormattedField = {
   value: string;
   sensitive?: boolean;
   highlight?: boolean;
+  /** Full-width readable block (AI summaries, long lists, etc.). */
+  block?: boolean;
 };
 
 export type FormattedRecord = {
@@ -58,11 +60,41 @@ const FIELD_LABELS: Record<string, string> = {
   public_flags: "Public flags",
   global_name: "Display name",
   tag: "Tag",
+  score: "Risk score",
+  deliverable: "Deliverable",
+  valid: "Valid",
+  disposable: "Disposable",
+  carrier: "Carrier",
+  type: "Line type",
+  registered_accounts: "Registered accounts",
+  registered_account_count: "Account matches",
+  haveibeenpwned_listed: "Listed in breaches",
+  number_of_breaches: "Breach count",
+  first_breach: "First breach",
+  breaches: "Breaches",
+  rules: "Applied rules",
+  rule_count: "Rule count",
+  free: "Free provider",
+  valid_mx: "Valid MX",
+  dmarc_enforced: "DMARC enforced",
+  spf_strict: "SPF strict",
+  registrar_name: "Registrar",
+  registered_to: "Registered to",
+  ai_summary: "AI summary",
+  summary: "Summary",
+  analysis: "Analysis",
+  overview: "Overview",
+  description: "Description",
 };
 
 const FIELD_ORDER = [
   "source",
   "email",
+  "phone",
+  "score",
+  "deliverable",
+  "valid",
+  "disposable",
   "username",
   "user_id",
   "global_name",
@@ -70,18 +102,23 @@ const FIELD_ORDER = [
   "url",
   "password",
   "ip",
-  "phone",
   "token",
   "steam",
   "license",
   "uuid",
   "added_at",
   "breach_date",
+  "number_of_breaches",
+  "first_breach",
+  "breaches",
+  "registered_account_count",
+  "registered_accounts",
   "country",
   "country_name",
   "city",
   "region_code",
   "isp",
+  "carrier",
 ];
 
 const SENSITIVE_KEYS = new Set([
@@ -92,7 +129,34 @@ const SENSITIVE_KEYS = new Set([
   "license",
 ]);
 
-const HIGHLIGHT_KEYS = new Set(["email", "username", "user_id", "domain"]);
+const HIGHLIGHT_KEYS = new Set([
+  "email",
+  "username",
+  "user_id",
+  "domain",
+  "score",
+  "phone",
+]);
+
+/** Provider branding / meta — never shown as result field rows. */
+const HIDDEN_RESULT_KEY =
+  /^(source|sources|_source|credit|credits|service|success|provider|providers)$/i;
+
+/** Long prose / list fields — render as full-width text blocks. */
+const BLOCK_TEXT_KEY =
+  /^(ai_?summary|summary|analysis|overview|report|description|notes?|details|content|export|raw|text|message|reasoning|explanation|registered_accounts|breaches|rules|applied_rules)$/i;
+
+const RECORD_TITLE_KEYS = new Set(["category", "record_title"]);
+
+function isHiddenResultKey(key: string): boolean {
+  return HIDDEN_RESULT_KEY.test(key);
+}
+
+function isBlockTextField(key: string, value: string): boolean {
+  if (BLOCK_TEXT_KEY.test(key)) return true;
+  if (value.includes("\n")) return true;
+  return value.length > 160;
+}
 
 function humanizeKey(key: string): string {
   if (FIELD_LABELS[key]) return FIELD_LABELS[key];
@@ -127,9 +191,9 @@ function objectFields(
 ): FormattedField[] {
   const entries = keys
     ? keys
-        .filter((key) => key in data)
+        .filter((key) => key in data && !isHiddenResultKey(key))
         .map((key) => [key, data[key]] as const)
-    : Object.entries(data);
+    : Object.entries(data).filter(([key]) => !isHiddenResultKey(key));
 
   const fields = entries
     .map(([key, value]) => {
@@ -141,17 +205,26 @@ function objectFields(
 
       if (!formatted) return null;
 
+      const label = humanizeKey(key);
+      if (/^sources?$/i.test(label)) return null;
+
       return {
         key,
-        label: humanizeKey(key),
+        label,
         value: formatted,
         sensitive: SENSITIVE_KEYS.has(key),
         highlight: HIGHLIGHT_KEYS.has(key),
+        block: isBlockTextField(key, formatted),
       };
     })
     .filter((field) => field !== null) as FormattedField[];
 
+  // Compact fields first; full-width prose blocks last.
   fields.sort((a, b) => {
+    if (Boolean(a.block) !== Boolean(b.block)) {
+      return a.block ? 1 : -1;
+    }
+
     const aIndex = FIELD_ORDER.indexOf(a.key);
     const bIndex = FIELD_ORDER.indexOf(b.key);
     const aRank = aIndex === -1 ? 999 : aIndex;
@@ -166,36 +239,27 @@ function objectFields(
 }
 
 function buildRecordFields(data: Record<string, unknown>): FormattedField[] {
-  const databank = extractDatabank(data);
-  const keys = Object.keys(data).filter((key) => !DATABANK_KEYS.has(key));
-  const fields = objectFields(data, keys);
-
-  if (databank) {
-    fields.unshift({
-      key: "source",
-      label: "Source",
-      value: databank,
-    });
-
-    fields.sort((a, b) => {
-      const aIndex = FIELD_ORDER.indexOf(a.key);
-      const bIndex = FIELD_ORDER.indexOf(b.key);
-      const aRank = aIndex === -1 ? 999 : aIndex;
-      const bRank = bIndex === -1 ? 999 : bIndex;
-
-      if (aRank !== bRank) return aRank - bRank;
-
-      return a.label.localeCompare(b.label);
-    });
-  }
-
-  return fields;
+  const keys = Object.keys(data).filter(
+    (key) =>
+      !DATABANK_KEYS.has(key) &&
+      !RECORD_TITLE_KEYS.has(key) &&
+      !isHiddenResultKey(key),
+  );
+  // Databank / breach collection names may still title the card, but never as a Source row.
+  return objectFields(data, keys);
 }
 
 function recordTitle(data: Record<string, unknown>, index: number): string {
   const databank = extractDatabank(data);
 
   if (databank) return databank;
+
+  if (typeof data.category === "string" && data.category.trim()) {
+    return data.category.trim();
+  }
+  if (typeof data.record_title === "string" && data.record_title.trim()) {
+    return data.record_title.trim();
+  }
 
   if (data.email && data.password) return "Leaked credential";
   if (data.user_id) return "Discord leak record";
@@ -207,6 +271,10 @@ function recordTitle(data: Record<string, unknown>, index: number): string {
 
 function recordSubtitle(data: Record<string, unknown>): string | undefined {
   if (typeof data.email === "string") return data.email;
+  if (typeof data.phone === "string") return data.phone;
+  if (typeof data.number === "string" || typeof data.number === "number") {
+    return String(data.number);
+  }
   if (typeof data.username === "string") return `@${data.username}`;
   if (typeof data.user_id === "string") return data.user_id;
   if (typeof data.domain === "string") return data.domain;
@@ -285,7 +353,7 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
     return [];
   }
 
-  const record = data as Record<string, unknown>;
+  let record = data as Record<string, unknown>;
 
   if (record.ipleaks || record.ipinfo) {
     return formatIpRecords(record);
@@ -308,6 +376,16 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
     return formatSearchRecords(record.breach_data);
   }
 
+  // CSINT-style wrappers: useful payload under `data`, meta at top level.
+  const nested = record.data;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const nestedObj = nested as Record<string, unknown>;
+    const nestedFields = objectFields(nestedObj);
+    if (nestedFields.length > 0) {
+      record = nestedObj;
+    }
+  }
+
   const fields = objectFields(record);
 
   if (fields.length === 0) return [];
@@ -315,7 +393,9 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
   return [
     {
       index: 1,
-      title: "Result",
+      title: recordTitle(record, 1),
+      subtitle: recordSubtitle(record),
+      badge: recordBadge(record),
       fields,
     },
   ];
@@ -351,12 +431,16 @@ export function flattenSearchData(
   }
 
   for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+    if (isHiddenResultKey(key)) continue;
+
     const label = prefix ? `${prefix}.${key}` : key;
+    const leaf = humanizeKey(label.split(".").pop() ?? label);
+    if (/^sources?$/i.test(leaf)) continue;
 
     if (value && typeof value === "object") {
       flattenSearchData(value, label, rows);
     } else {
-      rows.push({ label: humanizeKey(label.split(".").pop() ?? label), value: String(value ?? "") });
+      rows.push({ label: leaf, value: String(value ?? "") });
     }
   }
 
