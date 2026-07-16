@@ -586,6 +586,110 @@ export async function fetchCsintShodanHost(
   return csintPost("/shodan/host", { ip: ip.trim(), history: false });
 }
 
+export async function fetchCsintIntelx(
+  storageId: string,
+  bucket = "leaks.public",
+): Promise<{ content: string; error?: string; bucket: string }> {
+  if (!isCsintEnabled()) {
+    return { content: "", error: publicServiceUnavailable(), bucket };
+  }
+
+  const apiKey = getCsintApiKey();
+  if (!apiKey) {
+    return { content: "", error: publicServiceUnavailable(), bucket };
+  }
+
+  try {
+    const res = await fetchWithTimeout(`${CSINT_BASE}/intelx`, {
+      method: "POST",
+      headers: {
+        "X-API-Key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json, text/plain, */*",
+      },
+      body: JSON.stringify({
+        storageid: storageId.trim(),
+        bucket,
+      }),
+      cache: "no-store",
+      timeoutMs: 60_000,
+    });
+
+    const contentType = res.headers.get("content-type") ?? "";
+    const text = await res.text();
+
+    if (contentType.includes("text/plain") && res.ok && text.trim()) {
+      return { content: text, bucket };
+    }
+
+    let data: Record<string, unknown> = {};
+    try {
+      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      if (res.ok && text.trim()) {
+        return { content: text, bucket };
+      }
+    }
+
+    if (data.success === true && typeof data.content === "string") {
+      return { content: data.content, bucket };
+    }
+
+    const msg =
+      (typeof data.message === "string" && data.message) ||
+      (typeof data.details === "string" && data.details) ||
+      (typeof data.error === "string" && data.error) ||
+      (res.status === 429
+        ? "IntelX rate limit reached. Try again later."
+        : `IntelX download failed (HTTP ${res.status})`);
+
+    return { content: "", error: sanitizeCsintError(msg), bucket };
+  } catch (err) {
+    return {
+      content: "",
+      error:
+        err instanceof Error ? sanitizeCsintError(err.message) : publicSearchError(),
+      bucket,
+    };
+  }
+}
+
+const INTELX_BUCKETS = [
+  "leaks.public",
+  "leaks.private",
+  "leaks.logs",
+  "pastes",
+] as const;
+
+export async function fetchCsintIntelxWithBuckets(
+  storageId: string,
+  preferredBucket?: string | null,
+): Promise<{ content: string; error?: string; bucket: string }> {
+  // Keep bucket fan-out small — IntelX has a strict daily quota.
+  const ordered = [
+    preferredBucket?.trim(),
+    "leaks.public",
+    "leaks.private",
+  ].filter((b, i, arr): b is string => Boolean(b) && arr.indexOf(b) === i);
+
+  let lastError = "No IntelX content returned.";
+
+  for (const bucket of ordered) {
+    const result = await fetchCsintIntelx(storageId, bucket);
+    if (result.content.trim()) {
+      return result;
+    }
+    if (result.error) {
+      lastError = result.error;
+      if (/rate limit|429|capacity|quota|not found|couldn't be retrieved/i.test(result.error)) {
+        return { content: "", error: result.error, bucket };
+      }
+    }
+  }
+
+  return { content: "", error: lastError, bucket: ordered[0] || "leaks.public" };
+}
+
 export async function probeCsint(): Promise<boolean> {
   if (!isCsintEnabled()) return false;
   try {

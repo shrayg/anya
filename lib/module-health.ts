@@ -35,7 +35,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "ai-deep-scan": { kind: "any", providers: ["osintcat"] },
   "crypto-ai": { kind: "any", providers: ["osintcat"] },
   "threat-brief": { kind: "any", providers: ["osintcat"] },
-  intelx: { kind: "all", providers: ["godseye-export"] },
+  intelx: { kind: "any", providers: ["godseye-export", "csint"] },
   "stealer-logs": { kind: "any", providers: ["osintcat", "godseye", "csint"] },
   breaches: { kind: "any", providers: ["builtin", "godseye", "breachvip", "csint"] },
   domain: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },

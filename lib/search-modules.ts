@@ -97,8 +97,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "IntelX",
         "intelx",
         "breach",
-        "IntelX storage ID",
-        "Pull archived intel by IntelX storage identifier.",
+        "Long hex storage ID (not the short UUID)",
+        "Pull archived intel by IntelX storage hash — use the long storage ID, not the system UUID.",
       ),
       mod(
         "Stealer Intel",

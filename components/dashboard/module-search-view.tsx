@@ -990,9 +990,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       setRawResult(JSON.stringify(data, null, 2));
       setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
       persistSearch(trimmed, moduleDef.slug, serialized);
-    } catch {
+    } catch (err) {
       if (isMountedRef.current) {
-        setError("Could not complete the search.");
+        const message =
+          err instanceof Error && err.message
+            ? sanitizePublicText(err.message)
+            : "Could not complete the search.";
+        setError(message);
       }
     } finally {
       if (isMountedRef.current) {
