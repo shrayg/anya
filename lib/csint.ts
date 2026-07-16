@@ -10,6 +10,10 @@ import {
   sanitizePublicText,
 } from "@/lib/public-branding";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import {
+  DEFAULT_INTELX_BUCKET,
+  isIntelxBucket,
+} from "@/lib/intelx-buckets";
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
 import type { CombCredential } from "@/lib/proxynova-comb";
 
@@ -1050,7 +1054,7 @@ export async function fetchCsintShodanHost(
 
 export async function fetchCsintIntelx(
   storageId: string,
-  bucket = "leaks.public",
+  bucket = DEFAULT_INTELX_BUCKET,
 ): Promise<{ content: string; error?: string; bucket: string }> {
   if (!isCsintEnabled()) {
     return { content: "", error: publicServiceUnavailable(), bucket };
@@ -1060,6 +1064,8 @@ export async function fetchCsintIntelx(
   if (!apiKey) {
     return { content: "", error: publicServiceUnavailable(), bucket };
   }
+
+  const resolvedBucket = isIntelxBucket(bucket) ? bucket : DEFAULT_INTELX_BUCKET;
 
   try {
     const res = await fetchWithTimeout(`${CSINT_BASE}/intelx`, {
@@ -1071,7 +1077,7 @@ export async function fetchCsintIntelx(
       },
       body: JSON.stringify({
         storageid: storageId.trim(),
-        bucket,
+        bucket: resolvedBucket,
       }),
       cache: "no-store",
       timeoutMs: 60_000,
@@ -1080,8 +1086,9 @@ export async function fetchCsintIntelx(
     const contentType = res.headers.get("content-type") ?? "";
     const text = await res.text();
 
+    // Docs: success is raw text/plain; errors are JSON.
     if (contentType.includes("text/plain") && res.ok && text.trim()) {
-      return { content: text, bucket };
+      return { content: text, bucket: resolvedBucket };
     }
 
     let data: Record<string, unknown> = {};
@@ -1089,48 +1096,43 @@ export async function fetchCsintIntelx(
       data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
     } catch {
       if (res.ok && text.trim()) {
-        return { content: text, bucket };
+        return { content: text, bucket: resolvedBucket };
       }
     }
 
     if (data.success === true && typeof data.content === "string") {
-      return { content: data.content, bucket };
+      return { content: data.content, bucket: resolvedBucket };
     }
 
+    // Prefer details (e.g. "HTTP 404") when present — clearer than the generic error title.
     const msg =
-      (typeof data.message === "string" && data.message) ||
       (typeof data.details === "string" && data.details) ||
+      (typeof data.message === "string" && data.message) ||
       (typeof data.error === "string" && data.error) ||
       (res.status === 429
         ? "IntelX rate limit reached. Try again later."
         : `IntelX download failed (HTTP ${res.status})`);
 
-    return { content: "", error: sanitizeCsintError(msg), bucket };
+    return { content: "", error: sanitizeCsintError(msg), bucket: resolvedBucket };
   } catch (err) {
     return {
       content: "",
       error:
         err instanceof Error ? sanitizeCsintError(err.message) : publicSearchError(),
-      bucket,
+      bucket: resolvedBucket,
     };
   }
 }
-
-const INTELX_BUCKETS = [
-  "leaks.public",
-  "leaks.private",
-  "leaks.logs",
-  "pastes",
-] as const;
 
 export async function fetchCsintIntelxWithBuckets(
   storageId: string,
   preferredBucket?: string | null,
 ): Promise<{ content: string; error?: string; bucket: string }> {
-  // Keep bucket fan-out small — IntelX has a strict daily quota.
+  // Keep fan-out small — IntelX is limited to ~50 requests/day (+ ~3 rps).
+  const preferred = preferredBucket?.trim();
   const ordered = [
-    preferredBucket?.trim(),
-    "leaks.public",
+    preferred && isIntelxBucket(preferred) ? preferred : null,
+    DEFAULT_INTELX_BUCKET,
     "leaks.private",
   ].filter((b, i, arr): b is string => Boolean(b) && arr.indexOf(b) === i);
 
@@ -1143,13 +1145,18 @@ export async function fetchCsintIntelxWithBuckets(
     }
     if (result.error) {
       lastError = result.error;
-      if (/rate limit|429|capacity|quota|not found|couldn't be retrieved/i.test(result.error)) {
+      // Stop on quota; keep trying alternate buckets on 404 (wrong bucket is common).
+      if (/rate limit|429|capacity|quota/i.test(result.error)) {
         return { content: "", error: result.error, bucket };
       }
     }
   }
 
-  return { content: "", error: lastError, bucket: ordered[0] || "leaks.public" };
+  return {
+    content: "",
+    error: lastError,
+    bucket: ordered[0] || DEFAULT_INTELX_BUCKET,
+  };
 }
 
 export async function probeCsint(): Promise<boolean> {

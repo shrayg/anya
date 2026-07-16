@@ -7,6 +7,10 @@ import {
   isCsintEnabled,
 } from "@/lib/csint";
 import {
+  DEFAULT_INTELX_BUCKET,
+  isIntelxBucket,
+} from "@/lib/intelx-buckets";
+import {
   PUBLIC_INTEL_SOURCE,
   publicSearchError,
   publicServiceUnavailable,
@@ -14,19 +18,43 @@ import {
 } from "@/lib/public-branding";
 import { fetchGodsEyeRawExport, getGodsEyeExportApiKey } from "@/lib/godseye";
 
-/** IntelX storage IDs are long hex; UUID-shaped values are usually system IDs. */
-const HEX_ID_RE = /^[a-f0-9]{32,256}$/i;
+/** Docs call this System ID; param name is storageid. UUID form is accepted upstream. */
 const UUID_RE =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+/** Docs example storage hash is long hex (typically 40–256 chars). */
+const HEX_STORAGE_RE = /^[a-f0-9]{40,256}$/i;
 
 function normalizeStorageId(raw: string): {
   storageId: string;
-  looksLikeUuid: boolean;
+  idKind: "uuid" | "storage" | "invalid";
 } {
   const trimmed = raw.trim();
-  const looksLikeUuid = UUID_RE.test(trimmed);
-  const storageId = trimmed.replace(/[^a-f0-9]/gi, "");
-  return { storageId, looksLikeUuid };
+
+  if (UUID_RE.test(trimmed)) {
+    return { storageId: trimmed.toLowerCase(), idKind: "uuid" };
+  }
+
+  const hex = trimmed.replace(/[^a-f0-9]/gi, "");
+
+  // Bare 32-char hex is a System ID without dashes — upstream returns 400 if undashed.
+  if (/^[a-f0-9]{32}$/i.test(hex)) {
+    const uuid = [
+      hex.slice(0, 8),
+      hex.slice(8, 12),
+      hex.slice(12, 16),
+      hex.slice(16, 20),
+      hex.slice(20),
+    ]
+      .join("-")
+      .toLowerCase();
+    return { storageId: uuid, idKind: "uuid" };
+  }
+
+  if (HEX_STORAGE_RE.test(hex)) {
+    return { storageId: hex.toLowerCase(), idKind: "storage" };
+  }
+
+  return { storageId: hex || trimmed, idKind: "invalid" };
 }
 
 export async function GET(req: NextRequest) {
@@ -34,23 +62,25 @@ export async function GET(req: NextRequest) {
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
-  const preferredBucket =
-    req.nextUrl.searchParams.get("bucket")?.trim() || "leaks.public";
+  const bucketParam = req.nextUrl.searchParams.get("bucket")?.trim() || "";
+  const preferredBucket = isIntelxBucket(bucketParam)
+    ? bucketParam
+    : DEFAULT_INTELX_BUCKET;
 
   if (!query) {
     return NextResponse.json(
-      { error: "Missing IntelX storage ID" },
+      { error: "Missing IntelX System ID or Storage ID" },
       { status: 400 },
     );
   }
 
-  const { storageId, looksLikeUuid } = normalizeStorageId(query);
+  const { storageId, idKind } = normalizeStorageId(query);
 
-  if (!HEX_ID_RE.test(storageId)) {
+  if (idKind === "invalid") {
     return NextResponse.json(
       {
         error:
-          "Enter a valid IntelX storage ID (32–256 hex characters). UUIDs with dashes are usually system IDs — paste the longer storage hash instead.",
+          "Enter an IntelX System ID (UUID) or Storage ID (long hex hash). Both are sent as storageid.",
       },
       { status: 400 },
     );
@@ -70,7 +100,7 @@ export async function GET(req: NextRequest) {
   let bucket = preferredBucket;
   let lastError = "";
 
-  // Prefer CSINT first when available (dedicated IntelX quota).
+  // Prefer CSINT first (dedicated /api/intelx, text/plain handling, IntelX daily quota).
   if (hasCsint) {
     const csint = await fetchCsintIntelxWithBuckets(storageId, preferredBucket);
     if (csint.content.trim()) {
@@ -111,14 +141,16 @@ export async function GET(req: NextRequest) {
       sanitizePublicText(lastError) ||
       publicSearchError("No IntelX export content returned.");
 
-    if (looksLikeUuid || storageId.length <= 32) {
-      error =
-        `${error} Tip: this looks like a short system/UUID id. IntelX downloads usually need the longer storage hash from the IntelX item.`;
+    if (/HTTP 400|bad request/i.test(lastError)) {
+      error = `${error} Tip: use a System ID (UUID with dashes) or a long Storage ID hex hash from the IntelX item.`;
+    } else if (/HTTP 404|not found/i.test(lastError)) {
+      error = `${error} Tip: ID was accepted but not found in tried buckets — pick the bucket that matches the IntelX item (e.g. leaks.private vs leaks.public).`;
     }
 
     return NextResponse.json(
       {
         storageId,
+        idKind,
         bucket,
         source: `${PUBLIC_INTEL_SOURCE} · IntelX`,
         content: "",
@@ -131,6 +163,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     storageId,
+    idKind,
     bucket,
     source: `${PUBLIC_INTEL_SOURCE} · IntelX`,
     content,

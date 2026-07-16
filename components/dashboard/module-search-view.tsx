@@ -41,6 +41,12 @@ import type {
   UsIdentitySearchResult,
   UsVaSorSearchResult,
 } from "@/lib/us-records";
+import {
+  DEFAULT_INTELX_BUCKET,
+  INTELX_BUCKET_LABELS,
+  INTELX_BUCKETS,
+  type IntelxBucket,
+} from "@/lib/intelx-buckets";
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import { sanitizePublicText } from "@/lib/public-branding";
@@ -139,9 +145,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [selectedToolId, setSelectedToolId] = useState(
     moduleDef.tools?.[0]?.id ?? "",
   );
+  const [intelxBucket, setIntelxBucket] = useState<IntelxBucket>(
+    DEFAULT_INTELX_BUCKET,
+  );
 
   useEffect(() => {
     setSelectedToolId(moduleDef.tools?.[0]?.id ?? "");
+    setIntelxBucket(DEFAULT_INTELX_BUCKET);
   }, [moduleDef.slug, moduleDef.tools]);
 
   const [isSearching, setIsSearching] = useState(false);
@@ -573,8 +583,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     try {
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
       const moduleParam = `&moduleSlug=${encodeURIComponent(moduleDef.slug)}`;
+      const bucketParam =
+        activeType === "intelx"
+          ? `&bucket=${encodeURIComponent(intelxBucket)}`
+          : "";
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}`,
       );
       const data = await searchResponse.json();
 
@@ -1157,6 +1171,27 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                   </button>
                 );
               })}
+            </div>
+          ) : null}
+          {moduleDef.slug === "intelx" ? (
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs text-zinc-400" htmlFor="intelx-bucket">
+                IntelX bucket
+              </label>
+              <select
+                className="ui-input w-full sm:max-w-xs"
+                id="intelx-bucket"
+                onChange={(event) =>
+                  setIntelxBucket(event.target.value as IntelxBucket)
+                }
+                value={intelxBucket}
+              >
+                {INTELX_BUCKETS.map((bucket) => (
+                  <option key={bucket} value={bucket}>
+                    {INTELX_BUCKET_LABELS[bucket]} ({bucket})
+                  </option>
+                ))}
+              </select>
             </div>
           ) : null}
           <form className="flex flex-col gap-3 sm:flex-row sm:items-start" onSubmit={handleSearch}>

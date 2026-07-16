@@ -560,6 +560,7 @@ export async function fetchGodsEyeRawExport(
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
+      // Same shape as csint.pro /api/intelx: storageid + bucket.
       body: JSON.stringify({ storageid: storageId.trim(), bucket }),
       cache: "no-store",
       timeoutMs: 60_000,

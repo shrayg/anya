@@ -855,7 +855,7 @@ function buildStealerCorrelator(
   partial.recommendations.push("File results into Case ID mind map.");
   partial.pivots.push(
     { label: "Stealer Logs", slug: "stealer-logs", reason: "Raw stealer module." },
-    { label: "IntelX", slug: "intelx", reason: "Pull archived storage IDs." },
+    { label: "IntelX", slug: "intelx", reason: "Download by System/Storage ID + bucket." },
   );
 
   return finalizeResult({
