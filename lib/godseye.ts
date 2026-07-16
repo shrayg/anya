@@ -1,4 +1,10 @@
-import { PUBLIC_INTEL_SOURCE, publicSearchError, publicServiceUnavailable, sanitizePublicText } from "@/lib/public-branding";
+import {
+  PUBLIC_INTEL_SOURCE,
+  publicSearchError,
+  publicServiceUnavailable,
+  sanitizePublicContent,
+  sanitizePublicText,
+} from "@/lib/public-branding";
 import { extractDatabank, isInternalSourceLabel } from "@/lib/intel-record";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { normalizeDomain } from "@/lib/domain-search";
@@ -569,7 +575,7 @@ export async function fetchGodsEyeRawExport(
     const contentType = res.headers.get("content-type") ?? "";
 
     if (contentType.includes("text/plain")) {
-      return { content: await res.text() };
+      return { content: sanitizePublicContent(await res.text()) };
     }
 
     const data = await parseGodsEyeJson(res);
@@ -577,15 +583,17 @@ export async function fetchGodsEyeRawExport(
     if (!res.ok) {
       return {
         content: "",
-        error: String(data.error || publicSearchError()),
+        error: sanitizePublicText(String(data.error || publicSearchError())),
       };
     }
 
-    return { content: JSON.stringify(data, null, 2) };
+    return { content: sanitizePublicContent(JSON.stringify(data, null, 2)) };
   } catch (err) {
     return {
       content: "",
-      error: err instanceof Error ? err.message : publicSearchError(),
+      error: sanitizePublicText(
+        err instanceof Error ? err.message : publicSearchError(),
+      ),
     };
   }
 }

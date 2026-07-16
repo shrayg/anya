@@ -45,11 +45,13 @@ import {
   DEFAULT_INTELX_BUCKET,
   INTELX_BUCKET_LABELS,
   INTELX_BUCKETS,
+  isIntelxBucket,
   type IntelxBucket,
 } from "@/lib/intelx-buckets";
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
-import { sanitizePublicText } from "@/lib/public-branding";
+import { siteConfig } from "@/config/site";
+import { sanitizePublicContent, sanitizePublicText } from "@/lib/public-branding";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import type { InstagramSearchResult } from "@/lib/instagram-search";
 import { normalizeInstagramUsername } from "@/lib/instagram-search";
@@ -790,12 +792,24 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           error?: string;
           storageId?: string;
           bucket?: string;
+          source?: string;
+          poweredBy?: string;
         };
 
         if (!intelxData.hasContent) {
-          setError(intelxData.error || "No IntelX export content returned.");
+          setError(
+            sanitizePublicText(
+              intelxData.error || "No IntelX export content returned.",
+            ),
+          );
           return;
         }
+
+        const exportBody = sanitizePublicContent(intelxData.content ?? "");
+        const bucketId = intelxData.bucket ?? "leaks.public";
+        const bucketLabel = isIntelxBucket(bucketId)
+          ? INTELX_BUCKET_LABELS[bucketId]
+          : bucketId;
 
         setRecords([
           {
@@ -805,20 +819,25 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               {
                 key: "bucket",
                 label: "Bucket",
-                value: intelxData.bucket ?? "leaks.public",
+                value: bucketLabel,
               },
               {
                 key: "export",
                 label: "Export",
-                value: intelxData.content?.slice(0, 12_000) ?? "",
+                value: exportBody.slice(0, 12_000),
+              },
+              {
+                key: "powered_by",
+                label: "Powered by",
+                value: siteConfig.name,
               },
             ],
           },
         ]);
         setResultCount(1);
-        setRawResult(intelxData.content ?? serialized);
+        setRawResult(exportBody || serialized);
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, intelxData.content ?? serialized);
+        persistSearch(trimmed, moduleDef.slug, exportBody || serialized);
         return;
       }
 
@@ -1188,7 +1207,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               >
                 {INTELX_BUCKETS.map((bucket) => (
                   <option key={bucket} value={bucket}>
-                    {INTELX_BUCKET_LABELS[bucket]} ({bucket})
+                    {INTELX_BUCKET_LABELS[bucket]}
                   </option>
                 ))}
               </select>

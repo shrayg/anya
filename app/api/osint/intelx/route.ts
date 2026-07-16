@@ -12,9 +12,10 @@ import {
   isIntelxBucket,
 } from "@/lib/intelx-buckets";
 import {
-  PUBLIC_INTEL_SOURCE,
+  PUBLIC_BRAND,
   publicSearchError,
   publicServiceUnavailable,
+  sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
 import { fetchGodsEyeRawExport, getGodsEyeExportApiKey } from "@/lib/godseye";
@@ -135,7 +136,7 @@ export async function GET(req: NextRequest) {
         storageId,
         idKind,
         bucket: preferredBucket,
-        source: `${PUBLIC_INTEL_SOURCE} · IntelX`,
+        source: `${PUBLIC_BRAND} · IntelX`,
         content: "",
         error: WEBSITE_DID_UNSUPPORTED,
         hasContent: false,
@@ -211,6 +212,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Defense in depth: strip upstream credits / "powered by csint tools" footers.
+  content = sanitizePublicContent(content);
+
   if (!content) {
     let error =
       sanitizePublicText(lastError) ||
@@ -230,7 +234,7 @@ export async function GET(req: NextRequest) {
         storageId,
         idKind,
         bucket,
-        source: `${PUBLIC_INTEL_SOURCE} · IntelX`,
+        source: `${PUBLIC_BRAND} · IntelX`,
         content: "",
         error,
         hasContent: false,
@@ -243,8 +247,9 @@ export async function GET(req: NextRequest) {
     storageId,
     idKind,
     bucket,
-    source: `${PUBLIC_INTEL_SOURCE} · IntelX`,
+    source: `${PUBLIC_BRAND} · IntelX`,
     content,
+    poweredBy: PUBLIC_BRAND,
     hasContent: true,
   });
 }

@@ -7,6 +7,7 @@ import {
   PUBLIC_INTEL_SOURCE,
   publicSearchError,
   publicServiceUnavailable,
+  sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
@@ -1323,8 +1324,9 @@ export async function fetchCsintIntelx(
     const text = await res.text();
 
     // Docs: success is raw text/plain; errors are JSON.
+    // Always strip csint.pro / "powered by csint tools" credits from dumps.
     if (contentType.includes("text/plain") && res.ok && text.trim()) {
-      return { content: text, bucket: resolvedBucket };
+      return { content: sanitizePublicContent(text), bucket: resolvedBucket };
     }
 
     let data: Record<string, unknown> = {};
@@ -1332,12 +1334,15 @@ export async function fetchCsintIntelx(
       data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
     } catch {
       if (res.ok && text.trim()) {
-        return { content: text, bucket: resolvedBucket };
+        return { content: sanitizePublicContent(text), bucket: resolvedBucket };
       }
     }
 
     if (data.success === true && typeof data.content === "string") {
-      return { content: data.content, bucket: resolvedBucket };
+      return {
+        content: sanitizePublicContent(data.content),
+        bucket: resolvedBucket,
+      };
     }
 
     // Prefer details (e.g. "HTTP 404") when present — clearer than the generic error title.
