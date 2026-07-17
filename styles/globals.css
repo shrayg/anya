@@ -3887,6 +3887,8 @@ html[data-splash="active"] [data-splash-target] {
   display: block;
   width: 100%;
   height: 100%;
+  /* Auto-fit via viewBox + preserveAspectRatio meet; overflow clips chrome only. */
+  overflow: visible;
 }
 
 .site-pt-mindmap-empty {
