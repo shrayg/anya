@@ -3862,8 +3862,8 @@ html[data-splash="active"] [data-splash-target] {
 .site-pt-mindmap {
   position: relative;
   flex: 1 1 auto;
-  min-height: 22rem;
-  height: clamp(24rem, 58vh, 40rem);
+  min-height: 26rem;
+  height: clamp(26rem, 62vh, 44rem);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;
   background:
@@ -3934,7 +3934,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .site-pt-mind-label {
   fill: #e4e4e7;
-  font-size: 11px;
+  font-size: 12px;
   font-family: inherit;
   paint-order: stroke;
   stroke: rgba(8, 8, 10, 0.85);
@@ -3944,7 +3944,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .site-pt-mind-label--root {
   fill: #fce7f3;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
