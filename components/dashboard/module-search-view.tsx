@@ -64,7 +64,10 @@ import { isDatingAppSlug, normalizeDatingQuery } from "@/lib/dating-search";
 import type { DomainSearchResult } from "@/lib/domain-search";
 import { extractStealerLogEntries, normalizeDomain } from "@/lib/domain-search";
 import type { SitePentestResult } from "@/lib/site-pentest-shared";
-import { parseSitePentestTarget } from "@/lib/site-pentest-shared";
+import {
+  defaultSitePentestModules,
+  parseSitePentestTarget,
+} from "@/lib/site-pentest-shared";
 import type { FivemSearchResult } from "@/lib/fivem-search";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
 import { checkModuleAccess, resolveUserPlan, shouldBlurResults } from "@/lib/plans";
@@ -216,6 +219,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [blurResults, setBlurResults] = useState(false);
   const [selectedExportIndex, setSelectedExportIndex] = useState<number | null>(null);
   const [casesLoaded, setCasesLoaded] = useState(false);
+  const [pentestModules, setPentestModules] = useState(() =>
+    defaultSitePentestModules(),
+  );
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -652,8 +658,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         activeType === "instagram"
           ? "&maxUsers=1500&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4"
           : "";
+      const pentestParam =
+        activeType === "site-pentest"
+          ? `&modules=${encodeURIComponent(pentestModules.join(","))}`
+          : "";
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}${instagramParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}${instagramParam}${pentestParam}`,
       );
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
@@ -1353,7 +1363,66 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             </p>
           )}
 
-          {(records.length > 0 || aiResult || combResult || domainResult || discordResult || fivemResult || robloxResult || instagramResult || structuredResult) && (
+          {moduleDef.slug === "site-pentest" ? (
+            <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
+              {(structuredResult?.kind === "site-pentest" || lastSearchLabel) && (
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-zinc-400">
+                    {lastSearchLabel || "Site Pentest"}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      className="ui-btn ui-btn-ghost"
+                      disabled={!rawResult}
+                      onClick={handleExportAll}
+                      type="button"
+                    >
+                      <Download className="size-3.5" />
+                      Export all data
+                    </button>
+                    <CasePicker
+                      onChange={setSaveCaseId}
+                      options={caseOptions}
+                      value={saveCaseId}
+                    />
+                    <button
+                      className="ui-btn ui-btn-primary"
+                      disabled={!saveCaseId || savingToCase || !rawResult}
+                      onClick={handleSaveToCase}
+                      type="button"
+                    >
+                      <FolderPlus className="size-3.5" />
+                      {savingToCase ? "Saving…" : "File intel"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {saveMessage ? (
+                <p className="mb-3 text-sm text-zinc-300">{saveMessage}</p>
+              ) : null}
+              <SitePentestResults
+                blurResults={blurResults}
+                onModulesChange={setPentestModules}
+                result={
+                  structuredResult?.kind === "site-pentest"
+                    ? structuredResult.data
+                    : null
+                }
+                scanning={isSearching}
+                selectedModules={pentestModules}
+              />
+            </div>
+          ) : null}
+
+          {(records.length > 0 ||
+            aiResult ||
+            combResult ||
+            domainResult ||
+            discordResult ||
+            fivemResult ||
+            robloxResult ||
+            instagramResult ||
+            (structuredResult && structuredResult.kind !== "site-pentest")) && (
             <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-zinc-400">{lastSearchLabel}</p>
@@ -1468,12 +1537,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 <UsCourtSearchResults blurResults={blurResults} result={structuredResult.data} />
               ) : structuredResult?.kind === "us-va-sor" || structuredResult?.kind === "us-sor-national" ? (
                 <UsVaSorSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "site-pentest" ? (
-                <SitePentestResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult && PUBLIC_RECORDS_COMPOSE_KINDS.has(structuredResult.kind) ? (
+              ) : structuredResult &&
+                structuredResult.kind !== "site-pentest" &&
+                PUBLIC_RECORDS_COMPOSE_KINDS.has(structuredResult.kind) ? (
                 <UsIdentitySearchResults
                   blurResults={blurResults}
-                  result={structuredResult.data}
+                  result={structuredResult.data as UsIdentitySearchResult}
                   title={
                     PUBLIC_RECORDS_COMPOSE_TITLES[structuredResult.kind] || "Public records hits"
                   }

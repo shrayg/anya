@@ -395,7 +395,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "site-pentest",
         "site-pentest",
         "Domain or URL (e.g. example.com)",
-        "Passive website hardening audit — DNS, TLS, headers, cookies, CT names, safe path probes, public files, and indexed ports.",
+        "Passive website hardening dashboard — selectable recon modules, mindmap, DNS/TLS/headers/cookies/CT/paths/Shodan. Active attacks stay desktop-only.",
         undefined,
         undefined,
         {
