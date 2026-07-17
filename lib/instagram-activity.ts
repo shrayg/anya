@@ -1,6 +1,7 @@
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import {
   browserHeaders,
+  getInstagramDispatcher,
   getInstagramSessionId,
   requireSession,
   sleep,
@@ -189,6 +190,7 @@ async function igGetJson(url: string, usernameHint?: string): Promise<unknown> {
     headers: browserHeaders(usernameHint, sessionId, csrfToken),
     cache: "no-store",
     timeoutMs: REQUEST_TIMEOUT_MS,
+    dispatcher: getInstagramDispatcher(),
   });
   const text = await response.text();
   if (!text.trim()) {

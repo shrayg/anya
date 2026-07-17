@@ -315,7 +315,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
     try {
       const response = await fetch(
-        `/api/osint/instagram?query=${encodeURIComponent(instagramResult.query)}&moduleSlug=instagram&maxUsers=10000&enrichBios=1&bioLimit=40&bubbleMap=1&includeActivity=1`,
+        `/api/osint/instagram?query=${encodeURIComponent(instagramResult.query)}&moduleSlug=instagram&maxUsers=10000&enrichBios=1&bioLimit=60&bubbleMap=1&includeActivity=1&secondDegree=1&secondDegreeBudget=18`,
       );
       const responseText = await response.text();
       let data: InstagramSearchPayload & { error?: string };

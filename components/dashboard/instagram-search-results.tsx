@@ -7,13 +7,16 @@ import clsx from "clsx";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { InstagramActivityPanel } from "@/components/dashboard/instagram-activity-panel";
 import { InstagramBubbleMapView } from "@/components/dashboard/instagram-bubble-map";
+import { InstagramPersonaPanel } from "@/components/dashboard/instagram-persona-panel";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import type { InstagramBubbleMap } from "@/lib/instagram-bubble-map";
+import type { InstagramPersona } from "@/lib/instagram-persona";
 import type { InstagramSearchResult } from "@/lib/instagram-search";
 import { formatSearchRecords } from "@/lib/search-utils";
 
 type InstagramTab =
   | "profile"
+  | "persona"
   | "bubble"
   | "activity"
   | "mutuals"
@@ -23,6 +26,7 @@ type InstagramTab =
 
 export type InstagramSearchPayload = InstagramSearchResult & {
   bubbleMap?: InstagramBubbleMap | null;
+  persona?: InstagramPersona | null;
 };
 
 const LIST_PAGE_SIZE = 25;
@@ -167,7 +171,7 @@ export function InstagramSearchResults({
   enriching?: boolean;
 }) {
   const [tab, setTab] = useState<InstagramTab>(
-    result.bubbleMap ? "bubble" : "profile",
+    result.persona ? "persona" : result.bubbleMap ? "bubble" : "profile",
   );
 
   const leakRecords = useMemo(
@@ -177,6 +181,9 @@ export function InstagramSearchResults({
 
   const tabs: Array<{ id: InstagramTab; label: string; count?: number }> = [
     { id: "profile", label: "Profile" },
+    ...(result.persona
+      ? [{ id: "persona" as const, label: "About you" }]
+      : []),
     {
       id: "bubble",
       label: "Bubble map",
@@ -324,6 +331,13 @@ export function InstagramSearchResults({
             Open profile <ExternalLink className="size-3.5" />
           </a>
         </div>
+      ) : null}
+
+      {tab === "persona" && result.persona ? (
+        <InstagramPersonaPanel
+          blurResults={blurResults}
+          persona={result.persona}
+        />
       ) : null}
 
       {tab === "bubble" ? (

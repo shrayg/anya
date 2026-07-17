@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
 import "server-only";
 
+import { ProxyAgent } from "undici";
+
+import {
+  getActiveInstagramAccount,
+  rotateInstagramAccount,
+} from "@/lib/instagram-accounts";
+import type { SecondDegreeGraph } from "@/lib/instagram-second-degree";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import {
   fetchGodsEyeSearchSafe,
@@ -66,6 +73,7 @@ export type InstagramSearchResult = {
   following: InstagramUserSummary[];
   mutuals: InstagramUserSummary[];
   activity: InstagramActivityGraph | null;
+  secondDegree: SecondDegreeGraph | null;
   leaks: SanitizedBreachResponse;
   warnings: string[];
   truncated: {
@@ -95,34 +103,29 @@ type ListFetchResult = {
 };
 
 export function getInstagramSessionId(): string | undefined {
-  const value = process.env.INSTAGRAM_SESSION_ID?.trim();
-  return value ? decodeURIComponent(value) : undefined;
+  const account = getActiveInstagramAccount();
+  return account?.sessionId;
 }
 
 export function getInstagramCsrfToken(): string | undefined {
-  const value = process.env.INSTAGRAM_CSRF_TOKEN?.trim();
-  return value ? decodeURIComponent(value) : undefined;
+  const account = getActiveInstagramAccount();
+  return account?.csrfToken;
 }
 
 function getInstagramExtraCookies(): string {
+  const account = getActiveInstagramAccount();
   const parts: string[] = [];
-  const mid = process.env.INSTAGRAM_MID?.trim();
-  const igDid = process.env.INSTAGRAM_IG_DID?.trim();
-  const datr = process.env.INSTAGRAM_DATR?.trim();
-  const dsUserId = process.env.INSTAGRAM_DS_USER_ID?.trim();
-  if (mid) parts.push(`mid=${mid}`);
-  if (igDid) parts.push(`ig_did=${igDid}`);
-  if (datr) parts.push(`datr=${datr}`);
-  if (dsUserId) parts.push(`ds_user_id=${dsUserId}`);
+  if (account?.mid) parts.push(`mid=${account.mid}`);
+  if (account?.igDid) parts.push(`ig_did=${account.igDid}`);
+  if (account?.datr) parts.push(`datr=${account.datr}`);
+  if (account?.dsUserId) parts.push(`ds_user_id=${account.dsUserId}`);
   return parts.join("; ");
 }
 
 function buildSessionCookie(sessionId: string, csrfToken: string): string {
+  const account = getActiveInstagramAccount();
   const extra = getInstagramExtraCookies();
-  const dsUserId =
-    process.env.INSTAGRAM_DS_USER_ID?.trim() ||
-    sessionId.split(":")[0] ||
-    "";
+  const dsUserId = account?.dsUserId || sessionId.split(":")[0] || "";
   return [
     `sessionid=${sessionId}`,
     `csrftoken=${csrfToken}`,
@@ -131,6 +134,66 @@ function buildSessionCookie(sessionId: string, csrfToken: string): string {
   ]
     .filter(Boolean)
     .join("; ");
+}
+
+// ---- Residential proxy support (undici ProxyAgent) ----
+const proxyDispatcherCache = new Map<string, ProxyAgent>();
+
+/**
+ * Returns an undici dispatcher routing Instagram traffic through a residential
+ * proxy when INSTAGRAM_PROXY_URL (or the active account's proxy) is configured.
+ * This is the single most effective mitigation for datacenter-IP challenges.
+ */
+export function getInstagramDispatcher(): ProxyAgent | undefined {
+  const account = getActiveInstagramAccount();
+  const proxyUrl =
+    account?.proxyUrl || process.env.INSTAGRAM_PROXY_URL?.trim() || "";
+  if (!proxyUrl) return undefined;
+  let dispatcher = proxyDispatcherCache.get(proxyUrl);
+  if (!dispatcher) {
+    dispatcher = new ProxyAgent(proxyUrl);
+    proxyDispatcherCache.set(proxyUrl, dispatcher);
+  }
+  return dispatcher;
+}
+
+/** Detects Instagram anti-automation challenge / login-wall responses. */
+export function isInstagramChallengeText(text: string): boolean {
+  return /checkpoint_required|challenge_required|require_login|login_required|please wait a few minutes|verify (it'?s|its) you|captcha|automated behaviou?r/i.test(
+    text,
+  );
+}
+
+/**
+ * Runs an Instagram operation with bounded retries. On a 429 / challenge, it
+ * backs off and (if more than one account is configured) rotates to the next
+ * session so the pool spreads Instagram's per-account/IP budget.
+ */
+export async function withInstagramRateLimitRetry<T>(
+  operation: () => Promise<T>,
+  options?: { retries?: number; baseDelayMs?: number },
+): Promise<T> {
+  const retries = options?.retries ?? 2;
+  const baseDelay = options?.baseDelayMs ?? 1_500;
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      const retryable =
+        /rate.?limit|429|challenge|checkpoint|require_login|please wait|html challenge|network error/i.test(
+          message,
+        );
+      if (!retryable || attempt === retries) break;
+      rotateInstagramAccount();
+      await sleep(baseDelay * (attempt + 1) + Math.random() * 400);
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Instagram request failed after retries.");
 }
 
 export function browserHeaders(
@@ -273,9 +336,26 @@ async function parseJsonResponse(response: Response): Promise<unknown> {
     );
   }
 
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith("<")) {
+    // HTML instead of JSON == login wall / captcha / "verify it's you" page.
+    throw new Error(
+      "Instagram returned an HTML challenge page (human verification). Route traffic through a residential INSTAGRAM_PROXY_URL and/or add more accounts to INSTAGRAM_ACCOUNTS to avoid datacenter-IP checkpoints.",
+    );
+  }
+
   try {
-    return JSON.parse(text) as unknown;
-  } catch {
+    const payload = JSON.parse(text) as unknown;
+    if (isInstagramChallengeText(text)) {
+      throw new Error(
+        "Instagram flagged this session (challenge_required). It needs re-verification or a residential proxy.",
+      );
+    }
+    return payload;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Instagram")) {
+      throw error;
+    }
     throw new Error("Instagram returned an unexpected response format.");
   }
 }
@@ -312,6 +392,7 @@ async function resolveUserIdByUsername(username: string): Promise<{
     headers: browserHeaders(username, sessionId, csrfToken),
     cache: "no-store",
     timeoutMs: REQUEST_TIMEOUT_MS,
+    dispatcher: getInstagramDispatcher(),
   });
 
   const payload = (await parseJsonResponse(response)) as {
@@ -364,6 +445,7 @@ export async function fetchInstagramUserInfoById(
     headers: browserHeaders(usernameHint, sessionId, csrfToken),
     cache: "no-store",
     timeoutMs: REQUEST_TIMEOUT_MS,
+    dispatcher: getInstagramDispatcher(),
   });
 
   const payload = (await parseJsonResponse(response)) as {
@@ -391,6 +473,7 @@ async function fetchWebProfileInfo(
       headers: browserHeaders(username, sessionId, csrfToken),
       cache: "no-store",
       timeoutMs: REQUEST_TIMEOUT_MS,
+      dispatcher: getInstagramDispatcher(),
     });
 
     if (!response.ok) return null;
@@ -488,6 +571,7 @@ async function fetchPublicGraphqlList(
         headers: browserHeaders(undefined, sessionId, csrfToken),
         cache: "no-store",
         timeoutMs: REQUEST_TIMEOUT_MS,
+        dispatcher: getInstagramDispatcher(),
       });
     } catch (error) {
       if (users.length > 0) {
@@ -618,6 +702,7 @@ async function fetchSessionRestList(
         headers: browserHeaders(undefined, sessionId, csrfToken),
         cache: "no-store",
         timeoutMs: REQUEST_TIMEOUT_MS,
+        dispatcher: getInstagramDispatcher(),
       });
     } catch (error) {
       if (users.length > 0) {
@@ -783,6 +868,24 @@ async function fetchFriendshipList(
   }
 }
 
+/**
+ * Fetches the "following" list of an arbitrary account (used for second-degree
+ * mutual analysis). Bounded by `cap` and tolerant of partial results.
+ */
+export async function fetchFriendshipListForSecondDegree(
+  userId: string,
+  cap: number,
+): Promise<InstagramUserSummary[]> {
+  const { result } = await fetchFriendshipList(
+    userId,
+    "following",
+    cap,
+    false,
+    undefined,
+  );
+  return result.users;
+}
+
 function computeMutuals(
   followers: InstagramUserSummary[],
   following: InstagramUserSummary[],
@@ -849,6 +952,7 @@ export async function probeInstagramAvailability(): Promise<boolean> {
         headers: browserHeaders(undefined, sessionId, csrfToken),
         cache: "no-store",
         timeoutMs: 8_000,
+        dispatcher: getInstagramDispatcher(),
       },
     );
     return response.ok || response.status === 429;
@@ -869,6 +973,8 @@ export async function searchInstagram(
     maxPosts?: number;
     maxTagged?: number;
     commentPosts?: number;
+    secondDegree?: boolean;
+    secondDegreeBudget?: number;
   },
 ): Promise<InstagramSearchResult> {
   const username = normalizeInstagramUsername(rawQuery);
@@ -895,7 +1001,10 @@ export async function searchInstagram(
 
   let profile: InstagramProfile;
   try {
-    profile = await fetchInstagramProfile(username);
+    // Rotate accounts / back off on rate-limit or challenge before giving up.
+    profile = await withInstagramRateLimitRetry(() =>
+      fetchInstagramProfile(username),
+    );
   } catch (error) {
     if (!isInstagramAuthError(error)) throw error;
     const refreshed = await ensureInstagramSession({ force: true });
@@ -1083,6 +1192,25 @@ export async function searchInstagram(
     }
   }
 
+  let secondDegree: SecondDegreeGraph | null = null;
+  if (options?.secondDegree && getInstagramSessionId() && mutuals.length >= 3) {
+    try {
+      const { computeSecondDegreeMutuals } = await import(
+        "@/lib/instagram-second-degree"
+      );
+      secondDegree = await computeSecondDegreeMutuals(mutuals, {
+        maxMutualsToProbe: options.secondDegreeBudget ?? 18,
+      });
+      warnings.push(...secondDegree.warnings);
+    } catch (error) {
+      warnings.push(
+        error instanceof Error
+          ? `Second-degree analysis failed: ${error.message}`
+          : "Second-degree analysis failed.",
+      );
+    }
+  }
+
   return {
     query: username,
     profile,
@@ -1090,6 +1218,7 @@ export async function searchInstagram(
     following,
     mutuals,
     activity,
+    secondDegree,
     leaks: leaksRaw,
     warnings,
     truncated: {

@@ -1,16 +1,18 @@
 export async function fetchWithTimeout(
   input: RequestInfo | URL,
-  init?: RequestInit & { timeoutMs?: number },
+  init?: RequestInit & { timeoutMs?: number; dispatcher?: unknown },
 ): Promise<Response> {
-  const { timeoutMs = 20_000, ...fetchInit } = init ?? {};
+  const { timeoutMs = 20_000, dispatcher, ...fetchInit } = init ?? {};
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    // `dispatcher` is an undici extension to fetch (used for proxying).
     return await fetch(input, {
       ...fetchInit,
       signal: controller.signal,
-    });
+      ...(dispatcher ? { dispatcher } : {}),
+    } as RequestInit);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Request timed out. Try again in a moment.");

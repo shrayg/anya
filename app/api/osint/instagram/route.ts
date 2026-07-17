@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { buildInstagramBubbleMap } from "@/lib/instagram-bubble-map";
+import { buildInstagramPersona } from "@/lib/instagram-persona";
 import {
   normalizeInstagramUsername,
   searchInstagram,
@@ -50,6 +51,12 @@ export async function GET(req: NextRequest) {
   const mutualFirst = req.nextUrl.searchParams.get("mutualFirst") !== "false";
   const includeActivity =
     req.nextUrl.searchParams.get("includeActivity") !== "false";
+  const secondDegree =
+    req.nextUrl.searchParams.get("secondDegree") === "1" ||
+    req.nextUrl.searchParams.get("secondDegree") === "true";
+  const secondDegreeBudgetParam = Number(
+    req.nextUrl.searchParams.get("secondDegreeBudget") ?? "18",
+  );
 
   try {
     const data = await searchInstagram(query, {
@@ -64,6 +71,10 @@ export async function GET(req: NextRequest) {
       maxPosts: Number.isFinite(maxPostsParam) ? maxPostsParam : 24,
       maxTagged: Number.isFinite(maxTaggedParam) ? maxTaggedParam : 24,
       commentPosts: Number.isFinite(commentPostsParam) ? commentPostsParam : 8,
+      secondDegree,
+      secondDegreeBudget: Number.isFinite(secondDegreeBudgetParam)
+        ? secondDegreeBudgetParam
+        : 18,
     });
 
     const bubbleMap =
@@ -76,9 +87,21 @@ export async function GET(req: NextRequest) {
         activity: data.activity,
       });
 
+    const persona =
+      data.profile &&
+      buildInstagramPersona({
+        profile: data.profile,
+        followers: data.followers,
+        following: data.following,
+        mutuals: data.mutuals,
+        activity: data.activity,
+        secondDegree: data.secondDegree,
+      });
+
     const response = {
       ...data,
       bubbleMap,
+      persona,
     };
 
     const hasGraph =

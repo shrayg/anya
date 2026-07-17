@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import "server-only";
 
 import sodium from "libsodium-wrappers";
+import { ProxyAgent } from "undici";
 
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import {
@@ -292,6 +293,12 @@ export async function loginInstagramWeb(
     );
   }
 
+  // Route the login through a residential proxy when configured — datacenter
+  // IPs almost always trigger a checkpoint on password login.
+  const proxyUrl =
+    creds.proxyUrl || process.env.INSTAGRAM_PROXY_URL?.trim() || "";
+  const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
+
   const jar: Record<string, string> = {};
 
   const warm = await fetchWithTimeout("https://www.instagram.com/", {
@@ -299,6 +306,7 @@ export async function loginInstagramWeb(
     cache: "no-store",
     timeoutMs: LOGIN_TIMEOUT_MS,
     redirect: "manual",
+    dispatcher,
   });
   collectCookies(warm, jar);
 
@@ -325,6 +333,7 @@ export async function loginInstagramWeb(
       body,
       cache: "no-store",
       timeoutMs: LOGIN_TIMEOUT_MS,
+      dispatcher,
     },
   );
   collectCookies(loginResponse, jar);
@@ -370,6 +379,7 @@ export async function loginInstagramWeb(
         body: tfBody,
         cache: "no-store",
         timeoutMs: LOGIN_TIMEOUT_MS,
+        dispatcher,
       },
     );
     collectCookies(tfResponse, jar);

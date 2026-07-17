@@ -7,6 +7,7 @@ import {
 import {
   browserHeaders,
   getInstagramCsrfToken,
+  getInstagramDispatcher,
   getInstagramSessionId,
 } from "@/lib/instagram-search";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
@@ -36,6 +37,7 @@ export async function probeInstagramSessionAlive(): Promise<boolean> {
         headers: browserHeaders(undefined, sessionId, csrf),
         cache: "no-store",
         timeoutMs: 12_000,
+        dispatcher: getInstagramDispatcher(),
       },
     );
     if (response.status === 401 || response.status === 403) return false;
