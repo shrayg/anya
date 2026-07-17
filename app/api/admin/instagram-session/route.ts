@@ -71,10 +71,20 @@ export async function GET() {
   const { loadInstagramCredentials } = await import("@/lib/instagram-login");
   const hasLoginCreds = Boolean(loadInstagramCredentials());
 
+  const { getPoolSnapshot, msUntilPoolReady } = await import(
+    "@/lib/instagram-session-pool"
+  );
+  const { instagramAccountCount } = await import("@/lib/instagram-accounts");
+
   return NextResponse.json({
     ...status,
     probeOk,
     autoLoginConfigured: hasLoginCreds,
+    accountPool: {
+      configured: instagramAccountCount(),
+      msUntilReady: msUntilPoolReady(),
+      accounts: getPoolSnapshot(),
+    },
     // Never return cookie or password values.
     help: "POST cookies (sessionid/...) OR { action:'relogin' } OR { username, password, totpSecret? }. Stored in /var/www/anya-secrets/instagram.env.",
   });

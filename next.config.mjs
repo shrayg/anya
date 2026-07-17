@@ -45,6 +45,13 @@ const nextConfig = {
   devIndicators: false,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  serverExternalPackages: [
+    "got-scraping",
+    "got",
+    "header-generator",
+    "http2-wrapper",
+    "ow",
+  ],
   turbopack: {
     root: import.meta.dirname,
   },

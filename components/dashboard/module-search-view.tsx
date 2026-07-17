@@ -173,6 +173,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(null);
   const [instagramResult, setInstagramResult] = useState<InstagramSearchPayload | null>(null);
   const [instagramEnriching, setInstagramEnriching] = useState(false);
+  const [instagramLoadingMore, setInstagramLoadingMore] = useState(false);
+  const [instagramProgressLabel, setInstagramProgressLabel] = useState("");
+  const instagramLoadGenRef = useRef(0);
   const [structuredResult, setStructuredResult] = useState<StructuredResult | null>(null);
   const [rawResult, setRawResult] = useState("");
   const [lastSearchLabel, setLastSearchLabel] = useState("");
@@ -308,14 +311,14 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   };
 
   const handleInstagramEnrichBios = async () => {
-    if (!instagramResult?.query || instagramEnriching) return;
+    if (!instagramResult?.query || instagramEnriching || instagramLoadingMore) return;
 
     setInstagramEnriching(true);
     setError("");
 
     try {
       const response = await fetch(
-        `/api/osint/instagram?query=${encodeURIComponent(instagramResult.query)}&moduleSlug=instagram&maxUsers=10000&enrichBios=1&bioLimit=60&bubbleMap=1&includeActivity=1&secondDegree=1&secondDegreeBudget=18`,
+        `/api/osint/instagram?query=${encodeURIComponent(instagramResult.query)}&moduleSlug=instagram&maxUsers=500&enrichBios=1&bioLimit=60&bubbleMap=1&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4&secondDegree=1&secondDegreeBudget=12`,
       );
       const responseText = await response.text();
       let data: InstagramSearchPayload & { error?: string };
@@ -474,6 +477,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     setRobloxResult(null);
     setInstagramResult(null);
     setInstagramEnriching(false);
+    setInstagramLoadingMore(false);
+    setInstagramProgressLabel("");
+    instagramLoadGenRef.current += 1;
     setStructuredResult(null);
     setRawResult("");
     setSaveMessage("");
@@ -638,10 +644,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         activeType === "intelx"
           ? `&bucket=${encodeURIComponent(intelxBucket)}`
           : "";
-      // Keep Instagram under Cloudflare's ~100s origin timeout on the first pass.
+      // Progressive Instagram load: first ~100 for fast map paint, then paced
+      // batches up to 500 so we self-rate-limit instead of scraping thousands.
       const instagramParam =
         activeType === "instagram"
-          ? "&maxUsers=1500&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4"
+          ? "&maxUsers=100&includeActivity=0&enrichBios=0"
           : "";
       const searchResponse = await fetch(
         `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}${instagramParam}`,
@@ -841,6 +848,64 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(instagramData, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
+        // Background paced batches — UI already shows first ~100.
+        const loadGen = ++instagramLoadGenRef.current;
+        const username = instagramData.query || trimmed;
+        void (async () => {
+          const chill = (ms: number) =>
+            new Promise((resolve) => setTimeout(resolve, ms));
+
+          setInstagramLoadingMore(true);
+          setInstagramProgressLabel(
+            "First ~100 connections loaded. Pausing, then fetching up to 500…",
+          );
+
+          try {
+            // Self-rate-limit: wait before the heavier pass.
+            await chill(4_000);
+            if (!isMountedRef.current || instagramLoadGenRef.current !== loadGen) {
+              return;
+            }
+
+            setInstagramProgressLabel(
+              "Fetching more connections (capped at 500) and activity signals…",
+            );
+
+            const response = await fetch(
+              `/api/osint/instagram?query=${encodeURIComponent(username)}&moduleSlug=instagram&maxUsers=500&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4&enrichBios=0`,
+            );
+            const text = await response.text();
+            if (!response.ok || !text) return;
+
+            let next: InstagramSearchPayload;
+            try {
+              next = JSON.parse(text) as InstagramSearchPayload;
+            } catch {
+              return;
+            }
+            if (!isMountedRef.current || instagramLoadGenRef.current !== loadGen) {
+              return;
+            }
+            if (!next.profile && !(next.followers?.length || next.following?.length)) {
+              return;
+            }
+
+            setInstagramResult({
+              ...next,
+              mutuals: next.mutuals ?? [],
+            });
+            setRawResult(JSON.stringify(next, null, 2));
+          } catch {
+            // Keep the first batch on screen if the paced pass fails.
+          } finally {
+            if (isMountedRef.current && instagramLoadGenRef.current === loadGen) {
+              setInstagramLoadingMore(false);
+              setInstagramProgressLabel("");
+            }
+          }
+        })();
+
         return;
       }
 
@@ -1406,8 +1471,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 <InstagramSearchResults
                   blurResults={blurResults}
                   enriching={instagramEnriching}
+                  loadingMore={instagramLoadingMore}
                   onEnrichBios={handleInstagramEnrichBios}
                   onSelectExportIndex={handleSelectExportIndex}
+                  progressLabel={instagramProgressLabel}
                   result={instagramResult}
                   selectedExportIndex={selectedExportIndex}
                 />

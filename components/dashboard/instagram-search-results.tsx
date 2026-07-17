@@ -259,6 +259,8 @@ export function InstagramSearchResults({
   onSelectExportIndex,
   onEnrichBios,
   enriching = false,
+  loadingMore = false,
+  progressLabel,
 }: {
   result: InstagramSearchPayload;
   blurResults?: boolean;
@@ -266,6 +268,8 @@ export function InstagramSearchResults({
   onSelectExportIndex?: (index: number) => void;
   onEnrichBios?: () => void;
   enriching?: boolean;
+  loadingMore?: boolean;
+  progressLabel?: string;
 }) {
   const [tab, setTab] = useState<InstagramTab>(
     result.persona ? "persona" : result.bubbleMap ? "bubble" : "profile",
@@ -319,6 +323,19 @@ export function InstagramSearchResults({
 
   return (
     <div className="space-y-4">
+      {loadingMore ? (
+        <div className="rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+          <p className="font-medium">
+            {progressLabel ||
+              "First batch loaded — pulling more connections in the background…"}
+          </p>
+          <p className="mt-1 text-xs text-sky-100/75">
+            Bubble map and lists update as each paced batch arrives. We pause
+            between batches to avoid Instagram rate limits.
+          </p>
+        </div>
+      ) : null}
+
       {result.warnings.length > 0 ? (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           {result.warnings.map((warning) => (

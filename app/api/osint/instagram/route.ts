@@ -12,7 +12,9 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-const DEFAULT_MAX_USERS = 2_000;
+/** Hard self-limit so we don't scrape thousands of relationships per search. */
+const DEFAULT_MAX_USERS = 500;
+const ABSOLUTE_MAX_USERS = 500;
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "instagram");
@@ -59,10 +61,16 @@ export async function GET(req: NextRequest) {
   );
 
   try {
+    const cappedMaxUsers = Math.min(
+      Math.max(
+        Number.isFinite(maxUsersParam) ? maxUsersParam : DEFAULT_MAX_USERS,
+        1,
+      ),
+      ABSOLUTE_MAX_USERS,
+    );
+
     const data = await searchInstagram(query, {
-      maxUsers: Number.isFinite(maxUsersParam)
-        ? maxUsersParam
-        : DEFAULT_MAX_USERS,
+      maxUsers: cappedMaxUsers,
       lists,
       enrichBios,
       bioLimit: Number.isFinite(bioLimitParam) ? bioLimitParam : 40,

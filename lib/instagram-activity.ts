@@ -1,9 +1,7 @@
-import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import { instagramFetch } from "@/lib/instagram-http";
+import { acquirePoolAccount } from "@/lib/instagram-session-pool";
 import {
-  browserHeaders,
-  getInstagramDispatcher,
   getInstagramSessionId,
-  requireSession,
   sleep,
   type InstagramUserSummary,
 } from "@/lib/instagram-search";
@@ -13,7 +11,8 @@ const DEFAULT_MAX_POSTS = 24;
 const DEFAULT_MAX_TAGGED = 24;
 const DEFAULT_COMMENT_POSTS = 8;
 const DEFAULT_COMMENTS_PER_POST = 40;
-const PAGE_DELAY_MS = 350;
+const PAGE_DELAY_MS = 500;
+const MEDIA_CHALLENGE_RETRIES = 2;
 
 export type InstagramPostLocation = {
   id?: string;
@@ -185,45 +184,60 @@ function mapPost(
 }
 
 async function igGetJson(url: string, usernameHint?: string): Promise<unknown> {
-  const { sessionId, csrfToken } = requireSession();
-  const response = await fetchWithTimeout(url, {
-    headers: browserHeaders(usernameHint, sessionId, csrfToken),
-    cache: "no-store",
-    timeoutMs: REQUEST_TIMEOUT_MS,
-    dispatcher: getInstagramDispatcher(),
-  });
-  const text = await response.text();
-  if (!text.trim()) {
-    throw new Error(
-      response.status === 429
-        ? "Instagram rate-limited media requests."
-        : `Instagram returned an empty media response (${response.status}).`,
-    );
-  }
-  if (text.trimStart().startsWith("<")) {
-    throw new Error(
-      "Instagram returned an HTML challenge page while loading media. Try again shortly.",
-    );
-  }
-  try {
-    const payload = JSON.parse(text) as unknown;
-    if (!response.ok) {
-      const message =
-        typeof payload === "object" &&
-        payload &&
-        "message" in payload &&
-        typeof (payload as { message?: unknown }).message === "string"
-          ? (payload as { message: string }).message
-          : `Instagram media request failed (${response.status}).`;
-      throw new Error(message);
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MEDIA_CHALLENGE_RETRIES; attempt += 1) {
+    try {
+      const response = await instagramFetch(url, {
+        username: usernameHint,
+        timeoutMs: REQUEST_TIMEOUT_MS,
+        forceRotate: attempt > 0,
+      });
+      const text = await response.text();
+      if (!text.trim()) {
+        throw new Error(
+          response.status === 429
+            ? "Instagram rate-limited media requests."
+            : `Instagram returned an empty media response (${response.status}).`,
+        );
+      }
+      if (text.trimStart().startsWith("<")) {
+        throw new Error(
+          "Instagram returned an HTML challenge page while loading media. Try again shortly.",
+        );
+      }
+      try {
+        const payload = JSON.parse(text) as unknown;
+        if (!response.ok) {
+          const message =
+            typeof payload === "object" &&
+            payload &&
+            "message" in payload &&
+            typeof (payload as { message?: unknown }).message === "string"
+              ? (payload as { message: string }).message
+              : `Instagram media request failed (${response.status}).`;
+          throw new Error(message);
+        }
+        return payload;
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("Instagram")) {
+          throw error;
+        }
+        throw new Error("Instagram returned unexpected media JSON.");
+      }
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      const retryable = /rate.?limit|429|challenge|html challenge|network/i.test(
+        message,
+      );
+      if (!retryable || attempt === MEDIA_CHALLENGE_RETRIES) break;
+      acquirePoolAccount({ forceRotate: true });
+      await sleep(1_200 * (attempt + 1) + Math.random() * 400);
     }
-    return payload;
-  } catch (error) {
-    if (error instanceof Error && error.message.startsWith("Instagram")) {
-      throw error;
-    }
-    throw new Error("Instagram returned unexpected media JSON.");
   }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Instagram media request failed.");
 }
 
 async function fetchPaginatedFeed(

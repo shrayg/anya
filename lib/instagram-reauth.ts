@@ -5,12 +5,9 @@ import {
   loadInstagramCredentials,
 } from "@/lib/instagram-login";
 import {
-  browserHeaders,
-  getInstagramCsrfToken,
-  getInstagramDispatcher,
   getInstagramSessionId,
 } from "@/lib/instagram-search";
-import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import { instagramFetch } from "@/lib/instagram-http";
 
 let refreshInFlight: Promise<boolean> | null = null;
 let lastRefreshAt = 0;
@@ -29,15 +26,12 @@ export function isInstagramAuthError(error: unknown): boolean {
 export async function probeInstagramSessionAlive(): Promise<boolean> {
   const sessionId = getInstagramSessionId();
   if (!sessionId) return false;
-  const csrf = getInstagramCsrfToken() ?? "0";
   try {
-    const response = await fetchWithTimeout(
+    const response = await instagramFetch(
       "https://www.instagram.com/api/v1/accounts/edit/web_form_data/",
       {
-        headers: browserHeaders(undefined, sessionId, csrf),
-        cache: "no-store",
         timeoutMs: 12_000,
-        dispatcher: getInstagramDispatcher(),
+        reportToPool: false,
       },
     );
     if (response.status === 401 || response.status === 403) return false;

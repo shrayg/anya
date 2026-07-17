@@ -8,6 +8,8 @@ import "server-only";
  *   1. Routing traffic through a residential proxy (INSTAGRAM_PROXY_URL).
  *   2. Rotating between multiple logged-in sessions (INSTAGRAM_ACCOUNTS) so no
  *      single account/IP burns through its request budget.
+ *   3. Sticky account↔proxy pairing with cooldown/retire lives in
+ *      `instagram-session-pool.ts` (used by `instagram-http.ts`).
  *
  * Account 0 is always the primary env session (INSTAGRAM_SESSION_ID …), so the
  * existing single-account setup and auto-login keep working unchanged.
@@ -119,6 +121,10 @@ export function instagramAccountCount(): number {
 /**
  * Advance to the next account in the pool. Returns true if there is more than
  * one account (i.e. rotation actually changed something).
+ *
+ * Prefer `acquirePoolAccount({ forceRotate: true })` from
+ * `instagram-session-pool` for cooldown-aware rotation; this remains as a
+ * simple fallback used by older call sites.
  */
 export function rotateInstagramAccount(): boolean {
   const count = getInstagramAccounts().length;
@@ -129,4 +135,15 @@ export function rotateInstagramAccount(): boolean {
 
 export function resetInstagramAccountRotation(): void {
   activeIndex = 0;
+}
+
+/** Used by the session pool when it force-rotates, so both indexes stay aligned. */
+export function setActiveInstagramAccountIndex(index: number): void {
+  const count = getInstagramAccounts().length;
+  if (count === 0) return;
+  activeIndex = ((index % count) + count) % count;
+}
+
+export function findInstagramAccountIndex(label: string): number {
+  return getInstagramAccounts().findIndex((account) => account.label === label);
 }

@@ -7,8 +7,18 @@ import {
   getActiveInstagramAccount,
   rotateInstagramAccount,
 } from "@/lib/instagram-accounts";
+import {
+  browserHeadersForAccount,
+  getInstagramDispatcherForAccount,
+  instagramFetch,
+  isInstagramChallengeBody,
+  type InstagramHttpResponse,
+} from "@/lib/instagram-http";
+import {
+  acquirePoolAccount,
+  msUntilPoolReady,
+} from "@/lib/instagram-session-pool";
 import type { SecondDegreeGraph } from "@/lib/instagram-second-degree";
-import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import {
   fetchGodsEyeSearchSafe,
   sanitizeGodsEyeSearch,
@@ -22,16 +32,17 @@ import {
 export { normalizeInstagramUsername } from "@/lib/instagram-username";
 import { normalizeInstagramUsername } from "@/lib/instagram-username";
 
-const INSTAGRAM_WEB_APP_ID = "936619743392459";
 const FOLLOWERS_QUERY_HASH = "37479f2b8209594dde7facb0d904896a";
 const FOLLOWING_QUERY_HASH = "58712303d941c6855d4e888c5f0cd22f";
 
-const DEFAULT_MAX_USERS = 10_000;
-const ABSOLUTE_MAX_USERS = 10_000;
+const DEFAULT_MAX_USERS = 500;
+const ABSOLUTE_MAX_USERS = 500;
 const PAGE_SIZE = 50;
 const REQUEST_TIMEOUT_MS = 25_000;
-const LIST_PAGE_DELAY_MS = 350;
-const MAX_EMPTY_RETRIES = 3;
+/** Pace Instagram list pagination so we don't trip account-level limits. */
+const LIST_PAGE_DELAY_MS = 900;
+const MAX_EMPTY_RETRIES = 5;
+const PAGE_CHALLENGE_RETRIES = 2;
 const BIO_ENRICH_CONCURRENCY = 4;
 const DEFAULT_BIO_ENRICH_LIMIT = 40;
 
@@ -112,62 +123,22 @@ export function getInstagramCsrfToken(): string | undefined {
   return account?.csrfToken;
 }
 
-function getInstagramExtraCookies(): string {
-  const account = getActiveInstagramAccount();
-  const parts: string[] = [];
-  if (account?.mid) parts.push(`mid=${account.mid}`);
-  if (account?.igDid) parts.push(`ig_did=${account.igDid}`);
-  if (account?.datr) parts.push(`datr=${account.datr}`);
-  if (account?.dsUserId) parts.push(`ds_user_id=${account.dsUserId}`);
-  return parts.join("; ");
-}
-
-function buildSessionCookie(sessionId: string, csrfToken: string): string {
-  const account = getActiveInstagramAccount();
-  const extra = getInstagramExtraCookies();
-  const dsUserId = account?.dsUserId || sessionId.split(":")[0] || "";
-  return [
-    `sessionid=${sessionId}`,
-    `csrftoken=${csrfToken}`,
-    dsUserId ? `ds_user_id=${dsUserId}` : "",
-    extra,
-  ]
-    .filter(Boolean)
-    .join("; ");
-}
-
-// ---- Residential proxy support (undici ProxyAgent) ----
-const proxyDispatcherCache = new Map<string, ProxyAgent>();
-
 /**
- * Returns an undici dispatcher routing Instagram traffic through a residential
- * proxy when INSTAGRAM_PROXY_URL (or the active account's proxy) is configured.
- * This is the single most effective mitigation for datacenter-IP challenges.
+ * Returns an undici dispatcher for the active account's sticky proxy.
+ * Prefer `instagramFetch` (got-scraping) for new code.
  */
 export function getInstagramDispatcher(): ProxyAgent | undefined {
-  const account = getActiveInstagramAccount();
-  const proxyUrl =
-    account?.proxyUrl || process.env.INSTAGRAM_PROXY_URL?.trim() || "";
-  if (!proxyUrl) return undefined;
-  let dispatcher = proxyDispatcherCache.get(proxyUrl);
-  if (!dispatcher) {
-    dispatcher = new ProxyAgent(proxyUrl);
-    proxyDispatcherCache.set(proxyUrl, dispatcher);
-  }
-  return dispatcher;
+  return getInstagramDispatcherForAccount(getActiveInstagramAccount());
 }
 
 /** Detects Instagram anti-automation challenge / login-wall responses. */
 export function isInstagramChallengeText(text: string): boolean {
-  return /checkpoint_required|challenge_required|require_login|login_required|please wait a few minutes|verify (it'?s|its) you|captcha|automated behaviou?r/i.test(
-    text,
-  );
+  return isInstagramChallengeBody(text);
 }
 
 /**
  * Runs an Instagram operation with bounded retries. On a 429 / challenge, it
- * backs off and (if more than one account is configured) rotates to the next
- * session so the pool spreads Instagram's per-account/IP budget.
+ * backs off and rotates to the next healthy pooled session.
  */
 export async function withInstagramRateLimitRetry<T>(
   operation: () => Promise<T>,
@@ -183,12 +154,18 @@ export async function withInstagramRateLimitRetry<T>(
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
       const retryable =
-        /rate.?limit|429|challenge|checkpoint|require_login|please wait|html challenge|network error/i.test(
+        /rate.?limit|429|challenge|checkpoint|require_login|please wait|html challenge|network error|cooling/i.test(
           message,
         );
       if (!retryable || attempt === retries) break;
+      acquirePoolAccount({ forceRotate: true });
       rotateInstagramAccount();
-      await sleep(baseDelay * (attempt + 1) + Math.random() * 400);
+      const poolWait = msUntilPoolReady();
+      const waitMs =
+        poolWait > 0
+          ? Math.min(poolWait, 15_000)
+          : baseDelay * (attempt + 1) + Math.random() * 400;
+      await sleep(waitMs);
     }
   }
   throw lastError instanceof Error
@@ -201,29 +178,18 @@ export function browserHeaders(
   sessionId?: string,
   csrfToken?: string,
 ): Record<string, string> {
-  const headers: Record<string, string> = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "x-ig-app-id": INSTAGRAM_WEB_APP_ID,
-    "x-requested-with": "XMLHttpRequest",
-    "x-asbd-id": "359341",
-    Accept: "*/*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin",
-    Origin: "https://www.instagram.com",
-    Referer: username
-      ? `https://www.instagram.com/${username}/`
-      : "https://www.instagram.com/",
+  const account = getActiveInstagramAccount();
+  const effective = {
+    label: account?.label ?? "primary",
+    sessionId: sessionId ?? account?.sessionId,
+    csrfToken: csrfToken ?? account?.csrfToken,
+    dsUserId: account?.dsUserId,
+    mid: account?.mid,
+    igDid: account?.igDid,
+    datr: account?.datr,
+    proxyUrl: account?.proxyUrl,
   };
-
-  if (sessionId && csrfToken) {
-    headers["x-csrftoken"] = csrfToken;
-    headers.Cookie = buildSessionCookie(sessionId, csrfToken);
-  }
-
-  return headers;
+  return browserHeadersForAccount(effective, username);
 }
 
 function mapUserSummary(raw: Record<string, unknown>): InstagramUserSummary | null {
@@ -326,7 +292,9 @@ function mapProfileFromWeb(raw: Record<string, unknown>): InstagramProfile {
   };
 }
 
-async function parseJsonResponse(response: Response): Promise<unknown> {
+async function parseJsonResponse(
+  response: InstagramHttpResponse | Response,
+): Promise<unknown> {
   const text = await response.text();
   if (!text.trim()) {
     throw new Error(
@@ -386,13 +354,11 @@ async function resolveUserIdByUsername(username: string): Promise<{
   isVerified: boolean;
   socialContext?: string;
 }> {
-  const { sessionId, csrfToken } = requireSession();
+requireSession();
   const url = `https://www.instagram.com/web/search/topsearch/?context=blended&query=${encodeURIComponent(username)}&include_reel=true`;
-  const response = await fetchWithTimeout(url, {
-    headers: browserHeaders(username, sessionId, csrfToken),
-    cache: "no-store",
+  const response = await instagramFetch(url, {
+    username,
     timeoutMs: REQUEST_TIMEOUT_MS,
-    dispatcher: getInstagramDispatcher(),
   });
 
   const payload = (await parseJsonResponse(response)) as {
@@ -439,13 +405,11 @@ export async function fetchInstagramUserInfoById(
   userId: string,
   usernameHint?: string,
 ): Promise<InstagramProfile> {
-  const { sessionId, csrfToken } = requireSession();
+requireSession();
   const url = `https://www.instagram.com/api/v1/users/${userId}/info/`;
-  const response = await fetchWithTimeout(url, {
-    headers: browserHeaders(usernameHint, sessionId, csrfToken),
-    cache: "no-store",
+  const response = await instagramFetch(url, {
+    username: usernameHint,
     timeoutMs: REQUEST_TIMEOUT_MS,
-    dispatcher: getInstagramDispatcher(),
   });
 
   const payload = (await parseJsonResponse(response)) as {
@@ -464,16 +428,15 @@ export async function fetchInstagramUserInfoById(
 async function fetchWebProfileInfo(
   username: string,
 ): Promise<InstagramProfile | null> {
-  const sessionId = getInstagramSessionId();
-  const csrfToken = getInstagramCsrfToken() ?? randomUUID().replace(/-/g, "");
   const url = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`;
+  const hasSession = Boolean(getInstagramSessionId());
 
   try {
-    const response = await fetchWithTimeout(url, {
-      headers: browserHeaders(username, sessionId, csrfToken),
-      cache: "no-store",
+    const response = await instagramFetch(url, {
+      username,
       timeoutMs: REQUEST_TIMEOUT_MS,
-      dispatcher: getInstagramDispatcher(),
+      useSession: hasSession,
+      reportToPool: hasSession,
     });
 
     if (!response.ok) return null;
@@ -542,8 +505,7 @@ async function fetchPublicGraphqlList(
   const queryHash =
     kind === "followers" ? FOLLOWERS_QUERY_HASH : FOLLOWING_QUERY_HASH;
   const edgeKey = kind === "followers" ? "edge_followed_by" : "edge_follow";
-  const sessionId = getInstagramSessionId();
-  const csrfToken = getInstagramCsrfToken() ?? randomUUID().replace(/-/g, "");
+  const stickyLabel = getActiveInstagramAccount()?.label;
 
   const users: InstagramUserSummary[] = [];
   const seen = new Set<string>();
@@ -565,24 +527,42 @@ async function fetchPublicGraphqlList(
     const url = `https://www.instagram.com/graphql/query/?query_hash=${queryHash}&variables=${encodeURIComponent(JSON.stringify(variables))}`;
     pagesScanned += 1;
 
-    let response: Response;
-    try {
-      response = await fetchWithTimeout(url, {
-        headers: browserHeaders(undefined, sessionId, csrfToken),
-        cache: "no-store",
-        timeoutMs: REQUEST_TIMEOUT_MS,
-        dispatcher: getInstagramDispatcher(),
-      });
-    } catch (error) {
+    let response: InstagramHttpResponse | null = null;
+    let pageError: unknown;
+    for (let attempt = 0; attempt <= PAGE_CHALLENGE_RETRIES; attempt += 1) {
+      try {
+        response = await instagramFetch(url, {
+          timeoutMs: REQUEST_TIMEOUT_MS,
+          preferLabel: stickyLabel,
+          forceRotate: attempt > 0,
+          useSession: Boolean(getInstagramSessionId()),
+        });
+        pageError = undefined;
+        break;
+      } catch (error) {
+        pageError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        const retryable = /rate.?limit|429|challenge|html challenge|network/i.test(
+          message,
+        );
+        if (!retryable || attempt === PAGE_CHALLENGE_RETRIES) break;
+        await sleep(1_000 * (attempt + 1) + Math.random() * 400);
+      }
+    }
+
+    if (!response) {
       if (users.length > 0) {
         truncated = true;
         break;
       }
-      throw error;
+      throw pageError instanceof Error
+        ? pageError
+        : new Error(`Instagram ${kind} lookup failed.`);
     }
 
     if (response.status === 429) {
       emptyRetries += 1;
+      acquirePoolAccount({ forceRotate: true });
       if (emptyRetries > MAX_EMPTY_RETRIES) {
         if (users.length > 0) {
           truncated = true;
@@ -592,11 +572,11 @@ async function fetchPublicGraphqlList(
           "Instagram rate-limited list pagination. Wait a minute and retry.",
         );
       }
-      await sleep(1_200 * emptyRetries);
+      await sleep(1_500 * emptyRetries);
       continue;
     }
 
-    const payload = (await parseJsonResponse(response)) as {
+    let payload: {
       data?: {
         user?: Record<
           string,
@@ -608,6 +588,21 @@ async function fetchPublicGraphqlList(
       };
       message?: string;
     };
+    try {
+      payload = (await parseJsonResponse(response)) as typeof payload;
+    } catch (error) {
+      emptyRetries += 1;
+      acquirePoolAccount({ forceRotate: true });
+      if (emptyRetries > MAX_EMPTY_RETRIES) {
+        if (users.length > 0) {
+          truncated = true;
+          break;
+        }
+        throw error;
+      }
+      await sleep(1_500 * emptyRetries);
+      continue;
+    }
 
     if (!response.ok) {
       if (users.length > 0) {
@@ -663,7 +658,7 @@ async function fetchPublicGraphqlList(
     }
 
     endCursor = pageInfo.end_cursor;
-    await sleep(LIST_PAGE_DELAY_MS);
+    await sleep(LIST_PAGE_DELAY_MS + Math.random() * 200);
   }
 
   return { users, truncated, pagesScanned };
@@ -675,7 +670,8 @@ async function fetchSessionRestList(
   maxUsers: number,
   options?: { stopWhenFoundAllIds?: Set<string> },
 ): Promise<ListFetchResult> {
-  const { sessionId, csrfToken } = requireSession();
+  requireSession();
+  const stickyLabel = getActiveInstagramAccount()?.label;
   const users: InstagramUserSummary[] = [];
   const seen = new Set<string>();
   let maxId: string | undefined;
@@ -696,24 +692,41 @@ async function fetchSessionRestList(
     const url = `https://www.instagram.com/api/v1/friendships/${userId}/${kind}/?${params.toString()}`;
     pagesScanned += 1;
 
-    let response: Response;
-    try {
-      response = await fetchWithTimeout(url, {
-        headers: browserHeaders(undefined, sessionId, csrfToken),
-        cache: "no-store",
-        timeoutMs: REQUEST_TIMEOUT_MS,
-        dispatcher: getInstagramDispatcher(),
-      });
-    } catch (error) {
+    let response: InstagramHttpResponse | null = null;
+    let pageError: unknown;
+    for (let attempt = 0; attempt <= PAGE_CHALLENGE_RETRIES; attempt += 1) {
+      try {
+        response = await instagramFetch(url, {
+          timeoutMs: REQUEST_TIMEOUT_MS,
+          preferLabel: stickyLabel,
+          forceRotate: attempt > 0,
+        });
+        pageError = undefined;
+        break;
+      } catch (error) {
+        pageError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        const retryable = /rate.?limit|429|challenge|html challenge|network/i.test(
+          message,
+        );
+        if (!retryable || attempt === PAGE_CHALLENGE_RETRIES) break;
+        await sleep(1_000 * (attempt + 1) + Math.random() * 400);
+      }
+    }
+
+    if (!response) {
       if (users.length > 0) {
         truncated = true;
         break;
       }
-      throw error;
+      throw pageError instanceof Error
+        ? pageError
+        : new Error(`Instagram ${kind} lookup failed.`);
     }
 
     if (response.status === 429) {
       emptyRetries += 1;
+      acquirePoolAccount({ forceRotate: true });
       if (emptyRetries > MAX_EMPTY_RETRIES) {
         if (users.length > 0) {
           truncated = true;
@@ -723,16 +736,31 @@ async function fetchSessionRestList(
           "Instagram rate-limited list pagination. Wait a minute and retry.",
         );
       }
-      await sleep(1_200 * emptyRetries);
+      await sleep(1_500 * emptyRetries);
       continue;
     }
 
-    const payload = (await parseJsonResponse(response)) as {
+    let payload: {
       users?: Array<Record<string, unknown>>;
       next_max_id?: string | number;
       message?: string;
       status?: string;
     };
+    try {
+      payload = (await parseJsonResponse(response)) as typeof payload;
+    } catch (error) {
+      emptyRetries += 1;
+      acquirePoolAccount({ forceRotate: true });
+      if (emptyRetries > MAX_EMPTY_RETRIES) {
+        if (users.length > 0) {
+          truncated = true;
+          break;
+        }
+        throw error;
+      }
+      await sleep(1_500 * emptyRetries);
+      continue;
+    }
 
     if (!response.ok || payload.status === "fail") {
       if (users.length > 0) {
@@ -788,7 +816,7 @@ async function fetchSessionRestList(
 
     maxId = nextMaxId;
     emptyRetries = 0;
-    await sleep(LIST_PAGE_DELAY_MS);
+    await sleep(LIST_PAGE_DELAY_MS + Math.random() * 200);
   }
 
   return { users, truncated, pagesScanned };
@@ -945,14 +973,11 @@ export async function probeInstagramAvailability(): Promise<boolean> {
   if (!getInstagramSessionId()) return false;
 
   try {
-    const { sessionId, csrfToken } = requireSession();
-    const response = await fetchWithTimeout(
+    const response = await instagramFetch(
       "https://www.instagram.com/api/v1/accounts/edit/web_form_data/",
       {
-        headers: browserHeaders(undefined, sessionId, csrfToken),
-        cache: "no-store",
         timeoutMs: 8_000,
-        dispatcher: getInstagramDispatcher(),
+        reportToPool: false,
       },
     );
     return response.ok || response.status === 429;
@@ -1156,6 +1181,7 @@ export async function searchInstagram(
     !followersTruncated &&
     profile.followersCount > followers.length &&
     followers.length > 0 &&
+    profile.followersCount - followers.length > 5 &&
     (lists === "both" || lists === "followers")
   ) {
     warnings.push(
@@ -1167,6 +1193,7 @@ export async function searchInstagram(
     !followingTruncated &&
     profile.followingCount > following.length &&
     following.length > 0 &&
+    profile.followingCount - following.length > 5 &&
     (lists === "both" || lists === "following")
   ) {
     warnings.push(

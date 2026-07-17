@@ -67,6 +67,7 @@
     "d3-force": "^3.0.0",
     "d3-quadtree": "^3.0.1",
     "framer-motion": "11.18.2",
+    "got-scraping": "^4.2.1",
     "intl-messageformat": "10.7.16",
     "jose": "^6.2.1",
     "libsodium-wrappers": "^0.8.4",
