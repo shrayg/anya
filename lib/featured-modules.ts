@@ -90,8 +90,6 @@ export const AI_MODULE_EXPLAINERS: Record<string, string> = {
     "Paste a Bitcoin or Ethereum wallet. Get on-chain heuristics, risk scoring, known exchange tags, and any breach correlation tied to that address.",
   "threat-brief":
     "Focused exposure pass for email, username, IP, or domain. Returns risk signals, leaked-credential context, and suggested next pivots for your case.",
-  "ai-site-pentest":
-    "Passive website hardening audit with an AI brief — DNS, TLS, security headers, cookies, certificate-transparency names, and safe path probes. No exploit payloads.",
 };
 
 export { AI_SEARCH_MODULES };

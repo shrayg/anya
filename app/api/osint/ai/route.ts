@@ -19,12 +19,6 @@ export async function GET(req: NextRequest) {
   const apiKey = process.env.OSINTCAT_API_KEY;
 
   try {
-    // Keep node:dns site-pentest off the shared ai-intel client graph.
-    if (mode === "site-pentest") {
-      const { buildAiSitePentest } = await import("@/lib/ai-site-pentest");
-      return NextResponse.json(await buildAiSitePentest(query));
-    }
-
     const result = await runAiIntel(query, mode, apiKey);
 
     return NextResponse.json(result);

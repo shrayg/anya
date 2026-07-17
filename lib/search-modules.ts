@@ -88,21 +88,6 @@ export const AI_SEARCH_MODULES: SearchModuleDef[] = [
     "Focused exposure scan with risk signals and next-step recommendations.",
     "threat",
   ),
-  mod(
-    "AI Intelligence",
-    "AI Site Pentest",
-    "ai-site-pentest",
-    "ai",
-    "Domain or URL (e.g. example.com)",
-    "Passive site hardening audit synthesized into an AI brief — DNS, TLS, headers, cookies, CT names, safe paths.",
-    "site-pentest",
-    undefined,
-    {
-      lawfulUseNotice: true,
-      lawfulUseCopy:
-        "For authorized defensive security research and hardening reviews only. Run this against systems you own or have explicit written permission to assess. Passive recon only — no exploit payloads, brute force, or active attack probes.",
-    },
-  ),
 ];
 
 export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
@@ -858,7 +843,6 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "ai-deep-scan": true,
   "crypto-ai": true,
   "threat-brief": true,
-  "ai-site-pentest": true,
   intelx: true,
   "stealer-logs": true,
   breaches: true,

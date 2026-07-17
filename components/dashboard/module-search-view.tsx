@@ -612,10 +612,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       return;
     }
 
-    if (
-      (moduleDef.slug === "site-pentest" || moduleDef.slug === "ai-site-pentest") &&
-      !parseSitePentestTarget(trimmed)
-    ) {
+    if (moduleDef.slug === "site-pentest" && !parseSitePentestTarget(trimmed)) {
       setError("Enter a valid domain or http(s) URL (e.g. example.com).");
       setIsSearching(false);
       return;

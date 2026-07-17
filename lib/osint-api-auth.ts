@@ -13,8 +13,6 @@ export function resolveOsintModuleSlug(
   fallbackApiSegment: string,
 ): string | null {
   const explicit = req.nextUrl.searchParams.get("moduleSlug")?.trim();
-  // Alias so AI Site Pentest inherits AI Intelligence plan gating.
-  if (explicit === "ai-site-pentest") return "ai-search";
   if (explicit) return explicit;
 
   const scope = req.nextUrl.searchParams.get("scope")?.trim();
@@ -27,8 +25,6 @@ export function resolveOsintModuleSlug(
     if (mode === "deep") return "ai-deep-scan";
     if (mode === "crypto") return "crypto-ai";
     if (mode === "threat") return "threat-brief";
-    // Gate as AI Search (Professional+) without editing plans.ts AI_MODULE_SLUGS.
-    if (mode === "site-pentest") return "ai-search";
     return "ai-search";
   }
 
