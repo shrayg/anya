@@ -18,6 +18,8 @@ export type SearchModuleDef = {
   tools?: ModuleTool[];
   /** Show lawful-use / FCRA notice on the module page. */
   lawfulUseNotice?: boolean;
+  /** Override default lawful-use notice copy. */
+  lawfulUseCopy?: string;
 };
 
 export type SearchModuleSection = {
@@ -34,7 +36,7 @@ function mod(
   tagline: string,
   aiMode?: string,
   comingSoon?: boolean,
-  extras?: Pick<SearchModuleDef, "tools" | "lawfulUseNotice">,
+  extras?: Pick<SearchModuleDef, "tools" | "lawfulUseNotice" | "lawfulUseCopy">,
 ): SearchModuleDef {
   return {
     name,
@@ -386,6 +388,21 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "image-geolocate",
         "Direct image URL (http/https)",
         "Estimate location signals from a photo URL.",
+      ),
+      mod(
+        "Network",
+        "Site Pentest",
+        "site-pentest",
+        "site-pentest",
+        "Domain or URL (e.g. example.com)",
+        "Passive website hardening dashboard — selectable recon (DNS/TLS/headers/cookies/CT/paths/crawl/Shodan). XSS/SQLi/CMDi/traversal/brute stay desktop lab only.",
+        undefined,
+        undefined,
+        {
+          lawfulUseNotice: true,
+          lawfulUseCopy:
+            "For authorized defensive security research and hardening reviews only. Run this against systems you own or have explicit written permission to assess. Passive recon only — no exploit payloads, brute force, or active attack probes.",
+        },
       ),
     ],
   },
@@ -771,6 +788,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "contact-enrich": "contact-enrich",
   "shodan-host": "shodan-host",
   "image-geolocate": "image-geolocate",
+  "site-pentest": "site-pentest",
   "tiktok-recon": "tiktok-recon",
   "share-resolver": "share-resolver",
   ip: "ip",
@@ -875,6 +893,7 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   fivem: true,
   "shodan-host": true,
   "image-geolocate": true,
+  "site-pentest": true,
   tinder: true,
   bumble: true,
   hinge: true,

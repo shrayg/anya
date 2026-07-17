@@ -27,6 +27,7 @@ import { DiscordSearchResults } from "@/components/dashboard/discord-search-resu
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
 import { DomainSearchResults } from "@/components/dashboard/domain-search-results";
+import { SitePentestResults } from "@/components/dashboard/site-pentest-results";
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 import { AiSearchResults } from "@/components/dashboard/ai-search-results";
 import { CryptoAiChatResults } from "@/components/dashboard/crypto-ai-chat-results";
@@ -62,6 +63,11 @@ import { DASHBOARD_TOUR_STORAGE_KEY } from "@/lib/dashboard-tour";
 import { isDatingAppSlug, normalizeDatingQuery } from "@/lib/dating-search";
 import type { DomainSearchResult } from "@/lib/domain-search";
 import { extractStealerLogEntries, normalizeDomain } from "@/lib/domain-search";
+import type { SitePentestResult } from "@/lib/site-pentest-shared";
+import {
+  defaultSitePentestModules,
+  parseSitePentestTarget,
+} from "@/lib/site-pentest-shared";
 import type { FivemSearchResult } from "@/lib/fivem-search";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
 import { checkModuleAccess, resolveUserPlan, shouldBlurResults } from "@/lib/plans";
@@ -104,8 +110,8 @@ type StructuredResult =
   | { kind: "us-sor-national"; data: UsVaSorSearchResult }
   | { kind: "us-state-directory"; data: UsIdentitySearchResult }
   | { kind: "us-portal-backlog"; data: UsIdentitySearchResult }
-  | { kind: "us-intl-directory"; data: UsIdentitySearchResult };
-
+  | { kind: "us-intl-directory"; data: UsIdentitySearchResult }
+  | { kind: "site-pentest"; data: SitePentestResult };
 const PUBLIC_RECORDS_COMPOSE_KINDS = new Set([
   "us-identity",
   "us-npd",
@@ -216,6 +222,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [blurResults, setBlurResults] = useState(false);
   const [selectedExportIndex, setSelectedExportIndex] = useState<number | null>(null);
   const [casesLoaded, setCasesLoaded] = useState(false);
+  const [pentestModules, setPentestModules] = useState(() =>
+    defaultSitePentestModules(),
+  );
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -615,6 +624,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       return;
     }
 
+    if (moduleDef.slug === "site-pentest" && !parseSitePentestTarget(trimmed)) {
+      setError("Enter a valid domain or http(s) URL (e.g. example.com).");
+      setIsSearching(false);
+      return;
+    }
+
     if (moduleDef.slug === "hash-lookup" && trimmed.length < 8) {
       setError("Enter a valid hash (at least 8 characters).");
       setIsSearching(false);
@@ -650,8 +665,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         activeType === "instagram"
           ? "&maxUsers=100&includeActivity=0&enrichBios=0"
           : "";
+      const pentestParam =
+        activeType === "site-pentest"
+          ? `&modules=${encodeURIComponent(pentestModules.join(","))}`
+          : "";
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}${instagramParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}${instagramParam}${pentestParam}`,
       );
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
@@ -1034,6 +1053,23 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         return;
       }
 
+      if (activeType === "site-pentest") {
+        const pentest = data as SitePentestResult & { error?: string };
+        if (!pentest.findings && !pentest.results) {
+          setError(
+            sanitizePublicText(pentest.error || "Site pentest audit failed."),
+          );
+          return;
+        }
+
+        setStructuredResult({ kind: "site-pentest", data: pentest });
+        setResultCount(pentest.summary?.findingCount ?? pentest.count ?? 0);
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+        return;
+      }
+
       if (Array.isArray(data.results)) {
         const results = data.results as unknown[];
 
@@ -1294,9 +1330,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         <p className="module-search-hint">{moduleDef.hint}</p>
         {moduleDef.lawfulUseNotice ? (
           <p className="mt-3 border-l-2 border-white/15 bg-white/5 px-4 py-3 text-sm text-zinc-300">
-            For lawful investigative and research use only. Not a consumer reporting
-            agency and not for FCRA-covered decisions (credit, employment, housing, insurance).
-            Results are composed from public government indexes and may be incomplete.
+            {moduleDef.lawfulUseCopy ??
+              "For lawful investigative and research use only. Not a consumer reporting agency and not for FCRA-covered decisions (credit, employment, housing, insurance). Results are composed from public government indexes and may be incomplete."}
           </p>
         ) : null}
         {moduleLocked && (
@@ -1393,7 +1428,66 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             </p>
           )}
 
-          {(records.length > 0 || aiResult || combResult || domainResult || discordResult || fivemResult || robloxResult || instagramResult || structuredResult) && (
+          {moduleDef.slug === "site-pentest" ? (
+            <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
+              {(structuredResult?.kind === "site-pentest" || lastSearchLabel) && (
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-zinc-400">
+                    {lastSearchLabel || "Site Pentest"}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      className="ui-btn ui-btn-ghost"
+                      disabled={!rawResult}
+                      onClick={handleExportAll}
+                      type="button"
+                    >
+                      <Download className="size-3.5" />
+                      Export all data
+                    </button>
+                    <CasePicker
+                      onChange={setSaveCaseId}
+                      options={caseOptions}
+                      value={saveCaseId}
+                    />
+                    <button
+                      className="ui-btn ui-btn-primary"
+                      disabled={!saveCaseId || savingToCase || !rawResult}
+                      onClick={handleSaveToCase}
+                      type="button"
+                    >
+                      <FolderPlus className="size-3.5" />
+                      {savingToCase ? "Saving…" : "File intel"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {saveMessage ? (
+                <p className="mb-3 text-sm text-zinc-300">{saveMessage}</p>
+              ) : null}
+              <SitePentestResults
+                blurResults={blurResults}
+                onModulesChange={setPentestModules}
+                result={
+                  structuredResult?.kind === "site-pentest"
+                    ? structuredResult.data
+                    : null
+                }
+                scanning={isSearching}
+                selectedModules={pentestModules}
+              />
+            </div>
+          ) : null}
+
+          {(records.length > 0 ||
+            aiResult ||
+            combResult ||
+            domainResult ||
+            discordResult ||
+            fivemResult ||
+            robloxResult ||
+            instagramResult ||
+            (structuredResult && structuredResult.kind !== "site-pentest")) && (
             <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-zinc-400">{lastSearchLabel}</p>
@@ -1510,10 +1604,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 <UsCourtSearchResults blurResults={blurResults} result={structuredResult.data} />
               ) : structuredResult?.kind === "us-va-sor" || structuredResult?.kind === "us-sor-national" ? (
                 <UsVaSorSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult && PUBLIC_RECORDS_COMPOSE_KINDS.has(structuredResult.kind) ? (
+              ) : structuredResult &&
+                structuredResult.kind !== "site-pentest" &&
+                PUBLIC_RECORDS_COMPOSE_KINDS.has(structuredResult.kind) ? (
                 <UsIdentitySearchResults
                   blurResults={blurResults}
-                  result={structuredResult.data}
+                  result={structuredResult.data as UsIdentitySearchResult}
                   title={
                     PUBLIC_RECORDS_COMPOSE_TITLES[structuredResult.kind] || "Public records hits"
                   }

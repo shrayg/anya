@@ -67,6 +67,7 @@ export function resolveOsintModuleSlug(
     "image-geolocate": "image-geolocate",
     "contact-enrich": "contact-enrich",
     "shodan-host": "shodan-host",
+    "site-pentest": "site-pentest",
     "seon-email": "fraud-footprint",
     "seon-phone": "fraud-footprint",
     breachbase: "breachbase",
