@@ -27,6 +27,7 @@ import { DiscordSearchResults } from "@/components/dashboard/discord-search-resu
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
 import { DomainSearchResults } from "@/components/dashboard/domain-search-results";
+import { SitePentestResults } from "@/components/dashboard/site-pentest-results";
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 import { AiSearchResults } from "@/components/dashboard/ai-search-results";
 import { CryptoAiChatResults } from "@/components/dashboard/crypto-ai-chat-results";
@@ -62,6 +63,8 @@ import { DASHBOARD_TOUR_STORAGE_KEY } from "@/lib/dashboard-tour";
 import { isDatingAppSlug, normalizeDatingQuery } from "@/lib/dating-search";
 import type { DomainSearchResult } from "@/lib/domain-search";
 import { extractStealerLogEntries, normalizeDomain } from "@/lib/domain-search";
+import type { SitePentestResult } from "@/lib/site-pentest";
+import { parseSitePentestTarget } from "@/lib/site-pentest";
 import type { FivemSearchResult } from "@/lib/fivem-search";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
 import { checkModuleAccess, resolveUserPlan, shouldBlurResults } from "@/lib/plans";
@@ -104,8 +107,8 @@ type StructuredResult =
   | { kind: "us-sor-national"; data: UsVaSorSearchResult }
   | { kind: "us-state-directory"; data: UsIdentitySearchResult }
   | { kind: "us-portal-backlog"; data: UsIdentitySearchResult }
-  | { kind: "us-intl-directory"; data: UsIdentitySearchResult };
-
+  | { kind: "us-intl-directory"; data: UsIdentitySearchResult }
+  | { kind: "site-pentest"; data: SitePentestResult };
 const PUBLIC_RECORDS_COMPOSE_KINDS = new Set([
   "us-identity",
   "us-npd",
@@ -609,6 +612,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       return;
     }
 
+    if (moduleDef.slug === "site-pentest" && !parseSitePentestTarget(trimmed)) {
+      setError("Enter a valid domain or http(s) URL (e.g. example.com).");
+      setIsSearching(false);
+      return;
+    }
+
     if (moduleDef.slug === "hash-lookup" && trimmed.length < 8) {
       setError("Enter a valid hash (at least 8 characters).");
       setIsSearching(false);
@@ -969,6 +978,23 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         return;
       }
 
+      if (activeType === "site-pentest") {
+        const pentest = data as SitePentestResult & { error?: string };
+        if (!pentest.findings && !pentest.results) {
+          setError(
+            sanitizePublicText(pentest.error || "Site pentest audit failed."),
+          );
+          return;
+        }
+
+        setStructuredResult({ kind: "site-pentest", data: pentest });
+        setResultCount(pentest.summary?.findingCount ?? pentest.count ?? 0);
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+        return;
+      }
+
       if (Array.isArray(data.results)) {
         const results = data.results as unknown[];
 
@@ -1229,9 +1255,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         <p className="module-search-hint">{moduleDef.hint}</p>
         {moduleDef.lawfulUseNotice ? (
           <p className="mt-3 border-l-2 border-white/15 bg-white/5 px-4 py-3 text-sm text-zinc-300">
-            For lawful investigative and research use only. Not a consumer reporting
-            agency and not for FCRA-covered decisions (credit, employment, housing, insurance).
-            Results are composed from public government indexes and may be incomplete.
+            {moduleDef.lawfulUseCopy ??
+              "For lawful investigative and research use only. Not a consumer reporting agency and not for FCRA-covered decisions (credit, employment, housing, insurance). Results are composed from public government indexes and may be incomplete."}
           </p>
         ) : null}
         {moduleLocked && (
@@ -1443,6 +1468,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 <UsCourtSearchResults blurResults={blurResults} result={structuredResult.data} />
               ) : structuredResult?.kind === "us-va-sor" || structuredResult?.kind === "us-sor-national" ? (
                 <UsVaSorSearchResults blurResults={blurResults} result={structuredResult.data} />
+              ) : structuredResult?.kind === "site-pentest" ? (
+                <SitePentestResults blurResults={blurResults} result={structuredResult.data} />
               ) : structuredResult && PUBLIC_RECORDS_COMPOSE_KINDS.has(structuredResult.kind) ? (
                 <UsIdentitySearchResults
                   blurResults={blurResults}
