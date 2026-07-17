@@ -317,9 +317,20 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       const response = await fetch(
         `/api/osint/instagram?query=${encodeURIComponent(instagramResult.query)}&moduleSlug=instagram&maxUsers=10000&enrichBios=1&bioLimit=40&bubbleMap=1&includeActivity=1`,
       );
-      const data = (await response.json()) as InstagramSearchPayload & {
-        error?: string;
-      };
+      const responseText = await response.text();
+      let data: InstagramSearchPayload & { error?: string };
+      try {
+        data = responseText
+          ? (JSON.parse(responseText) as InstagramSearchPayload & { error?: string })
+          : ({ error: "Empty response" } as InstagramSearchPayload & {
+              error?: string;
+            });
+      } catch {
+        setError(
+          `Could not enrich Instagram bios (HTTP ${response.status}). Try again.`,
+        );
+        return;
+      }
 
       if (!response.ok || data.error) {
         setError(data.error || "Could not enrich Instagram bios.");
@@ -627,15 +638,35 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         activeType === "intelx"
           ? `&bucket=${encodeURIComponent(intelxBucket)}`
           : "";
+      // Keep Instagram under Cloudflare's ~100s origin timeout on the first pass.
+      const instagramParam =
+        activeType === "instagram"
+          ? "&maxUsers=1500&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4"
+          : "";
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}${instagramParam}`,
       );
-      const data = await searchResponse.json();
+      const responseText = await searchResponse.text();
+      let data: Record<string, unknown> = {};
+      try {
+        data = responseText ? (JSON.parse(responseText) as Record<string, unknown>) : {};
+      } catch {
+        setError(
+          searchResponse.ok
+            ? "Search returned an unexpected response. Try again."
+            : `Search failed (HTTP ${searchResponse.status}). The server may have timed out — try again.`,
+        );
+        return;
+      }
 
       if (!isMountedRef.current) return;
 
       if (!searchResponse.ok) {
-        setError(sanitizePublicText(data.error || "Search failed."));
+        setError(
+          sanitizePublicText(
+            typeof data.error === "string" ? data.error : "Search failed.",
+          ),
+        );
         return;
       }
 

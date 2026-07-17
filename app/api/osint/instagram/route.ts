@@ -11,7 +11,7 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-const DEFAULT_MAX_USERS = 10_000;
+const DEFAULT_MAX_USERS = 2_000;
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "instagram");
