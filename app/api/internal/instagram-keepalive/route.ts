@@ -5,8 +5,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function secretsMatch(provided: string, expected: string): boolean {
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
+  const a = new Uint8Array(Buffer.from(provided));
+  const b = new Uint8Array(Buffer.from(expected));
   if (a.length === 0 || a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }
