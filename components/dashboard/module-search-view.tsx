@@ -27,7 +27,7 @@ import { DiscordSearchResults } from "@/components/dashboard/discord-search-resu
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
 import { DomainSearchResults } from "@/components/dashboard/domain-search-results";
-import { SitePentestResults } from "@/components/dashboard/site-pentest-results";
+import dynamic from "next/dynamic";
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 import { AiSearchResults } from "@/components/dashboard/ai-search-results";
 import { CryptoAiChatResults } from "@/components/dashboard/crypto-ai-chat-results";
@@ -92,6 +92,13 @@ import {
   wrapBrandedExport,
 } from "@/lib/export-intel";
 
+const SitePentestResults = dynamic(
+  () =>
+    import("@/components/dashboard/site-pentest-results").then(
+      (mod) => mod.SitePentestResults,
+    ),
+  { ssr: false },
+);
 type StructuredResult =
   | { kind: "crypto-wallet"; data: CryptoWalletResult }
   | { kind: "bin"; data: BinLookupResult }

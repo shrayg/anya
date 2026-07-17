@@ -146,11 +146,23 @@ npm run build
 test -f .next/BUILD_ID
 
 echo "==> Restart PM2"
+# Always wipe any duplicate anya-int processes before start (avoids EADDRINUSE crash loops).
+pm2 delete anya-int 2>/dev/null || true
+sleep 1
+fuser -k 3000/tcp 2>/dev/null || true
+sleep 1
 pm2 start npx --name anya-int -- next start -H 127.0.0.1 -p 3000
 pm2 save
 
 sleep 2
 pm2 list
+# Guard: never leave two anya-int processes running.
+COUNT=$(pm2 jlist | python3 -c "import sys,json; print(sum(1 for x in json.load(sys.stdin) if x.get('name')=='anya-int' and x.get('pm2_env',{}).get('status')=='online'))")
+if [[ "${COUNT}" -ne 1 ]]; then
+  echo "ERROR: expected exactly 1 online anya-int, found ${COUNT}"
+  pm2 list
+  exit 1
+fi
 curl -sS -o /dev/null -w "Homepage HTTP %{http_code}\n" http://127.0.0.1:3000/ || true
 
 maint_off
