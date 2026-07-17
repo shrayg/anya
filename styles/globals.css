@@ -3715,8 +3715,8 @@ html[data-splash="active"] [data-splash-target] {
   display: grid;
   grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(200px, 260px);
   gap: 0.85rem;
-  align-items: start;
-  min-height: 28rem;
+  align-items: stretch;
+  min-height: 36rem;
 }
 
 @media (max-width: 1100px) {
@@ -3833,6 +3833,7 @@ html[data-splash="active"] [data-splash-target] {
   flex-direction: column;
   gap: 0.75rem;
   min-width: 0;
+  min-height: 0;
 }
 
 .site-pt-tabs {
@@ -3860,8 +3861,9 @@ html[data-splash="active"] [data-splash-target] {
 
 .site-pt-mindmap {
   position: relative;
-  min-height: 16rem;
-  height: clamp(16rem, 38vh, 22rem);
+  flex: 1 1 auto;
+  min-height: 22rem;
+  height: clamp(24rem, 58vh, 40rem);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;
   background:
@@ -3872,6 +3874,13 @@ html[data-splash="active"] [data-splash-target] {
     ),
     linear-gradient(180deg, rgba(14, 14, 16, 0.95), rgba(8, 8, 10, 0.98));
   overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+}
+
+.site-pt-mindmap--locked {
+  cursor: default;
 }
 
 .site-pt-mindmap-svg {
@@ -3890,6 +3899,7 @@ html[data-splash="active"] [data-splash-target] {
   color: #71717a;
   text-align: center;
   padding: 1rem;
+  pointer-events: none;
 }
 
 .site-pt-mindmap-empty p {
@@ -3921,9 +3931,36 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .site-pt-mind-label {
-  fill: #d4d4d8;
-  font-size: 9px;
+  fill: #e4e4e7;
+  font-size: 11px;
   font-family: inherit;
+  paint-order: stroke;
+  stroke: rgba(8, 8, 10, 0.85);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.site-pt-mind-label--root {
+  fill: #fce7f3;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.site-pt-mind-label--critical,
+.site-pt-mind-label--high {
+  fill: #fecaca;
+}
+
+.site-pt-mind-label--medium {
+  fill: #fde68a;
+}
+
+.site-pt-mind-label--low {
+  fill: #bae6fd;
+}
+
+.site-pt-mind-label--info {
+  fill: #d4d4d8;
 }
 
 .site-pt-idle {
@@ -4237,6 +4274,7 @@ html[data-splash="active"] [data-splash-target] {
   color: #fff;
 }
 
+.site-pt-sev--critical,
 .site-pt-sev--high {
   border-color: rgba(248, 113, 113, 0.4);
   background: rgba(248, 113, 113, 0.12);
