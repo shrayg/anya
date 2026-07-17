@@ -99,8 +99,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "IntelX",
         "intelx",
         "breach",
-        "Storage ID (long hex) + bucket — not intelx.io ?did= links",
-        "Download raw IntelX item content via storageid + bucket. Use the long Storage ID hex from the IntelX item / download API. intelx.io share links (?did=) are website IDs and cannot be downloaded.",
+        "Paste IntelX Storage ID or URL",
+        "Open an IntelX item by Storage ID (long hex). Paste a full intelx.io link when it includes storageid — share links with only ?did= are not downloadable.",
       ),
       mod(
         "Stealer Intel",

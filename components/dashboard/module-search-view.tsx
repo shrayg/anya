@@ -27,6 +27,11 @@ import { DiscordSearchResults } from "@/components/dashboard/discord-search-resu
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
 import { DomainSearchResults } from "@/components/dashboard/domain-search-results";
+import { IntelxBucketPicker } from "@/components/dashboard/intelx-bucket-picker";
+import {
+  IntelxSearchResults,
+  type IntelxSearchPayload,
+} from "@/components/dashboard/intelx-search-results";
 import dynamic from "next/dynamic";
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 import { AiSearchResults } from "@/components/dashboard/ai-search-results";
@@ -47,14 +52,10 @@ import type {
 } from "@/lib/us-records";
 import {
   DEFAULT_INTELX_BUCKET,
-  INTELX_BUCKET_LABELS,
-  INTELX_BUCKETS,
-  isIntelxBucket,
   type IntelxBucket,
 } from "@/lib/intelx-buckets";
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
-import { siteConfig } from "@/config/site";
 import { sanitizePublicContent, sanitizePublicText } from "@/lib/public-branding";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import type { DiscordSearchResult } from "@/lib/discord-profile";
@@ -182,6 +183,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [combResult, setCombResult] = useState<CombSearchResult | null>(null);
   const [domainResult, setDomainResult] = useState<DomainSearchResult | null>(null);
   const [discordResult, setDiscordResult] = useState<DiscordSearchResult | null>(null);
+  const [intelxResult, setIntelxResult] = useState<IntelxSearchPayload | null>(null);
   const [fivemResult, setFivemResult] = useState<FivemSearchResult | null>(null);
   const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(null);
   const [instagramResult, setInstagramResult] = useState<InstagramSearchPayload | null>(null);
@@ -489,6 +491,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     setCombResult(null);
     setDomainResult(null);
     setDiscordResult(null);
+    setIntelxResult(null);
     setFivemResult(null);
     setRobloxResult(null);
     setInstagramResult(null);
@@ -957,8 +960,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           error?: string;
           storageId?: string;
           bucket?: string;
-          source?: string;
-          poweredBy?: string;
+          rejectedWebsiteDid?: boolean;
         };
 
         if (!intelxData.hasContent) {
@@ -971,37 +973,17 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         }
 
         const exportBody = sanitizePublicContent(intelxData.content ?? "");
-        const bucketId = intelxData.bucket ?? "leaks.public";
-        const bucketLabel = isIntelxBucket(bucketId)
-          ? INTELX_BUCKET_LABELS[bucketId]
-          : bucketId;
+        const storageId = intelxData.storageId ?? trimmed;
+        const bucketId = intelxData.bucket ?? intelxBucket;
 
-        setRecords([
-          {
-            index: 1,
-            title: `IntelX · ${intelxData.storageId ?? trimmed}`,
-            fields: [
-              {
-                key: "bucket",
-                label: "Bucket",
-                value: bucketLabel,
-              },
-              {
-                key: "export",
-                label: "Export",
-                value: exportBody.slice(0, 12_000),
-              },
-              {
-                key: "powered_by",
-                label: "Powered by",
-                value: siteConfig.name,
-              },
-            ],
-          },
-        ]);
+        setIntelxResult({
+          storageId,
+          bucket: bucketId,
+          content: exportBody,
+        });
         setResultCount(1);
         setRawResult(exportBody || serialized);
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        setLastSearchLabel(`${moduleDef.name} · ${storageId}`);
         persistSearch(trimmed, moduleDef.slug, exportBody || serialized);
         return;
       }
@@ -1375,29 +1357,18 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             </div>
           ) : null}
           {moduleDef.slug === "intelx" ? (
-            <div className="mb-4 space-y-2">
-              <label className="mb-1.5 block text-xs text-zinc-400" htmlFor="intelx-bucket">
-                IntelX bucket
-              </label>
-              <select
-                className="ui-input w-full sm:max-w-xs"
-                id="intelx-bucket"
-                onChange={(event) =>
-                  setIntelxBucket(event.target.value as IntelxBucket)
-                }
-                value={intelxBucket}
-              >
-                {INTELX_BUCKETS.map((bucket) => (
-                  <option key={bucket} value={bucket}>
-                    {INTELX_BUCKET_LABELS[bucket]}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-zinc-500">
-                Use the Storage ID (long hex) from the IntelX item. Pasteable intelx.io
-                links with only <span className="font-mono">?did=</span> cannot be
-                downloaded via the API.
-              </p>
+            <div className="mb-4 space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <IntelxBucketPicker
+                  disabled={Boolean(moduleLocked) || isSearching}
+                  onChange={setIntelxBucket}
+                  value={intelxBucket}
+                />
+                <p className="text-xs text-zinc-500 sm:max-w-sm">
+                  Prefer the long Storage ID hex. Share links with only{" "}
+                  <span className="font-mono">?did=</span> cannot be opened.
+                </p>
+              </div>
             </div>
           ) : null}
           <form className="flex flex-col gap-3 sm:flex-row sm:items-start" onSubmit={handleSearch}>
@@ -1412,10 +1383,15 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             ) : (
               <input
                 autoFocus
-                className="ui-input flex-1"
+                className="ui-input flex-1 font-mono text-sm"
                 data-tour="search-input"
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder={moduleDef.hint}
+                placeholder={
+                  moduleDef.slug === "intelx"
+                    ? "Paste Storage ID or intelx.io URL…"
+                    : moduleDef.hint
+                }
+                spellCheck={moduleDef.slug === "intelx" ? false : undefined}
                 value={query}
               />
             )}
@@ -1425,7 +1401,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               disabled={!query.trim() || isSearching || Boolean(moduleLocked)}
               type="submit"
             >
-              {isSearching ? "Running…" : isAi ? "Analyse" : "Run"}
+              {isSearching
+                ? "Running…"
+                : isAi
+                  ? "Analyse"
+                  : moduleDef.slug === "intelx"
+                    ? "Open"
+                    : "Run"}
             </button>
           </form>
 
@@ -1491,6 +1473,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             combResult ||
             domainResult ||
             discordResult ||
+            intelxResult ||
             fivemResult ||
             robloxResult ||
             instagramResult ||
@@ -1554,6 +1537,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 ) : (
                   <AiSearchResults blurResults={blurResults} result={aiResult} />
                 )
+              ) : intelxResult ? (
+                <IntelxSearchResults blurResults={blurResults} result={intelxResult} />
               ) : fivemResult ? (
                 <FivemSearchResults
                   blurResults={blurResults}
