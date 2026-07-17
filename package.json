@@ -82,7 +82,7 @@
     "server-only": "^0.0.1",
     "square": "^44.2.0",
     "three": "^0.183.2",
-    "undici": "^8.7.0"
+    "undici": "^6.27.0"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "15.5.9",
