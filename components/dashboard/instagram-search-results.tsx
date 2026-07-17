@@ -5,11 +5,25 @@ import { ExternalLink, ShieldCheck, Users } from "lucide-react";
 import clsx from "clsx";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { InstagramActivityPanel } from "@/components/dashboard/instagram-activity-panel";
+import { InstagramBubbleMapView } from "@/components/dashboard/instagram-bubble-map";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
+import type { InstagramBubbleMap } from "@/lib/instagram-bubble-map";
 import type { InstagramSearchResult } from "@/lib/instagram-search";
 import { formatSearchRecords } from "@/lib/search-utils";
 
-type InstagramTab = "profile" | "followers" | "following" | "leaks";
+type InstagramTab =
+  | "profile"
+  | "bubble"
+  | "activity"
+  | "mutuals"
+  | "followers"
+  | "following"
+  | "leaks";
+
+export type InstagramSearchPayload = InstagramSearchResult & {
+  bubbleMap?: InstagramBubbleMap | null;
+};
 
 const LIST_PAGE_SIZE = 25;
 
@@ -60,6 +74,11 @@ function UserRow({
         {user.fullName ? (
           <p className="truncate text-xs text-zinc-400">
             <BlurredValue forceBlur={blurResults} text={user.fullName} />
+          </p>
+        ) : null}
+        {user.biography ? (
+          <p className="mt-1 line-clamp-2 text-xs text-zinc-500">
+            <BlurredValue forceBlur={blurResults} text={user.biography} />
           </p>
         ) : null}
       </div>
@@ -137,13 +156,19 @@ export function InstagramSearchResults({
   blurResults = false,
   selectedExportIndex = null,
   onSelectExportIndex,
+  onEnrichBios,
+  enriching = false,
 }: {
-  result: InstagramSearchResult;
+  result: InstagramSearchPayload;
   blurResults?: boolean;
   selectedExportIndex?: number | null;
   onSelectExportIndex?: (index: number) => void;
+  onEnrichBios?: () => void;
+  enriching?: boolean;
 }) {
-  const [tab, setTab] = useState<InstagramTab>("profile");
+  const [tab, setTab] = useState<InstagramTab>(
+    result.bubbleMap ? "bubble" : "profile",
+  );
 
   const leakRecords = useMemo(
     () => formatSearchRecords(result.leaks.results),
@@ -152,6 +177,24 @@ export function InstagramSearchResults({
 
   const tabs: Array<{ id: InstagramTab; label: string; count?: number }> = [
     { id: "profile", label: "Profile" },
+    {
+      id: "bubble",
+      label: "Bubble map",
+      count: result.bubbleMap?.stats.peopleAnalyzed,
+    },
+    {
+      id: "activity",
+      label: "Posts & places",
+      count:
+        (result.activity?.locations.length ?? 0) +
+        (result.activity?.closeFriendCandidates.length ?? 0) +
+        (result.activity?.consistentCommenters.length ?? 0),
+    },
+    {
+      id: "mutuals",
+      label: "Close friends",
+      count: result.mutuals?.length ?? 0,
+    },
     {
       id: "followers",
       label: "Followers",
@@ -232,11 +275,6 @@ export function InstagramSearchResults({
                   <BlurredValue forceBlur={blurResults} text={profile.fullName} />
                 </p>
               ) : null}
-              {profile.category ? (
-                <p className="text-xs uppercase tracking-wide text-zinc-500">
-                  {profile.category}
-                </p>
-              ) : null}
               <div className="flex flex-wrap gap-2">
                 <StatPill
                   label="Followers"
@@ -247,10 +285,26 @@ export function InstagramSearchResults({
                   value={profile.followingCount.toLocaleString()}
                 />
                 <StatPill
-                  label="Posts"
-                  value={profile.postsCount.toLocaleString()}
+                  label="Mutuals"
+                  value={String(result.mutuals?.length ?? 0)}
                 />
                 <StatPill label="Auth mode" value={result.authMode} />
+                <StatPill
+                  label="Mutual scan"
+                  value={`${result.discovery?.followersPagesScanned ?? 0}/${result.discovery?.followingPagesScanned ?? 0} pages`}
+                />
+                {result.activity ? (
+                  <>
+                    <StatPill
+                      label="Posts scanned"
+                      value={String(result.activity.postsAnalyzed)}
+                    />
+                    <StatPill
+                      label="Locations"
+                      value={String(result.activity.locations.length)}
+                    />
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
@@ -261,34 +315,6 @@ export function InstagramSearchResults({
             </p>
           ) : null}
 
-          <div className="grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
-            {profile.externalUrl ? (
-              <p>
-                <span className="text-zinc-500">Link · </span>
-                <a
-                  className="text-anya-accent hover:underline"
-                  href={profile.externalUrl}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {profile.externalUrl}
-                </a>
-              </p>
-            ) : null}
-            {profile.businessEmail ? (
-              <p>
-                <span className="text-zinc-500">Email · </span>
-                <BlurredValue forceBlur={blurResults} text={profile.businessEmail} />
-              </p>
-            ) : null}
-            {profile.businessPhone ? (
-              <p>
-                <span className="text-zinc-500">Phone · </span>
-                <BlurredValue forceBlur={blurResults} text={profile.businessPhone} />
-              </p>
-            ) : null}
-          </div>
-
           <a
             className="inline-flex items-center gap-1 text-sm text-anya-accent hover:underline"
             href={`https://www.instagram.com/${profile.username}/`}
@@ -298,6 +324,59 @@ export function InstagramSearchResults({
             Open profile <ExternalLink className="size-3.5" />
           </a>
         </div>
+      ) : null}
+
+      {tab === "bubble" ? (
+        <div className="space-y-3">
+          {onEnrichBios ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                className="rounded-full border border-anya-accent/40 bg-anya-accent/10 px-4 py-1.5 text-sm text-zinc-100 disabled:opacity-50"
+                disabled={enriching}
+                onClick={onEnrichBios}
+                type="button"
+              >
+                {enriching ? "Loading bios…" : "Load bios & rebuild map"}
+              </button>
+              <p className="text-xs text-zinc-500">
+                Pulls bios for mutuals/following to detect schools, orgs, and places.
+              </p>
+            </div>
+          ) : null}
+          {result.bubbleMap ? (
+            <InstagramBubbleMapView
+              blurResults={blurResults}
+              map={result.bubbleMap}
+            />
+          ) : (
+            <p className="text-sm text-zinc-400">
+              Bubble map unavailable for this result.
+            </p>
+          )}
+        </div>
+      ) : null}
+
+      {tab === "activity" ? (
+        result.activity ? (
+          <InstagramActivityPanel
+            activity={result.activity}
+            blurResults={blurResults}
+          />
+        ) : (
+          <p className="text-sm text-zinc-400">
+            Post activity was not loaded for this search. Re-run with an active
+            Instagram session to scan posts, tags, comments, and locations.
+          </p>
+        )
+      ) : null}
+
+      {tab === "mutuals" ? (
+        <UserList
+          blurResults={blurResults}
+          totalCount={result.mutuals?.length ?? 0}
+          truncated={false}
+          users={result.mutuals ?? []}
+        />
       ) : null}
 
       {tab === "followers" ? (

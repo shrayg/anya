@@ -59,6 +59,7 @@ export function resolveOsintModuleSlug(
     "us-sor-national": "national-sor",
     "us-state-directory": "state-records-directory",
     "us-intl-directory": "international-records-directory",
+    "us-portal-backlog": "portal-backlog",
     geolocate: "ip",
     "email-analyze": "email-analyze",
     "tiktok-recon": "tiktok-recon",

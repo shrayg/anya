@@ -19,7 +19,10 @@ import {
   UsIdentitySearchResults,
   UsVaSorSearchResults,
 } from "@/components/dashboard/us-records-search-results";
-import { InstagramSearchResults } from "@/components/dashboard/instagram-search-results";
+import {
+  InstagramSearchResults,
+  type InstagramSearchPayload,
+} from "@/components/dashboard/instagram-search-results";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
@@ -53,9 +56,8 @@ import { normalizeEmail } from "@/lib/proxynova-comb";
 import { siteConfig } from "@/config/site";
 import { sanitizePublicContent, sanitizePublicText } from "@/lib/public-branding";
 import { isDiscordSnowflake } from "@/lib/osintcat";
-import type { InstagramSearchResult } from "@/lib/instagram-search";
-import { normalizeInstagramUsername } from "@/lib/instagram-search";
 import type { DiscordSearchResult } from "@/lib/discord-profile";
+import { normalizeInstagramUsername } from "@/lib/instagram-search";
 import { DASHBOARD_TOUR_STORAGE_KEY } from "@/lib/dashboard-tour";
 import { isDatingAppSlug, normalizeDatingQuery } from "@/lib/dating-search";
 import type { DomainSearchResult } from "@/lib/domain-search";
@@ -101,6 +103,7 @@ type StructuredResult =
   | { kind: "us-wanted"; data: UsIdentitySearchResult }
   | { kind: "us-sor-national"; data: UsVaSorSearchResult }
   | { kind: "us-state-directory"; data: UsIdentitySearchResult }
+  | { kind: "us-portal-backlog"; data: UsIdentitySearchResult }
   | { kind: "us-intl-directory"; data: UsIdentitySearchResult };
 
 const PUBLIC_RECORDS_COMPOSE_KINDS = new Set([
@@ -110,6 +113,7 @@ const PUBLIC_RECORDS_COMPOSE_KINDS = new Set([
   "us-sanctions",
   "us-wanted",
   "us-state-directory",
+  "us-portal-backlog",
   "us-intl-directory",
 ]);
 
@@ -120,6 +124,7 @@ const PUBLIC_RECORDS_COMPOSE_TITLES: Record<string, string> = {
   "us-sanctions": "Sanctions & watchlists",
   "us-wanted": "Wanted persons",
   "us-state-directory": "US state records directory",
+  "us-portal-backlog": "Portal adapter backlog",
   "us-intl-directory": "International records directory",
 };
 
@@ -166,7 +171,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [discordResult, setDiscordResult] = useState<DiscordSearchResult | null>(null);
   const [fivemResult, setFivemResult] = useState<FivemSearchResult | null>(null);
   const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(null);
-  const [instagramResult, setInstagramResult] = useState<InstagramSearchResult | null>(null);
+  const [instagramResult, setInstagramResult] = useState<InstagramSearchPayload | null>(null);
+  const [instagramEnriching, setInstagramEnriching] = useState(false);
   const [structuredResult, setStructuredResult] = useState<StructuredResult | null>(null);
   const [rawResult, setRawResult] = useState("");
   const [lastSearchLabel, setLastSearchLabel] = useState("");
@@ -301,6 +307,37 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     );
   };
 
+  const handleInstagramEnrichBios = async () => {
+    if (!instagramResult?.query || instagramEnriching) return;
+
+    setInstagramEnriching(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/osint/instagram?query=${encodeURIComponent(instagramResult.query)}&moduleSlug=instagram&maxUsers=10000&enrichBios=1&bioLimit=40&bubbleMap=1&includeActivity=1`,
+      );
+      const data = (await response.json()) as InstagramSearchPayload & {
+        error?: string;
+      };
+
+      if (!response.ok || data.error) {
+        setError(data.error || "Could not enrich Instagram bios.");
+        return;
+      }
+
+      setInstagramResult({
+        ...data,
+        mutuals: data.mutuals ?? [],
+      });
+      setRawResult(JSON.stringify(data, null, 2));
+    } catch {
+      setError("Could not enrich Instagram bios.");
+    } finally {
+      setInstagramEnriching(false);
+    }
+  };
+
   useEffect(() => {
     const hasResults =
       records.length > 0 ||
@@ -425,6 +462,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     setFivemResult(null);
     setRobloxResult(null);
     setInstagramResult(null);
+    setInstagramEnriching(false);
     setStructuredResult(null);
     setRawResult("");
     setSaveMessage("");
@@ -739,7 +777,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       }
 
       if (activeType === "instagram") {
-        const instagramData = data as InstagramSearchResult & {
+        const instagramData = data as InstagramSearchPayload & {
           error?: string;
           message?: string;
         };
@@ -750,10 +788,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         }
 
         const hasGraph =
-          instagramData.followers.length > 0 ||
-          instagramData.following.length > 0 ||
-          Boolean(instagramData.profile);
-        const hasLeaks = instagramData.leaks.count > 0;
+          (instagramData.followers?.length ?? 0) > 0 ||
+          (instagramData.following?.length ?? 0) > 0 ||
+          Boolean(instagramData.profile) ||
+          Boolean(instagramData.activity?.postsAnalyzed) ||
+          Boolean(instagramData.activity?.taggedPostsAnalyzed);
+        const hasLeaks = (instagramData.leaks?.count ?? 0) > 0;
 
         if (!hasGraph && !hasLeaks) {
           setError(
@@ -763,7 +803,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           return;
         }
 
-        setInstagramResult(instagramData);
+        setInstagramResult({
+          ...instagramData,
+          mutuals: instagramData.mutuals ?? [],
+        });
         setRawResult(JSON.stringify(instagramData, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
@@ -1017,6 +1060,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           | "us-sanctions"
           | "us-wanted"
           | "us-state-directory"
+          | "us-portal-backlog"
           | "us-intl-directory";
 
         if (!identityData.count) {
@@ -1330,6 +1374,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               ) : instagramResult ? (
                 <InstagramSearchResults
                   blurResults={blurResults}
+                  enriching={instagramEnriching}
+                  onEnrichBios={handleInstagramEnrichBios}
                   onSelectExportIndex={handleSelectExportIndex}
                   result={instagramResult}
                   selectedExportIndex={selectedExportIndex}

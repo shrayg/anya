@@ -71,6 +71,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "wanted-persons": { kind: "any", providers: ["builtin"] },
   "national-sor": { kind: "any", providers: ["builtin"] },
   "state-records-directory": { kind: "any", providers: ["builtin"] },
+  "portal-backlog": { kind: "any", providers: ["builtin"] },
   "international-records-directory": { kind: "any", providers: ["builtin"] },
   "discord-id": {
     kind: "any",

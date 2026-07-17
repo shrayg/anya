@@ -85,7 +85,23 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
     if (US_STATES.has(trailing)) {
       state = trailing;
       country = "US";
-      working = commaParts.slice(0, -1).join(" ").trim();
+      const beforeState = commaParts.slice(0, -1);
+      // "John Smith, Philadelphia, PA" → locality + state
+      if (beforeState.length >= 2 && !county && !city) {
+        const locality = beforeState[beforeState.length - 1]!;
+        if (/county/i.test(locality)) {
+          county =
+            titleCase(locality.replace(/\s+county$/i, "")) + " County";
+        } else if (/city/i.test(locality)) {
+          city = titleCase(locality.replace(/\s+city$/i, ""));
+          county = `${city} City`;
+        } else {
+          county = `${titleCase(locality)} County`;
+        }
+        working = beforeState.slice(0, -1).join(" ").trim();
+      } else {
+        working = beforeState.join(" ").trim();
+      }
     } else if (COUNTRY_CODES.has(trailing)) {
       country = trailing === "UK" ? "GB" : trailing;
       working = commaParts.slice(0, -1).join(" ").trim();

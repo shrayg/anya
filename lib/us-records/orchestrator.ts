@@ -1,12 +1,40 @@
+import { searchBopInmateLocator, shouldSearchBop } from "@/lib/us-records/bop-inmate";
 import { searchCourtListener } from "@/lib/us-records/courtlistener";
 import { buildCountryPortals } from "@/lib/us-records/country-portals";
+import {
+  searchDallasWanted,
+  shouldSearchDallasWanted,
+} from "@/lib/us-records/dallas-wanted";
+import {
+  searchDeCourtConnect,
+  shouldSearchDeCourtConnect,
+} from "@/lib/us-records/de-courtconnect";
 import { searchFbiWanted } from "@/lib/us-records/fbi-wanted";
+import {
+  searchFlHover,
+  shouldSearchFlHover,
+} from "@/lib/us-records/fl-hover";
 import { searchInterpolRedNotices } from "@/lib/us-records/interpol";
 import { searchNppes } from "@/lib/us-records/nppes";
 import { searchNsopw } from "@/lib/us-records/nsopw";
 import { searchOfacSdn } from "@/lib/us-records/ofac-sdn";
+import { searchOkOscn, shouldSearchOkOscn } from "@/lib/us-records/ok-oscn";
+import {
+  searchInMycase,
+  shouldSearchInMycase,
+} from "@/lib/us-records/in-mycase";
+import {
+  searchWiCcap,
+  shouldSearchWiCcap,
+} from "@/lib/us-records/wi-ccap";
+import { searchPaUjs, shouldSearchPaUjs } from "@/lib/us-records/pa-ujs";
+import { searchFlFdle, shouldSearchFlFdle } from "@/lib/us-records/fl-fdle";
 import { searchOpenFec } from "@/lib/us-records/openfec";
 import { hasOpenSanctionsKey, searchOpenSanctions } from "@/lib/us-records/opensanctions";
+import {
+  buildCandidateBacklogPortals,
+  buildPriorityStatePortals,
+} from "@/lib/us-records/priority-state-portals";
 import {
   assertUsQuery,
   parseUsRecordsQuery,
@@ -77,6 +105,10 @@ function wantsVaSor(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean {
   return Boolean(parsed.county || parsed.city || parsed.zip || parsed.state === "VA");
 }
 
+function wantsFlFdle(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean {
+  return shouldSearchFlFdle(parsed);
+}
+
 function wantsNsopw(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean {
   if (parsed.country && parsed.country !== "US") return false;
   return Boolean(parsed.firstName && parsed.lastName);
@@ -86,12 +118,30 @@ function wantsUsFederal(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean
   return !parsed.country || parsed.country === "US";
 }
 
+function wantsPriorityStatePortals(
+  parsed: ReturnType<typeof parseUsRecordsQuery>,
+): boolean {
+  if (parsed.country && parsed.country !== "US") return false;
+  return (
+    !parsed.state ||
+    ["MD", "FL", "TX", "NY", "DE", "VA", "OK", "PA", "IN", "WA", "NC", "WI"].includes(
+      parsed.state,
+    )
+  );
+}
+
 function buildPortalLayer(parsed: ReturnType<typeof parseUsRecordsQuery>): PublicPortalHit[] {
   const portals: PublicPortalHit[] = [];
   if (!parsed.country || parsed.country === "US") {
     if (parsed.state) {
       portals.push(...buildStateCourtPortals(parsed));
       if (parsed.mode === "person") portals.push(...buildStateSorPortals(parsed));
+    }
+    if (wantsPriorityStatePortals(parsed)) {
+      portals.push(...buildPriorityStatePortals(parsed));
+      if (!parsed.state || ["MD", "FL", "TX", "NY"].includes(parsed.state)) {
+        portals.push(...buildCandidateBacklogPortals(parsed, 20));
+      }
     }
   }
   if (parsed.country && parsed.country !== "US") {
@@ -148,16 +198,46 @@ export async function searchUsCourt(query: string): Promise<UsCourtSearchResult>
       settleSource("va-ocis", "Virginia OCIS", () => searchVaOcis(parsed, 15)),
     );
   }
+  if (shouldSearchDeCourtConnect(parsed)) {
+    jobs.push(
+      settleSource("de-courtconnect", "Delaware CourtConnect", () =>
+        searchDeCourtConnect(parsed, 15),
+      ),
+    );
+  }
+  if (shouldSearchOkOscn(parsed)) {
+    jobs.push(
+      settleSource("ok-oscn", "Oklahoma OSCN", () => searchOkOscn(parsed, 15)),
+    );
+  }
+  if (shouldSearchFlHover(parsed)) {
+    jobs.push(
+      settleSource("fl-hover", "Hillsborough HOVER", () =>
+        searchFlHover(parsed, 15),
+      ),
+    );
+  }
+  if (shouldSearchInMycase(parsed)) {
+    jobs.push(
+      settleSource("in-mycase", "Indiana MyCase", () =>
+        searchInMycase(parsed, 15),
+      ),
+    );
+  }
+  if (shouldSearchWiCcap(parsed)) {
+    jobs.push(
+      settleSource("wi-ccap", "Wisconsin CCAP", () => searchWiCcap(parsed, 15)),
+    );
+  }
+  if (shouldSearchPaUjs(parsed)) {
+    jobs.push(
+      settleSource("pa-ujs", "Pennsylvania UJS", () => searchPaUjs(parsed, 15)),
+    );
+  }
 
   const settled = await Promise.all(jobs);
   const cases = settled.flatMap((part) => part.value ?? []);
-  const portals =
-    parsed.state || (parsed.country && parsed.country !== "US")
-      ? buildStateCourtPortals(parsed)
-      : [];
-  if (parsed.country && parsed.country !== "US") {
-    portals.push(...buildCountryPortals(parsed));
-  }
+  const portals = buildPortalLayer(parsed);
 
   return composeResult(
     trimmed,
@@ -192,6 +272,22 @@ export async function searchUsIdentity(
     );
   }
 
+  if (shouldSearchBop(parsed)) {
+    jobs.push(
+      settleSource("bop-inmate", "BOP Inmate Locator", () =>
+        searchBopInmateLocator(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchDallasWanted(parsed)) {
+    jobs.push(
+      settleSource("dallas-wanted", "Dallas County Wanted", () =>
+        searchDallasWanted(parsed, 8),
+      ),
+    );
+  }
+
   jobs.push(
     settleSource("interpol", "Interpol Red Notices", () =>
       searchInterpolRedNotices(parsed, 8),
@@ -220,6 +316,14 @@ export async function searchUsIdentity(
     );
   }
 
+  if (wantsFlFdle(parsed)) {
+    jobs.push(
+      settleSource("fl-fdle", "Florida FDLE SOR", () =>
+        searchFlFdle(parsed, 10),
+      ),
+    );
+  }
+
   if (includeCourt) {
     if (wantsUsFederal(parsed)) {
       jobs.push(
@@ -233,6 +337,46 @@ export async function searchUsIdentity(
         settleSource("va-ocis", "Virginia OCIS", () => searchVaOcis(parsed, 10)),
       );
     }
+    if (shouldSearchDeCourtConnect(parsed)) {
+      jobs.push(
+        settleSource("de-courtconnect", "Delaware CourtConnect", () =>
+          searchDeCourtConnect(parsed, 10),
+        ),
+      );
+    }
+    if (shouldSearchOkOscn(parsed)) {
+      jobs.push(
+        settleSource("ok-oscn", "Oklahoma OSCN", () => searchOkOscn(parsed, 10)),
+      );
+    }
+    if (shouldSearchFlHover(parsed)) {
+      jobs.push(
+        settleSource("fl-hover", "Hillsborough HOVER", () =>
+          searchFlHover(parsed, 10),
+        ),
+      );
+    }
+    if (shouldSearchInMycase(parsed)) {
+      jobs.push(
+        settleSource("in-mycase", "Indiana MyCase", () =>
+          searchInMycase(parsed, 10),
+        ),
+      );
+    }
+    if (shouldSearchWiCcap(parsed)) {
+      jobs.push(
+        settleSource("wi-ccap", "Wisconsin CCAP", () =>
+          searchWiCcap(parsed, 10),
+        ),
+      );
+    }
+    if (shouldSearchPaUjs(parsed)) {
+      jobs.push(
+        settleSource("pa-ujs", "Pennsylvania UJS", () =>
+          searchPaUjs(parsed, 10),
+        ),
+      );
+    }
   }
 
   const settled = await Promise.all(jobs);
@@ -240,7 +384,16 @@ export async function searchUsIdentity(
   const cases: CourtCaseHit[] = [];
   for (const part of settled) {
     if (!part.value) continue;
-    if (part.id === "courtlistener" || part.id === "va-ocis") {
+    if (
+      part.id === "courtlistener" ||
+      part.id === "va-ocis" ||
+      part.id === "de-courtconnect" ||
+      part.id === "ok-oscn" ||
+      part.id === "fl-hover" ||
+      part.id === "in-mycase" ||
+      part.id === "wi-ccap" ||
+      part.id === "pa-ujs"
+    ) {
       cases.push(...(part.value as CourtCaseHit[]));
     } else {
       people.push(...(part.value as PersonHit[]));
@@ -272,6 +425,7 @@ export async function searchUsVaSor(query: string): Promise<UsVaSorSearchResult>
     settleSource("va-sor", "Virginia Sex Offender Registry", () =>
       searchVaSexOffenderRegistry(parsed, 25),
     ),
+    settleSource("fl-fdle", "Florida FDLE SOR", () => searchFlFdle(parsed, 25)),
   ];
 
   const settled = await Promise.all(jobs);
@@ -342,6 +496,9 @@ export async function searchWantedPersons(query: string): Promise<UsIdentitySear
     settleSource("interpol", "Interpol Red Notices", () =>
       searchInterpolRedNotices(parsed, 12),
     ),
+    settleSource("dallas-wanted", "Dallas County Wanted", () =>
+      searchDallasWanted(parsed, 12),
+    ),
   ]);
 
   const people = settled.flatMap((part) => part.value ?? []);
@@ -381,6 +538,8 @@ export async function searchStateRecordsDirectory(
   const portals = [
     ...buildStateCourtPortals(parsed, { all: true }),
     ...buildStateSorPortals(parsed, { all: true }),
+    ...buildPriorityStatePortals(parsed),
+    ...buildCandidateBacklogPortals(parsed, 60),
   ];
   return composeResult(
     trimmed,
@@ -390,6 +549,23 @@ export async function searchStateRecordsDirectory(
     portals,
     [],
     "No state registry portals available.",
+  );
+}
+
+export async function searchPortalBacklogDirectory(
+  query: string,
+): Promise<UsIdentitySearchResult> {
+  const trimmed = assertUsQuery(query);
+  const parsed = parseUsRecordsQuery(trimmed);
+  const portals = buildCandidateBacklogPortals(parsed, 120);
+  return composeResult(
+    trimmed,
+    parsed,
+    [],
+    [],
+    portals,
+    [],
+    "No portal backlog matches available.",
   );
 }
 

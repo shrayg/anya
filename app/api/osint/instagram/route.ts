@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireOsintAccess } from "@/lib/osint-api-auth";
+import { buildInstagramBubbleMap } from "@/lib/instagram-bubble-map";
 import {
   normalizeInstagramUsername,
   searchInstagram,
 } from "@/lib/instagram-search";
+import { requireOsintAccess } from "@/lib/osint-api-auth";
+
+/** Large follower exports can take several minutes while paginating. */
+export const maxDuration = 300;
+export const dynamic = "force-dynamic";
+
+const DEFAULT_MAX_USERS = 10_000;
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "instagram");
@@ -22,33 +29,74 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const maxUsersParam = Number(req.nextUrl.searchParams.get("maxUsers") ?? "200");
+  const maxUsersParam = Number(
+    req.nextUrl.searchParams.get("maxUsers") ?? String(DEFAULT_MAX_USERS),
+  );
+  const bioLimitParam = Number(req.nextUrl.searchParams.get("bioLimit") ?? "40");
+  const maxPostsParam = Number(req.nextUrl.searchParams.get("maxPosts") ?? "24");
+  const maxTaggedParam = Number(req.nextUrl.searchParams.get("maxTagged") ?? "24");
+  const commentPostsParam = Number(
+    req.nextUrl.searchParams.get("commentPosts") ?? "8",
+  );
   const listsParam = req.nextUrl.searchParams.get("lists");
   const lists =
     listsParam === "followers" || listsParam === "following"
       ? listsParam
       : "both";
+  const enrichBios =
+    req.nextUrl.searchParams.get("enrichBios") === "1" ||
+    req.nextUrl.searchParams.get("enrichBios") === "true" ||
+    req.nextUrl.searchParams.get("bubbleMap") === "1";
+  const mutualFirst = req.nextUrl.searchParams.get("mutualFirst") !== "false";
+  const includeActivity =
+    req.nextUrl.searchParams.get("includeActivity") !== "false";
 
   try {
     const data = await searchInstagram(query, {
-      maxUsers: Number.isFinite(maxUsersParam) ? maxUsersParam : 200,
+      maxUsers: Number.isFinite(maxUsersParam)
+        ? maxUsersParam
+        : DEFAULT_MAX_USERS,
       lists,
+      enrichBios,
+      bioLimit: Number.isFinite(bioLimitParam) ? bioLimitParam : 40,
+      mutualFirst,
+      includeActivity,
+      maxPosts: Number.isFinite(maxPostsParam) ? maxPostsParam : 24,
+      maxTagged: Number.isFinite(maxTaggedParam) ? maxTaggedParam : 24,
+      commentPosts: Number.isFinite(commentPostsParam) ? commentPostsParam : 8,
     });
+
+    const bubbleMap =
+      data.profile &&
+      buildInstagramBubbleMap({
+        profile: data.profile,
+        followers: data.followers,
+        following: data.following,
+        mutuals: data.mutuals,
+        activity: data.activity,
+      });
+
+    const response = {
+      ...data,
+      bubbleMap,
+    };
 
     const hasGraph =
       data.followers.length > 0 ||
       data.following.length > 0 ||
-      Boolean(data.profile);
+      Boolean(data.profile) ||
+      Boolean(data.activity?.postsAnalyzed) ||
+      Boolean(data.activity?.taggedPostsAnalyzed);
     const hasLeaks = data.leaks.count > 0;
 
     if (!hasGraph && !hasLeaks) {
       return NextResponse.json({
-        ...data,
+        ...response,
         message: "No Instagram graph or breach data was returned.",
       });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(response);
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to reach Instagram";

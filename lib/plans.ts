@@ -78,6 +78,7 @@ export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
   "national-sor",
   "state-records-directory",
   "international-records-directory",
+  "portal-backlog",
 ]);
 
 
