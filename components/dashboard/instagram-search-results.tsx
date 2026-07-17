@@ -9,7 +9,7 @@ import { InstagramActivityPanel } from "@/components/dashboard/instagram-activit
 import { InstagramBubbleMapView } from "@/components/dashboard/instagram-bubble-map";
 import { InstagramPersonaPanel } from "@/components/dashboard/instagram-persona-panel";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
-import type { InstagramBubbleMap } from "@/lib/instagram-bubble-map";
+import type { InstagramBubbleMap, RankedCloseFriend } from "@/lib/instagram-bubble-map";
 import type { InstagramPersona } from "@/lib/instagram-persona";
 import type { InstagramSearchResult } from "@/lib/instagram-search";
 import { formatSearchRecords } from "@/lib/search-utils";
@@ -155,6 +155,103 @@ function UserList({
   );
 }
 
+function RankedCloseFriendList({
+  friends,
+  blurResults,
+}: {
+  friends: RankedCloseFriend[];
+  blurResults?: boolean;
+}) {
+  const [visibleCount, setVisibleCount] = useState(LIST_PAGE_SIZE);
+
+  if (friends.length === 0) {
+    return (
+      <p className="text-sm text-zinc-400">
+        No high-confidence close friends yet. Tag activity and consistent
+        commenters drive this ranking — mutual follow alone is not enough.
+      </p>
+    );
+  }
+
+  const visible = friends.slice(0, visibleCount);
+  const hidden = friends.length - visible.length;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-zinc-400">
+        Ranked by confidence from tags, comments, coauthors, and mutual follow.
+        One-off tags score low; reciprocal activity ranks higher.
+      </p>
+      <div className="space-y-2">
+        {visible.map((friend) => (
+          <div
+            className="flex items-start gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
+            key={friend.id}
+          >
+            {friend.profilePicUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt=""
+                className="size-10 rounded-full border border-white/10 object-cover"
+                src={friend.profilePicUrl}
+              />
+            ) : (
+              <div className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs text-zinc-500">
+                IG
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-sm font-medium text-zinc-100">
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={`@${friend.username}`}
+                  />
+                </p>
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-200">
+                  {Math.round(friend.confidence * 100)}% conf
+                </span>
+                {friend.isMutual ? (
+                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+                    Mutual
+                  </span>
+                ) : null}
+              </div>
+              {friend.fullName ? (
+                <p className="truncate text-xs text-zinc-400">
+                  <BlurredValue forceBlur={blurResults} text={friend.fullName} />
+                </p>
+              ) : null}
+              {friend.confidenceReasons.length > 0 ? (
+                <p className="mt-1 text-xs text-zinc-500">
+                  {friend.confidenceReasons.join(" · ")}
+                </p>
+              ) : null}
+            </div>
+            <a
+              className="inline-flex items-center gap-1 text-xs text-anya-accent hover:underline"
+              href={`https://www.instagram.com/${friend.username}/`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Open <ExternalLink className="size-3" />
+            </a>
+          </div>
+        ))}
+      </div>
+      {hidden > 0 ? (
+        <button
+          className="text-sm text-anya-accent hover:underline"
+          onClick={() => setVisibleCount((count) => count + LIST_PAGE_SIZE)}
+          type="button"
+        >
+          Show {Math.min(hidden, LIST_PAGE_SIZE)} more
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function InstagramSearchResults({
   result,
   blurResults = false,
@@ -200,7 +297,10 @@ export function InstagramSearchResults({
     {
       id: "mutuals",
       label: "Close friends",
-      count: result.mutuals?.length ?? 0,
+      count:
+        result.bubbleMap?.rankedCloseFriends?.length ??
+        result.bubbleMap?.stats.closeFriendCount ??
+        0,
     },
     {
       id: "followers",
@@ -385,11 +485,9 @@ export function InstagramSearchResults({
       ) : null}
 
       {tab === "mutuals" ? (
-        <UserList
+        <RankedCloseFriendList
           blurResults={blurResults}
-          totalCount={result.mutuals?.length ?? 0}
-          truncated={false}
-          users={result.mutuals ?? []}
+          friends={result.bubbleMap?.rankedCloseFriends ?? []}
         />
       ) : null}
 

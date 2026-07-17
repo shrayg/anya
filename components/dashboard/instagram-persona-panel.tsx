@@ -245,7 +245,7 @@ export function InstagramPersonaPanel({
         <section className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-zinc-200">
             <Users className="size-4 text-rose-300" />
-            Core friend group (mutuals who follow each other)
+            Core friend group (shared mutual connections)
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {persona.coreFriendGroup.map((friend) => (

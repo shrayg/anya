@@ -27,6 +27,7 @@ import { BlurredValue } from "@/components/dashboard/blurred-value";
 type ClusterKey =
   | "subject"
   | "close_friends"
+  | "mutuals"
   | "tagged_together"
   | "consistent_commenter"
   | "family"
@@ -40,6 +41,7 @@ type ClusterKey =
 const CLUSTER_COLOR: Record<ClusterKey, string> = {
   subject: "#f8fafc",
   close_friends: "#f59e0b",
+  mutuals: "#64748b",
   tagged_together: "#fbbf24",
   consistent_commenter: "#38bdf8",
   family: "#fb7185",
@@ -48,12 +50,13 @@ const CLUSTER_COLOR: Record<ClusterKey, string> = {
   organization: "#a78bfa",
   place: "#34d399",
   following_cluster: "#94a3b8",
-  other: "#64748b",
+  other: "#475569",
 };
 
 const CLUSTER_LABEL: Record<ClusterKey, string> = {
   subject: "Subject",
-  close_friends: "Close friends / mutuals",
+  close_friends: "Close friends",
+  mutuals: "Mutuals (weak signal)",
   tagged_together: "Tagged together",
   consistent_commenter: "Consistent commenters",
   family: "Family",
@@ -75,6 +78,7 @@ const CLUSTER_ORDER: ClusterKey[] = [
   "school",
   "organization",
   "place",
+  "mutuals",
   "following_cluster",
   "other",
 ];
@@ -82,6 +86,7 @@ const CLUSTER_ORDER: ClusterKey[] = [
 const FILTER_LABELS: Record<"all" | BubbleEntity["kind"], string> = {
   all: "All clusters",
   close_friends: "Close friends",
+  mutuals: "Mutuals",
   tagged_together: "Tagged together",
   consistent_commenter: "Commenters",
   family: "Family",
@@ -117,7 +122,8 @@ function clusterForPerson(person: BubblePerson): ClusterKey {
   const has = (kind: string) =>
     person.entities.some((entityId) => entityId.startsWith(`${kind}:`));
 
-  if (person.isMutual || person.relationship === "close_friend") {
+  // Scored close friends first — never dump all mutuals into this cluster.
+  if (person.relationship === "close_friend" || has("close_friends")) {
     return "close_friends";
   }
   if (has("tagged_together")) return "tagged_together";
@@ -129,14 +135,19 @@ function clusterForPerson(person: BubblePerson): ClusterKey {
   if (has("school")) return "school";
   if (has("organization")) return "organization";
   if (has("place")) return "place";
+  if (person.isMutual || has("mutuals")) return "mutuals";
   if (person.relation === "following") return "following_cluster";
   return "other";
 }
 
 function radiusForPerson(person: BubblePerson): number {
   if (person.relation === "subject") return 40;
-  const base = person.isMutual ? 20 : person.relation === "following" ? 15 : 12;
-  return base + Math.round(person.confidence * 12);
+  if (person.relationship === "close_friend") {
+    return 18 + Math.round(person.confidence * 16);
+  }
+  if (person.isMutual) return 11 + Math.round(person.confidence * 6);
+  if (person.relation === "following") return 13 + Math.round(person.confidence * 6);
+  return 11 + Math.round(person.confidence * 5);
 }
 
 function PersonDetails({
@@ -272,11 +283,18 @@ export function InstagramBubbleMapView({
     const anchors = new Map<ClusterKey, { x: number; y: number }>();
     const cx = WIDTH / 2;
     const cy = HEIGHT / 2;
-    const ringRadius = Math.min(WIDTH, HEIGHT) * 0.34;
     presentClusters.forEach((cluster, index) => {
       const angle =
         (index / Math.max(presentClusters.length, 1)) * Math.PI * 2 -
         Math.PI / 2;
+      // Close friends sit nearer the subject; weak mutuals further out.
+      const ringScale =
+        cluster === "close_friends"
+          ? 0.22
+          : cluster === "mutuals"
+            ? 0.44
+            : 0.34;
+      const ringRadius = Math.min(WIDTH, HEIGHT) * ringScale;
       anchors.set(cluster, {
         x: cx + Math.cos(angle) * ringRadius,
         y: cy + Math.sin(angle) * ringRadius,
@@ -324,25 +342,25 @@ export function InstagramBubbleMapView({
     });
 
     const simulation = forceSimulation<SimNode>(simNodes)
-      .force("charge", forceManyBody<SimNode>().strength(-38))
+      .force("charge", forceManyBody<SimNode>().strength(-55))
       .force(
         "x",
         forceX<SimNode>(
           (node) => (clusterAnchors.get(node.cluster) ?? { x: cx }).x,
-        ).strength(0.12),
+        ).strength((node) => (node.cluster === "close_friends" ? 0.18 : 0.1)),
       )
       .force(
         "y",
         forceY<SimNode>(
           (node) => (clusterAnchors.get(node.cluster) ?? { y: cy }).y,
-        ).strength(0.12),
+        ).strength((node) => (node.cluster === "close_friends" ? 0.18 : 0.1)),
       )
-      .force("center", forceCenter(cx, cy).strength(0.02))
+      .force("center", forceCenter(cx, cy).strength(0.015))
       .force(
         "collide",
-        forceCollide<SimNode>((node) => node.radius + 3)
-          .strength(0.9)
-          .iterations(2),
+        forceCollide<SimNode>((node) => node.radius + 8)
+          .strength(1)
+          .iterations(3),
       )
       .alpha(1)
       .alphaDecay(0.028);
@@ -700,18 +718,27 @@ export function InstagramBubbleMapView({
                         />
                       </>
                     ) : null}
-                    {node.radius >= 18 || isActive ? (
-                      <text
-                        x={node.x}
-                        y={node.y + node.radius + 11}
-                        textAnchor="middle"
-                        fill="#e2e8f0"
-                        fontSize={Math.max(9, 11 / transform.k)}
-                        opacity={isActive ? 1 : 0.7}
-                      >
-                        @{node.person.username.slice(0, 16)}
-                      </text>
-                    ) : null}
+                    {(() => {
+                      const showLabel =
+                        isActive ||
+                        node.cluster === "subject" ||
+                        node.cluster === "close_friends" ||
+                        (transform.k >= 1.6 && node.cluster !== "mutuals") ||
+                        (transform.k >= 2.2 && node.cluster === "mutuals");
+                      if (!showLabel) return null;
+                      return (
+                        <text
+                          x={node.x}
+                          y={node.y + node.radius + 11}
+                          textAnchor="middle"
+                          fill="#e2e8f0"
+                          fontSize={Math.max(9, 11 / transform.k)}
+                          opacity={isActive ? 1 : 0.75}
+                        >
+                          @{node.person.username.slice(0, 16)}
+                        </text>
+                      );
+                    })()}
                     <title>@{node.person.username}</title>
                   </g>
                 );

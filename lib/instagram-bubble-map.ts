@@ -8,6 +8,7 @@ export type BubbleEntityKind =
   | "organization"
   | "place"
   | "close_friends"
+  | "mutuals"
   | "tagged_together"
   | "consistent_commenter"
   | "travel"
@@ -45,11 +46,24 @@ export type BubblePerson = {
   r: number;
 };
 
+export type RankedCloseFriend = {
+  id: string;
+  username: string;
+  fullName: string;
+  profilePicUrl?: string;
+  isMutual: boolean;
+  confidence: number;
+  confidenceReasons: string[];
+  activityScore: number;
+};
+
 export type InstagramBubbleMap = {
   subjectId: string;
   people: BubblePerson[];
   entities: BubbleEntity[];
   insights: string[];
+  /** Ranked close-friend candidates (activity + graph signals), not raw mutuals. */
+  rankedCloseFriends: RankedCloseFriend[];
   stats: {
     peopleAnalyzed: number;
     biosLoaded: number;
@@ -271,6 +285,14 @@ function sharedValues(left: string[], right: string[]): string[] {
   return left.filter((value) => rightSet.has(value.toLowerCase()));
 }
 
+function hasReciprocalTagReasons(reasons: string[]): boolean {
+  const taggedThem = reasons.some((reason) => reason.startsWith("tagged in "));
+  const taggedSubject = reasons.some((reason) =>
+    reason.startsWith("subject tagged in "),
+  );
+  return taggedThem && taggedSubject;
+}
+
 function classifyRelationship(input: {
   user: InstagramUserSummary;
   isMutual: boolean;
@@ -289,7 +311,7 @@ function classifyRelationship(input: {
   | "graduationYears"
 > {
   const reasons: string[] = [];
-  let confidence = 0.15;
+  let confidence = 0.12;
   let relationship: BubblePerson["relationship"] = "unknown";
 
   const sharedSchools = sharedValues(input.signals.schools, input.subjectSignals.schools);
@@ -303,12 +325,13 @@ function classifyRelationship(input: {
     input.subjectSignals.organizations,
   );
 
+  // Mutual follow alone is a weak acquaintance signal — not "close friend".
   if (input.isMutual) {
-    confidence += 0.35;
-    relationship = "close_friend";
+    confidence += 0.16;
+    relationship = "friend";
     reasons.push("mutual follow");
   } else if (input.relation === "following") {
-    confidence += 0.12;
+    confidence += 0.08;
     relationship = "friend";
     reasons.push("target follows this account");
   }
@@ -359,16 +382,26 @@ function classifyRelationship(input: {
     if (sharedPlaces.length > 0) reasons.push(`shared place: ${sharedPlaces.slice(0, 2).join(", ")}`);
   }
 
-  if (input.activityBoost && input.activityBoost.score > 0) {
-    confidence += Math.min(0.4, input.activityBoost.score / 20);
+  const activityScore = input.activityBoost?.score ?? 0;
+  if (activityScore > 0 && input.activityBoost) {
+    confidence += Math.min(0.55, activityScore / 16);
+    reasons.push(...input.activityBoost.reasons.slice(0, 3));
+
+    const reciprocal = hasReciprocalTagReasons(input.activityBoost.reasons);
+    if (reciprocal) confidence += 0.08;
+
+    // Require real interaction — a single one-off tag (e.g. score 4) is not enough.
+    const qualifiesAsCloseFriend =
+      activityScore >= 8 ||
+      (activityScore >= 5 && input.isMutual) ||
+      (reciprocal && activityScore >= 6);
+
     if (
-      relationship === "unknown" ||
-      relationship === "friend" ||
-      (relationship === "close_friend" && input.activityBoost.score >= 6)
+      qualifiesAsCloseFriend &&
+      relationship !== "likely_family"
     ) {
       relationship = "close_friend";
     }
-    reasons.push(...input.activityBoost.reasons.slice(0, 3));
   }
 
   return {
@@ -432,6 +465,7 @@ function layoutPeople(
 
   const kindAngles: Record<BubbleEntityKind, number> = {
     close_friends: -Math.PI / 2,
+    mutuals: Math.PI * 0.15,
     tagged_together: -Math.PI / 2.4,
     consistent_commenter: -Math.PI / 1.7,
     school: -Math.PI / 6,
@@ -482,7 +516,14 @@ function layoutPeople(
       y = cy + Math.sin(angle) * ring;
     }
 
-    const r = person.isMutual ? 18 : person.relation === "following" ? 14 : 11;
+    const r =
+      person.relationship === "close_friend"
+        ? 20 + Math.round(person.confidence * 10)
+        : person.isMutual
+          ? 12
+          : person.relation === "following"
+            ? 13
+            : 11;
     return {
       ...person,
       x: Math.max(28, Math.min(width - 28, x)),
@@ -558,22 +599,6 @@ export function buildInstagramBubbleMap(input: {
 
   const entities = new Map<string, BubbleEntity>();
   const personEntityIds = new Map<string, string[]>();
-
-  const closeFriends = mutuals.slice(0, 80);
-  if (closeFriends.length > 0) {
-    const entity: BubbleEntity = {
-      id: entityId("close_friends", "Close friends / mutuals"),
-      kind: "close_friends",
-      label: "Close friends / mutuals",
-      evidence: ["Appears in both followers and following"],
-      userIds: closeFriends.map((user) => user.id),
-      usernames: closeFriends.map((user) => user.username),
-    };
-    entities.set(entity.id, entity);
-    for (const user of closeFriends) {
-      personEntityIds.set(user.id, [entity.id]);
-    }
-  }
 
   if (activity) {
     for (const commenter of activity.consistentCommenters.slice(0, 20)) {
@@ -732,16 +757,109 @@ export function buildInstagramBubbleMap(input: {
     });
   }
 
-  // Prefer denser map: subject + mutuals + activity-close + people with bios + top following
-  const activityCloseIds = new Set(
-    (activity?.closeFriendCandidates ?? []).slice(0, 30).map((entry) => entry.account.id),
+  // Attach scored close-friend / weak-mutual clusters after classification.
+  for (const person of peopleBase) {
+    if (person.relation === "subject") continue;
+    const linked = [...(personEntityIds.get(person.id) ?? [])];
+    if (person.relationship === "close_friend") {
+      pushEntity(
+        entities,
+        "close_friends",
+        "Close friends",
+        {
+          id: person.id,
+          username: person.username,
+          fullName: person.fullName,
+          profilePicUrl: person.profilePicUrl,
+          isVerified: person.isVerified,
+          isPrivate: person.isPrivate,
+        },
+        person.confidenceReasons[0] ?? `confidence ${person.confidence}`,
+      );
+      linked.push(entityId("close_friends", "Close friends"));
+    } else if (person.isMutual) {
+      pushEntity(
+        entities,
+        "mutuals",
+        "Mutuals (weak signal)",
+        {
+          id: person.id,
+          username: person.username,
+          fullName: person.fullName,
+          profilePicUrl: person.profilePicUrl,
+          isVerified: person.isVerified,
+          isPrivate: person.isPrivate,
+        },
+        "mutual follow without strong tag/comment activity",
+      );
+      linked.push(entityId("mutuals", "Mutuals (weak signal)"));
+    }
+    const deduped = [...new Set(linked)];
+    personEntityIds.set(person.id, deduped);
+    person.entities = deduped;
+  }
+
+  const rankedCloseFriends: RankedCloseFriend[] = peopleBase
+    .filter((person) => person.relationship === "close_friend")
+    .sort((a, b) => b.confidence - a.confidence || b.username.localeCompare(a.username))
+    .slice(0, 80)
+    .map((person) => ({
+      id: person.id,
+      username: person.username,
+      fullName: person.fullName,
+      profilePicUrl: person.profilePicUrl,
+      isMutual: person.isMutual,
+      confidence: person.confidence,
+      confidenceReasons: person.confidenceReasons,
+      activityScore: activityBoostById.get(person.id)?.score ?? 0,
+    }));
+
+  // Prefer high-confidence close friends + activity signals; cap weak mutuals.
+  const closeFriendIds = new Set(
+    peopleBase.filter((p) => p.relationship === "close_friend").map((p) => p.id),
   );
+  const activitySignalIds = new Set([
+    ...(activity?.closeFriendCandidates ?? []).map((entry) => entry.account.id),
+    ...(activity?.consistentCommenters ?? []).map((entry) => entry.account.id),
+    ...(activity?.taggedAccounts ?? [])
+      .filter((entry) => entry.score >= 3)
+      .map((entry) => entry.account.id),
+  ]);
+  const weakMutuals = peopleBase
+    .filter(
+      (p) =>
+        p.isMutual &&
+        p.relationship !== "close_friend" &&
+        p.relationship !== "likely_family" &&
+        p.relationship !== "likely_classmate",
+    )
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 18);
+  const weakMutualIds = new Set(weakMutuals.map((p) => p.id));
+
   const prioritized = [
     peopleBase[0],
-    ...peopleBase.filter((p) => p.relation === "mutual"),
-    ...peopleBase.filter((p) => activityCloseIds.has(p.id)),
+    ...peopleBase
+      .filter((p) => closeFriendIds.has(p.id))
+      .sort((a, b) => b.confidence - a.confidence),
     ...peopleBase.filter(
-      (p) => p.relation !== "subject" && p.relation !== "mutual" && Boolean(p.biography),
+      (p) =>
+        activitySignalIds.has(p.id) &&
+        !closeFriendIds.has(p.id) &&
+        p.relation !== "subject",
+    ),
+    ...peopleBase.filter(
+      (p) =>
+        p.relationship === "likely_family" || p.relationship === "likely_classmate",
+    ),
+    ...weakMutuals,
+    ...peopleBase.filter(
+      (p) =>
+        p.relation !== "subject" &&
+        !closeFriendIds.has(p.id) &&
+        !activitySignalIds.has(p.id) &&
+        !weakMutualIds.has(p.id) &&
+        Boolean(p.biography),
     ),
     ...peopleBase.filter((p) => p.relation === "following" && !p.biography),
   ];
@@ -755,6 +873,21 @@ export function buildInstagramBubbleMap(input: {
     if (selected.length >= 90) break;
   }
 
+  // Drop weak-mutual entity membership for people not shown on the map,
+  // so the "Mutuals" halo only reflects visible nodes.
+  const selectedIds = new Set(selected.map((p) => p.id));
+  const mutualsEntity = entities.get(entityId("mutuals", "Mutuals (weak signal)"));
+  if (mutualsEntity) {
+    const usernameById = new Map(peopleBase.map((p) => [p.id, p.username]));
+    mutualsEntity.userIds = mutualsEntity.userIds.filter((id) => selectedIds.has(id));
+    mutualsEntity.usernames = mutualsEntity.userIds
+      .map((id) => usernameById.get(id))
+      .filter((name): name is string => Boolean(name));
+    if (mutualsEntity.userIds.length === 0) {
+      entities.delete(mutualsEntity.id);
+    }
+  }
+
   const entityList = [...entities.values()]
     .sort((a, b) => b.userIds.length - a.userIds.length)
     .slice(0, 40);
@@ -763,8 +896,20 @@ export function buildInstagramBubbleMap(input: {
   const biosLoaded = people.filter((p) => p.biography.trim().length > 0).length;
 
   const insights: string[] = [];
+  if (rankedCloseFriends.length > 0) {
+    insights.push(
+      `${rankedCloseFriends.length} close-friend candidates ranked by tags, comments, and graph signals (not raw mutuals). Top: ${rankedCloseFriends
+        .slice(0, 4)
+        .map((entry) => `@${entry.username}`)
+        .join(", ")}.`,
+    );
+  } else {
+    insights.push(
+      `${mutuals.length} mutual follows found, but none cleared the activity confidence bar yet — scan posts/tags for stronger close-friend signals.`,
+    );
+  }
   insights.push(
-    `${mutuals.length} mutual accounts (follow each other) — strongest close-friend signal in the pulled lists.`,
+    `${mutuals.length} mutual accounts follow each other; most are acquaintances unless tag/comment activity lifts them.`,
   );
 
   const schools = entityList.filter((e) => e.kind === "school");
@@ -774,7 +919,7 @@ export function buildInstagramBubbleMap(input: {
   const places = entityList.filter((e) => e.kind === "place");
   const likelyFamilyCount = people.filter((person) => person.relationship === "likely_family").length;
   const likelyClassmateCount = people.filter((person) => person.relationship === "likely_classmate").length;
-  const closeFriendCount = people.filter((person) => person.relationship === "close_friend").length;
+  const closeFriendCount = rankedCloseFriends.length;
 
   if (schools.length) {
     insights.push(
@@ -832,14 +977,6 @@ export function buildInstagramBubbleMap(input: {
         .join(", ")}.`,
     );
   }
-  if (activity?.closeFriendCandidates.length) {
-    insights.push(
-      `Activity-based close-friend candidates: ${activity.closeFriendCandidates
-        .slice(0, 4)
-        .map((entry) => `@${entry.account.username}`)
-        .join(", ")}.`,
-    );
-  }
   if (biosLoaded < 5) {
     insights.push(
       "Few bios were loaded. Run bubble-map enrichment to pull more profile bios for stronger clustering.",
@@ -851,6 +988,7 @@ export function buildInstagramBubbleMap(input: {
     people,
     entities: entityList,
     insights,
+    rankedCloseFriends,
     stats: {
       peopleAnalyzed: people.length,
       biosLoaded,

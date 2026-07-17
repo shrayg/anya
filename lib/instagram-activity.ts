@@ -637,6 +637,13 @@ export async function fetchInstagramActivityGraph(
         `coauthored ${signal.coauthorCount} posts`,
       );
     }
+    if (signal.taggedInOwnPosts > 0 && signal.taggedSubjectInTheirPosts > 0) {
+      addCandidate(
+        signal.account,
+        5,
+        "reciprocal tagging",
+      );
+    }
   }
 
   for (const commenter of consistentCommenters) {
