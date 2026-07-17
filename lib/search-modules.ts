@@ -395,7 +395,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "site-pentest",
         "site-pentest",
         "Domain or URL (e.g. example.com)",
-        "Passive website hardening dashboard — selectable recon modules, mindmap, DNS/TLS/headers/cookies/CT/paths/Shodan. Active attacks stay desktop-only.",
+        "Passive website hardening dashboard — selectable recon (DNS/TLS/headers/cookies/CT/paths/crawl/Shodan). XSS/SQLi/CMDi/traversal/brute stay desktop lab only.",
         undefined,
         undefined,
         {
