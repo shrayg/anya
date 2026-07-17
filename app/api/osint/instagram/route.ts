@@ -100,7 +100,8 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to reach Instagram";
+    const status = /rate.?limit|429|try again/i.test(message) ? 429 : 502;
 
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({ error: message }, { status });
   }
 }
