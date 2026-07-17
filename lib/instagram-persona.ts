@@ -258,12 +258,12 @@ export function buildInstagramPersona(input: {
     }
   };
 
-  // One-way follows are the strongest interest signal (you chose to follow them
-  // for their content, not a mutual friendship).
+  // One-way follows are the strongest interest signal (content/creators the
+  // subject follows without a reciprocal friendship).
   for (const user of oneWayFollowing) addTopics(user, 2);
-  // Mutuals still hint at your world, but weight them lower.
+  // Mutuals still hint at the subject's social world, but weight them lower.
   for (const user of mutuals) addTopics(user, 1);
-  // Your own bio is a direct self-declaration.
+  // The subject's own bio is a direct self-declaration.
   const selfTopics = analyzeText(
     [profile.biography, profile.category, profile.fullName]
       .filter(Boolean)
@@ -272,7 +272,9 @@ export function buildInstagramPersona(input: {
   for (const topic of selfTopics) {
     const entry = topicWeights.get(topic) ?? { weight: 0, examples: [] };
     entry.weight += 3;
-    if (!entry.examples.includes("your bio")) entry.examples.unshift("your bio");
+    if (!entry.examples.includes("profile bio")) {
+      entry.examples.unshift("profile bio");
+    }
     topicWeights.set(topic, entry);
   }
 
@@ -294,8 +296,8 @@ export function buildInstagramPersona(input: {
         : topics.length > 0
           ? topics.slice(0, 2).join(", ")
           : user.isVerified
-            ? "verified account you follow"
-            : "you follow, no follow-back";
+            ? "verified — followed, no follow-back"
+            : "followed, no follow-back";
       return {
         id: user.id,
         username: user.username,
@@ -375,36 +377,41 @@ export function buildInstagramPersona(input: {
     (user) => (user.biography ?? "").trim().length > 0 || user.category,
   ).length;
 
-  // ---- Narrative summary ----
+  // ---- Narrative summary (third-person — any target can be searched) ----
   const summary: string[] = [];
   const followingCount = profile.followingCount || following.length;
   const followersCount = profile.followersCount || followers.length;
+  const handle = `@${profile.username}`;
 
   const topInterestLabels = interests.slice(0, 4).map((topic) => topic.label);
   if (topInterestLabels.length > 0) {
     summary.push(
-      `Your interests skew toward ${topInterestLabels.join(", ")} based on the accounts you follow.`,
+      `${handle}'s interests skew toward ${topInterestLabels.join(", ")} based on the accounts they follow.`,
     );
   } else {
     summary.push(
-      "Not enough enriched bios yet to profile your interests — run \u201CLoad bios & rebuild map\u201D to pull categories from the accounts you follow.",
+      `Not enough enriched bios yet to profile ${handle}'s interests — run \u201CLoad bios & rebuild map\u201D to pull categories from accounts they follow.`,
     );
   }
 
   summary.push(
-    `You follow ${followingCount.toLocaleString()} accounts and have ${followersCount.toLocaleString()} followers. ${mutuals.length.toLocaleString()} are mutuals (follow each other) — your real relationship circle.`,
+    `${handle} follows ${followingCount.toLocaleString()} accounts and has ${followersCount.toLocaleString()} followers. ${mutuals.length.toLocaleString()} are mutuals (follow each other) — the strongest relationship circle.`,
   );
 
   if (oneWayFollowing.length > 0) {
     summary.push(
-      `${oneWayFollowing.length.toLocaleString()} accounts you follow don't follow you back — these are the creators, brands, and public figures you follow for content (${creatorsFollowed.toLocaleString()} look like creators/brands).`,
+      `${oneWayFollowing.length.toLocaleString()} accounts ${handle} follows don't follow back — likely creators, brands, and public figures followed for content (${creatorsFollowed.toLocaleString()} look like creators/brands).`,
     );
   }
 
   if (youTag.length > 0 || tagYou.length > 0) {
     const tagBits: string[] = [];
-    if (youTag[0]) tagBits.push(`you tag @${youTag[0].username} most`);
-    if (tagYou[0]) tagBits.push(`@${tagYou[0].username} tags you most`);
+    if (youTag[0]) {
+      tagBits.push(`${handle} tags @${youTag[0].username} most`);
+    }
+    if (tagYou[0]) {
+      tagBits.push(`@${tagYou[0].username} tags ${handle} most`);
+    }
     summary.push(`Tag activity: ${tagBits.join("; ")}.`);
   }
 
@@ -419,7 +426,7 @@ export function buildInstagramPersona(input: {
 
   if (coreFriendGroup.length > 0) {
     summary.push(
-      `Your tightest circle (mutuals who also follow each other): ${coreFriendGroup
+      `Tightest circle (mutuals who also follow each other): ${coreFriendGroup
         .slice(0, 5)
         .map((friend) => `@${friend.username}`)
         .join(", ")}.`,

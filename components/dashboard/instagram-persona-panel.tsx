@@ -92,12 +92,12 @@ export function InstagramPersonaPanel({
       <section className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-zinc-200">
           <Heart className="size-4 text-rose-300" />
-          Interests (from accounts you follow)
+          Interests (from accounts they follow)
         </div>
         {persona.interests.length === 0 ? (
           <p className="text-sm text-zinc-500">
             No interest signals yet. Load bios to pull categories from the
-            accounts you follow.
+            accounts they follow.
           </p>
         ) : (
           <div className="space-y-2">
@@ -109,7 +109,7 @@ export function InstagramPersonaPanel({
                     {topic.examples
                       .slice(0, 3)
                       .map((example) =>
-                        example === "your bio" ? example : `@${example}`,
+                        example === "profile bio" ? example : `@${example}`,
                       )
                       .join(", ")}
                   </span>
@@ -132,11 +132,11 @@ export function InstagramPersonaPanel({
       <section className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-zinc-200">
           <Users className="size-4 text-sky-300" />
-          Accounts you&apos;re interested in (you follow, no follow-back)
+          Following without follow-back (interest accounts)
         </div>
         {persona.interestedIn.length === 0 ? (
           <p className="text-sm text-zinc-500">
-            Everyone you follow follows you back, or lists weren&apos;t loaded.
+            Every followed account follows back, or lists weren&apos;t loaded.
           </p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
@@ -188,7 +188,7 @@ export function InstagramPersonaPanel({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
               <p className="mb-2 text-xs uppercase tracking-wide text-zinc-500">
-                People you tag most
+                People they tag most
               </p>
               {persona.tagRelationships.youTag.length === 0 ? (
                 <p className="text-xs text-zinc-500">None found.</p>
@@ -213,7 +213,7 @@ export function InstagramPersonaPanel({
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
               <p className="mb-2 text-xs uppercase tracking-wide text-zinc-500">
-                People who tag you most
+                People who tag them most
               </p>
               {persona.tagRelationships.tagYou.length === 0 ? (
                 <p className="text-xs text-zinc-500">None found.</p>
@@ -262,7 +262,7 @@ export function InstagramPersonaPanel({
                     />
                   </p>
                   <p className="text-[11px] text-zinc-500">
-                    connected to {friend.internalDegree} of your other mutuals
+                    connected to {friend.internalDegree} of their other mutuals
                   </p>
                 </div>
                 <a
@@ -284,7 +284,7 @@ export function InstagramPersonaPanel({
         <section className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-zinc-200">
             <Users className="size-4 text-amber-300" />
-            Mutuals (your relationship circle)
+            Mutuals (relationship circle)
           </div>
           <div className="flex flex-wrap gap-2">
             {persona.mutualHighlights.map((person) => (
@@ -313,7 +313,7 @@ export function InstagramPersonaPanel({
         <section className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-zinc-200">
             <MapPin className="size-4 text-emerald-300" />
-            Places you&apos;ve been seen
+            Geotagged places
           </div>
           <div className="flex flex-wrap gap-2">
             {persona.places.map((place) => (

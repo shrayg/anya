@@ -52,7 +52,7 @@ const CLUSTER_COLOR: Record<ClusterKey, string> = {
 };
 
 const CLUSTER_LABEL: Record<ClusterKey, string> = {
-  subject: "You",
+  subject: "Subject",
   close_friends: "Close friends / mutuals",
   tagged_together: "Tagged together",
   consistent_commenter: "Consistent commenters",

@@ -182,7 +182,7 @@ export function InstagramSearchResults({
   const tabs: Array<{ id: InstagramTab; label: string; count?: number }> = [
     { id: "profile", label: "Profile" },
     ...(result.persona
-      ? [{ id: "persona" as const, label: "About you" }]
+      ? [{ id: "persona" as const, label: "Persona" }]
       : []),
     {
       id: "bubble",
