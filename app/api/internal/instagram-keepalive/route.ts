@@ -50,11 +50,16 @@ export async function POST(req: NextRequest) {
     const result = await ensureInstagramSession({ force: true });
     const aliveAfter = await probeInstagramSessionAlive();
 
+    // If a forced re-login hits checkpoint/2FA but the existing cookie is still
+    // valid, keep serving — do not report the whole tool as down.
+    const ok = aliveAfter || result.ok;
+
     return NextResponse.json({
-      ok: result.ok && aliveAfter,
+      ok,
       alive: aliveAfter,
       refreshed: result.refreshed,
       message: result.message,
+      loginOk: result.ok,
     });
   } catch (error) {
     return NextResponse.json(
