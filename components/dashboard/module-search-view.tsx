@@ -57,7 +57,7 @@ import { siteConfig } from "@/config/site";
 import { sanitizePublicContent, sanitizePublicText } from "@/lib/public-branding";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import type { DiscordSearchResult } from "@/lib/discord-profile";
-import { normalizeInstagramUsername } from "@/lib/instagram-search";
+import { normalizeInstagramUsername } from "@/lib/instagram-username";
 import { DASHBOARD_TOUR_STORAGE_KEY } from "@/lib/dashboard-tour";
 import { isDatingAppSlug, normalizeDatingQuery } from "@/lib/dating-search";
 import type { DomainSearchResult } from "@/lib/domain-search";

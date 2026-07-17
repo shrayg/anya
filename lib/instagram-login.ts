@@ -1,6 +1,7 @@
 import { createCipheriv, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import "server-only";
 
 import sodium from "libsodium-wrappers";
 

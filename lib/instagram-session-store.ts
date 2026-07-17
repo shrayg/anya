@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import "server-only";
 
 export const INSTAGRAM_ENV_KEYS = [
   "INSTAGRAM_SESSION_ID",

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import "server-only";
 
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import {
@@ -10,6 +11,9 @@ import {
   fetchInstagramActivityGraph,
   type InstagramActivityGraph,
 } from "@/lib/instagram-activity";
+
+export { normalizeInstagramUsername } from "@/lib/instagram-username";
+import { normalizeInstagramUsername } from "@/lib/instagram-username";
 
 const INSTAGRAM_WEB_APP_ID = "936619743392459";
 const FOLLOWERS_QUERY_HASH = "37479f2b8209594dde7facb0d904896a";
@@ -111,29 +115,6 @@ function getInstagramExtraCookies(): string {
   if (datr) parts.push(`datr=${datr}`);
   if (dsUserId) parts.push(`ds_user_id=${dsUserId}`);
   return parts.join("; ");
-}
-
-export function normalizeInstagramUsername(input: string): string | null {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-
-  const urlMatch = trimmed.match(
-    /(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]+)/i,
-  );
-  if (urlMatch?.[1]) {
-    const segment = urlMatch[1].toLowerCase();
-    if (["p", "reel", "reels", "stories", "explore", "accounts"].includes(segment)) {
-      return null;
-    }
-    return urlMatch[1];
-  }
-
-  const normalized = trimmed.replace(/^@/, "").replace(/\/$/, "");
-  if (!/^[A-Za-z0-9._]{1,30}$/.test(normalized)) {
-    return null;
-  }
-
-  return normalized;
 }
 
 function buildSessionCookie(sessionId: string, csrfToken: string): string {
