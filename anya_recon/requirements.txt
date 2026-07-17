@@ -1,0 +1,11 @@
+# Anya Recon — authorized passive recon & hardening audit
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+urllib3>=2.0.0
+colorama>=0.4.6
+jinja2>=3.1.0
+
+# Optional
+flask>=3.0.0
+reportlab>=4.0.0
+python-whois>=0.9.0

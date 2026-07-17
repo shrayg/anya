@@ -49,3 +49,8 @@ enkidu.tar.gz
 pnpm-lock.yaml
 yarn.lock
 bun.lockb
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
