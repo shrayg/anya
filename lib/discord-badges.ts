@@ -114,6 +114,34 @@ const BADGE_MAP: Record<string, DiscordBadgeDef> = {
   },
 };
 
+/** Discord UserFlags bitfield → badge keys. */
+const PUBLIC_FLAG_BITS: Array<{ bit: number; key: string }> = [
+  { bit: 1 << 0, key: "STAFF" },
+  { bit: 1 << 1, key: "PARTNER" },
+  { bit: 1 << 2, key: "HYPESQUAD" },
+  { bit: 1 << 3, key: "BUG_HUNTER_LEVEL_1" },
+  { bit: 1 << 6, key: "HYPESQUAD_ONLINE_HOUSE_1" },
+  { bit: 1 << 7, key: "HYPESQUAD_ONLINE_HOUSE_2" },
+  { bit: 1 << 8, key: "HYPESQUAD_ONLINE_HOUSE_3" },
+  { bit: 1 << 9, key: "PREMIUM_EARLY_SUPPORTER" },
+  { bit: 1 << 14, key: "BUG_HUNTER_LEVEL_2" },
+  { bit: 1 << 17, key: "VERIFIED_DEVELOPER" },
+  { bit: 1 << 18, key: "CERTIFIED_MODERATOR" },
+  { bit: 1 << 22, key: "ACTIVE_DEVELOPER" },
+];
+
+export function badgesFromPublicFlags(flags: unknown): string[] {
+  if (typeof flags !== "number" || !Number.isFinite(flags) || flags <= 0) {
+    return [];
+  }
+
+  const badges: string[] = [];
+  for (const { bit, key } of PUBLIC_FLAG_BITS) {
+    if ((flags & bit) === bit) badges.push(key);
+  }
+  return badges;
+}
+
 export function resolveDiscordBadges(rawBadges: string[]): DiscordBadgeDef[] {
   const seen = new Set<string>();
   const resolved: DiscordBadgeDef[] = [];

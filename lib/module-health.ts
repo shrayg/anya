@@ -1,4 +1,5 @@
 import { probeBreachVip } from "@/lib/breachvip";
+import { probeCordCat, isCordCatConfigured } from "@/lib/cordcat";
 import { probeCsint } from "@/lib/csint";
 import {
   fetchGodsEyeIngressCheck,
@@ -20,6 +21,7 @@ export type ProviderId =
   | "godseye-export"
   | "breachvip"
   | "csint"
+  | "cordcat"
   | "builtin"
   | "courtlistener"
   | "instagram";
@@ -76,7 +78,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "international-records-directory": { kind: "any", providers: ["builtin"] },
   "discord-id": {
     kind: "any",
-    providers: ["osintcat", "godseye", "breachvip", "csint"],
+    providers: ["cordcat", "osintcat", "godseye", "breachvip", "csint", "builtin"],
   },
   roblox: { kind: "any", providers: ["osintcat", "godseye", "csint"] },
   minecraft: {
@@ -212,6 +214,7 @@ export async function probeProviders(): Promise<ProviderHealth> {
     godseyeExport,
     breachvip,
     csint,
+    cordcat,
     courtlistener,
     instagram,
   ] = await Promise.all([
@@ -220,6 +223,7 @@ export async function probeProviders(): Promise<ProviderHealth> {
     probeGodsEyeExport(),
     probeBreachVip(),
     probeCsint(),
+    isCordCatConfigured() ? probeCordCat() : Promise.resolve(false),
     probeCourtListenerHealth(),
     probeInstagram(),
   ]);
@@ -230,6 +234,7 @@ export async function probeProviders(): Promise<ProviderHealth> {
     "godseye-export": godseyeExport,
     breachvip,
     csint,
+    cordcat,
     builtin: true,
     courtlistener,
     instagram,

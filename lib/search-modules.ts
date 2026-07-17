@@ -476,7 +476,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "discord-id",
         "discord",
         "Discord snowflake ID",
-        "Live profile plus indexed leak records for a Discord account.",
+        "Live profile (avatar, banner, badges, Nitro, clan) plus indexed leak records.",
       ),
       mod(
         "Platforms",

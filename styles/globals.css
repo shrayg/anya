@@ -2715,6 +2715,15 @@ html[data-splash="active"] [data-splash-target] {
   background: #111214;
 }
 
+.discord-profile-avatar-decoration {
+  position: absolute;
+  inset: -0.35rem;
+  width: calc(100% + 0.7rem);
+  height: calc(100% + 0.7rem);
+  pointer-events: none;
+  object-fit: contain;
+}
+
 .discord-profile-identity {
   text-align: center;
 }
@@ -2724,6 +2733,14 @@ html[data-splash="active"] [data-splash-target] {
   font-weight: 700;
   line-height: 1.2;
   color: #fff;
+}
+
+.discord-profile-clan {
+  margin-left: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #b5bac1;
 }
 
 .discord-profile-handle {
@@ -2758,9 +2775,10 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-profile-actions {
   display: flex;
-  justify-content: center;
-  gap: 0.45rem;
-  margin-top: 1rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin-top: 0.65rem;
 }
 
 .discord-profile-action {
@@ -2791,6 +2809,10 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-profile-action--primary:hover {
   background: #4752c4;
+}
+
+.discord-profile-actions .discord-profile-link {
+  margin-top: 0;
 }
 
 .discord-profile-meta {

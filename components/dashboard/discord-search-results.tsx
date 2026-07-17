@@ -6,8 +6,9 @@ import clsx from "clsx";
 
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { resolveDiscordBadges } from "@/lib/discord-badges";
 import {
-  formatDiscordCreatedAt,
+  formatDiscordCreatedAtExact,
   formatDiscordMemberSince,
   profileAccent,
   type DiscordSearchResult,
@@ -28,7 +29,7 @@ function DiscordLeakRecords({
   blurResults?: boolean;
   totalCount?: number;
 }) {
-  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+  const [expanded, setExpanded] = useState<Set<number> | null>(null);
   const [visibleCount, setVisibleCount] = useState(LEAK_PAGE_SIZE);
 
   if (records.length === 0) {
@@ -44,8 +45,17 @@ function DiscordLeakRecords({
   const visibleRecords = records.slice(0, visibleCount);
   const hiddenCount = Math.max(0, records.length - visibleCount);
 
+  const isRowExpanded = (index: number) =>
+    expanded === null || expanded.has(index);
+
   const toggleExpanded = (index: number) => {
     setExpanded((current) => {
+      if (current === null) {
+        const next = new Set(visibleRecords.map((record) => record.index));
+        next.delete(index);
+        return next;
+      }
+
       const next = new Set(current);
 
       if (next.has(index)) {
@@ -58,6 +68,9 @@ function DiscordLeakRecords({
     });
   };
 
+  const anyExpanded =
+    expanded === null || visibleRecords.some((record) => expanded.has(record.index));
+
   return (
     <div className="discord-leak-wrap">
       <div className="discord-leak-toolbar">
@@ -69,7 +82,7 @@ function DiscordLeakRecords({
             {total > shown ? `${total} total in index` : "Breach & stealer matches"}
           </span>
         </p>
-        {expanded.size > 0 ? (
+        {anyExpanded ? (
           <button
             className="discord-leak-action"
             onClick={() => setExpanded(new Set())}
@@ -77,12 +90,20 @@ function DiscordLeakRecords({
           >
             Collapse all
           </button>
-        ) : null}
+        ) : (
+          <button
+            className="discord-leak-action"
+            onClick={() => setExpanded(null)}
+            type="button"
+          >
+            Expand all
+          </button>
+        )}
       </div>
 
       <div className="discord-leak-list">
         {visibleRecords.map((record) => {
-          const isExpanded = expanded.has(record.index);
+          const isExpanded = isRowExpanded(record.index);
           const fields = record.fields;
 
           return (
@@ -191,10 +212,12 @@ export function DiscordSearchResults({
 }) {
   const { profile, leaks, fivem } = result;
   const hasFivem = Boolean(fivem?.accounts || fivem?.bans);
-  const [tab, setTab] = useState<DiscordTab>(
-    leaks.count > 0 ? "leaks" : hasFivem ? "fivem" : "intel",
-  );
+  const [tab, setTab] = useState<DiscordTab>("intel");
   const accent = profileAccent(profile);
+  const badges = useMemo(
+    () => resolveDiscordBadges(profile.badges),
+    [profile.badges],
+  );
   const leakRecords = useMemo(
     () => formatSearchRecords(leaks.results),
     [leaks.results],
@@ -236,12 +259,27 @@ export function DiscordSearchResults({
                 className="discord-profile-avatar"
                 src={profile.avatarUrl}
               />
+              {profile.avatarDecorationUrl ? (
+                <img
+                  alt=""
+                  aria-hidden
+                  className="discord-profile-avatar-decoration"
+                  src={profile.avatarDecorationUrl}
+                />
+              ) : null}
             </div>
           </div>
 
           <div className="discord-profile-identity">
             <h3 className="discord-profile-name">
               <BlurredValue forceBlur={blurResults} text={profile.displayName} />
+              {profile.clanTag ? (
+                <span className="discord-profile-clan">
+                  [
+                  <BlurredValue forceBlur={blurResults} text={profile.clanTag} />
+                  ]
+                </span>
+              ) : null}
             </h3>
             <p className="discord-profile-handle">
               <BlurredValue
@@ -255,13 +293,60 @@ export function DiscordSearchResults({
             </p>
           </div>
 
+          {badges.length > 0 ? (
+            <div className="discord-profile-badges" aria-label="Badges">
+              {badges.map((badge) => (
+                <span
+                  key={badge.key}
+                  className="discord-profile-badge"
+                  style={
+                    {
+                      "--badge-color": badge.color,
+                      "--badge-glow": badge.glow,
+                    } as React.CSSProperties
+                  }
+                  title={badge.label}
+                >
+                  {badge.short}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
           <div className="discord-profile-meta">
             <div>
-              <p className="discord-profile-meta-label">Member Since</p>
+              <p className="discord-profile-meta-label">Created (exact)</p>
+              <p className="discord-profile-meta-value">
+                <BlurredValue
+                  forceBlur={blurResults}
+                  text={formatDiscordCreatedAtExact(profile.createdAt)}
+                />
+              </p>
+            </div>
+            <div>
+              <p className="discord-profile-meta-label">Member since</p>
               <p className="discord-profile-meta-value">
                 <BlurredValue
                   forceBlur={blurResults}
                   text={formatDiscordMemberSince(profile.createdAt)}
+                />
+              </p>
+            </div>
+            <div>
+              <p className="discord-profile-meta-label">Nitro</p>
+              <p className="discord-profile-meta-value">
+                <BlurredValue
+                  forceBlur={blurResults}
+                  text={profile.nitro ? "Yes" : "No"}
+                />
+              </p>
+            </div>
+            <div>
+              <p className="discord-profile-meta-label">Clan tag</p>
+              <p className="discord-profile-meta-value">
+                <BlurredValue
+                  forceBlur={blurResults}
+                  text={profile.clanTag ? `[${profile.clanTag}]` : "—"}
                 />
               </p>
             </div>
@@ -294,15 +379,26 @@ export function DiscordSearchResults({
             </div>
           ) : null}
 
-          <a
-            className="discord-profile-link"
-            href={`https://discord.com/users/${profile.id}`}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <ExternalLink className="size-3.5" />
-            Open on Discord
-          </a>
+          <div className="discord-profile-actions">
+            <a
+              className="discord-profile-link"
+              href={`https://discord.com/users/${profile.id}`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <ExternalLink className="size-3.5" />
+              Open on Discord
+            </a>
+            <a
+              className="discord-profile-link"
+              href={profile.profilePreviewUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <ExternalLink className="size-3.5" />
+              Profile preview
+            </a>
+          </div>
         </aside>
 
         <section className="discord-profile-main">
@@ -347,7 +443,7 @@ export function DiscordSearchResults({
                 <div>
                   <p className="discord-profile-highlight-title">Live profile resolved</p>
                   <p className="discord-profile-highlight-sub">
-                    Avatar, banner, badges, and account metadata from Discord indexes.
+                    Avatar, banner, badges, Nitro, clan tag, and exact snowflake creation time.
                   </p>
                 </div>
               </div>
@@ -366,7 +462,29 @@ export function DiscordSearchResults({
                   accent={accent}
                   blurResults={blurResults}
                   label="Account created"
-                  value={formatDiscordCreatedAt(profile.createdAt)}
+                  value={formatDiscordCreatedAtExact(profile.createdAt)}
+                />
+                <IntelStat
+                  accent={accent}
+                  blurResults={blurResults}
+                  label="Nitro"
+                  value={profile.nitro ? "Yes" : "No"}
+                />
+                <IntelStat
+                  accent={accent}
+                  blurResults={blurResults}
+                  label="Clan tag"
+                  value={profile.clanTag ? `[${profile.clanTag}]` : "—"}
+                />
+                <IntelStat
+                  accent={accent}
+                  blurResults={blurResults}
+                  label="Badges"
+                  value={
+                    badges.length > 0
+                      ? badges.map((badge) => badge.label).join(", ")
+                      : "None"
+                  }
                 />
                 <IntelStat
                   accent={accent}
