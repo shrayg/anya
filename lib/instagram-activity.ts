@@ -12,7 +12,7 @@ const DEFAULT_MAX_POSTS = 24;
 const DEFAULT_MAX_TAGGED = 24;
 const DEFAULT_COMMENT_POSTS = 8;
 const DEFAULT_COMMENTS_PER_POST = 40;
-const PAGE_DELAY_MS = 220;
+const PAGE_DELAY_MS = 350;
 
 export type InstagramPostLocation = {
   id?: string;

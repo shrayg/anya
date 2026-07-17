@@ -5,6 +5,41 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/var/www/anya.int}"
 BRANCH="${BRANCH:-main}"
 MAINT_DIR="${MAINT_DIR:-/var/www/anya-maintenance}"
+SECRETS_DIR="${SECRETS_DIR:-/var/www/anya-secrets}"
+
+merge_env_file() {
+  local source_file="$1"
+  local target_file="$2"
+  [[ -f "$source_file" ]] || return 0
+  python3 - "$source_file" "$target_file" <<'PY'
+from pathlib import Path
+import sys
+src, dst = Path(sys.argv[1]), Path(sys.argv[2])
+updates = {}
+for line in src.read_text().splitlines():
+    line = line.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    k, v = line.split("=", 1)
+    updates[k.strip()] = v.strip().strip('"').strip("'")
+text = dst.read_text() if dst.exists() else ""
+lines = text.splitlines()
+out, seen = [], set()
+for line in lines:
+    if line.strip() and not line.strip().startswith("#") and "=" in line:
+        k = line.split("=", 1)[0].strip()
+        if k in updates:
+            out.append(f"{k}={updates[k]}")
+            seen.add(k)
+            continue
+    out.append(line)
+for k, v in updates.items():
+    if k not in seen:
+        out.append(f"{k}={v}")
+dst.write_text("\n".join(out).rstrip() + "\n")
+print(f"merged {src} -> {dst} ({len(updates)} keys)")
+PY
+}
 
 maint_on() {
   mkdir -p "${MAINT_DIR}/assets"
@@ -53,6 +88,23 @@ fi
 if [[ -f /tmp/anya.dev.db.bak ]]; then
   mkdir -p prisma
   cp -a /tmp/anya.dev.db.bak prisma/dev.db
+fi
+
+# Durable secrets live outside the git checkout and always win on deploy.
+mkdir -p "${SECRETS_DIR}"
+chmod 700 "${SECRETS_DIR}" || true
+if [[ -f "${SECRETS_DIR}/instagram.env" ]]; then
+  echo "==> Restoring Instagram session from ${SECRETS_DIR}/instagram.env"
+  merge_env_file "${SECRETS_DIR}/instagram.env" .env.local
+fi
+# Optional catch-all for other provider keys you want to keep forever
+if [[ -f "${SECRETS_DIR}/app.env" ]]; then
+  echo "==> Restoring app secrets from ${SECRETS_DIR}/app.env"
+  merge_env_file "${SECRETS_DIR}/app.env" .env.local
+fi
+# Keep a backup copy of the merged env outside the repo as well
+if [[ -f .env.local ]]; then
+  cp -a .env.local "${SECRETS_DIR}/env.local.backup"
 fi
 
 # Refresh static maintenance asset after pull
