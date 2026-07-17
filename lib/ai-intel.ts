@@ -38,6 +38,7 @@ export type AiMode =
   | "deep"
   | "crypto"
   | "threat"
+  | "site-pentest"
   | "email"
   | "username"
   | "domain"
@@ -84,6 +85,7 @@ const VALID_AI_MODES = new Set<string>([
   "deep",
   "crypto",
   "threat",
+  "site-pentest",
   "email",
   "username",
   "domain",
@@ -1252,6 +1254,7 @@ export function aiModeFromSidebarItem(itemName: string | null): AiMode {
     "AI Deep Scan": "deep",
     "Crypto AI Analyse": "crypto",
     "Threat Brief": "threat",
+    "AI Site Pentest": "site-pentest",
   };
 
   if (itemName && map[itemName]) return map[itemName];
