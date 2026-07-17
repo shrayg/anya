@@ -902,12 +902,37 @@ export async function searchInstagram(
   const lists = options?.lists ?? "both";
   const warnings: string[] = [];
 
-  const [profile, leaksRaw] = await Promise.all([
-    fetchInstagramProfile(username),
-    fetchGodsEyeSearchSafe("instagram", username)
-      .then((data) => sanitizeGodsEyeSearch(data))
-      .catch(() => ({ count: 0, results: [] as unknown[] })),
-  ]);
+  const { ensureInstagramSession, isInstagramAuthError } = await import(
+    "@/lib/instagram-reauth"
+  );
+  const sessionGate = await ensureInstagramSession();
+  if (sessionGate.refreshed) {
+    warnings.push(
+      sessionGate.message || "Instagram session was automatically refreshed.",
+    );
+  }
+
+  let profile: InstagramProfile;
+  try {
+    profile = await fetchInstagramProfile(username);
+  } catch (error) {
+    if (!isInstagramAuthError(error)) throw error;
+    const refreshed = await ensureInstagramSession({ force: true });
+    if (!refreshed.ok) {
+      throw new Error(
+        refreshed.message ||
+          (error instanceof Error ? error.message : "Instagram session expired."),
+      );
+    }
+    warnings.push(
+      refreshed.message || "Instagram session was automatically refreshed.",
+    );
+    profile = await fetchInstagramProfile(username);
+  }
+
+  const leaksRaw = await fetchGodsEyeSearchSafe("instagram", username)
+    .then((data) => sanitizeGodsEyeSearch(data))
+    .catch(() => ({ count: 0, results: [] as unknown[] }));
 
   if (profile.isPrivate && !getInstagramSessionId()) {
     warnings.push(

@@ -58,16 +58,25 @@ export async function GET() {
   const status = readInstagramSessionStatus();
   let probeOk: boolean | null = null;
   try {
-    probeOk = await probeInstagramAvailability();
+    const { probeInstagramSessionAlive } = await import("@/lib/instagram-reauth");
+    probeOk = await probeInstagramSessionAlive();
   } catch {
-    probeOk = false;
+    try {
+      probeOk = await probeInstagramAvailability();
+    } catch {
+      probeOk = false;
+    }
   }
+
+  const { loadInstagramCredentials } = await import("@/lib/instagram-login");
+  const hasLoginCreds = Boolean(loadInstagramCredentials());
 
   return NextResponse.json({
     ...status,
     probeOk,
-    // Never return cookie values.
-    help: "POST fresh sessionid/csrftoken (+ optional mid/ig_did/datr/ds_user_id). Stored outside the git checkout and merged into .env.local.",
+    autoLoginConfigured: hasLoginCreds,
+    // Never return cookie or password values.
+    help: "POST cookies (sessionid/...) OR { action:'relogin' } OR { username, password, totpSecret? }. Stored in /var/www/anya-secrets/instagram.env.",
   });
 }
 
@@ -85,10 +94,78 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  // Trigger password re-login using stored (or provided) credentials
+  if (body.action === "relogin" || body.relogin === true) {
+    try {
+      if (typeof body.username === "string" && typeof body.password === "string") {
+        const { writeInstagramCredentials } = await import("@/lib/instagram-login");
+        writeInstagramCredentials({
+          username: body.username,
+          password: body.password,
+          totpSecret:
+            typeof body.totpSecret === "string" ? body.totpSecret : undefined,
+          proxyUrl:
+            typeof body.proxyUrl === "string" ? body.proxyUrl : undefined,
+        });
+      }
+      const { ensureInstagramSession } = await import("@/lib/instagram-reauth");
+      const result = await ensureInstagramSession({ force: true });
+      return NextResponse.json({
+        ok: result.ok,
+        refreshed: result.refreshed,
+        message: result.message,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Instagram re-login failed",
+        },
+        { status: 502 },
+      );
+    }
+  }
+
+  // Save login credentials for future auto-refresh (no immediate login required)
+  if (
+    typeof body.username === "string" &&
+    typeof body.password === "string" &&
+    !body.sessionid &&
+    !body.INSTAGRAM_SESSION_ID
+  ) {
+    const { writeInstagramCredentials } = await import("@/lib/instagram-login");
+    writeInstagramCredentials({
+      username: body.username,
+      password: body.password,
+      totpSecret:
+        typeof body.totpSecret === "string" ? body.totpSecret : undefined,
+      proxyUrl: typeof body.proxyUrl === "string" ? body.proxyUrl : undefined,
+    });
+    const shouldLogin = body.login !== false;
+    if (shouldLogin) {
+      const { ensureInstagramSession } = await import("@/lib/instagram-reauth");
+      const result = await ensureInstagramSession({ force: true });
+      return NextResponse.json({
+        ok: result.ok,
+        credentialsSaved: true,
+        refreshed: result.refreshed,
+        message: result.message,
+      });
+    }
+    return NextResponse.json({
+      ok: true,
+      credentialsSaved: true,
+      message: "Instagram login credentials saved for auto-refresh.",
+    });
+  }
+
   const input = pickBody(body);
   if (!input.INSTAGRAM_SESSION_ID) {
     return NextResponse.json(
-      { error: "sessionid / INSTAGRAM_SESSION_ID is required" },
+      {
+        error:
+          "Provide sessionid cookies, or username+password, or action:'relogin'.",
+      },
       { status: 400 },
     );
   }
