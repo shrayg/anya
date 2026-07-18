@@ -80,7 +80,8 @@ export function osintErrorMessage(err: unknown, fallback?: string): string {
 
 /**
  * Always return JSON. Timeouts → 504 (not opaque proxy 502 HTML).
- * Optional softEmpty → HTTP 200 with a clean empty payload + message.
+ * When softEmpty is provided, prefer HTTP 200 empty/partial payload so the UI
+ * never shows an opaque proxy 502 for a dead/slow upstream.
  */
 export function osintFailureResponse(
   err: unknown,
@@ -91,12 +92,14 @@ export function osintFailureResponse(
 ): NextResponse {
   const message = osintErrorMessage(err, opts?.fallbackMessage);
 
-  if (opts?.softEmpty && isSoftProviderFailure(err)) {
+  if (opts?.softEmpty) {
     return NextResponse.json({
       ...opts.softEmpty,
       message: isTimeoutLike(err)
         ? "Lookup timed out before results arrived. Try again."
-        : message,
+        : isSoftProviderFailure(err)
+          ? message
+          : message || "Nothing found.",
     });
   }
 

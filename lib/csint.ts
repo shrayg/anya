@@ -82,7 +82,14 @@ function sanitizeCsintError(message: string): string {
   ) {
     return "Provider temporarily blocked this request. Try again later.";
   }
-  if (lower.includes("unauthorized") || lower.includes("invalid api")) {
+  if (
+    lower.includes("unauthorized") ||
+    lower.includes("invalid api") ||
+    lower.includes("invalid response") ||
+    lower.includes("invalid json") ||
+    /\b502\b/.test(lower) ||
+    /\b503\b/.test(lower)
+  ) {
     return publicServiceUnavailable();
   }
 
