@@ -88,8 +88,10 @@ export function IntelSignalLoader({
     let alive = true;
     const majorSegs = variant === "compact" ? 36 : 48;
     const minorSegs = variant === "compact" ? 12 : 16;
-    const R0 = 1.05;
-    const r0 = 0.38;
+    // Keep torus well inside the square canvas — wave + perspective must not
+    // hit the bitmap edge (that is what looked like a hard cut).
+    const R0 = 0.92;
+    const r0 = 0.32;
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -105,26 +107,26 @@ export function IntelSignalLoader({
 
     type Pt = { x: number; y: number; z: number; sx: number; sy: number };
     const project = (x: number, y: number, z: number, size: number): Pt => {
-      const scale = size * 0.26;
-      const persp = 2.6 / (2.6 + z);
-      return {
-        x,
-        y,
-        z,
-        sx: size / 2 + x * scale * persp,
-        sy: size / 2 + y * scale * persp * 0.92,
-      };
+      // Fit with ~18% margin so the mesh never kisses the canvas edge.
+      const scale = size * 0.18;
+      const persp = 4.2 / (4.2 + Math.max(-1.2, z));
+      const pad = size * 0.08;
+      let sx = size / 2 + x * scale * persp;
+      let sy = size / 2 + y * scale * persp * 0.92;
+      sx = Math.min(size - pad, Math.max(pad, sx));
+      sy = Math.min(size - pad, Math.max(pad, sy));
+      return { x, y, z, sx, sy };
     };
 
     const pointAt = (i: number, j: number, t: number, size: number): Pt => {
       const u = (i / majorSegs) * Math.PI * 2;
       const v = (j / minorSegs) * Math.PI * 2;
       const wave =
-        Math.sin(u * 3 + t * 1.1) * 0.16 +
-        Math.sin(v * 2 - t * 1.35) * 0.09 +
-        Math.sin(u * 5 - v * 2 + t * 0.7) * 0.05;
+        Math.sin(u * 3 + t * 1.1) * 0.1 +
+        Math.sin(v * 2 - t * 1.35) * 0.06 +
+        Math.sin(u * 5 - v * 2 + t * 0.7) * 0.03;
       const R = R0 + wave;
-      const r = r0 + wave * 0.28;
+      const r = r0 + wave * 0.2;
       const x = (R + r * Math.cos(v)) * Math.cos(u);
       const y = (R + r * Math.cos(v)) * Math.sin(u);
       const z = r * Math.sin(v);
@@ -213,7 +215,7 @@ export function IntelSignalLoader({
         }
       }
 
-      const ringR = size * 0.38;
+      const ringR = size * 0.34;
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, ringR, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(255,255,255,0.08)";

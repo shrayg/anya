@@ -356,13 +356,13 @@ pre,
   position: relative;
   flex-shrink: 0;
   overflow: visible;
-  width: 14rem;
-  height: 14rem;
+  width: 16rem;
+  height: 16rem;
 }
 
 .intel-signal-loader--compact .intel-signal-loader__canvas-wrap {
-  width: 7.5rem;
-  height: 7.5rem;
+  width: 9rem;
+  height: 9rem;
 }
 
 .intel-signal-loader__canvas {
@@ -370,6 +370,7 @@ pre,
   width: 100%;
   height: 100%;
   overflow: visible;
+  /* Canvas bitmaps always clip; sizing + draw scale keep mesh inside. */
 }
 
 .intel-signal-loader__pct {
