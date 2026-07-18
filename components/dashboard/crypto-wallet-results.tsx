@@ -4,6 +4,7 @@ import type { CryptoWalletResult } from "@/lib/crypto-wallet";
 function chainLabel(chain: CryptoWalletResult["chain"]) {
   if (chain === "bitcoin") return "Bitcoin";
   if (chain === "ethereum") return "Ethereum";
+  if (chain === "litecoin") return "Litecoin";
   return "Solana";
 }
 

@@ -1,4 +1,6 @@
-export type CryptoChain = "bitcoin" | "ethereum" | "solana";
+import { createHash } from "crypto";
+
+export type CryptoChain = "bitcoin" | "ethereum" | "solana" | "litecoin";
 
 export type CryptoTransaction = {
   hash: string;
@@ -35,15 +37,19 @@ export type CryptoWalletResult = {
 };
 
 export const CRYPTO_WALLET_INPUT_HINT =
-  "Bitcoin (1/3/bc1), Ethereum (0x…), or Solana address";
+  "Bitcoin (1/3/bc1), Litecoin (L/M/ltc1), Ethereum (0x…), or Solana address";
 
 export const CRYPTO_WALLET_INVALID_MESSAGE =
-  "Enter a valid Bitcoin (1/3/bc1), Ethereum (0x), or Solana wallet address — not free text, emails, or arbitrary strings.";
+  "Enter a valid Bitcoin (1/3/bc1), Litecoin (L/M/ltc1), Ethereum (0x), or Solana wallet address — not free text, emails, or arbitrary strings.";
 
 const BASE58_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+
+/** Litecoin mainnet P2PKH (0x30 → L…) and P2SH (0x32 → M…). */
+const LTC_VERSION_P2PKH = 0x30;
+const LTC_VERSION_P2SH = 0x32;
 
 const SOLANA_RPC_URLS = [
   "https://api.mainnet-beta.solana.com",
@@ -87,25 +93,61 @@ function decodeBase58(value: string): Uint8Array | null {
   return decoded;
 }
 
+function isValidBase58Check(
+  address: string,
+  allowedVersions?: readonly number[],
+): boolean {
+  const decoded = decodeBase58(address);
+  if (!decoded || decoded.length !== 25) return false;
+
+  if (allowedVersions && !allowedVersions.includes(decoded[0]!)) return false;
+
+  const payload = decoded.subarray(0, 21);
+  const checksum = decoded.subarray(21);
+  const first = createHash("sha256").update(payload).digest();
+  const hash = createHash("sha256").update(new Uint8Array(first)).digest();
+
+  return (
+    checksum[0] === hash[0] &&
+    checksum[1] === hash[1] &&
+    checksum[2] === hash[2] &&
+    checksum[3] === hash[3]
+  );
+}
+
+function isValidBech32Address(address: string, hrp: string): boolean {
+  const lower = address.toLowerCase();
+  const prefix = `${hrp}1`;
+  if (!lower.startsWith(prefix)) return false;
+  if (address.length < hrp.length + 1 + 11 || address.length > 90) return false;
+  if (!new RegExp(`^${hrp}1[a-z0-9]+$`, "i").test(address)) return false;
+  const body = lower.slice(prefix.length);
+  return body.length >= 11 && [...body].every((c) => BECH32_CHARSET.includes(c));
+}
+
 function isValidEthereumAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
 function isValidBitcoinAddress(address: string): boolean {
-  const lower = address.toLowerCase();
-
-  if (lower.startsWith("bc1")) {
-    // Mainnet bech32 / bech32m (SegWit v0/v1); reject testnet and free text.
-    if (address.length < 14 || address.length > 74) return false;
-    if (!/^bc1[a-z0-9]+$/i.test(address)) return false;
-    const body = lower.slice(3);
-    return body.length >= 11 && [...body].every((c) => BECH32_CHARSET.includes(c));
+  if (address.toLowerCase().startsWith("bc1")) {
+    return isValidBech32Address(address, "bc");
   }
 
   // Legacy P2PKH (1…) / P2SH (3…) — Base58Check payload is 25 bytes.
   if (!/^[13][a-km-zA-HJ-NP-Z1-9]{25,33}$/.test(address)) return false;
   const decoded = decodeBase58(address);
   return decoded !== null && decoded.length === 25;
+}
+
+function isValidLitecoinAddress(address: string): boolean {
+  if (address.toLowerCase().startsWith("ltc1")) {
+    return isValidBech32Address(address, "ltc");
+  }
+
+  // Mainnet legacy P2PKH (L…) / P2SH (M…) with Base58Check + version bytes.
+  if (!/^[LM][a-km-zA-HJ-NP-Z1-9]{25,33}$/.test(address)) return false;
+  return isValidBase58Check(address, [LTC_VERSION_P2PKH, LTC_VERSION_P2SH]);
 }
 
 function isValidSolanaAddress(address: string): boolean {
@@ -121,6 +163,8 @@ export function detectCryptoChain(query: string): CryptoChain | null {
 
   if (isValidEthereumAddress(trimmed)) return "ethereum";
   if (isValidBitcoinAddress(trimmed)) return "bitcoin";
+  // Litecoin before Solana — both use Base58; L/M + checksum must win.
+  if (isValidLitecoinAddress(trimmed)) return "litecoin";
   if (isValidSolanaAddress(trimmed)) return "solana";
 
   return null;
@@ -128,6 +172,12 @@ export function detectCryptoChain(query: string): CryptoChain | null {
 
 function satsToBtc(sats: number): string {
   return (sats / 100_000_000).toLocaleString(undefined, {
+    maximumFractionDigits: 8,
+  });
+}
+
+function litoshisToLtc(litoshis: number): string {
+  return (litoshis / 100_000_000).toLocaleString(undefined, {
     maximumFractionDigits: 8,
   });
 }
@@ -271,6 +321,138 @@ export async function lookupBitcoinWallet(
     stats: {
       "Total received": `${satsToBtc(stats.funded_txo_sum ?? 0)} BTC`,
       "Total sent": `${satsToBtc(stats.spent_txo_sum ?? 0)} BTC`,
+      "Funded outputs": String(stats.funded_txo_count ?? 0),
+      "Spent outputs": String(stats.spent_txo_count ?? 0),
+      "Pending mempool txs": String(mempoolPending),
+    },
+  };
+}
+
+function parseLitecoinTransactions(
+  address: string,
+  txs: MempoolTx[],
+): CryptoTransaction[] {
+  return txs.slice(0, 8).map((tx) => {
+    const received = (tx.vout ?? [])
+      .filter((output) => output.scriptpubkey_address === address)
+      .reduce((sum, output) => sum + (output.value ?? 0), 0);
+
+    const sent = (tx.vin ?? [])
+      .filter((input) => input.prevout?.scriptpubkey_address === address)
+      .reduce((sum, input) => sum + (input.prevout?.value ?? 0), 0);
+
+    let direction: CryptoTransaction["direction"] = "self";
+    let amount = 0;
+
+    if (received > sent) {
+      direction = "in";
+      amount = received - sent;
+    } else if (sent > received) {
+      direction = "out";
+      amount = sent - received;
+    }
+
+    return {
+      hash: tx.txid,
+      timestamp: tx.status?.block_time
+        ? formatTimestamp(tx.status.block_time)
+        : undefined,
+      direction,
+      amount: `${litoshisToLtc(amount)} LTC`,
+      from: direction === "in" ? "External" : shortenHash(address),
+      to: direction === "out" ? "External" : shortenHash(address),
+    };
+  });
+}
+
+type BlockcypherAddress = {
+  balance?: number;
+  final_balance?: number;
+  n_tx?: number;
+  total_received?: number;
+  total_sent?: number;
+  unconfirmed_n_tx?: number;
+  txrefs?: Array<{
+    tx_hash?: string;
+    confirmed?: string;
+    tx_input_n?: number;
+    value?: number;
+  }>;
+};
+
+export async function lookupLitecoinWallet(
+  address: string,
+): Promise<CryptoWalletResult> {
+  if (!isValidLitecoinAddress(address)) {
+    throw new Error(CRYPTO_WALLET_INVALID_MESSAGE);
+  }
+
+  const [addressData, txData] = await Promise.all([
+    fetchJson<MempoolAddress>(
+      `https://litecoinspace.org/api/address/${encodeURIComponent(address)}`,
+    ),
+    fetchJson<MempoolTx[]>(
+      `https://litecoinspace.org/api/address/${encodeURIComponent(address)}/txs`,
+    ),
+  ]);
+
+  let stats = addressData?.chain_stats;
+
+  if (!stats) {
+    const fallback = await fetchJson<BlockcypherAddress>(
+      `https://api.blockcypher.com/v1/ltc/main/addrs/${encodeURIComponent(address)}?limit=8`,
+    );
+
+    if (!fallback) {
+      throw new Error("Litecoin wallet lookup failed");
+    }
+
+    const balanceLitoshis = Math.max(0, fallback.final_balance ?? fallback.balance ?? 0);
+
+    return {
+      chain: "litecoin",
+      address,
+      balance: `${litoshisToLtc(balanceLitoshis)} LTC`,
+      balanceNative: litoshisToLtc(balanceLitoshis),
+      txCount: fallback.n_tx ?? 0,
+      tokens: [],
+      recentTransactions: (fallback.txrefs ?? []).slice(0, 8).map((tx) => ({
+        hash: tx.tx_hash ?? "",
+        timestamp: tx.confirmed
+          ? new Date(tx.confirmed).toLocaleString()
+          : undefined,
+        direction:
+          tx.tx_input_n !== undefined && tx.tx_input_n >= 0 ? "out" : "in",
+        amount:
+          tx.value !== undefined
+            ? `${litoshisToLtc(tx.value)} LTC`
+            : undefined,
+      })),
+      stats: {
+        "Total received": `${litoshisToLtc(fallback.total_received ?? 0)} LTC`,
+        "Total sent": `${litoshisToLtc(fallback.total_sent ?? 0)} LTC`,
+        "Pending mempool txs": String(fallback.unconfirmed_n_tx ?? 0),
+      },
+    };
+  }
+
+  const balanceLitoshis = Math.max(
+    0,
+    (stats.funded_txo_sum ?? 0) - (stats.spent_txo_sum ?? 0),
+  );
+  const mempoolPending = addressData?.mempool_stats?.tx_count ?? 0;
+
+  return {
+    chain: "litecoin",
+    address,
+    balance: `${litoshisToLtc(balanceLitoshis)} LTC`,
+    balanceNative: litoshisToLtc(balanceLitoshis),
+    txCount: stats.tx_count ?? 0,
+    tokens: [],
+    recentTransactions: parseLitecoinTransactions(address, txData ?? []),
+    stats: {
+      "Total received": `${litoshisToLtc(stats.funded_txo_sum ?? 0)} LTC`,
+      "Total sent": `${litoshisToLtc(stats.spent_txo_sum ?? 0)} LTC`,
       "Funded outputs": String(stats.funded_txo_count ?? 0),
       "Spent outputs": String(stats.spent_txo_count ?? 0),
       "Pending mempool txs": String(mempoolPending),
@@ -577,6 +759,7 @@ export async function lookupCryptoWallet(query: string): Promise<CryptoWalletRes
 
   if (chain === "bitcoin") return lookupBitcoinWallet(address);
   if (chain === "ethereum") return lookupEthereumWallet(address);
+  if (chain === "litecoin") return lookupLitecoinWallet(address);
 
   return lookupSolanaWallet(address);
 }

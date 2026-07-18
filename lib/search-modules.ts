@@ -80,7 +80,7 @@ export const AI_SEARCH_MODULES: SearchModuleDef[] = [
     "Crypto AI Analyse",
     "crypto-ai",
     "ai",
-    "Bitcoin (1/3/bc1) or Ethereum (0x) wallet",
+    "Bitcoin (1/3/bc1), Litecoin (L/M/ltc1), or Ethereum (0x) wallet",
     "On-chain heuristics, risk scoring, and breach correlation for wallets.",
     "crypto",
   ),
@@ -411,7 +411,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Crypto Wallet",
         "crypto-wallet",
         "crypto-wallet",
-        "Bitcoin (1/3/bc1), Ethereum (0x…), or Solana address — wallet only",
+        "Bitcoin (1/3/bc1), Litecoin (L/M/ltc1), Ethereum (0x…), or Solana address — wallet only",
         "Detects chain from address format. Live balance, tokens, and recent txs.",
       ),
       mod(

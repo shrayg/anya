@@ -13,6 +13,7 @@ export type CryptoChatMessage = {
 function chainLabel(chain: CryptoWalletResult["chain"]): string {
   if (chain === "bitcoin") return "Bitcoin";
   if (chain === "ethereum") return "Ethereum";
+  if (chain === "litecoin") return "Litecoin";
   return "Solana";
 }
 
