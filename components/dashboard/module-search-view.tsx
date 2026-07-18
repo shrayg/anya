@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/csrf-client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, FolderPlus, Home } from "lucide-react";
+import { ArrowLeft, FolderPlus, Home } from "lucide-react";
 
 import { SearchBarTour } from "@/components/search-bar-tour";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
@@ -56,7 +56,7 @@ import {
   DEFAULT_INTELX_BUCKET,
   type IntelxBucket,
 } from "@/lib/intelx-buckets";
-import type { CombSearchResult } from "@/lib/proxynova-comb";
+import type { CombCredential, CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import { sanitizePublicContent, sanitizePublicText } from "@/lib/public-branding";
 import { isDiscordSnowflake } from "@/lib/osintcat";
@@ -84,16 +84,20 @@ import {
   WORKSPACE_SEARCH_TOUR_STEPS,
   WORKSPACE_SEARCH_TOUR_STORAGE_KEY,
 } from "@/lib/search-tour";
+import { ResultExportControls } from "@/components/dashboard/result-export-controls";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import type { FormattedRecord } from "@/lib/search-utils";
 import { formatSearchRecords, formatStructuredSearchData } from "@/lib/search-utils";
 import {
-  downloadTextFile,
-  formatBreachCredentialAsText,
-  formatRecordAsText,
+  downloadExportFile,
+  formatBreachCredentialAsExport,
+  formatBreachCredentialsAsExport,
+  formatRawAsExport,
+  formatRecordAsExport,
+  formatRecordsAsExport,
   safeExportFilename,
-  wrapBrandedExport,
+  type ExportFormat,
 } from "@/lib/export-intel";
 
 const SitePentestResults = dynamic(
@@ -272,23 +276,26 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     setSelectedExportIndex(index < 0 ? null : index);
   };
 
-  const resolveSelectedExportBody = (): string | null => {
+  const resolveSelectedExport = ():
+    | { kind: "record"; record: FormattedRecord }
+    | { kind: "breach"; row: CombCredential; index: number }
+    | null => {
     if (selectedExportIndex === null) return null;
 
     if (records.length > 0) {
       const record = records.find((entry) => entry.index === selectedExportIndex);
-      if (record) return formatRecordAsText(record);
+      if (record) return { kind: "record", record };
     }
 
     if (combResult) {
       const row = combResult.credentials[selectedExportIndex - 1];
-      if (row) return formatBreachCredentialAsText(row, selectedExportIndex);
+      if (row) return { kind: "breach", row, index: selectedExportIndex };
     }
 
     if (robloxResult) {
       const robloxRecords = formatSearchRecords(robloxResult.results);
       const record = robloxRecords.find((entry) => entry.index === selectedExportIndex);
-      if (record) return formatRecordAsText(record);
+      if (record) return { kind: "record", record };
     }
 
     if (fivemResult) {
@@ -297,7 +304,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         ...formatSearchRecords(fivemResult.bans.records),
       ];
       const record = pools.find((entry) => entry.index === selectedExportIndex);
-      if (record) return formatRecordAsText(record);
+      if (record) return { kind: "record", record };
     }
 
     if (domainResult) {
@@ -305,31 +312,64 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         extractStealerLogEntries(domainResult.stealerLogs.data),
       );
       const stealerRecord = stealerRecords.find((entry) => entry.index === selectedExportIndex);
-      if (stealerRecord) return formatRecordAsText(stealerRecord);
+      if (stealerRecord) return { kind: "record", record: stealerRecord };
 
       const breachRow = domainResult.breachedData?.credentials[selectedExportIndex - 1];
-      if (breachRow) return formatBreachCredentialAsText(breachRow, selectedExportIndex);
+      if (breachRow) {
+        return { kind: "breach", row: breachRow, index: selectedExportIndex };
+      }
     }
 
     return null;
   };
 
-  const handleExportAll = () => {
-    if (!rawResult) return;
+  const canExportAll = Boolean(
+    rawResult || records.length > 0 || combResult?.credentials?.length,
+  );
 
-    const content = wrapBrandedExport(rawResult, lastSearchLabel);
-    downloadTextFile(safeExportFilename(lastSearchLabel), content);
+  const handleExportAll = (format: ExportFormat) => {
+    if (!canExportAll) return;
+
+    const filename = safeExportFilename(lastSearchLabel || moduleDef.slug, format);
+    let content: string;
+
+    if (records.length > 0) {
+      content = formatRecordsAsExport(records, format, lastSearchLabel);
+    } else if (combResult?.credentials?.length) {
+      content = formatBreachCredentialsAsExport(
+        combResult.credentials,
+        format,
+        lastSearchLabel,
+      );
+    } else if (rawResult) {
+      content = formatRawAsExport(rawResult, format, lastSearchLabel);
+    } else {
+      return;
+    }
+
+    downloadExportFile(filename, content, format);
   };
 
-  const handleExportSelected = () => {
-    const body = resolveSelectedExportBody();
-    if (!body) return;
+  const handleExportSelected = (format: ExportFormat) => {
+    const selected = resolveSelectedExport();
+    if (!selected) return;
 
-    const content = wrapBrandedExport(body, lastSearchLabel);
-    downloadTextFile(
-      safeExportFilename(`${lastSearchLabel}-record-${selectedExportIndex}`),
-      content,
+    const filename = safeExportFilename(
+      `${lastSearchLabel || moduleDef.slug}-record-${selectedExportIndex}`,
+      format,
     );
+
+    const content =
+      selected.kind === "record"
+        ? formatRecordAsExport(selected.record, format, lastSearchLabel)
+        : formatBreachCredentialAsExport(
+            selected.row,
+            selected.index,
+            format,
+            lastSearchLabel,
+          );
+
+    downloadExportFile(filename, content, format);
   };
 
   const handleInstagramEnrichBios = async () => {
@@ -1468,15 +1508,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                     {lastSearchLabel || "Site Pentest"}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      className="ui-btn ui-btn-ghost"
+                    <ResultExportControls
                       disabled={!rawResult}
-                      onClick={handleExportAll}
-                      type="button"
-                    >
-                      <Download className="size-3.5" />
-                      Export all data
-                    </button>
+                      label="Export"
+                      onExport={handleExportAll}
+                    />
                     <CasePicker
                       onChange={setSaveCaseId}
                       options={caseOptions}
@@ -1530,24 +1566,16 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-zinc-400">{lastSearchLabel}</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    className="ui-btn ui-btn-ghost"
+                  <ResultExportControls
                     disabled={!hasSelectableCards || selectedExportIndex === null}
-                    onClick={handleExportSelected}
-                    type="button"
-                  >
-                    <Download className="size-3.5" />
-                    Export data
-                  </button>
-                  <button
-                    className="ui-btn ui-btn-ghost"
-                    disabled={!rawResult}
-                    onClick={handleExportAll}
-                    type="button"
-                  >
-                    <Download className="size-3.5" />
-                    Export all data
-                  </button>
+                    label="Export selected"
+                    onExport={handleExportSelected}
+                  />
+                  <ResultExportControls
+                    disabled={!canExportAll}
+                    label="Export"
+                    onExport={handleExportAll}
+                  />
                   <CasePicker
                     onChange={setSaveCaseId}
                     options={caseOptions}

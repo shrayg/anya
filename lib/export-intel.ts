@@ -4,6 +4,24 @@ import type { FormattedRecord } from "@/lib/search-utils";
 
 const BRAND = siteConfig.name;
 
+export type ExportFormat = "json" | "jsonl" | "csv" | "txt" | "html";
+
+export const EXPORT_FORMATS: readonly ExportFormat[] = [
+  "json",
+  "jsonl",
+  "csv",
+  "txt",
+  "html",
+] as const;
+
+export const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = {
+  json: "Export as JSON",
+  jsonl: "Export as JSONL",
+  csv: "Export as CSV",
+  txt: "Export as TXT",
+  html: "Export as HTML",
+};
+
 export function wrapBrandedExport(body: string, label?: string) {
   const divider = "=".repeat(BRAND.length);
   const lines = [BRAND, divider];
@@ -55,7 +73,489 @@ export function formatBreachCredentialAsText(row: CombCredential, index: number)
   return lines.join("\n");
 }
 
-export function safeExportFilename(label: string) {
+export function escapeCsvCell(value: unknown): string {
+  const str = value == null ? "" : String(value);
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function recordToPlainObject(record: FormattedRecord) {
+  return {
+    index: record.index,
+    title: record.title,
+    subtitle: record.subtitle ?? null,
+    badge: record.badge ?? null,
+    fields: Object.fromEntries(record.fields.map((field) => [field.key, field.value])),
+  };
+}
+
+function credentialToPlainObject(row: CombCredential, index: number) {
+  return {
+    index,
+    identifier: row.identifier,
+    secret: row.secret ?? null,
+    raw: row.raw ?? null,
+  };
+}
+
+export function formatRecordsAsJson(records: FormattedRecord[]) {
+  return JSON.stringify(records.map(recordToPlainObject), null, 2);
+}
+
+export function formatRecordAsJson(record: FormattedRecord) {
+  return JSON.stringify(recordToPlainObject(record), null, 2);
+}
+
+export function formatRecordsAsJsonl(records: FormattedRecord[]) {
+  return records.map((record) => JSON.stringify(recordToPlainObject(record))).join("\n");
+}
+
+export function formatRecordAsJsonl(record: FormattedRecord) {
+  return JSON.stringify(recordToPlainObject(record));
+}
+
+export function formatRecordsAsCsv(records: FormattedRecord[]) {
+  const fieldKeys = new Map<string, string>();
+
+  for (const record of records) {
+    for (const field of record.fields) {
+      if (!fieldKeys.has(field.key)) {
+        fieldKeys.set(field.key, field.label);
+      }
+    }
+  }
+
+  const keys = [...fieldKeys.keys()];
+  const headers = ["index", "title", "subtitle", "badge", ...keys.map((key) => fieldKeys.get(key)!)];
+  const rows = records.map((record) => {
+    const byKey = Object.fromEntries(record.fields.map((field) => [field.key, field.value]));
+    return [
+      record.index,
+      record.title,
+      record.subtitle ?? "",
+      record.badge ?? "",
+      ...keys.map((key) => byKey[key] ?? ""),
+    ]
+      .map(escapeCsvCell)
+      .join(",");
+  });
+
+  return ["\uFEFF" + headers.map(escapeCsvCell).join(","), ...rows].join("\n");
+}
+
+export function formatRecordAsCsv(record: FormattedRecord) {
+  return formatRecordsAsCsv([record]);
+}
+
+function wrapHtmlDocument(title: string, body: string, label?: string) {
+  const heading = escapeHtml(label?.trim() || title);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(title)}</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0a0a0b; color: #e4e4e7; line-height: 1.5; }
+  main { max-width: 56rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  h1 { font-size: 1.15rem; font-weight: 600; color: #f0a4b8; margin: 0 0 0.35rem; }
+  .meta { color: #a1a1aa; font-size: 0.875rem; margin-bottom: 1.5rem; }
+  article { border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 1rem 1.1rem; margin-bottom: 0.85rem; background: rgba(255,255,255,0.03); }
+  h2 { margin: 0 0 0.25rem; font-size: 0.95rem; color: #fafafa; }
+  .sub { color: #a1a1aa; font-size: 0.8rem; margin-bottom: 0.75rem; }
+  dl { margin: 0; display: grid; gap: 0.45rem; }
+  dt { color: #71717a; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  dd { margin: 0; color: #e4e4e7; font-family: ui-monospace, monospace; font-size: 0.82rem; white-space: pre-wrap; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { border: 1px solid rgba(255,255,255,0.1); padding: 0.45rem 0.55rem; text-align: left; vertical-align: top; }
+  th { background: rgba(255,255,255,0.05); color: #a1a1aa; font-weight: 500; }
+  pre { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, monospace; font-size: 0.82rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.6rem; padding: 1rem; }
+  footer { margin-top: 2rem; color: #71717a; font-size: 0.75rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>${escapeHtml(BRAND)}</h1>
+  <p class="meta">${heading}</p>
+  ${body}
+  <footer>searched with ${escapeHtml(BRAND)}</footer>
+</main>
+</body>
+</html>`;
+}
+
+export function formatRecordsAsHtml(records: FormattedRecord[], label?: string) {
+  const body = records
+    .map((record) => {
+      const fields = record.fields
+        .map(
+          (field) =>
+            `<div><dt>${escapeHtml(field.label)}</dt><dd>${escapeHtml(field.value)}</dd></div>`,
+        )
+        .join("");
+      const sub = [record.subtitle, record.badge].filter(Boolean).join(" · ");
+      return `<article>
+  <h2>#${escapeHtml(record.index)} · ${escapeHtml(record.title)}</h2>
+  ${sub ? `<p class="sub">${escapeHtml(sub)}</p>` : ""}
+  <dl>${fields}</dl>
+</article>`;
+    })
+    .join("\n");
+
+  return wrapHtmlDocument(label || "Export", body, label);
+}
+
+export function formatRecordAsHtml(record: FormattedRecord, label?: string) {
+  return formatRecordsAsHtml([record], label);
+}
+
+export function formatBreachCredentialsAsJson(rows: CombCredential[]) {
+  return JSON.stringify(
+    rows.map((row, index) => credentialToPlainObject(row, index + 1)),
+    null,
+    2,
+  );
+}
+
+export function formatBreachCredentialAsJson(row: CombCredential, index: number) {
+  return JSON.stringify(credentialToPlainObject(row, index), null, 2);
+}
+
+export function formatBreachCredentialsAsJsonl(rows: CombCredential[]) {
+  return rows
+    .map((row, index) => JSON.stringify(credentialToPlainObject(row, index + 1)))
+    .join("\n");
+}
+
+export function formatBreachCredentialAsJsonl(row: CombCredential, index: number) {
+  return JSON.stringify(credentialToPlainObject(row, index));
+}
+
+export function formatBreachCredentialsAsCsv(rows: CombCredential[]) {
+  const headers = ["index", "identifier", "secret", "raw"];
+  const body = rows.map((row, index) =>
+    [index + 1, row.identifier, row.secret ?? "", row.raw ?? ""]
+      .map(escapeCsvCell)
+      .join(","),
+  );
+
+  return ["\uFEFF" + headers.map(escapeCsvCell).join(","), ...body].join("\n");
+}
+
+export function formatBreachCredentialAsCsv(row: CombCredential, index: number) {
+  const headers = ["index", "identifier", "secret", "raw"];
+  const line = [index, row.identifier, row.secret ?? "", row.raw ?? ""]
+    .map(escapeCsvCell)
+    .join(",");
+
+  return ["\uFEFF" + headers.map(escapeCsvCell).join(","), line].join("\n");
+}
+
+export function formatBreachCredentialsAsHtml(rows: CombCredential[], label?: string) {
+  const body = rows
+    .map((row, index) => {
+      const fields = [
+        ["Email / login", row.identifier],
+        row.secret ? ["Password", row.secret] : null,
+        row.raw ? ["Raw", row.raw] : null,
+      ]
+        .filter(Boolean)
+        .map(
+          (pair) =>
+            `<div><dt>${escapeHtml((pair as string[])[0])}</dt><dd>${escapeHtml((pair as string[])[1])}</dd></div>`,
+        )
+        .join("");
+
+      return `<article>
+  <h2>#${index + 1} · Leaked credential</h2>
+  <dl>${fields}</dl>
+</article>`;
+    })
+    .join("\n");
+
+  return wrapHtmlDocument(label || "Export", body, label);
+}
+
+export function formatBreachCredentialAsHtml(
+  row: CombCredential,
+  index: number,
+  label?: string,
+) {
+  const fields = [
+    ["Email / login", row.identifier],
+    row.secret ? ["Password", row.secret] : null,
+    row.raw ? ["Raw", row.raw] : null,
+  ]
+    .filter(Boolean)
+    .map(
+      (pair) =>
+        `<div><dt>${escapeHtml((pair as string[])[0])}</dt><dd>${escapeHtml((pair as string[])[1])}</dd></div>`,
+    )
+    .join("");
+
+  const body = `<article>
+  <h2>#${escapeHtml(index)} · Leaked credential</h2>
+  <dl>${fields}</dl>
+</article>`;
+
+  return wrapHtmlDocument(label || "Export", body, label);
+}
+
+function flattenObject(
+  value: unknown,
+  prefix = "",
+  out: Record<string, string> = {},
+): Record<string, string> {
+  if (value == null || typeof value !== "object") {
+    out[prefix || "value"] = value == null ? "" : String(value);
+    return out;
+  }
+
+  if (Array.isArray(value)) {
+    out[prefix || "value"] = JSON.stringify(value);
+    return out;
+  }
+
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    const nextKey = prefix ? `${prefix}.${key}` : key;
+    if (nested != null && typeof nested === "object" && !Array.isArray(nested)) {
+      flattenObject(nested, nextKey, out);
+    } else if (Array.isArray(nested)) {
+      out[nextKey] = JSON.stringify(nested);
+    } else {
+      out[nextKey] = nested == null ? "" : String(nested);
+    }
+  }
+
+  return out;
+}
+
+function normalizeToRowObjects(data: unknown): Record<string, string>[] {
+  if (Array.isArray(data)) {
+    return data.map((item) => flattenObject(item));
+  }
+
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+
+    for (const key of [
+      "results",
+      "credentials",
+      "findings",
+      "records",
+      "banks",
+      "providers",
+      "cases",
+      "hits",
+    ]) {
+      if (Array.isArray(obj[key]) && (obj[key] as unknown[]).length > 0) {
+        return (obj[key] as unknown[]).map((item) => flattenObject(item));
+      }
+    }
+
+    return [flattenObject(obj)];
+  }
+
+  return [{ value: data == null ? "" : String(data) }];
+}
+
+export function formatJsonValueAsCsv(data: unknown): string {
+  const rows = normalizeToRowObjects(data);
+  if (rows.length === 0) {
+    return "\uFEFFvalue\n";
+  }
+
+  const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const lines = rows.map((row) =>
+    headers.map((header) => escapeCsvCell(row[header] ?? "")).join(","),
+  );
+
+  return ["\uFEFF" + headers.map(escapeCsvCell).join(","), ...lines].join("\n");
+}
+
+export function formatJsonValueAsJsonl(data: unknown): string {
+  if (Array.isArray(data)) {
+    return data.map((item) => JSON.stringify(item)).join("\n");
+  }
+
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    for (const key of ["results", "credentials", "findings", "records"]) {
+      if (Array.isArray(obj[key])) {
+        return (obj[key] as unknown[]).map((item) => JSON.stringify(item)).join("\n");
+      }
+    }
+  }
+
+  return JSON.stringify(data);
+}
+
+export function formatJsonValueAsHtml(data: unknown, label?: string): string {
+  const rows = normalizeToRowObjects(data);
+  if (rows.length === 0) {
+    return wrapHtmlDocument(
+      label || "Export",
+      `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`,
+      label,
+    );
+  }
+
+  const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const thead = `<tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`;
+  const tbody = rows
+    .map(
+      (row) =>
+        `<tr>${headers.map((header) => `<td>${escapeHtml(row[header] ?? "")}</td>`).join("")}</tr>`,
+    )
+    .join("");
+
+  return wrapHtmlDocument(
+    label || "Export",
+    `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`,
+    label,
+  );
+}
+
+export function formatRawAsExport(raw: string, format: ExportFormat, label?: string) {
+  if (format === "txt") {
+    return wrapBrandedExport(raw, label);
+  }
+
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = null;
+  }
+
+  if (format === "json") {
+    if (parsed !== null) {
+      return JSON.stringify(parsed, null, 2);
+    }
+    return JSON.stringify({ content: raw }, null, 2);
+  }
+
+  if (format === "jsonl") {
+    if (parsed !== null) {
+      return formatJsonValueAsJsonl(parsed);
+    }
+    return JSON.stringify({ content: raw });
+  }
+
+  if (format === "csv") {
+    if (parsed !== null) {
+      return formatJsonValueAsCsv(parsed);
+    }
+    return ["\uFEFFcontent", escapeCsvCell(raw)].join("\n");
+  }
+
+  // html
+  if (parsed !== null) {
+    return formatJsonValueAsHtml(parsed, label);
+  }
+
+  return wrapHtmlDocument(
+    label || "Export",
+    `<pre>${escapeHtml(raw)}</pre>`,
+    label,
+  );
+}
+
+export function formatRecordsAsExport(
+  records: FormattedRecord[],
+  format: ExportFormat,
+  label?: string,
+) {
+  switch (format) {
+    case "txt":
+      return wrapBrandedExport(formatRecordsAsText(records), label);
+    case "json":
+      return formatRecordsAsJson(records);
+    case "jsonl":
+      return formatRecordsAsJsonl(records);
+    case "csv":
+      return formatRecordsAsCsv(records);
+    case "html":
+      return formatRecordsAsHtml(records, label);
+  }
+}
+
+export function formatRecordAsExport(
+  record: FormattedRecord,
+  format: ExportFormat,
+  label?: string,
+) {
+  switch (format) {
+    case "txt":
+      return wrapBrandedExport(formatRecordAsText(record), label);
+    case "json":
+      return formatRecordAsJson(record);
+    case "jsonl":
+      return formatRecordAsJsonl(record);
+    case "csv":
+      return formatRecordAsCsv(record);
+    case "html":
+      return formatRecordAsHtml(record, label);
+  }
+}
+
+export function formatBreachCredentialsAsExport(
+  rows: CombCredential[],
+  format: ExportFormat,
+  label?: string,
+) {
+  switch (format) {
+    case "txt":
+      return wrapBrandedExport(
+        rows
+          .map((row, index) => formatBreachCredentialAsText(row, index + 1))
+          .join("\n\n---\n\n"),
+        label,
+      );
+    case "json":
+      return formatBreachCredentialsAsJson(rows);
+    case "jsonl":
+      return formatBreachCredentialsAsJsonl(rows);
+    case "csv":
+      return formatBreachCredentialsAsCsv(rows);
+    case "html":
+      return formatBreachCredentialsAsHtml(rows, label);
+  }
+}
+
+export function formatBreachCredentialAsExport(
+  row: CombCredential,
+  index: number,
+  format: ExportFormat,
+  label?: string,
+) {
+  switch (format) {
+    case "txt":
+      return wrapBrandedExport(formatBreachCredentialAsText(row, index), label);
+    case "json":
+      return formatBreachCredentialAsJson(row, index);
+    case "jsonl":
+      return formatBreachCredentialAsJsonl(row, index);
+    case "csv":
+      return formatBreachCredentialAsCsv(row, index);
+    case "html":
+      return formatBreachCredentialAsHtml(row, index, label);
+  }
+}
+
+export function safeExportFilename(label: string, format: ExportFormat = "txt") {
   const slug = label
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -64,11 +564,27 @@ export function safeExportFilename(label: string) {
 
   const stamp = new Date().toISOString().slice(0, 10);
 
-  return `anya-intel-${slug || "export"}-${stamp}.txt`;
+  return `${slug || "export"}-${stamp}.${format}`;
 }
 
+const EXPORT_MIME: Record<ExportFormat, string> = {
+  json: "application/json;charset=utf-8",
+  jsonl: "application/x-ndjson;charset=utf-8",
+  csv: "text/csv;charset=utf-8",
+  txt: "text/plain;charset=utf-8",
+  html: "text/html;charset=utf-8",
+};
+
 export function downloadTextFile(filename: string, content: string) {
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  downloadExportFile(filename, content, "txt");
+}
+
+export function downloadExportFile(
+  filename: string,
+  content: string,
+  format: ExportFormat,
+) {
+  const blob = new Blob([content], { type: EXPORT_MIME[format] });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
