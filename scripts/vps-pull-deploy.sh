@@ -199,6 +199,10 @@ if [[ -f "${SECRETS_DIR}/app.env" ]]; then
   echo "==> Restoring app secrets from ${SECRETS_DIR}/app.env"
   merge_env_file "${SECRETS_DIR}/app.env" .env.local
 fi
+if [[ -f "${SECRETS_DIR}/oxapay.env" ]]; then
+  echo "==> Restoring OxaPay secrets from ${SECRETS_DIR}/oxapay.env"
+  merge_env_file "${SECRETS_DIR}/oxapay.env" .env.local
+fi
 if [[ -f .env.local ]]; then
   cp -a .env.local "${SECRETS_DIR}/env.local.backup"
 fi
