@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Shield } from "lucide-react";
 
+import { AccountSecurityPanel } from "@/components/dashboard/account-security-panel";
 import { AdminUsersPanel } from "@/components/dashboard/admin-users-panel";
 import { AdminWorkspaceDashboard } from "@/components/dashboard/admin-workspace-dashboard";
 import { HelperUsersPanel } from "@/components/dashboard/helper-users-panel";
@@ -15,7 +16,8 @@ import {
   UpgradeLink,
 } from "@/components/dashboard/account-stat-rail";
 import type { UserProfile, UserStats } from "@/lib/account-plan";
-import { formatBalance } from "@/lib/account-plan";
+import { formatBalance, getPlanDisplayLabel } from "@/lib/account-plan";
+import { getPlanDefinition, resolveUserPlan } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
 
 export default function SettingsPage() {
@@ -30,6 +32,7 @@ export default function SettingsPage() {
       billingInterval: dashboardUser.billingInterval,
       apiAccess: dashboardUser.apiAccess,
       apiKey: dashboardUser.apiKey,
+      recoveryEmail: dashboardUser.recoveryEmail,
       freeTier: dashboardUser.freeTier,
       professionalTier: dashboardUser.professionalTier,
       investigatorTier: dashboardUser.investigatorTier,
@@ -40,6 +43,7 @@ export default function SettingsPage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const canManageWorkspace = dashboardUser.canManageWorkspace;
   const canAccessHelperDashboard = dashboardUser.canAccessHelperDashboard;
+  const planName = getPlanDefinition(resolveUserPlan(profile)).name;
 
   useEffect(() => {
     fetch("/api/user/stats")
@@ -71,6 +75,14 @@ export default function SettingsPage() {
           <AdminWorkspaceDashboard />
           <SafetyFlagsPanel mode="admin" />
           <AdminUsersPanel />
+
+          <section className="space-y-4" id="account">
+            <h2 className="text-lg font-semibold text-white">Your account</h2>
+            <AccountSecurityPanel
+              initialRecoveryEmail={profile.recoveryEmail}
+              username={profile.username}
+            />
+          </section>
         </section>
       ) : canAccessHelperDashboard ? (
         <section className="mb-10 space-y-8" id="helper">
@@ -93,12 +105,12 @@ export default function SettingsPage() {
         <>
           <section className="anya-hero mb-10">
             <div className="anya-hero-main">
-              <span className="anya-hero-kicker">settings</span>
+              <span className="anya-hero-kicker">account</span>
               <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
-                Account
+                Account settings
               </h1>
               <p className="anya-hero-lede">
-                Plan, usage limits, and membership details for{" "}
+                Manage profile, security, and plan for{" "}
                 <em>{profile?.username ?? "your account"}</em>
                 {profile?.staffRole ? (
                   <>
@@ -109,13 +121,10 @@ export default function SettingsPage() {
                 .
               </p>
               <div className="anya-hero-actions">
-                <span className="anya-pill">
+                <span className="anya-pill capitalize">
                   <Shield className="size-3" />
-                  2FA not enabled
+                  {planName} plan
                 </span>
-                <button className="anya-link-btn" type="button">
-                  Enable now
-                </button>
                 <UpgradeLink />
               </div>
             </div>
@@ -129,20 +138,36 @@ export default function SettingsPage() {
             />
           </section>
 
+          <section className="mb-8 max-w-2xl" id="security">
+            <AccountSecurityPanel
+              initialRecoveryEmail={profile.recoveryEmail}
+              username={profile.username}
+            />
+          </section>
+
           <section className="mb-8 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h3 className="text-sm font-semibold text-white">Billing & API</h3>
+            <h3 className="text-sm font-semibold text-white">Plan & billing</h3>
             <p className="mt-1 text-xs text-zinc-500">
-              Manage credits, subscriptions, and API access on the pricing page.
+              Current access:{" "}
+              <span className="capitalize text-zinc-300">
+                {getPlanDisplayLabel(profile)}
+              </span>
+              {profile.billingInterval
+                ? ` · billed ${profile.billingInterval}`
+                : null}
+              . Upgrade, switch plans, or buy credits on Pricing.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <UpgradeLink />
               <a className="anya-link-btn" href="/pricing">
-                Buy credits / API
+                Manage plan / credits
               </a>
             </div>
             {dashboardUser.apiAccess && dashboardUser.apiKey ? (
               <div className="mt-4 rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-3">
-                <p className="text-[10px] uppercase tracking-wider text-indigo-200">API key</p>
+                <p className="text-[10px] uppercase tracking-wider text-indigo-200">
+                  API key
+                </p>
                 <code className="mt-1 block break-all font-mono text-xs text-white">
                   {dashboardUser.apiKey}
                 </code>

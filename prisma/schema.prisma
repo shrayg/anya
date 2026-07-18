@@ -35,6 +35,7 @@ model User {
   billingInterval String @default("monthly")
   apiAccess Boolean @default(false)
   apiKey String?
+  recoveryEmail String?
   freeTier Boolean @default(true)
   professionalTier Boolean @default(false)
   investigatorTier Boolean @default(false)

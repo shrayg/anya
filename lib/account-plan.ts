@@ -14,6 +14,7 @@ export type UserProfile = {
   billingInterval?: string;
   apiAccess?: boolean;
   apiKey?: string | null;
+  recoveryEmail?: string | null;
   freeTier?: boolean;
   professionalTier?: boolean;
   investigatorTier?: boolean;

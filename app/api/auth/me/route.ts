@@ -28,6 +28,7 @@ export async function GET() {
         billingInterval: true,
         apiAccess: true,
         apiKey: true,
+        recoveryEmail: true,
         freeTier: true,
         professionalTier: true,
         investigatorTier: true,

@@ -1,5 +1,5 @@
 export const MIN_PASSWORD_LENGTH = 12;
-export const MIN_USERNAME_LENGTH = 8;
+export const MIN_USERNAME_LENGTH = 5;
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
 

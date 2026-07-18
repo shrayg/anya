@@ -54,14 +54,28 @@
 }
 
 /*
- * Splash drives --splash-shift (translateY only).
- * Title stays in normal layout; no position:fixed, no X motion.
+ * Splash: real homepage wordmark above the veil.
+ * Hold snaps --splash-shift; reveal glides via CSS transition (no JS tween jitter).
  */
 html[data-splash="active"] [data-splash-target] {
   position: relative;
   z-index: 110;
-  transform: translateY(var(--splash-shift, 0px));
+  transform: translate3d(0, var(--splash-shift, 0px), 0);
   will-change: transform;
+  backface-visibility: hidden;
+}
+
+html[data-splash="active"][data-splash-phase="hold"] [data-splash-target] {
+  transition: none;
+}
+
+html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
+  transition: transform 1.2s cubic-bezier(0.45, 0.05, 0.25, 1);
+}
+
+/* Hide avatar logo during splash — keep layout space so title doesn't jump */
+html[data-splash="active"] [data-splash-logo] {
+  visibility: hidden;
 }
 
 
@@ -2447,6 +2461,22 @@ html[data-splash="active"] [data-splash-target] {
   outline: none;
   transition: border-color 0.15s ease;
   color-scheme: dark;
+}
+
+/* Kill browser credential autofill yellow on dark OSINT inputs */
+.ui-input:-webkit-autofill,
+.ui-input:-webkit-autofill:hover,
+.ui-input:-webkit-autofill:focus,
+.ui-input:-webkit-autofill:active,
+.dash-input:-webkit-autofill,
+.dash-input:-webkit-autofill:hover,
+.dash-input:-webkit-autofill:focus,
+.dash-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 1000px rgba(12, 12, 14, 0.96) inset;
+  transition: background-color 99999s ease-out 0s;
 }
 
 /* Result export menu */

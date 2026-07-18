@@ -23,11 +23,12 @@ import { PricingModal } from "@/components/pricing-modal";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
-import { getAppLandingPath, hasWorkspaceDashboardAccess } from "@/lib/plans";
+import { getAppLandingPath, getPlanDefinition, hasWorkspaceDashboardAccess, resolveUserPlan } from "@/lib/plans";
 
 export const Navbar = () => {
   const pathname = usePathname();
   const [username, setUsername] = useState<string | null>(null);
+  const [planLabel, setPlanLabel] = useState<string | null>(null);
   const [workspacePath, setWorkspacePath] = useState("/dashboard/search/ai-search");
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [pricingOpen, setPricingOpen] = useState(false);
@@ -43,17 +44,20 @@ export const Navbar = () => {
             ...data.user,
             canManageWorkspace: data.canManageWorkspace,
           };
+          setPlanLabel(getPlanDefinition(resolveUserPlan(user)).name);
           setShowWorkspace(hasWorkspaceDashboardAccess(user));
           setWorkspacePath(getAppLandingPath(user));
           return;
         }
 
         setUsername(null);
+        setPlanLabel(null);
         setShowWorkspace(false);
         setWorkspacePath("/dashboard/search/ai-search");
       })
       .catch(() => {
         setUsername(null);
+        setPlanLabel(null);
         setShowWorkspace(false);
         setWorkspacePath("/dashboard/search/ai-search");
       });
@@ -71,6 +75,7 @@ export const Navbar = () => {
   const handleLogout = async () => {
     await apiFetch("/api/auth/logout", { method: "POST" });
     setUsername(null);
+    setPlanLabel(null);
     window.location.href = "/";
   };
 
@@ -172,9 +177,18 @@ export const Navbar = () => {
           <NavbarItem className="hidden md:flex gap-2 items-center shrink-0">
             {username ? (
               <>
-                <span className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300">
-                  {username}
-                </span>
+                <NextLink
+                  className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300 transition hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
+                  href="/dashboard/settings"
+                  title="Account settings"
+                >
+                  {planLabel ? (
+                    <span className="rounded-md bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-200">
+                      {planLabel}
+                    </span>
+                  ) : null}
+                  <span className="font-medium">{username}</span>
+                </NextLink>
                 {showWorkspace ? (
                   <Button
                     as={NextLink}
@@ -277,6 +291,9 @@ export const Navbar = () => {
             <NavbarMenuItem className="mt-4 flex flex-col gap-2">
               {username ? (
                 <>
+                  <Button as={NextLink} href="/dashboard/settings" variant="flat">
+                    {planLabel ? `${planLabel} · ${username}` : username}
+                  </Button>
                   {showWorkspace ? (
                     <Button as={NextLink} href={workspacePath} variant="flat">
                       Workspace

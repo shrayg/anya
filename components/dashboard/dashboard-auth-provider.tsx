@@ -34,6 +34,7 @@ type MeResponseUser = {
   billingInterval?: string;
   apiAccess?: boolean;
   apiKey?: string | null;
+  recoveryEmail?: string | null;
   freeTier?: boolean;
   professionalTier?: boolean;
   investigatorTier?: boolean;
@@ -71,6 +72,7 @@ function mapMeUser(
     billingInterval: user.billingInterval ?? "monthly",
     apiAccess: Boolean(user.apiAccess),
     apiKey: user.apiKey ?? null,
+    recoveryEmail: user.recoveryEmail ?? null,
     freeTier: Boolean(user.freeTier),
     professionalTier: Boolean(user.professionalTier),
     investigatorTier: Boolean(user.investigatorTier),

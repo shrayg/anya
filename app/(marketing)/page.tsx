@@ -22,15 +22,17 @@ export default function Home() {
       <section className="relative flex min-h-[calc(100vh-12rem)] flex-col items-center justify-center gap-8 py-12 text-center">
         <div className="flex max-w-4xl flex-col items-center gap-5 overflow-visible">
           <div className="flex flex-col items-center gap-4">
-            <Image
-              alt={`${siteConfig.name} logo`}
-              className={siteLogoClassName}
-              height={72}
-              priority
-              src={siteLogoSrc}
-              unoptimized
-              width={72}
-            />
+            <div data-splash-logo>
+              <Image
+                alt={`${siteConfig.name} logo`}
+                className={siteLogoClassName}
+                height={72}
+                priority
+                src={siteLogoSrc}
+                unoptimized
+                width={72}
+              />
+            </div>
             <ShinyText
               className={brandTitleClassName}
               data-splash-target

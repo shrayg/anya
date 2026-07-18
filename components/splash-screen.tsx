@@ -4,9 +4,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { animate, motion, useMotionValue } from "framer-motion";
 import { usePathname } from "next/navigation";
 
-const HOLD_MS = 2000;
-const REVEAL_MS = 0.85;
-const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const HOLD_MS = 1800;
+const REVEAL_MS = 1.2;
+const EASE: [number, number, number, number] = [0.45, 0.05, 0.25, 1];
 const TARGET_SEL = "[data-splash-target]";
 
 type Phase = "hold" | "reveal" | "done";
@@ -24,10 +24,9 @@ function clearShift() {
 }
 
 /**
- * Splash veil + spinner. The homepage ShinyText is the only wordmark.
- * Hold: translateY it down to viewport center.
- * Reveal: animate that same translateY straight back to 0 (moves straight up).
- * Never touches X, scale, or position:fixed.
+ * Splash veil + spinner. Homepage ShinyText is the only wordmark.
+ * Hold: CSS translateY to viewport center (no transition).
+ * Reveal: CSS transition on transform for a single sleek glide up.
  */
 export const SplashScreen = () => {
   const pathname = usePathname();
@@ -46,8 +45,10 @@ export const SplashScreen = () => {
   const finish = useCallback(() => {
     if (finishedRef.current) return;
     finishedRef.current = true;
+    setShift(0);
     clearShift();
     delete document.documentElement.dataset.splash;
+    delete document.documentElement.dataset.splashPhase;
     document.body.style.overflow = "";
     setPhase("done");
   }, []);
@@ -60,17 +61,18 @@ export const SplashScreen = () => {
 
     finishedRef.current = false;
     document.documentElement.dataset.splash = "active";
+    document.documentElement.dataset.splashPhase = "hold";
     document.body.style.overflow = "hidden";
     setShift(0);
 
     return () => {
       clearShift();
       delete document.documentElement.dataset.splash;
+      delete document.documentElement.dataset.splashPhase;
       document.body.style.overflow = "";
     };
   }, [isHome]);
 
-  // Measure once, push the real title straight down to vertical center
   useLayoutEffect(() => {
     if (!isHome || phase !== "hold") return;
 
@@ -91,11 +93,12 @@ export const SplashScreen = () => {
         return;
       }
 
-      // Positive shift = move down toward viewport center (reveal tweens back to 0 = up)
       const naturalCenterY = rect.top + rect.height / 2;
       const viewCenterY = window.innerHeight / 2;
       const shift = viewCenterY - naturalCenterY;
       shiftFromRef.current = shift;
+      // Hold: snap to center with no transition
+      document.documentElement.dataset.splashPhase = "hold";
       setShift(shift);
     };
 
@@ -120,7 +123,7 @@ export const SplashScreen = () => {
 
   useEffect(() => {
     if (!isHome || phase === "done") return;
-    const safety = window.setTimeout(finish, HOLD_MS + REVEAL_MS * 1000 + 1000);
+    const safety = window.setTimeout(finish, HOLD_MS + REVEAL_MS * 1000 + 1500);
     return () => window.clearTimeout(safety);
   }, [isHome, phase, finish]);
 
@@ -135,15 +138,32 @@ export const SplashScreen = () => {
       return;
     }
 
-    void animate(spinnerOpacity, 0, { duration: 0.25, ease: EASE });
+    void animate(spinnerOpacity, 0, { duration: 0.4, ease: EASE });
     void animate(bgOpacity, 0, { duration: REVEAL_MS, ease: EASE });
 
-    // Straight up only — Y from center offset → 0. X untouched.
-    void animate(shiftFromRef.current, 0, {
-      duration: REVEAL_MS,
-      ease: EASE,
-      onUpdate: (v) => setShift(v),
-    }).then(finish);
+    // Enable CSS transition, then set shift to 0 — browser does the sleek glide
+    const el = getTarget();
+    document.documentElement.dataset.splashPhase = "reveal";
+
+    // Double rAF so the browser applies transition: before the value change
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setShift(0);
+      });
+    });
+
+    const onEnd = (event: TransitionEvent) => {
+      if (event.propertyName !== "transform") return;
+      el?.removeEventListener("transitionend", onEnd);
+      finish();
+    };
+    el?.addEventListener("transitionend", onEnd);
+
+    const fallback = window.setTimeout(finish, REVEAL_MS * 1000 + 200);
+    return () => {
+      el?.removeEventListener("transitionend", onEnd);
+      window.clearTimeout(fallback);
+    };
   }, [phase, bgOpacity, spinnerOpacity, finish]);
 
   if (!isHome || phase === "done") {
