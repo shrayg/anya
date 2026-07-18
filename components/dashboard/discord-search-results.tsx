@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Gamepad2,
   Hash,
+  Link2,
   Scale,
   Shield,
   TriangleAlert,
@@ -26,6 +27,7 @@ import {
   profileAccent,
   type DiscordDsaSanction,
   type DiscordNameplate,
+  type DiscordRobloxLink,
   type DiscordSearchResult,
 } from "@/lib/discord-profile";
 import { formatSearchRecords, type FormattedRecord } from "@/lib/search-utils";
@@ -158,10 +160,14 @@ function DiscordLeakRecords({
   records,
   blurResults = false,
   totalCount,
+  emptyDetail = "No leak records found for this Discord ID.",
+  metaDetail = "Breach & stealer matches",
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
   totalCount?: number;
+  emptyDetail?: string;
+  metaDetail?: string;
 }) {
   const [expanded, setExpanded] = useState<Set<number> | null>(null);
   const [visibleCount, setVisibleCount] = useState(LEAK_PAGE_SIZE);
@@ -170,7 +176,7 @@ function DiscordLeakRecords({
     return (
       <SearchEmptyState
         className="anya-search-empty--inset"
-        detail="No leak records found for this Discord ID."
+        detail={emptyDetail}
       />
     );
   }
@@ -215,9 +221,7 @@ function DiscordLeakRecords({
             {shown} record{shown === 1 ? "" : "s"}
           </span>
           <span className="discord-leak-meta-detail">
-            {total > shown
-              ? `${total} total in index`
-              : "Breach & stealer matches"}
+            {total > shown ? `${total} total in index` : metaDetail}
           </span>
         </p>
         {anyExpanded ? (
@@ -325,14 +329,22 @@ function SummaryCard({
   count,
   tone,
   icon,
+  active,
 }: {
   label: string;
   count: number;
-  tone: "breach" | "fivem" | "dsa";
+  tone: "breach" | "fivem" | "dsa" | "roblox";
   icon: React.ReactNode;
+  active?: boolean;
 }) {
   return (
-    <div className={clsx("discord-id-stat", `discord-id-stat--${tone}`)}>
+    <div
+      className={clsx(
+        "discord-id-stat",
+        `discord-id-stat--${tone}`,
+        active && "discord-id-stat--active",
+      )}
+    >
       <span className="discord-id-stat-icon" aria-hidden>
         {icon}
       </span>
@@ -341,6 +353,145 @@ function SummaryCard({
         <p className="discord-id-stat-count">{count}</p>
       </div>
     </div>
+  );
+}
+
+function SidePanel({
+  title,
+  subtitle,
+  icon,
+  countLabel,
+  tone,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  countLabel: string;
+  tone: "dsa" | "roblox";
+  children: React.ReactNode;
+}) {
+  return (
+    <aside className={clsx("discord-id-side-panel", `discord-id-side-panel--${tone}`)}>
+      <header className="discord-id-dsa-head">
+        <span
+          className={clsx(
+            "discord-id-dsa-head-icon",
+            tone === "roblox" && "discord-id-dsa-head-icon--roblox",
+          )}
+          aria-hidden
+        >
+          {icon}
+        </span>
+        <div className="discord-id-dsa-head-copy">
+          <h4 className="discord-id-dsa-title">{title}</h4>
+          <p className="discord-id-dsa-sub">{subtitle}</p>
+        </div>
+        <span
+          className={clsx(
+            "discord-id-dsa-count",
+            tone === "roblox" && "discord-id-dsa-count--roblox",
+          )}
+        >
+          {countLabel}
+        </span>
+      </header>
+      {children}
+    </aside>
+  );
+}
+
+function RobloxLinkPanel({
+  link,
+  blurResults,
+}: {
+  link: DiscordRobloxLink | null | undefined;
+  blurResults: boolean;
+}) {
+  const hasLink = Boolean(
+    link && (link.username || link.userId || link.profileUrl),
+  );
+
+  return (
+    <SidePanel
+      countLabel={hasLink ? "1 linked" : "None"}
+      icon={<Link2 className="size-4" />}
+      subtitle="OathNet Discord → Roblox"
+      title="Roblox"
+      tone="roblox"
+    >
+      {!hasLink || !link ? (
+        <p className="discord-id-dsa-empty">No Roblox linked</p>
+      ) : (
+        <div className="discord-id-roblox-card">
+          <div className="discord-id-roblox-fields">
+            {link.username ? (
+              <div className="discord-id-roblox-field">
+                <span className="discord-id-field-label">Username</span>
+                <p className="discord-id-field-value">
+                  <BlurredValue forceBlur={blurResults} text={link.username} />
+                </p>
+              </div>
+            ) : null}
+            {link.userId ? (
+              <div className="discord-id-roblox-field">
+                <span className="discord-id-field-label">User ID</span>
+                <p className="discord-id-field-value discord-id-field-value--mono">
+                  <BlurredValue forceBlur={blurResults} text={link.userId} />
+                </p>
+              </div>
+            ) : null}
+          </div>
+          {link.profileUrl && !blurResults ? (
+            <a
+              className="discord-id-roblox-link"
+              href={link.profileUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Open Roblox profile
+              <ExternalLink className="size-3.5" />
+            </a>
+          ) : null}
+        </div>
+      )}
+    </SidePanel>
+  );
+}
+
+function ExpandableRecordsSection({
+  title,
+  count,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="discord-id-leaks">
+      <button
+        className="discord-id-leaks-toggle"
+        onClick={onToggle}
+        type="button"
+      >
+        <span>
+          {title}
+          <span className="discord-id-leaks-count">{count}</span>
+        </span>
+        <ChevronDown
+          className={clsx(
+            "size-4 transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+      {open ? children : null}
+    </section>
   );
 }
 
@@ -451,10 +602,12 @@ export function DiscordSearchResults({
   result: DiscordSearchResult;
   blurResults?: boolean;
 }) {
-  const { profile, leaks, fivem, dsa } = result;
+  const { profile, leaks, fivem, dsa, robloxLink } = result;
   const accent = profileAccent(profile);
   const [bannerHidden, setBannerHidden] = useState(false);
-  const [showLeaks, setShowLeaks] = useState(false);
+  const [showLeaks, setShowLeaks] = useState(leaks.count > 0);
+  const [showFivem, setShowFivem] = useState((fivem?.count ?? 0) > 0);
+  const dsaRef = useRef<HTMLElement | null>(null);
 
   const badges = useMemo(
     () => resolveDiscordBadges(profile.badges),
@@ -464,38 +617,74 @@ export function DiscordSearchResults({
     () => formatSearchRecords(leaks.results),
     [leaks.results],
   );
+  const fivemRecords = useMemo(
+    () => formatSearchRecords(fivem?.accounts ?? []),
+    [fivem?.accounts],
+  );
 
   const fivemCount = fivem?.count ?? 0;
   const dsaCount = dsa?.count ?? 0;
   const sanctions = dsa?.sanctions ?? [];
+  const robloxLinked = Boolean(
+    robloxLink &&
+      (robloxLink.username || robloxLink.userId || robloxLink.profileUrl),
+  );
+
+  const scrollToDsa = () => {
+    dsaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
 
   return (
     <div className="discord-id-shell">
       <div className="discord-id-stats">
         <button
+          aria-expanded={showLeaks}
           className="discord-id-stat-btn"
           onClick={() => setShowLeaks((value) => !value)}
           type="button"
         >
           <SummaryCard
+            active={showLeaks}
             count={leaks.count}
             icon={<Shield className="size-4" />}
             label="Breaches"
             tone="breach"
           />
         </button>
-        <SummaryCard
-          count={fivemCount}
-          icon={<Gamepad2 className="size-4" />}
-          label="FiveM records"
-          tone="fivem"
-        />
-        <SummaryCard
-          count={dsaCount}
-          icon={<Scale className="size-4" />}
-          label="DSA sanctions"
-          tone="dsa"
-        />
+        <button
+          aria-expanded={showFivem}
+          className="discord-id-stat-btn"
+          onClick={() => setShowFivem((value) => !value)}
+          type="button"
+        >
+          <SummaryCard
+            active={showFivem}
+            count={fivemCount}
+            icon={<Gamepad2 className="size-4" />}
+            label="FiveM records"
+            tone="fivem"
+          />
+        </button>
+        <button
+          className="discord-id-stat-btn"
+          onClick={scrollToDsa}
+          type="button"
+        >
+          <SummaryCard
+            count={dsaCount}
+            icon={<Scale className="size-4" />}
+            label="DSA sanctions"
+            tone="dsa"
+          />
+        </button>
+        <div className="discord-id-stat-btn" aria-hidden={false}>
+          <SummaryCard
+            count={robloxLinked ? 1 : 0}
+            icon={<Link2 className="size-4" />}
+            label="Roblox linked"
+            tone="roblox"
+          />
+        </div>
       </div>
 
       <div className="discord-id-layout">
@@ -678,69 +867,72 @@ export function DiscordSearchResults({
           </div>
         </article>
 
-        <aside className="discord-id-dsa">
-          <header className="discord-id-dsa-head">
-            <span className="discord-id-dsa-head-icon" aria-hidden>
-              <Scale className="size-4" />
-            </span>
-            <div className="discord-id-dsa-head-copy">
-              <h4 className="discord-id-dsa-title">DSA Sanctions</h4>
-              <p className="discord-id-dsa-sub">
-                EU Digital Services Act database
-              </p>
-            </div>
-            <span className="discord-id-dsa-count">
-              {dsaCount} {dsaCount === 1 ? "entry" : "entries"}
-            </span>
-          </header>
+        <div className="discord-id-side">
+          <RobloxLinkPanel blurResults={blurResults} link={robloxLink} />
 
-          {sanctions.length === 0 ? (
-            <p className="discord-id-dsa-empty">
-              No DSA sanctions found for this Discord ID.
-            </p>
-          ) : (
-            <div className="discord-id-dsa-list">
-              {sanctions.map((sanction) => (
-                <DsaSanctionRow
-                  key={sanction.id}
-                  blurResults={blurResults}
-                  sanction={sanction}
-                />
-              ))}
-            </div>
-          )}
-        </aside>
+          <section className="discord-id-dsa" ref={dsaRef}>
+            <header className="discord-id-dsa-head">
+              <span className="discord-id-dsa-head-icon" aria-hidden>
+                <Scale className="size-4" />
+              </span>
+              <div className="discord-id-dsa-head-copy">
+                <h4 className="discord-id-dsa-title">DSA Sanctions</h4>
+                <p className="discord-id-dsa-sub">
+                  EU Digital Services Act database
+                </p>
+              </div>
+              <span className="discord-id-dsa-count">
+                {dsaCount} {dsaCount === 1 ? "entry" : "entries"}
+              </span>
+            </header>
+
+            {sanctions.length === 0 ? (
+              <p className="discord-id-dsa-empty">
+                No DSA sanctions found for this Discord ID.
+              </p>
+            ) : (
+              <div className="discord-id-dsa-list">
+                {sanctions.map((sanction) => (
+                  <DsaSanctionRow
+                    key={sanction.id}
+                    blurResults={blurResults}
+                    sanction={sanction}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
 
-      {showLeaks || leaks.count > 0 ? (
-        <section className="discord-id-leaks">
-          <button
-            className="discord-id-leaks-toggle"
-            onClick={() => setShowLeaks((value) => !value)}
-            type="button"
-          >
-            <span>
-              Breach records
-              {leaks.count > 0 ? (
-                <span className="discord-id-leaks-count">{leaks.count}</span>
-              ) : null}
-            </span>
-            <ChevronDown
-              className={clsx(
-                "size-4 transition-transform",
-                showLeaks && "rotate-180",
-              )}
-            />
-          </button>
-          {showLeaks ? (
-            <DiscordLeakRecords
-              blurResults={blurResults}
-              records={leakRecords}
-              totalCount={leaks.count}
-            />
-          ) : null}
-        </section>
-      ) : null}
+      <ExpandableRecordsSection
+        count={leaks.count}
+        onToggle={() => setShowLeaks((value) => !value)}
+        open={showLeaks}
+        title="Breach records"
+      >
+        <DiscordLeakRecords
+          blurResults={blurResults}
+          emptyDetail="No breach or stealer records found for this Discord ID."
+          records={leakRecords}
+          totalCount={leaks.count}
+        />
+      </ExpandableRecordsSection>
+
+      <ExpandableRecordsSection
+        count={fivemCount}
+        onToggle={() => setShowFivem((value) => !value)}
+        open={showFivem}
+        title="FiveM records"
+      >
+        <DiscordLeakRecords
+          blurResults={blurResults}
+          emptyDetail="No FiveM accounts linked to this Discord ID."
+          metaDetail="Linked FiveM accounts"
+          records={fivemRecords}
+          totalCount={fivemCount}
+        />
+      </ExpandableRecordsSection>
 
       {blurResults ? <ResultsBlurNotice /> : null}
     </div>
