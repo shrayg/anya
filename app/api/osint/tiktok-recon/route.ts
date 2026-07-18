@@ -4,6 +4,7 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 import { fetchCsintTiktokRecon, flattenCsintEntity } from "@/lib/csint";
 import { publicSearchError } from "@/lib/public-branding";
+import { osintFailureResponse } from "@/lib/osint-search-guard";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "tiktok-recon");
@@ -37,6 +38,6 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message =
       err instanceof Error ? err.message : publicSearchError();
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
   }
 }

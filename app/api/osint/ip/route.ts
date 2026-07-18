@@ -5,6 +5,11 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 import { fetchCsintIpLookup } from "@/lib/csint";
 import { fetchCombinedOsintCatEndpoint } from "@/lib/osint-combined";
 import { normalizeIpSearchPayload } from "@/lib/ip-search";
+import {
+  OSINT_ROUTE_DEADLINE_MS,
+  osintFailureResponse,
+  withDeadline,
+} from "@/lib/osint-search-guard";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "ip");
@@ -17,25 +22,25 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [data, csintIp] = await Promise.all([
-      fetchCombinedOsintCatEndpoint("ip", query, "ip", "ip"),
-      fetchCsintIpLookup(query),
-    ]);
+    const [data, csintIp] = await withDeadline(
+      Promise.all([
+        fetchCombinedOsintCatEndpoint("ip", query, "ip", "ip").catch(() => null),
+        fetchCsintIpLookup(query).catch(() => null),
+      ]),
+      OSINT_ROUTE_DEADLINE_MS,
+    );
 
-    const payload = normalizeIpSearchPayload(data);
-    if (csintIp) {
-      return NextResponse.json({
-        ...payload,
-        enrichment: csintIp,
-      });
+    if (data) {
+      const payload = normalizeIpSearchPayload(data);
+      if (csintIp) {
+        return NextResponse.json({
+          ...payload,
+          enrichment: csintIp,
+        });
+      }
+      return NextResponse.json(payload);
     }
 
-    return NextResponse.json(payload);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to reach API";
-
-    // Fall back to CSINT-only if other indexes fail
-    const csintIp = await fetchCsintIpLookup(query);
     if (csintIp) {
       return NextResponse.json({
         query,
@@ -44,6 +49,26 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({
+      query,
+      message: "Nothing found for this IP.",
+    });
+  } catch (err) {
+    try {
+      const csintIp = await fetchCsintIpLookup(query);
+      if (csintIp) {
+        return NextResponse.json({
+          query,
+          enrichment: csintIp,
+          sources: ["index"],
+        });
+      }
+    } catch {
+      // ignore secondary failure
+    }
+
+    return osintFailureResponse(err, {
+      softEmpty: { query, message: "IP lookup timed out or failed." },
+    });
   }
 }

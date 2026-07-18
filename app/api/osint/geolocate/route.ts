@@ -4,6 +4,11 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 import { PUBLIC_INTEL_SOURCE, publicServiceUnavailable } from "@/lib/public-branding";
 import { fetchGodsEyeGeolocate } from "@/lib/godseye";
+import {
+  OSINT_ROUTE_DEADLINE_MS,
+  osintFailureResponse,
+  withDeadline,
+} from "@/lib/osint-search-guard";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "geolocate");
@@ -20,16 +25,24 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const data = await fetchGodsEyeGeolocate({ ip: target });
-
-  if (!data) {
-    return NextResponse.json(
-      { error: publicServiceUnavailable() },
-      { status: 502 },
+  try {
+    const data = await withDeadline(
+      fetchGodsEyeGeolocate({ ip: target }),
+      OSINT_ROUTE_DEADLINE_MS,
     );
-  }
 
-  return NextResponse.json({ ip: target, source: PUBLIC_INTEL_SOURCE, ...data });
+    if (!data) {
+      return osintFailureResponse(new Error(publicServiceUnavailable()), {
+        softEmpty: { ip: target, message: "Geolocation unavailable." },
+      });
+    }
+
+    return NextResponse.json({ ip: target, source: PUBLIC_INTEL_SOURCE, ...data });
+  } catch (err) {
+    return osintFailureResponse(err, {
+      softEmpty: { ip: target, message: "Geolocation timed out or failed." },
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -51,14 +64,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const data = await fetchGodsEyeGeolocate(body);
-
-  if (!data) {
-    return NextResponse.json(
-      { error: publicServiceUnavailable() },
-      { status: 502 },
+  try {
+    const data = await withDeadline(
+      fetchGodsEyeGeolocate(body),
+      OSINT_ROUTE_DEADLINE_MS,
     );
-  }
 
-  return NextResponse.json({ source: PUBLIC_INTEL_SOURCE, ...data });
+    if (!data) {
+      return osintFailureResponse(new Error(publicServiceUnavailable()), {
+        softEmpty: { message: "Geolocation unavailable." },
+      });
+    }
+
+    return NextResponse.json({ source: PUBLIC_INTEL_SOURCE, ...data });
+  } catch (err) {
+    return osintFailureResponse(err, {
+      softEmpty: { message: "Geolocation timed out or failed." },
+    });
+  }
 }

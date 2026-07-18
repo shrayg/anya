@@ -1,5 +1,6 @@
 import { publicSearchError, publicServiceUnavailable } from "@/lib/public-branding";
-import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
+import { OSINT_PROVIDER_TIMEOUT_MS } from "@/lib/osint-search-guard";
 import { normalizeDomain } from "@/lib/domain-search";
 import { scrubIntelResults } from "@/lib/intel-record";
 
@@ -149,13 +150,25 @@ export async function fetchOsintCat(
   const res = await fetchWithTimeout(url.toString(), {
     headers: { "X-API-KEY": apiKey },
     cache: "no-store",
-    timeoutMs: 25_000,
+    timeoutMs: OSINT_PROVIDER_TIMEOUT_MS,
   });
 
-  const data = (await res.json()) as OsintCatResponse & {
+  const text = await readResponseText(res, OSINT_PROVIDER_TIMEOUT_MS);
+  let data: OsintCatResponse & {
     message?: string;
     error?: string;
   };
+
+  try {
+    data = text
+      ? (JSON.parse(text) as OsintCatResponse & {
+          message?: string;
+          error?: string;
+        })
+      : ({} as OsintCatResponse);
+  } catch {
+    throw new Error(publicSearchError("Invalid response from intelligence index."));
+  }
 
   if (!res.ok) {
     throw new Error(

@@ -9,6 +9,11 @@ import {
 } from "@/lib/csint";
 import { fetchGodsEyeEmailReport } from "@/lib/godseye";
 import {
+  OSINT_ROUTE_DEADLINE_MS,
+  osintFailureResponse,
+  withDeadline,
+} from "@/lib/osint-search-guard";
+import {
   normalizeEmail,
   searchProxynovaCombForEmail,
   type CombCredential,
@@ -30,6 +35,10 @@ function mergeCredentials(
   }
 
   return merged;
+}
+
+function settledValue<T>(result: PromiseSettledResult<T>): T | null {
+  return result.status === "fulfilled" ? result.value : null;
 }
 
 export async function GET(req: NextRequest) {
@@ -54,50 +63,82 @@ export async function GET(req: NextRequest) {
   const start = Number(req.nextUrl.searchParams.get("start") ?? 0);
   const limit = Number(req.nextUrl.searchParams.get("limit") ?? 100);
 
-  const [combResult, godseyeReport, breachVip, csint] = await Promise.all([
-    searchProxynovaCombForEmail(email, { start, limit }),
-    fetchGodsEyeEmailReport(email),
-    searchBreachVipForEmail(email, { maxRows: limit }),
-    fetchCsintAdditiveBreachSearch(email, "email", 15_000),
-  ]);
+  try {
+    const [combSettled, godseyeSettled, breachVipSettled, csintSettled] =
+      await withDeadline(
+        Promise.allSettled([
+          searchProxynovaCombForEmail(email, { start, limit }),
+          fetchGodsEyeEmailReport(email),
+          searchBreachVipForEmail(email, { maxRows: limit }),
+          fetchCsintAdditiveBreachSearch(email, "email", 15_000),
+        ]),
+        OSINT_ROUTE_DEADLINE_MS,
+      );
 
-  const csintCredentials = csint
-    ? csintRowsToCredentials(csint.results)
-    : [];
+    const combResult = settledValue(combSettled) ?? {
+      query: email,
+      totalMatches: 0,
+      returned: 0,
+      start,
+      credentials: [] as CombCredential[],
+      source: "Breached Data",
+    };
+    const godseyeReport = settledValue(godseyeSettled);
+    const breachVip = settledValue(breachVipSettled);
+    const csint = settledValue(csintSettled);
 
-  const mergedCredentials = mergeCredentials(
-    mergeCredentials(combResult.credentials, breachVip?.credentials ?? []),
-    csintCredentials,
-  );
+    const csintCredentials = csint
+      ? csintRowsToCredentials(csint.results)
+      : [];
 
-  const breachVipExtra = breachVip?.totalMatches ?? 0;
-  const csintExtra = csint?.count ?? 0;
-  const merged: CombSearchResult = {
-    ...combResult,
-    totalMatches: combResult.totalMatches + breachVipExtra + csintExtra,
-    returned: mergedCredentials.length,
-    credentials: mergedCredentials,
-  };
+    const mergedCredentials = mergeCredentials(
+      mergeCredentials(combResult.credentials, breachVip?.credentials ?? []),
+      csintCredentials,
+    );
 
-  const response = {
-    ...merged,
-    godseyeReport,
-    hasGodsEyeReport: Boolean(godseyeReport),
-    hasBreachVipResults: Boolean(breachVip && breachVip.returned > 0),
-    breachVipCount: breachVip?.totalMatches ?? 0,
-  };
+    const breachVipExtra = breachVip?.totalMatches ?? 0;
+    const csintExtra = csint?.count ?? 0;
+    const merged: CombSearchResult = {
+      ...combResult,
+      totalMatches: combResult.totalMatches + breachVipExtra + csintExtra,
+      returned: mergedCredentials.length,
+      credentials: mergedCredentials,
+    };
 
-  if (
-    merged.returned === 0 &&
-    !godseyeReport &&
-    !(breachVip && breachVip.returned > 0) &&
-    !csintExtra
-  ) {
-    return NextResponse.json({
-      ...response,
-      message: "No results were found.",
+    const response = {
+      ...merged,
+      godseyeReport,
+      hasGodsEyeReport: Boolean(godseyeReport),
+      hasBreachVipResults: Boolean(breachVip && breachVip.returned > 0),
+      breachVipCount: breachVip?.totalMatches ?? 0,
+    };
+
+    if (
+      merged.returned === 0 &&
+      !godseyeReport &&
+      !(breachVip && breachVip.returned > 0) &&
+      !csintExtra
+    ) {
+      return NextResponse.json({
+        ...response,
+        message: "No results were found.",
+      });
+    }
+
+    return NextResponse.json(response);
+  } catch (err) {
+    return osintFailureResponse(err, {
+      softEmpty: {
+        source: "Breached Data",
+        query: email,
+        totalMatches: 0,
+        returned: 0,
+        start,
+        credentials: [],
+        hasGodsEyeReport: false,
+        hasBreachVipResults: false,
+        breachVipCount: 0,
+      },
     });
   }
-
-  return NextResponse.json(response);
 }

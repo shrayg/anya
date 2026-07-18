@@ -164,7 +164,7 @@ export async function GET(req: NextRequest) {
   if (!hasGodsEyeExport && !hasCsint) {
     return NextResponse.json(
       { error: publicServiceUnavailable() },
-      { status: 502 },
+      { status: 503 },
     );
   }
 
@@ -239,18 +239,16 @@ export async function GET(req: NextRequest) {
           : `${error} Tip: Storage ID was accepted but not found in common leak buckets — confirm the ID is a downloadable Storage ID (long hex), not a website share link.`;
     }
 
-    return NextResponse.json(
-      {
-        storageId,
-        idKind,
-        bucket,
-        source: `${PUBLIC_BRAND} · IntelX`,
-        content: "",
-        error,
-        hasContent: false,
-      },
-      { status: 502 },
-    );
+    return NextResponse.json({
+      storageId,
+      idKind,
+      bucket,
+      source: `${PUBLIC_BRAND} · IntelX`,
+      content: "",
+      error,
+      hasContent: false,
+      message: error,
+    });
   }
 
   return NextResponse.json({

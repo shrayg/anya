@@ -10,6 +10,11 @@ import {
   fetchGodsEyeOnlySearch,
 } from "@/lib/osint-combined";
 import {
+  OSINT_ROUTE_DEADLINE_MS,
+  osintFailureResponse,
+  withDeadline,
+} from "@/lib/osint-search-guard";
+import {
   getPlatformSearchConfig,
   isGodsEyeOnlyPlatformConfig,
 } from "@/lib/platform-search";
@@ -27,8 +32,6 @@ export async function GET(req: NextRequest) {
 
   const platform = getPlatformSearchConfig(scope);
 
-  // Stealer Logs (no platform scope) must not accept Discord snowflakes.
-  // Platform modules (Steam ID64, numeric Telegram IDs, etc.) are allowed through.
   if (!platform && isDiscordSnowflake(query)) {
     return NextResponse.json(
       {
@@ -39,21 +42,29 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const softEmpty = {
+    count: 0,
+    results: [] as unknown[],
+    query,
+  };
 
   if (platform) {
     try {
-      const data = isGodsEyeOnlyPlatformConfig(platform)
-        ? await fetchGodsEyeOnlySearch(
-            query,
-            platform.godseyeType,
-            platform.breachVipField,
-          )
-        : await fetchCombinedPlatformSearch(
-            query,
-            platform.osintCatEndpoint,
-            platform.godseyeType,
-            platform.breachVipField,
-          );
+      const data = await withDeadline(
+        isGodsEyeOnlyPlatformConfig(platform)
+          ? fetchGodsEyeOnlySearch(
+              query,
+              platform.godseyeType,
+              platform.breachVipField,
+            )
+          : fetchCombinedPlatformSearch(
+              query,
+              platform.osintCatEndpoint,
+              platform.godseyeType,
+              platform.breachVipField,
+            ),
+        OSINT_ROUTE_DEADLINE_MS,
+      );
 
       if (data.count === 0) {
         return NextResponse.json({
@@ -64,10 +75,7 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json(data);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to reach search sources";
-
-      return NextResponse.json({ error: message }, { status: 502 });
+      return osintFailureResponse(err, { softEmpty });
     }
   }
 
@@ -75,12 +83,12 @@ export async function GET(req: NextRequest) {
   const searchQuery = domain ?? query;
 
   try {
-    const data = await fetchCombinedStealerLogs(searchQuery, scope);
+    const data = await withDeadline(
+      fetchCombinedStealerLogs(searchQuery, scope),
+      OSINT_ROUTE_DEADLINE_MS,
+    );
     return NextResponse.json(data);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to reach search sources";
-
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err, { softEmpty });
   }
 }

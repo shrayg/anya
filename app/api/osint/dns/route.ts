@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import { fetchCombinedOsintCatEndpoint } from "@/lib/osint-combined";
+import {
+  OSINT_ROUTE_DEADLINE_MS,
+  osintFailureResponse,
+  withDeadline,
+} from "@/lib/osint-search-guard";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "dns");
@@ -15,15 +19,18 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchCombinedOsintCatEndpoint(
-      "dns-resolver",
-      query,
-      "domain",
+    const data = await withDeadline(
+      fetchCombinedOsintCatEndpoint("dns-resolver", query, "domain"),
+      OSINT_ROUTE_DEADLINE_MS,
     );
     return NextResponse.json(data);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to reach API";
-
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err, {
+      softEmpty: {
+        query,
+        results: [],
+        message: "DNS lookup timed out or failed.",
+      },
+    });
   }
 }

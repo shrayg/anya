@@ -740,7 +740,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setError(
           searchResponse.ok
             ? "Search returned an unexpected response. Try again."
-            : `Search failed (HTTP ${searchResponse.status}). The server may have timed out — try again.`,
+            : searchResponse.status === 502 ||
+                searchResponse.status === 504 ||
+                searchResponse.status === 503
+              ? "Search timed out or the upstream index was unreachable. Try again in a moment."
+              : `Search failed (HTTP ${searchResponse.status}). Try again.`,
         );
         return;
       }
@@ -991,20 +995,32 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       if (activeType === "discord") {
         const discordData = data as DiscordSearchResult & {
           error?: string;
-          enrichment?: Record<string, unknown> | null;
-          robloxLink?: Record<string, unknown> | null;
         };
 
         const hasProfile = Boolean(discordData.profile);
         const hasLeaks = (discordData.leaks?.count ?? 0) > 0;
-        const hasRoblox = Boolean(discordData.robloxLink);
+        const hasRoblox = Boolean(
+          discordData.robloxLink &&
+            (discordData.robloxLink.username ||
+              discordData.robloxLink.userId ||
+              discordData.robloxLink.profileUrl),
+        );
         const hasEnrichment = Boolean(
           discordData.enrichment &&
             typeof discordData.enrichment === "object" &&
             Object.keys(discordData.enrichment).length > 0,
         );
+        const hasFivem = (discordData.fivem?.count ?? 0) > 0;
+        const hasDsa = (discordData.dsa?.count ?? 0) > 0;
 
-        if (!hasProfile && !hasLeaks && !hasRoblox && !hasEnrichment) {
+        if (
+          !hasProfile &&
+          !hasLeaks &&
+          !hasRoblox &&
+          !hasEnrichment &&
+          !hasFivem &&
+          !hasDsa
+        ) {
           markNoResults(
             discordData.error || "No results were found.",
           );

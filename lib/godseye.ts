@@ -6,13 +6,17 @@ import {
   sanitizePublicText,
 } from "@/lib/public-branding";
 import { isInternalSourceLabel, scrubIntelResults } from "@/lib/intel-record";
-import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import {
+  fetchWithTimeout,
+  readResponseText,
+} from "@/lib/fetch-with-timeout";
+import { OSINT_PROVIDER_TIMEOUT_MS } from "@/lib/osint-search-guard";
 import { normalizeDomain } from "@/lib/domain-search";
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 
 const GODSEYE_BASE = "https://godseye.cat";
-const DEFAULT_GODSEYE_SEARCH_TIMEOUT_MS = 25_000;
+const DEFAULT_GODSEYE_SEARCH_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
 
 /** GodsEye is on by default. Set GODSEYE_ENABLED=false to disable without removing keys. */
 export function isGodsEyeEnabled(): boolean {
@@ -202,8 +206,11 @@ function authHeaders(apiKey: string): Record<string, string> {
   };
 }
 
-async function parseGodsEyeJson(res: Response): Promise<GodsEyeResponse> {
-  const text = await res.text();
+async function parseGodsEyeJson(
+  res: Response,
+  timeoutMs = OSINT_PROVIDER_TIMEOUT_MS,
+): Promise<GodsEyeResponse> {
+  const text = await readResponseText(res, timeoutMs);
 
   try {
     return JSON.parse(text) as GodsEyeResponse;

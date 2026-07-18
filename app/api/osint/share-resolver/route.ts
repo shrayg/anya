@@ -4,6 +4,7 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 import { fetchCsintShareResolver, flattenCsintEntity } from "@/lib/csint";
 import { publicSearchError } from "@/lib/public-branding";
+import { osintFailureResponse } from "@/lib/osint-search-guard";
 
 function detectSharePlatform(
   url: string,
@@ -81,6 +82,6 @@ export async function GET(req: NextRequest) {
         message: "No results were found.",
       });
     }
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
   }
 }

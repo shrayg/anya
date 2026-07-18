@@ -15,18 +15,28 @@ import {
   sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
-import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import {
+  fetchWithTimeout,
+  readResponseText,
+} from "@/lib/fetch-with-timeout";
 import {
   DEFAULT_INTELX_BUCKET,
   isIntelxBucket,
   type IntelxBucket,
 } from "@/lib/intelx-buckets";
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
+import {
+  OSINT_PROVIDER_TIMEOUT_MS,
+  withDeadline,
+} from "@/lib/osint-search-guard";
 import type { CombCredential } from "@/lib/proxynova-comb";
 
 const CSINT_BASE = "https://csint.pro/api";
-const DEFAULT_TIMEOUT_MS = 25_000;
+const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
+const SHODAN_TIMEOUT_MS = 18_000;
 const MAX_ROWS = 200;
+const MAX_SHODAN_SERVICES = 48;
+const MAX_SHODAN_BANNER_CHARS = 1_500;
 
 export type CsintSearchType =
   | "email"
@@ -99,6 +109,7 @@ async function csintPost(
     throw new Error(publicServiceUnavailable());
   }
 
+  const started = Date.now();
   const res = await fetchWithTimeout(`${CSINT_BASE}${path}`, {
     method: "POST",
     headers: {
@@ -111,7 +122,8 @@ async function csintPost(
     timeoutMs,
   });
 
-  const text = await res.text();
+  const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+  const text = await readResponseText(res, remaining);
   let data: Record<string, unknown> = {};
 
   try {
@@ -140,6 +152,103 @@ async function csintPost(
   }
 
   return sanitizeCsintPayload(data);
+}
+
+function truncateBanner(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const cleaned = sanitizePublicText(value);
+  if (!cleaned) return null;
+  if (cleaned.length <= MAX_SHODAN_BANNER_CHARS) return cleaned;
+  return `${cleaned.slice(0, MAX_SHODAN_BANNER_CHARS)}…`;
+}
+
+/** Keep Shodan host payloads small — full banners can OOM/crash the route → opaque 502. */
+export function compactShodanHostPayload(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const root =
+    data.data && typeof data.data === "object" && !Array.isArray(data.data)
+      ? (data.data as Record<string, unknown>)
+      : data;
+
+  const ports = new Set<number>();
+  if (Array.isArray(root.ports)) {
+    for (const p of root.ports) {
+      if (typeof p === "number" && Number.isFinite(p)) ports.add(p);
+    }
+  }
+
+  const services: Record<string, unknown>[] = [];
+  const serviceRows = Array.isArray(root.data) ? root.data : [];
+  for (const row of serviceRows.slice(0, MAX_SHODAN_SERVICES)) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+    const svc = row as Record<string, unknown>;
+    const port = typeof svc.port === "number" ? svc.port : null;
+    if (port != null) ports.add(port);
+
+    const banner =
+      truncateBanner(svc.data) ??
+      truncateBanner(svc.banner) ??
+      truncateBanner(svc.raw);
+
+    services.push({
+      ...(port != null ? { port } : {}),
+      ...(typeof svc.transport === "string" ? { transport: svc.transport } : {}),
+      ...(typeof svc.product === "string"
+        ? { product: sanitizePublicText(svc.product) }
+        : {}),
+      ...(typeof svc.version === "string"
+        ? { version: sanitizePublicText(svc.version) }
+        : {}),
+      ...(typeof svc.module === "string"
+        ? { module: sanitizePublicText(svc.module) }
+        : {}),
+      ...(banner ? { banner } : {}),
+    });
+  }
+
+  const hostnames = Array.isArray(root.hostnames)
+    ? root.hostnames
+        .filter((h): h is string => typeof h === "string")
+        .map((h) => sanitizePublicText(h))
+        .filter(Boolean)
+        .slice(0, 40)
+    : [];
+
+  let vulns: string[] = [];
+  if (Array.isArray(root.vulns)) {
+    vulns = root.vulns.map(String).slice(0, 40);
+  } else if (root.vulns && typeof root.vulns === "object") {
+    vulns = Object.keys(root.vulns as Record<string, unknown>).slice(0, 40);
+  }
+
+  const org =
+    (typeof root.org === "string" && sanitizePublicText(root.org)) ||
+    (typeof root.isp === "string" && sanitizePublicText(root.isp)) ||
+    null;
+
+  return {
+    ip:
+      (typeof root.ip_str === "string" && root.ip_str) ||
+      (typeof root.ip === "string" && root.ip) ||
+      (typeof data.ip === "string" && data.ip) ||
+      null,
+    ports: [...ports].sort((a, b) => a - b),
+    org,
+    isp: typeof root.isp === "string" ? sanitizePublicText(root.isp) : null,
+    asn: typeof root.asn === "string" ? sanitizePublicText(root.asn) : null,
+    hostnames,
+    vulns,
+    country:
+      (typeof root.country_name === "string" &&
+        sanitizePublicText(root.country_name)) ||
+      (typeof root.country_code === "string" && root.country_code) ||
+      null,
+    city: typeof root.city === "string" ? sanitizePublicText(root.city) : null,
+    last_update:
+      typeof root.last_update === "string" ? root.last_update : null,
+    services,
+  };
 }
 
 function sanitizeCsintStringField(key: string, value: string): string | null {
@@ -1403,8 +1512,18 @@ export async function fetchCsintAdditiveStealerSearch(
 
 export async function fetchCsintShodanHost(
   ip: string,
+  timeoutMs = SHODAN_TIMEOUT_MS,
 ): Promise<Record<string, unknown>> {
-  return csintPost("/shodan/host", { ip: ip.trim(), history: false });
+  const cleaned = ip.trim();
+  const raw = await withDeadline(
+    csintPost("/shodan/host", { ip: cleaned, history: false }, timeoutMs),
+    timeoutMs + 2_000,
+    "Host exposure lookup timed out. Try again.",
+  );
+  return {
+    query: cleaned,
+    ...compactShodanHostPayload(raw),
+  };
 }
 
 export async function fetchCsintIntelx(
@@ -1439,7 +1558,7 @@ export async function fetchCsintIntelx(
     });
 
     const contentType = res.headers.get("content-type") ?? "";
-    const text = await res.text();
+    const text = await readResponseText(res, 60_000);
 
     // Docs: success is raw text/plain; errors are JSON.
     // Always strip csint.pro / "powered by csint tools" credits from dumps.

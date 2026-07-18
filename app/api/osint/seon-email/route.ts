@@ -5,6 +5,7 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 import { fetchCsintSeonEmail } from "@/lib/csint";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import { publicSearchError } from "@/lib/public-branding";
+import { osintFailureResponse } from "@/lib/osint-search-guard";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "seon-email");
@@ -30,6 +31,6 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message =
       err instanceof Error ? err.message : publicSearchError();
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
   }
 }

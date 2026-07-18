@@ -12,6 +12,7 @@ import {
 import { publicServiceUnavailable, sanitizePublicText } from "@/lib/public-branding";
 import { getGodsEyeApiKey } from "@/lib/godseye";
 import { isDiscordSnowflake } from "@/lib/osintcat";
+import { osintFailureResponse } from "@/lib/osint-search-guard";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "fivem");
@@ -70,6 +71,6 @@ export async function GET(req: NextRequest) {
       err instanceof Error ? err.message : "Failed to resolve FiveM lookup",
     );
 
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
   }
 }

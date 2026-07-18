@@ -8,6 +8,11 @@ import {
   isCsintEnabled,
 } from "@/lib/csint";
 import {
+  OSINT_ROUTE_DEADLINE_MS,
+  osintFailureResponse,
+  withDeadline,
+} from "@/lib/osint-search-guard";
+import {
   publicSearchError,
   publicServiceUnavailable,
 } from "@/lib/public-branding";
@@ -25,13 +30,16 @@ export async function GET(req: NextRequest) {
   if (!isCsintEnabled()) {
     return NextResponse.json(
       { error: publicServiceUnavailable() },
-      { status: 502 },
+      { status: 503 },
     );
   }
 
   try {
     const searchType = detectCsintSearchType(query);
-    const data = await fetchCsintBreachBase(query, searchType);
+    const data = await withDeadline(
+      fetchCsintBreachBase(query, searchType),
+      OSINT_ROUTE_DEADLINE_MS,
+    );
 
     if (!data || data.count === 0) {
       return NextResponse.json({
@@ -43,8 +51,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : publicSearchError();
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err, {
+      softEmpty: { count: 0, results: [], query },
+      fallbackMessage: publicSearchError(),
+    });
   }
 }

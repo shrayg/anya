@@ -14,6 +14,7 @@ import {
 import { isCsintEnabled } from "@/lib/csint";
 import { mergeSanitizedResponses } from "@/lib/osintcat";
 import { publicServiceUnavailable } from "@/lib/public-branding";
+import { osintFailureResponse } from "@/lib/osint-search-guard";
 
 function detectMinecraftCsintType(
   query: string,
@@ -102,6 +103,6 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to reach API";
 
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
   }
 }

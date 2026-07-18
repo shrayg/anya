@@ -4,6 +4,7 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 import { fetchDiscordProfile } from "@/lib/discord-profile";
 import { isDiscordSnowflake } from "@/lib/osintcat";
+import { osintFailureResponse } from "@/lib/osint-search-guard";
 
 const MAX_PROFILES = 3;
 
@@ -38,6 +39,6 @@ export async function GET(req: NextRequest) {
     const message =
       err instanceof Error ? err.message : "Failed to resolve Discord profile(s)";
 
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
   }
 }

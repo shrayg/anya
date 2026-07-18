@@ -8,6 +8,11 @@ import {
 } from "@/lib/csint";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import {
+  OSINT_ROUTE_DEADLINE_MS,
+  osintFailureResponse,
+  withDeadline,
+} from "@/lib/osint-search-guard";
+import {
   publicSearchError,
   publicServiceUnavailable,
 } from "@/lib/public-branding";
@@ -38,12 +43,15 @@ export async function GET(req: NextRequest) {
   if (!isCsintEnabled()) {
     return NextResponse.json(
       { error: publicServiceUnavailable() },
-      { status: 502 },
+      { status: 503 },
     );
   }
 
   try {
-    const account = await fetchCsintOathnetDiscordToRoblox(query);
+    const account = await withDeadline(
+      fetchCsintOathnetDiscordToRoblox(query),
+      OSINT_ROUTE_DEADLINE_MS,
+    );
 
     if (!account) {
       return NextResponse.json({ ...NO_RESULTS, query });
@@ -55,8 +63,9 @@ export async function GET(req: NextRequest) {
       results: [account],
     });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : publicSearchError();
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err, {
+      softEmpty: { ...NO_RESULTS, query },
+      fallbackMessage: publicSearchError(),
+    });
   }
 }

@@ -58,6 +58,13 @@ export type DiscordDsaSanction = {
   details?: Record<string, unknown>;
 };
 
+export type DiscordRobloxLink = {
+  username?: string;
+  userId?: string;
+  profileUrl?: string;
+  discord_id: string;
+};
+
 export type DiscordSearchResult = {
   id: string;
   profile: DiscordProfile;
@@ -74,6 +81,10 @@ export type DiscordSearchResult = {
     count: number;
     sanctions: DiscordDsaSanction[];
   };
+  /** OathNet Discord→Roblox; null when no link resolved. */
+  robloxLink?: DiscordRobloxLink | null;
+  /** Raw CSINT /discord/lookup payload when available. */
+  enrichment?: Record<string, unknown> | null;
 };
 
 const DISCORD_EPOCH = 1_420_070_400_000n;

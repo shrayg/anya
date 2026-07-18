@@ -7,6 +7,7 @@ import { extractDiscordIdsFromResults } from "@/lib/discord-extract";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
+import { osintFailureResponse } from "@/lib/osint-search-guard";
 
 const MAX_LINKED_PROFILES = 3;
 
@@ -69,6 +70,6 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to reach API";
 
-    return NextResponse.json({ error: message }, { status: 502 });
+    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
   }
 }
