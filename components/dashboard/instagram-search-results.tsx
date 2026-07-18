@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, ShieldCheck, Users } from "lucide-react";
+import { ExternalLink, ShieldCheck } from "lucide-react";
+import { SiInstagram as InstagramBrand } from "react-icons/si";
 import clsx from "clsx";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
@@ -30,72 +31,109 @@ export type InstagramSearchPayload = InstagramSearchResult & {
   persona?: InstagramPersona | null;
 };
 
-const LIST_PAGE_SIZE = 25;
+type IgUser = InstagramSearchResult["followers"][number];
 
-function StatPill({ label, value }: { label: string; value: string }) {
+const LIST_PAGE_SIZE = 20;
+
+function sortUsersByUsername(users: IgUser[]): IgUser[] {
+  return [...users].sort((a, b) =>
+    a.username.localeCompare(b.username, undefined, { sensitivity: "base" }),
+  );
+}
+
+function Field({
+  label,
+  value,
+  blurResults,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  blurResults?: boolean;
+  wide?: boolean;
+}) {
   return (
-    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300">
-      <span className="text-zinc-500">{label} · </span>
-      {value}
-    </span>
+    <div
+      className={clsx(
+        "anya-result-field",
+        wide && "anya-result-field--block sm:col-span-2 lg:col-span-3",
+      )}
+    >
+      <p className="anya-result-label">{label}</p>
+      <p
+        className={clsx(
+          "anya-result-value",
+          wide && "anya-result-value--block",
+        )}
+      >
+        <BlurredValue forceBlur={blurResults} text={value} />
+      </p>
+    </div>
   );
 }
 
 function UserRow({
   user,
   blurResults,
+  meta,
 }: {
-  user: InstagramSearchResult["followers"][number];
+  user: {
+    id: string;
+    username: string;
+    fullName?: string | null;
+    biography?: string | null;
+    profilePicUrl?: string | null;
+    isVerified?: boolean;
+    isPrivate?: boolean;
+  };
   blurResults?: boolean;
+  meta?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5">
+    <article className="anya-ig-row">
       {user.profilePicUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           alt=""
-          className="size-10 rounded-full border border-white/10 object-cover"
+          className="anya-ig-row-avatar"
           src={user.profilePicUrl}
         />
       ) : (
-        <div className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs text-zinc-500">
-          IG
-        </div>
+        <div className="anya-ig-row-avatar anya-ig-row-avatar--empty">IG</div>
       )}
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="truncate text-sm font-medium text-zinc-100">
+      <div className="anya-ig-row-body">
+        <div className="anya-ig-row-top">
+          <p className="anya-ig-row-user">
             <BlurredValue forceBlur={blurResults} text={`@${user.username}`} />
           </p>
           {user.isVerified ? (
-            <ShieldCheck className="size-3.5 text-sky-400" />
+            <ShieldCheck className="size-3.5 shrink-0 text-[var(--anya-blush)]" />
           ) : null}
           {user.isPrivate ? (
-            <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
-              Private
-            </span>
+            <span className="anya-result-badge">Private</span>
           ) : null}
+          {meta ? <span className="anya-ig-row-meta">{meta}</span> : null}
         </div>
         {user.fullName ? (
-          <p className="truncate text-xs text-zinc-400">
+          <p className="anya-ig-row-name">
             <BlurredValue forceBlur={blurResults} text={user.fullName} />
           </p>
         ) : null}
         {user.biography ? (
-          <p className="mt-1 line-clamp-2 text-xs text-zinc-500">
+          <p className="anya-ig-row-bio">
             <BlurredValue forceBlur={blurResults} text={user.biography} />
           </p>
         ) : null}
       </div>
       <a
-        className="inline-flex items-center gap-1 text-xs text-anya-accent hover:underline"
+        className="anya-ig-row-open"
         href={`https://www.instagram.com/${user.username}/`}
         rel="noreferrer"
         target="_blank"
       >
         Open <ExternalLink className="size-3" />
       </a>
-    </div>
+    </article>
   );
 }
 
@@ -104,15 +142,18 @@ function UserList({
   blurResults,
   totalCount,
   truncated,
+  sortLabel = "A–Z by username",
 }: {
-  users: InstagramSearchResult["followers"];
+  users: IgUser[];
   blurResults?: boolean;
   totalCount: number;
   truncated: boolean;
+  sortLabel?: string;
 }) {
   const [visibleCount, setVisibleCount] = useState(LIST_PAGE_SIZE);
+  const sorted = useMemo(() => sortUsersByUsername(users), [users]);
 
-  if (users.length === 0) {
+  if (sorted.length === 0) {
     return (
       <p className="text-sm text-zinc-400">
         No accounts were returned for this list.
@@ -120,32 +161,29 @@ function UserList({
     );
   }
 
-  const visible = users.slice(0, visibleCount);
-  const hidden = users.length - visible.length;
+  const visible = sorted.slice(0, visibleCount);
+  const hidden = sorted.length - visible.length;
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
-        <span>
-          Showing {users.length.toLocaleString()} fetched
-          {totalCount > users.length
+    <div className="anya-result-stack">
+      <div className="anya-result-stack-toolbar">
+        <p className="text-xs text-zinc-500">
+          Showing {sorted.length.toLocaleString()} fetched
+          {totalCount > sorted.length
             ? ` of ${totalCount.toLocaleString()} total`
             : ""}
-        </span>
-        {truncated ? (
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-200">
-            Truncated by request cap
-          </span>
-        ) : null}
+          <span className="text-zinc-600"> · Sorted {sortLabel}</span>
+          {truncated ? " · Truncated by request cap" : ""}
+        </p>
       </div>
-      <div className="space-y-2">
+      <div className="anya-ig-list">
         {visible.map((user) => (
           <UserRow key={user.id} blurResults={blurResults} user={user} />
         ))}
       </div>
       {hidden > 0 ? (
         <button
-          className="text-sm text-anya-accent hover:underline"
+          className="anya-result-load-more"
           onClick={() => setVisibleCount((count) => count + LIST_PAGE_SIZE)}
           type="button"
         >
@@ -174,75 +212,50 @@ function RankedCloseFriendList({
     );
   }
 
+  // Already ranked by confidence — keep that order.
   const visible = friends.slice(0, visibleCount);
   const hidden = friends.length - visible.length;
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-zinc-400">
-        Ranked by confidence from tags, comments, coauthors, and mutual follow.
-        One-off tags score low; reciprocal activity ranks higher.
-      </p>
-      <div className="space-y-2">
+    <div className="anya-result-stack">
+      <div className="anya-result-stack-toolbar">
+        <p className="text-xs text-zinc-500">
+          Sorted by confidence · tags, comments, coauthors, mutual follow
+        </p>
+      </div>
+      <div className="anya-ig-list">
         {visible.map((friend) => (
-          <div
-            className="flex items-start gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
+          <UserRow
             key={friend.id}
-          >
-            {friend.profilePicUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt=""
-                className="size-10 rounded-full border border-white/10 object-cover"
-                src={friend.profilePicUrl}
-              />
-            ) : (
-              <div className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs text-zinc-500">
-                IG
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-sm font-medium text-zinc-100">
+            blurResults={blurResults}
+            meta={`${Math.round(friend.confidence * 100)}% conf${friend.isMutual ? " · mutual" : ""}`}
+            user={friend}
+          />
+        ))}
+      </div>
+      {friends.slice(0, visibleCount).some((f) => f.confidenceReasons.length > 0) ? (
+        <div className="space-y-2">
+          {visible
+            .filter((f) => f.confidenceReasons.length > 0)
+            .slice(0, 8)
+            .map((friend) => (
+              <div className="anya-ai-signal anya-ai-signal--info" key={`sig-${friend.id}`}>
+                <p className="anya-ai-signal-title">
                   <BlurredValue
                     forceBlur={blurResults}
                     text={`@${friend.username}`}
                   />
                 </p>
-                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-200">
-                  {Math.round(friend.confidence * 100)}% conf
-                </span>
-                {friend.isMutual ? (
-                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
-                    Mutual
-                  </span>
-                ) : null}
-              </div>
-              {friend.fullName ? (
-                <p className="truncate text-xs text-zinc-400">
-                  <BlurredValue forceBlur={blurResults} text={friend.fullName} />
-                </p>
-              ) : null}
-              {friend.confidenceReasons.length > 0 ? (
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="anya-ai-signal-detail">
                   {friend.confidenceReasons.join(" · ")}
                 </p>
-              ) : null}
-            </div>
-            <a
-              className="inline-flex items-center gap-1 text-xs text-anya-accent hover:underline"
-              href={`https://www.instagram.com/${friend.username}/`}
-              rel="noreferrer"
-              target="_blank"
-            >
-              Open <ExternalLink className="size-3" />
-            </a>
-          </div>
-        ))}
-      </div>
+              </div>
+            ))}
+        </div>
+      ) : null}
       {hidden > 0 ? (
         <button
-          className="text-sm text-anya-accent hover:underline"
+          className="anya-result-load-more"
           onClick={() => setVisibleCount((count) => count + LIST_PAGE_SIZE)}
           type="button"
         >
@@ -283,9 +296,7 @@ export function InstagramSearchResults({
 
   const tabs: Array<{ id: InstagramTab; label: string; count?: number }> = [
     { id: "profile", label: "Profile" },
-    ...(result.persona
-      ? [{ id: "persona" as const, label: "Persona" }]
-      : []),
+    ...(result.persona ? [{ id: "persona" as const, label: "Persona" }] : []),
     {
       id: "bubble",
       label: "Bubble map",
@@ -321,132 +332,213 @@ export function InstagramSearchResults({
   ];
 
   const profile = result.profile;
+  const closeFriendCount =
+    result.bubbleMap?.rankedCloseFriends?.length ??
+    result.bubbleMap?.stats.closeFriendCount ??
+    0;
 
   return (
-    <div className="space-y-4">
+    <div className="anya-ig-results space-y-4">
       {loadingMore ? (
         <IntelSignalLoader
           active
-          stage={
-            progressLabel || "Assembling live graph"
-          }
+          stage={progressLabel || "Assembling live graph"}
           title="Instagram"
           variant="compact"
         />
       ) : null}
 
       {result.warnings.length > 0 ? (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        <div className="anya-ai-signal anya-ai-signal--warn space-y-1">
           {result.warnings.map((warning) => (
             <p key={warning}>{warning}</p>
           ))}
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="anya-ai-brief">
+        <div className="anya-ai-brief-header">
+          <span className="anya-ai-mode-tag inline-flex items-center gap-1.5">
+            <InstagramBrand className="size-3.5" />
+            Instagram
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="anya-ai-confidence">
+              {(profile?.followersCount ?? result.totals.followers).toLocaleString()}{" "}
+              followers
+            </span>
+            <span className="anya-result-badge">
+              {(result.mutuals?.length ?? 0).toLocaleString()} mutuals
+            </span>
+            {closeFriendCount > 0 ? (
+              <span className="anya-ai-risk-pill border-amber-400/40 text-amber-200">
+                {closeFriendCount} close-friend signals
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <p className="anya-ai-brief-text">
+          Profile intel for{" "}
+          <span className="text-zinc-100">
+            <BlurredValue
+              forceBlur={blurResults}
+              text={`@${result.query || profile?.username || "target"}`}
+            />
+          </span>
+          {profile?.fullName ? (
+            <>
+              {" "}
+              ·{" "}
+              <BlurredValue forceBlur={blurResults} text={profile.fullName} />
+            </>
+          ) : null}
+          . Lists sorted for large scans; close friends stay confidence-ranked.
+        </p>
+        <div className="anya-ai-meter">
+          <div
+            className="anya-ai-meter-fill"
+            style={{
+              width: `${Math.min(
+                100,
+                Math.round(
+                  ((result.followers.length + result.following.length) /
+                    Math.max(
+                      1,
+                      (profile?.followersCount ?? 0) +
+                        (profile?.followingCount ?? 0),
+                      result.followers.length + result.following.length,
+                    )) *
+                    100,
+                ),
+              )}%`,
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="anya-ig-tabs" role="tablist">
         {tabs.map((entry) => (
           <button
             key={entry.id}
-            className={clsx(
-              "rounded-full border px-3 py-1.5 text-sm transition",
-              tab === entry.id
-                ? "border-anya-accent/50 bg-anya-accent/15 text-zinc-100"
-                : "border-white/10 bg-white/5 text-zinc-400 hover:text-zinc-200",
-            )}
+            className={clsx("ui-tab", tab === entry.id && "ui-tab--active")}
             onClick={() => setTab(entry.id)}
+            role="tab"
             type="button"
           >
             {entry.label}
             {typeof entry.count === "number" && entry.count > 0
-              ? ` (${entry.count.toLocaleString()})`
+              ? ` · ${entry.count.toLocaleString()}`
               : ""}
           </button>
         ))}
       </div>
 
       {tab === "profile" && profile ? (
-        <div className="anya-result-strip space-y-4">
-          <div className="flex flex-wrap items-start gap-4">
-            {profile.profilePicUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt=""
-                className="size-20 rounded-full border border-white/10 object-cover"
-                src={profile.profilePicUrl}
-              />
-            ) : (
-              <div className="flex size-20 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                <Users className="size-8 text-zinc-500" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-lg font-medium text-zinc-100">
-                  <BlurredValue forceBlur={blurResults} text={`@${profile.username}`} />
+        <article className="anya-result-card anya-result-card--expanded">
+          <header className="anya-result-card-header">
+            <div className="flex min-w-0 items-center gap-3">
+              {profile.profilePicUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  alt=""
+                  className="size-10 rounded-full border border-white/10 object-cover"
+                  src={profile.profilePicUrl}
+                />
+              ) : (
+                <div className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                  <InstagramBrand className="size-4 text-zinc-400" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="anya-result-card-title">
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={`@${profile.username}`}
+                  />
                 </p>
-                {profile.isVerified ? (
-                  <ShieldCheck className="size-4 text-sky-400" />
-                ) : null}
-                {profile.isPrivate ? (
-                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
-                    Private
-                  </span>
-                ) : null}
-              </div>
-              {profile.fullName ? (
-                <p className="text-sm text-zinc-300">
-                  <BlurredValue forceBlur={blurResults} text={profile.fullName} />
-                </p>
-              ) : null}
-              <div className="flex flex-wrap gap-2">
-                <StatPill
-                  label="Followers"
-                  value={profile.followersCount.toLocaleString()}
-                />
-                <StatPill
-                  label="Following"
-                  value={profile.followingCount.toLocaleString()}
-                />
-                <StatPill
-                  label="Mutuals"
-                  value={String(result.mutuals?.length ?? 0)}
-                />
-                <StatPill label="Auth mode" value={result.authMode} />
-                <StatPill
-                  label="Mutual scan"
-                  value={`${result.discovery?.followersPagesScanned ?? 0}/${result.discovery?.followingPagesScanned ?? 0} pages`}
-                />
-                {result.activity ? (
-                  <>
-                    <StatPill
-                      label="Posts scanned"
-                      value={String(result.activity.postsAnalyzed)}
-                    />
-                    <StatPill
-                      label="Locations"
-                      value={String(result.activity.locations.length)}
-                    />
-                  </>
-                ) : null}
+                <p className="anya-result-card-subtitle">instagram.com</p>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              {profile.isVerified ? (
+                <span className="anya-result-badge">Verified</span>
+              ) : null}
+              {profile.isPrivate ? (
+                <span className="anya-result-badge">Private</span>
+              ) : null}
+              <span className="anya-result-index">profile</span>
+            </div>
+          </header>
+          <div className="anya-result-card-body">
+            {profile.fullName ? (
+              <Field
+                blurResults={blurResults}
+                label="Full name"
+                value={profile.fullName}
+              />
+            ) : null}
+            <Field
+              blurResults={blurResults}
+              label="Followers"
+              value={profile.followersCount.toLocaleString()}
+            />
+            <Field
+              blurResults={blurResults}
+              label="Following"
+              value={profile.followingCount.toLocaleString()}
+            />
+            <Field
+              blurResults={blurResults}
+              label="Mutuals fetched"
+              value={String(result.mutuals?.length ?? 0)}
+            />
+            <Field
+              blurResults={blurResults}
+              label="Auth mode"
+              value={result.authMode}
+            />
+            <Field
+              blurResults={blurResults}
+              label="Pages scanned"
+              value={`${result.discovery?.followersPagesScanned ?? 0} / ${result.discovery?.followingPagesScanned ?? 0}`}
+            />
+            {result.activity ? (
+              <>
+                <Field
+                  blurResults={blurResults}
+                  label="Posts scanned"
+                  value={String(result.activity.postsAnalyzed)}
+                />
+                <Field
+                  blurResults={blurResults}
+                  label="Locations"
+                  value={String(result.activity.locations.length)}
+                />
+              </>
+            ) : null}
+            {profile.biography ? (
+              <div className="anya-result-field anya-result-field--block sm:col-span-2 lg:col-span-3">
+                <p className="anya-result-label">Biography</p>
+                <p className="anya-result-value anya-result-value--block">
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={profile.biography}
+                  />
+                </p>
+              </div>
+            ) : null}
           </div>
-
-          {profile.biography ? (
-            <p className="whitespace-pre-wrap text-sm text-zinc-300">
-              <BlurredValue forceBlur={blurResults} text={profile.biography} />
-            </p>
-          ) : null}
-
-          <a
-            className="inline-flex items-center gap-1 text-sm text-anya-accent hover:underline"
-            href={`https://www.instagram.com/${profile.username}/`}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Open profile <ExternalLink className="size-3.5" />
-          </a>
-        </div>
+          <div className="border-t border-white/6 px-3 py-2">
+            <a
+              className="inline-flex items-center gap-1 text-xs text-[var(--anya-blush)] hover:underline"
+              href={`https://www.instagram.com/${profile.username}/`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Open profile <ExternalLink className="size-3" />
+            </a>
+          </div>
+        </article>
       ) : null}
 
       {tab === "persona" && result.persona ? (
@@ -461,7 +553,7 @@ export function InstagramSearchResults({
           {onEnrichBios ? (
             <div className="flex flex-wrap items-center gap-3">
               <button
-                className="rounded-full border border-anya-accent/40 bg-anya-accent/10 px-4 py-1.5 text-sm text-zinc-100 disabled:opacity-50"
+                className="ui-btn ui-btn-ghost"
                 disabled={enriching}
                 onClick={onEnrichBios}
                 type="button"
@@ -469,7 +561,8 @@ export function InstagramSearchResults({
                 {enriching ? "Loading bios…" : "Load bios & rebuild map"}
               </button>
               <p className="text-xs text-zinc-500">
-                Pulls bios for mutuals/following to detect schools, orgs, and places.
+                Pulls bios for mutuals/following to detect schools, orgs, and
+                places.
               </p>
             </div>
           ) : null}

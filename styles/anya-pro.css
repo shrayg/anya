@@ -452,15 +452,137 @@ pre,
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .intel-signal-loader {
-    animation: none;
-  }
-
-  .intel-signal-loader__fill {
-    transition: none;
-  }
+/* —— Instagram results (compact, theme-aligned) —— */
+.anya-ig-results {
+  min-width: 0;
 }
+
+.anya-ig-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.anya-ig-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.anya-ig-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.anya-ig-row-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.anya-ig-row-avatar--empty {
+  display: grid;
+  place-items: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #71717a;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.anya-ig-row-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.anya-ig-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.anya-ig-row-user {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #f4f4f5;
+  letter-spacing: -0.015em;
+}
+
+.anya-ig-row-meta {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--anya-blush) 75%, white);
+}
+
+.anya-ig-row-name {
+  margin: 0.1rem 0 0;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+}
+
+.anya-ig-row-bio {
+  margin: 0.15rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: #71717a;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+
+.anya-ig-row-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--anya-blush);
+  text-decoration: none;
+}
+
+.anya-ig-row-open:hover {
+  text-decoration: underline;
+}
+
+/* Align field labels with the blush theme used elsewhere in results */
+.anya-result-label {
+  color: color-mix(in srgb, var(--anya-blush) 72%, #a1a1aa);
+}
+
+.anya-result-card {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.anya-result-card-body {
+  gap: 0.55rem;
+  padding: 0.7rem 0.85rem 0.85rem;
+}
+
+.anya-result-field {
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+
 
 /* —— Selection / focus polish —— */
 ::selection {

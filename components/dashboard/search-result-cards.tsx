@@ -76,7 +76,7 @@ export function SearchResultCards({
   onSelectExportIndex?: (index: number) => void;
   initialVisible?: number;
 }) {
-  const [expanded, setExpanded] = useState<Set<number>>(() => indexesOf(records));
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
   const resultsKey = useMemo(
@@ -84,19 +84,29 @@ export function SearchResultCards({
     [records],
   );
 
+  const sortedRecords = useMemo(() => {
+    return [...records].sort((a, b) => {
+      const titleCmp = a.title.localeCompare(b.title, undefined, {
+        sensitivity: "base",
+      });
+      if (titleCmp !== 0) return titleCmp;
+      return a.index - b.index;
+    });
+  }, [records]);
+
   useEffect(() => {
-    setExpanded(indexesOf(records));
+    setExpanded(new Set());
     setVisibleCount(initialVisible);
-  }, [resultsKey, initialVisible, records]);
+  }, [resultsKey, initialVisible]);
 
   const selectable = Boolean(onSelectExportIndex);
-  const shown = records.length;
+  const shown = sortedRecords.length;
   const total = totalCount ?? shown;
   const visibleRecords = useMemo(
-    () => records.slice(0, visibleCount),
-    [records, visibleCount],
+    () => sortedRecords.slice(0, visibleCount),
+    [sortedRecords, visibleCount],
   );
-  const hiddenCount = Math.max(0, records.length - visibleCount);
+  const hiddenCount = Math.max(0, sortedRecords.length - visibleCount);
   const expandedVisible = visibleRecords.filter((record) =>
     expanded.has(record.index),
   ).length;
@@ -131,6 +141,7 @@ export function SearchResultCards({
         <p className="text-xs text-zinc-500">
           {shown.toLocaleString()} record{shown === 1 ? "" : "s"}
           {total > shown ? ` · ${total.toLocaleString()} total` : ""}
+          {" · Sorted A–Z"}
           {expandedVisible > 0
             ? ` · ${expandedVisible} expanded`
             : " · collapsed"}
@@ -236,19 +247,11 @@ export function SearchResultCards({
       {hiddenCount > 0 ? (
         <button
           className="anya-result-load-more"
-          onClick={() => {
-            setVisibleCount((count) => {
-              const next = Math.min(records.length, count + PAGE_SIZE);
-              setExpanded((current) => {
-                const merged = new Set(current);
-                for (const record of records.slice(0, next)) {
-                  merged.add(record.index);
-                }
-                return merged;
-              });
-              return next;
-            });
-          }}
+          onClick={() =>
+            setVisibleCount((count) =>
+              Math.min(sortedRecords.length, count + PAGE_SIZE),
+            )
+          }
           type="button"
         >
           Show {Math.min(PAGE_SIZE, hiddenCount)} more record
