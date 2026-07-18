@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Shield, UserRound } from "lucide-react";
 
+import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import { themeAccent } from "@/config/branding";
 import {
@@ -49,10 +50,14 @@ function SectionPanel({
       ) : null}
 
       {formatted.length === 0 ? (
-        <p className="discord-profile-empty">{emptyMessage}</p>
+        <SearchEmptyState
+          className="anya-search-empty--inset"
+          detail={emptyMessage}
+        />
       ) : (
         <SearchResultCards
           blurResults={blurResults}
+          emptyDetail={emptyMessage}
           onSelectExportIndex={onSelectExportIndex}
           records={formatted}
           selectedExportIndex={selectedExportIndex}

@@ -1093,15 +1093,15 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-result-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 0.6rem;
   overflow: hidden;
 }
 
 .anya-result-stack {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.75rem;
 }
 
 .anya-result-stack-toolbar {
@@ -1109,6 +1109,20 @@ html[data-splash="active"] [data-splash-target] {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.anya-result-stack-meta {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #71717a;
+}
+
+.anya-result-stack-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .anya-result-stack-action,
@@ -1137,7 +1151,89 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-result-list {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.55rem;
+}
+
+.anya-result-list--grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .anya-result-list--grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.anya-result-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #d4d4d8;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.anya-result-copy:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.anya-result-copy--compact {
+  border-radius: 0.4rem;
+  padding: 0.2rem;
+  gap: 0;
+}
+
+.anya-result-copy--done {
+  border-color: color-mix(in srgb, var(--anya-blush) 40%, transparent);
+  color: color-mix(in srgb, var(--anya-blush) 85%, #fff);
+}
+
+.anya-result-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-height: 1.1rem;
+}
+
+.anya-search-empty {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 0.65rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+    rgba(0, 0, 0, 0.18);
+  padding: 1.5rem 1.25rem;
+}
+
+.anya-search-empty--inset {
+  padding: 1rem 0.9rem;
+}
+
+.anya-search-empty-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #f4f4f5;
+}
+
+.anya-search-empty-detail {
+  max-width: 28rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #a1a1aa;
 }
 
 .anya-result-card--selectable {
@@ -1195,20 +1291,21 @@ html[data-splash="active"] [data-splash-target] {
   justify-content: space-between;
   gap: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0.65rem 0.85rem;
 }
 
 .anya-result-card-title {
-  font-size: 0.875rem;
+  font-size: 0.88rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
   color: #fff;
 }
 
 .anya-result-card-subtitle {
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: rgba(161, 161, 170, 1);
 }
 
@@ -1234,8 +1331,8 @@ html[data-splash="active"] [data-splash-target] {
 .anya-result-card-body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem 0.65rem;
-  padding: 0.55rem 0.75rem 0.65rem;
+  gap: 0.55rem 0.7rem;
+  padding: 0.7rem 0.85rem 0.85rem;
 }
 
 .anya-result-card--expanded .anya-result-card-body {
@@ -1244,7 +1341,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-result-field {
   border-left: 2px solid rgba(255, 255, 255, 0.08);
-  padding-left: 0.55rem;
+  padding: 0.15rem 0 0.15rem 0.55rem;
   min-width: 0;
 }
 

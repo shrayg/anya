@@ -3,6 +3,8 @@
 import clsx from "clsx";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
+import { formatBreachCredentialAsText } from "@/lib/export-intel";
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 
 export function BreachesSearchResults({
@@ -19,7 +21,7 @@ export function BreachesSearchResults({
   const selectable = Boolean(onSelectExportIndex);
 
   return (
-    <div className="space-y-4">
+    <div className="anya-result-stack">
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="anya-result-strip">
           <p className="anya-result-label">Total matches</p>
@@ -34,8 +36,7 @@ export function BreachesSearchResults({
         </div>
       </div>
 
-
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="anya-result-list anya-result-list--grid">
         {result.credentials.map((row, index) => {
           const cardIndex = index + 1;
           const selected = selectedExportIndex === cardIndex;
@@ -44,9 +45,9 @@ export function BreachesSearchResults({
             <article
               key={`${row.raw}-${index}`}
               className={clsx(
-                "anya-result-card overflow-hidden transition",
-                selectable && "cursor-pointer hover:border-white/15",
-                selected && "border-anya-accent-soft",
+                "anya-result-card",
+                selectable && "anya-result-card--selectable",
+                selected && "anya-result-card--selected",
               )}
               onClick={
                 selectable
@@ -67,47 +68,57 @@ export function BreachesSearchResults({
               tabIndex={selectable ? 0 : undefined}
             >
               <header className="anya-result-card-header">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="anya-result-card-title">
                     {row.secret ? "Leaked credential" : "Match"}
                   </p>
                   <p className="anya-result-card-subtitle truncate">{row.identifier}</p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1.5">
                   <span className="anya-result-index">#{cardIndex}</span>
+                  <ResultCopyButton
+                    compact
+                    text={formatBreachCredentialAsText(row, cardIndex)}
+                  />
                 </div>
               </header>
               <div className="anya-result-card-body">
                 <div className="anya-result-field">
-                  <p className="anya-result-label">Email / login</p>
+                  <div className="anya-result-field-head">
+                    <p className="anya-result-label">Email / login</p>
+                    <ResultCopyButton compact text={row.identifier} />
+                  </div>
                   <p className="anya-result-value text-anya-accent">
                     <BlurredValue forceBlur={blurResults} text={row.identifier} />
                   </p>
                 </div>
-                {row.secret && (
+                {row.secret ? (
                   <div className="anya-result-field anya-result-field--sensitive">
-                    <p className="anya-result-label">Password</p>
+                    <div className="anya-result-field-head">
+                      <p className="anya-result-label">Password</p>
+                      <ResultCopyButton compact text={row.secret} />
+                    </div>
                     <p className="anya-result-value">
                       <BlurredValue forceBlur={blurResults} text={row.secret} />
                     </p>
                   </div>
-                )}
+                ) : null}
               </div>
             </article>
           );
         })}
       </div>
 
-      {blurResults && (
+      {blurResults ? (
         <p className="text-xs text-zinc-500">
           Free plan results are partially blurred. Upgrade to see full credentials.
         </p>
-      )}
-      {result.totalMatches > result.returned && (
+      ) : null}
+      {result.totalMatches > result.returned ? (
         <p className="text-xs text-zinc-500">
           Up to 100 rows returned per request. Narrow the query for more precise hits.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

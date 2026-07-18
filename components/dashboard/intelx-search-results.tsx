@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy } from "lucide-react";
-
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import {
   INTELX_BUCKET_LABELS,
@@ -24,20 +22,9 @@ export function IntelxSearchResults({
   result: IntelxSearchPayload;
   blurResults?: boolean;
 }) {
-  const [copied, setCopied] = useState(false);
   const bucketLabel = isIntelxBucket(result.bucket)
     ? INTELX_BUCKET_LABELS[result.bucket]
     : result.bucket;
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(result.content);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  };
 
   return (
     <div className="intelx-result space-y-4">
@@ -61,23 +48,7 @@ export function IntelxSearchResults({
           <p className="text-xs text-zinc-500">
             Export · powered by {siteConfig.name}
           </p>
-          <button
-            className="anya-result-stack-action inline-flex items-center gap-1.5"
-            onClick={handleCopy}
-            type="button"
-          >
-            {copied ? (
-              <>
-                <Check className="size-3.5" />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy className="size-3.5" />
-                Copy
-              </>
-            )}
-          </button>
+          <ResultCopyButton text={result.content} />
         </div>
         <pre className="intelx-export-body">
           <BlurredValue forceBlur={blurResults} text={result.content} />

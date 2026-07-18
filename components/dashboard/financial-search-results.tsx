@@ -1,4 +1,5 @@
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import type { BankSearchResult } from "@/lib/bank-search";
 import type { BinLookupResult } from "@/lib/bin-lookup";
 import type { IbanLookupResult } from "@/lib/iban-lookup";
@@ -204,16 +205,29 @@ function ResultGrid({
   rows: { label: string; value: string }[];
   blurResults?: boolean;
 }) {
+  const copyText = rows.map((row) => `${row.label}: ${row.value}`).join("\n");
+
   return (
-    <div className="grid gap-2 md:grid-cols-2">
-      {rows.map((row) => (
-        <div key={row.label} className="anya-result-strip">
-          <p className="anya-result-label">{row.label}</p>
-          <p className="anya-result-value">
-            <BlurredValue forceBlur={blurResults} text={row.value} />
-          </p>
-        </div>
-      ))}
+    <div className="anya-result-stack">
+      <div className="anya-result-stack-toolbar">
+        <p className="anya-result-stack-meta">
+          {rows.length} field{rows.length === 1 ? "" : "s"}
+        </p>
+        <ResultCopyButton label="Copy all" text={copyText} />
+      </div>
+      <div className="grid gap-2 md:grid-cols-2">
+        {rows.map((row) => (
+          <div key={row.label} className="anya-result-strip">
+            <div className="anya-result-field-head">
+              <p className="anya-result-label">{row.label}</p>
+              <ResultCopyButton compact text={row.value} />
+            </div>
+            <p className="anya-result-value">
+              <BlurredValue forceBlur={blurResults} text={row.value} />
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

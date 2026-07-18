@@ -84,6 +84,7 @@ import {
   WORKSPACE_SEARCH_TOUR_STEPS,
   WORKSPACE_SEARCH_TOUR_STORAGE_KEY,
 } from "@/lib/search-tour";
+import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import type { FormattedRecord } from "@/lib/search-utils";
 import { formatSearchRecords, formatStructuredSearchData } from "@/lib/search-utils";
@@ -179,6 +180,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
+  const [emptyResult, setEmptyResult] = useState("");
   const [records, setRecords] = useState<FormattedRecord[]>([]);
   const [resultCount, setResultCount] = useState<number | undefined>(undefined);
   const [aiResult, setAiResult] = useState<AiIntelResult | null>(null);
@@ -487,6 +489,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
     setIsSearching(true);
     setError("");
+    setEmptyResult("");
     setRecords([]);
     setResultCount(undefined);
     setAiResult(null);
@@ -507,6 +510,14 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     setCasesLoaded(false);
     setBlurResults(shouldBlurResults(plan));
     setSelectedExportIndex(null);
+
+    const markNoResults = (message?: string | null) => {
+      setEmptyResult(
+        (typeof message === "string" && message.trim()) ||
+          "No results were found.",
+      );
+      setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+    };
 
     if (moduleLocked) {
       setError(moduleLocked);
@@ -725,7 +736,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           !breachData.hasGodsEyeReport &&
           !breachData.hasBreachVipResults
         ) {
-          setError(breachData.message || "No results were found.");
+          markNoResults(breachData.message);
           return;
         }
 
@@ -743,7 +754,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         };
 
         if (!domainData.hasResults) {
-          setError(
+          markNoResults(
             domainData.message ||
               "No stealer logs or breached data found for this domain.",
           );
@@ -764,7 +775,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         };
 
         if (!fivemData.hasResults && !fivemData.profile) {
-          setError(
+          markNoResults(
             sanitizePublicText(
               fivemData.error ||
                 fivemData.message ||
@@ -809,7 +820,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         }
 
         if (!hasResults && !hasLinked && !hasDiscordToRoblox) {
-          setError(robloxData.message || "No results were found.");
+          markNoResults(robloxData.message);
           return;
         }
 
@@ -830,7 +841,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const results = Array.isArray(linkData.results) ? linkData.results : [];
 
         if (results.length === 0) {
-          setError(linkData.message || linkData.error || "No results were found.");
+          markNoResults(linkData.message || linkData.error);
           return;
         }
 
@@ -865,7 +876,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const hasLeaks = (instagramData.leaks?.count ?? 0) > 0;
 
         if (!hasGraph && !hasLeaks) {
-          setError(
+          markNoResults(
             instagramData.message ||
               "No Instagram graph or breach data was returned.",
           );
@@ -944,7 +955,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const discordData = data as DiscordSearchResult & { error?: string };
 
         if (!discordData.profile) {
-          setError(discordData.error || "Could not load Discord profile.");
+          markNoResults(
+            discordData.error || "No results were found.",
+          );
           return;
         }
 
@@ -966,7 +979,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         };
 
         if (!intelxData.hasContent) {
-          setError(
+          markNoResults(
             sanitizePublicText(
               intelxData.error || "No IntelX export content returned.",
             ),
@@ -1000,11 +1013,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const results = Array.isArray(breachData.results) ? breachData.results : [];
 
         if (results.length === 0) {
-          setError(
-            breachData.message ||
-              breachData.error ||
-              "No results were found.",
-          );
+          markNoResults(breachData.message || breachData.error);
           return;
         }
 
@@ -1025,7 +1034,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         if (formatted.length === 0) {
           const ipData = data as { error?: string; osintcatError?: string; godseyeError?: string };
-          setError(
+          markNoResults(
             sanitizePublicText(
               ipData.error ||
                 ipData.osintcatError ||
@@ -1053,10 +1062,18 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           return;
         }
 
+        const findingCount =
+          pentest.summary?.findingCount ??
+          pentest.count ??
+          (Array.isArray(pentest.findings) ? pentest.findings.length : 0);
+
         setStructuredResult({ kind: "site-pentest", data: pentest });
-        setResultCount(pentest.summary?.findingCount ?? pentest.count ?? 0);
+        setResultCount(findingCount);
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        if (findingCount === 0) {
+          setEmptyResult("No results were found.");
+        }
         persistSearch(trimmed, moduleDef.slug, serialized);
         return;
       }
@@ -1065,9 +1082,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const results = data.results as unknown[];
 
         if (results.length === 0) {
-          setError(
-            (typeof data.message === "string" && data.message) ||
-              "No results were found.",
+          markNoResults(
+            typeof data.message === "string" ? data.message : null,
           );
           return;
         }
@@ -1111,7 +1127,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const bankData = data as BankSearchResult & { message?: string };
 
         if (!bankData.banks?.length) {
-          setError(bankData.message || "No bank institutions matched that search.");
+          markNoResults(
+            bankData.message || "No bank institutions matched that search.",
+          );
           return;
         }
 
@@ -1134,7 +1152,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const providerData = data as UsProviderSearchResult & { message?: string };
 
         if (!providerData.providers?.length) {
-          setError(
+          markNoResults(
             providerData.message ||
               (activeType === "car-insurance"
                 ? "No US car insurers matched that search."
@@ -1159,10 +1177,16 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const hitCount = (courtData.cases?.length ?? 0) + portalCount;
 
         if (!hitCount) {
-          setError(courtData.message || courtData.error || "No court matters matched that search.");
           if (courtData.errors?.length) {
             setStructuredResult({ kind: "us-court", data: courtData });
             setRawResult(JSON.stringify(data, null, 2));
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+          } else {
+            markNoResults(
+              courtData.message ||
+                courtData.error ||
+                "No court matters matched that search.",
+            );
           }
           return;
         }
@@ -1187,12 +1211,16 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           | "us-intl-directory";
 
         if (!identityData.count) {
-          setError(
-            identityData.message || identityData.error || "No public registry matches found.",
-          );
           if (identityData.errors?.length || identityData.portals?.length) {
             setStructuredResult({ kind, data: identityData });
             setRawResult(JSON.stringify(data, null, 2));
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+          } else {
+            markNoResults(
+              identityData.message ||
+                identityData.error ||
+                "No public registry matches found.",
+            );
           }
           return;
         }
@@ -1208,17 +1236,19 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const sorData = data as UsVaSorSearchResult & { error?: string };
 
         if (!sorData.count) {
-          setError(
-            sorData.message ||
-              sorData.error ||
-              "No sex offender registry matches found.",
-          );
           if (sorData.errors?.length) {
             setStructuredResult({
               kind: activeType === "us-sor-national" ? "us-sor-national" : "us-va-sor",
               data: sorData,
             });
             setRawResult(JSON.stringify(data, null, 2));
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+          } else {
+            markNoResults(
+              sorData.message ||
+                sorData.error ||
+                "No sex offender registry matches found.",
+            );
           }
           return;
         }
@@ -1236,7 +1266,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       const formatted = formatStructuredSearchData(data);
 
       if (formatted.length === 0) {
-        setError("No results were found.");
+        markNoResults();
         return;
       }
 
@@ -1421,6 +1451,15 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         </div>
       </section>
 
+          {!isSearching && emptyResult && moduleDef.slug !== "site-pentest" ? (
+            <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
+              {lastSearchLabel ? (
+                <p className="mb-4 text-sm text-zinc-400">{lastSearchLabel}</p>
+              ) : null}
+              <SearchEmptyState detail={emptyResult} />
+            </div>
+          ) : null}
+
           {moduleDef.slug === "site-pentest" ? (
             <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
               {(structuredResult?.kind === "site-pentest" || lastSearchLabel) && (
@@ -1469,6 +1508,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 scanning={isSearching}
                 selectedModules={pentestModules}
               />
+              {!isSearching && emptyResult ? (
+                <div className="mt-4">
+                  <SearchEmptyState detail={emptyResult} />
+                </div>
+              ) : null}
             </div>
           ) : null}
 

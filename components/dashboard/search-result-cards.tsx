@@ -5,7 +5,10 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
+import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
+import { formatRecordAsText, formatRecordsAsText } from "@/lib/export-intel";
 import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
 
 const PAGE_SIZE = 8;
@@ -46,7 +49,12 @@ function ResultField({
           : undefined
       }
     >
-      <p className="anya-result-label">{field.label}</p>
+      <div className="anya-result-field-head">
+        <p className="anya-result-label">{field.label}</p>
+        {expanded && field.value.trim() ? (
+          <ResultCopyButton compact text={field.value} />
+        ) : null}
+      </div>
       <p
         className={clsx(
           "anya-result-value",
@@ -68,6 +76,7 @@ export function SearchResultCards({
   selectedExportIndex = null,
   onSelectExportIndex,
   initialVisible = PAGE_SIZE,
+  emptyDetail = "No results were found.",
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
@@ -75,8 +84,11 @@ export function SearchResultCards({
   selectedExportIndex?: number | null;
   onSelectExportIndex?: (index: number) => void;
   initialVisible?: number;
+  emptyDetail?: string;
 }) {
-  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+  const [expanded, setExpanded] = useState<Set<number>>(() =>
+    indexesOf(records),
+  );
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
   const resultsKey = useMemo(
@@ -95,8 +107,10 @@ export function SearchResultCards({
   }, [records]);
 
   useEffect(() => {
-    setExpanded(new Set());
+    setExpanded(indexesOf(records));
     setVisibleCount(initialVisible);
+    // resultsKey captures record identity; avoid re-expanding on referential churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- records mirrored by resultsKey
   }, [resultsKey, initialVisible]);
 
   const selectable = Boolean(onSelectExportIndex);
@@ -128,17 +142,13 @@ export function SearchResultCards({
   };
 
   if (records.length === 0) {
-    return (
-      <p className="border-l-2 border-zinc-500/40 bg-white/4 px-4 py-3 text-sm text-zinc-400">
-        No readable fields returned for this query.
-      </p>
-    );
+    return <SearchEmptyState detail={emptyDetail} />;
   }
 
   return (
     <div className="anya-result-stack">
       <div className="anya-result-stack-toolbar">
-        <p className="text-xs text-zinc-500">
+        <p className="anya-result-stack-meta">
           {shown.toLocaleString()} record{shown === 1 ? "" : "s"}
           {total > shown ? ` · ${total.toLocaleString()} total` : ""}
           {" · Sorted A–Z"}
@@ -146,23 +156,29 @@ export function SearchResultCards({
             ? ` · ${expandedVisible} expanded`
             : " · collapsed"}
         </p>
-        {allVisibleExpanded ? (
-          <button
-            className="anya-result-stack-action"
-            onClick={() => setExpanded(new Set())}
-            type="button"
-          >
-            Collapse all
-          </button>
-        ) : (
-          <button
-            className="anya-result-stack-action"
-            onClick={() => setExpanded(indexesOf(visibleRecords))}
-            type="button"
-          >
-            Expand all
-          </button>
-        )}
+        <div className="anya-result-stack-actions">
+          <ResultCopyButton
+            label="Copy all"
+            text={formatRecordsAsText(visibleRecords)}
+          />
+          {allVisibleExpanded ? (
+            <button
+              className="anya-result-stack-action"
+              onClick={() => setExpanded(new Set())}
+              type="button"
+            >
+              Collapse all
+            </button>
+          ) : (
+            <button
+              className="anya-result-stack-action"
+              onClick={() => setExpanded(indexesOf(visibleRecords))}
+              type="button"
+            >
+              Expand all
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="anya-result-list">
@@ -201,17 +217,22 @@ export function SearchResultCards({
                 <div className="min-w-0 flex-1">
                   <p className="anya-result-card-title">{record.title}</p>
                   {record.subtitle ? (
-                    <p className="anya-result-card-subtitle truncate">{record.subtitle}</p>
+                    <p className="anya-result-card-subtitle truncate">
+                      {record.subtitle}
+                    </p>
                   ) : null}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1.5">
                   {record.badge && record.badge !== record.title ? (
                     <span className="anya-result-badge">{record.badge}</span>
                   ) : null}
                   <span className="anya-result-index">#{record.index}</span>
+                  <ResultCopyButton compact text={formatRecordAsText(record)} />
                   <button
                     aria-expanded={isExpanded}
-                    aria-label={isExpanded ? "Collapse record" : "Expand record"}
+                    aria-label={
+                      isExpanded ? "Collapse record" : "Expand record"
+                    }
                     className={clsx(
                       "anya-result-expand",
                       isExpanded && "anya-result-expand--open",

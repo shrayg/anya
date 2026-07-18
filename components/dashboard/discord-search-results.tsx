@@ -6,6 +6,7 @@ import clsx from "clsx";
 
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { resolveDiscordBadges } from "@/lib/discord-badges";
 import {
   formatDiscordCreatedAtExact,
@@ -34,9 +35,10 @@ function DiscordLeakRecords({
 
   if (records.length === 0) {
     return (
-      <p className="discord-profile-empty">
-        No leak records found for this Discord ID.
-      </p>
+      <SearchEmptyState
+        className="anya-search-empty--inset"
+        detail="No leak records found for this Discord ID."
+      />
     );
   }
 
