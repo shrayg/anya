@@ -191,7 +191,8 @@ html[data-splash="active"] [data-splash-target] {
   padding: 0.55rem;
 }
 
-.dash-sidebar--collapsed .dash-nav-link span {
+/* Hide text/badge labels only — keep icon wrap + status dots visible. */
+.dash-sidebar--collapsed .dash-nav-link span:not(.dash-nav-link-icon-wrap):not(.dash-nav-link-status) {
   display: none;
 }
 

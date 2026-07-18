@@ -179,13 +179,13 @@ function ModuleLink({
       title={title}
     >
       {collapsed ? (
-        <span className="dash-nav-link-icon-wrap">
+        <div className="dash-nav-link-icon-wrap">
           <ModuleIcon name={name} />
           <ModuleStatusDot
             className="dash-nav-link-status size-1.5"
             slug={slug}
           />
-        </span>
+        </div>
       ) : (
         <>
           <div className="flex min-w-0 items-center gap-3">
