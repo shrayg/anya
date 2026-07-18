@@ -52,12 +52,12 @@ export const Footer = () => {
                 Telegram
               </a>
               <span className="mx-2 text-zinc-700">·</span>
-              <a
+              <NextLink
                 className="transition-colors hover:text-zinc-300"
-                href={`mailto:${siteConfig.links.supportEmail}`}
+                href="/support"
               >
                 Support
-              </a>
+              </NextLink>
               <span className="mx-2 text-zinc-700">·</span>
               <NextLink
                 className="transition-colors hover:text-zinc-300"

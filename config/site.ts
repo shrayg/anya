@@ -21,10 +21,12 @@ export const siteConfig = {
   navItems: [
     { label: "Pricing", href: "/pricing" },
     { label: "Status", href: "/status" },
+    { label: "Support", href: "/support" },
   ] as NavItem[],
   navMenuItems: [
     { label: "Pricing", href: "/pricing" },
     { label: "Status", href: "/status" },
+    { label: "Support", href: "/support" },
   ] as NavItem[],
   links: {
     telegram: "https://t.me/anyasearch",

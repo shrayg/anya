@@ -15,6 +15,11 @@ import {
 import NextLink from "next/link";
 
 import {
+  BillingStatusBanner,
+  billingStatusFromQuery,
+  type BillingStatusKind,
+} from "@/components/billing-status-banner";
+import {
   ANNUAL_MONTHS_CHARGED,
   API_PRODUCT,
   CREDIT_PACKS,
@@ -34,33 +39,6 @@ type PricingPageContentProps = {
   authenticated?: boolean;
 };
 
-function billingStatusMessage(status: string | null): {
-  kind: "ok" | "err";
-  text: string;
-} | null {
-  switch (status) {
-    case "success":
-      return {
-        kind: "ok",
-        text: "Payment successful. Your plan or credits are now active.",
-      };
-    case "cancelled":
-      return { kind: "ok", text: "Checkout cancelled. No charge was made." };
-    case "pending":
-      return {
-        kind: "ok",
-        text: "Crypto payment detecting — access unlocks after blockchain confirmation. Refresh in a moment.",
-      };
-    case "error":
-      return {
-        kind: "err",
-        text: "Payment confirmation failed. If you were charged, contact support.",
-      };
-    default:
-      return null;
-  }
-}
-
 type CheckoutProvider = "square" | "oxapay";
 
 type PendingCheckout = {
@@ -79,17 +57,16 @@ export function PricingPageContent({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [billingStatus, setBillingStatus] = useState<BillingStatusKind | null>(
+    null,
+  );
   const [pendingCheckout, setPendingCheckout] = useState<PendingCheckout | null>(
     null,
   );
 
   useEffect(() => {
     const status = new URLSearchParams(window.location.search).get("billing");
-    const note = billingStatusMessage(status);
-    if (note) {
-      if (note.kind === "ok") setMessage(note.text);
-      else setError(note.text);
-    }
+    setBillingStatus(billingStatusFromQuery(status));
   }, []);
 
   const plans = useMemo(() => getPricingPlans(), []);
@@ -102,6 +79,7 @@ export function PricingPageContent({
     setBusyId(id);
     setMessage(null);
     setError(null);
+    setBillingStatus(null);
     setPendingCheckout(null);
 
     try {
@@ -207,16 +185,17 @@ export function PricingPageContent({
         </div>
       )}
 
-      {message && (
+      {billingStatus ? <BillingStatusBanner kind={billingStatus} /> : null}
+      {!billingStatus && message ? (
         <p className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-sm text-emerald-200">
           {message}
         </p>
-      )}
-      {error && (
+      ) : null}
+      {!billingStatus && error ? (
         <p className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-200">
           {error}
         </p>
-      )}
+      ) : null}
 
       {tab === "subscriptions" && (
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -436,7 +415,7 @@ export function PricingPageContent({
       <p className="mt-10 text-center text-xs text-zinc-500">
         Annual plans are billed as {ANNUAL_MONTHS_CHARGED} months upfront (2 months free).
         Pay with card (Square) or crypto (OxaPay). Need help choosing?{" "}
-        <NextLink className="text-indigo-300 hover:underline" href="/dashboard/support">
+        <NextLink className="text-indigo-300 hover:underline" href="/support">
           Contact support
         </NextLink>
         .

@@ -59,17 +59,19 @@ export default function FaqPage() {
 
       <LegalSection title="How do I get help?">
         <p>
-          Telegram{" "}
+          Visit the{" "}
+          <a className="text-zinc-100 underline-offset-4 hover:underline" href="/support">
+            Support
+          </a>{" "}
+          page for email, Telegram, and ticket options. Logged-in users can also
+          open tickets from the dashboard support area (
           <a
             className="text-zinc-100 underline-offset-4 hover:underline"
-            href={siteConfig.links.telegram}
-            rel="noreferrer"
-            target="_blank"
+            href="/dashboard/support"
           >
-            {siteConfig.links.telegram}
-          </a>{" "}
-          or email {siteConfig.links.supportEmail}. Logged-in users can also open
-          tickets from the dashboard support area.
+            /dashboard/support
+          </a>
+          ). Direct email: {siteConfig.links.supportEmail}.
         </p>
       </LegalSection>
     </LegalPage>
