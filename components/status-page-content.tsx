@@ -11,6 +11,11 @@ import type {
 } from "@/lib/public-status";
 import { siteConfig } from "@/config/site";
 
+type StatusHistorySeries = {
+  segments: PublicStatusLevel[];
+  uptimePercent: number;
+};
+
 const STATUS_LABEL: Record<PublicStatusLevel, string> = {
   operational: "Operational",
   degraded: "Degraded",
@@ -35,11 +40,10 @@ function statusTextClass(status: PublicStatusLevel) {
   return "text-rose-300";
 }
 
-function formatLatency(ms: number | null) {
-  if (ms == null) return "—";
-  if (ms < 1) return "<1 ms";
-  if (ms < 1000) return `${Math.round(ms)} ms`;
-  return `${(ms / 1000).toFixed(1)} s`;
+function segmentBarClass(status: PublicStatusLevel) {
+  if (status === "operational") return "bg-emerald-500/90 hover:bg-emerald-400";
+  if (status === "degraded") return "bg-amber-400/90 hover:bg-amber-300";
+  return "bg-rose-500/90 hover:bg-rose-400";
 }
 
 function formatCheckedAt(iso: string | null) {
@@ -52,6 +56,11 @@ function formatCheckedAt(iso: string | null) {
   } catch {
     return iso;
   }
+}
+
+function formatUptime(pct: number) {
+  if (!Number.isFinite(pct)) return "—";
+  return `${pct.toFixed(2)}%`;
 }
 
 function groupServices(services: PublicStatusService[]) {
@@ -71,6 +80,53 @@ function groupServices(services: PublicStatusService[]) {
   });
 
   return groups;
+}
+
+function UptimeTimeline({
+  series,
+  compact = false,
+}: {
+  series: StatusHistorySeries | null | undefined;
+  compact?: boolean;
+}) {
+  if (!series || series.segments.length === 0) return null;
+
+  const days = series.segments.length;
+
+  return (
+    <div className={clsx("w-full", compact ? "mt-3" : "mt-5")}>
+      <div
+        className={clsx(
+          "flex w-full gap-px overflow-hidden rounded-sm",
+          compact ? "h-7" : "h-8",
+        )}
+        role="img"
+        aria-label={`Uptime over the last ${days} days, ${formatUptime(series.uptimePercent)}`}
+      >
+        {series.segments.map((status, index) => (
+          <span
+            key={index}
+            title={`${STATUS_LABEL[status]} · day ${index + 1}/${days}`}
+            className={clsx(
+              "min-w-0 flex-1 transition-colors",
+              segmentBarClass(status),
+            )}
+          />
+        ))}
+      </div>
+      <div
+        className={clsx(
+          "mt-1.5 flex items-center justify-between text-zinc-500",
+          compact ? "text-[0.65rem]" : "text-xs",
+        )}
+      >
+        <span>Last {days}d</span>
+        <span className="tabular-nums text-zinc-400">
+          {formatUptime(series.uptimePercent)} uptime
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export function StatusPageContent() {
@@ -190,6 +246,8 @@ export function StatusPageContent() {
             </span>
           </div>
         ) : null}
+
+        <UptimeTimeline series={data?.history?.overall} />
       </div>
 
       {error && !data ? (
@@ -209,7 +267,7 @@ export function StatusPageContent() {
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
-                      className="h-[4.5rem] animate-pulse rounded-xl border border-white/8 bg-white/[0.03]"
+                      className="h-[5.5rem] animate-pulse rounded-xl border border-white/8 bg-white/[0.03]"
                     />
                   ))}
                 </div>
@@ -250,11 +308,12 @@ export function StatusPageContent() {
                           >
                             {STATUS_LABEL[service.status]}
                           </p>
-                          <p className="mt-1 font-mono text-[0.7rem] text-zinc-600">
-                            Response {formatLatency(service.latencyMs)}
-                          </p>
                         </div>
                       </div>
+                      <UptimeTimeline
+                        compact
+                        series={data?.history?.services?.[service.id]}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -263,8 +322,8 @@ export function StatusPageContent() {
       </div>
 
       <p className="mt-12 text-sm leading-6 text-zinc-500">
-        Green is operational, amber is degraded, red is outage. For incidents,
-        reach us on{" "}
+        Timeline bars show the last 90 days — green operational, amber
+        degraded, red outage. For incidents, reach us on{" "}
         <a
           className="text-zinc-300 underline-offset-4 hover:underline"
           href={siteConfig.links.telegram}

@@ -6,6 +6,14 @@ import {
 import { prisma } from "@/prisma/client";
 import { isSquareConfigured } from "@/lib/square";
 import { AI_SEARCH_MODULES, ALL_SEARCH_MODULES } from "@/lib/search-modules";
+import {
+  readStatusHistory,
+  recordStatusHistorySample,
+  type StatusHistoryPayload,
+} from "@/lib/status-history";
+import "server-only";
+
+export type { StatusHistoryPayload, StatusHistorySeries } from "@/lib/status-history";
 
 export type PublicStatusLevel = "operational" | "degraded" | "outage";
 
@@ -15,7 +23,6 @@ export type PublicStatusService = {
   description: string;
   group: string;
   status: PublicStatusLevel;
-  latencyMs: number | null;
 };
 
 export type PublicStatusPayload = {
@@ -28,20 +35,19 @@ export type PublicStatusPayload = {
     degraded: number;
     outage: number;
   };
+  history: StatusHistoryPayload;
 };
 
 type TimedResult = {
   ok: boolean;
-  latencyMs: number;
 };
 
 async function timed(fn: () => Promise<boolean>): Promise<TimedResult> {
-  const started = Date.now();
   try {
     const ok = await fn();
-    return { ok, latencyMs: Date.now() - started };
+    return { ok };
   } catch {
-    return { ok: false, latencyMs: Date.now() - started };
+    return { ok: false };
   }
 }
 
@@ -93,31 +99,26 @@ function overallFromServices(services: PublicStatusService[]): PublicStatusLevel
 
 /**
  * Build a public-safe platform status snapshot.
- * Never returns provider names, API keys, or internal error details.
+ * Never returns provider names, API keys, latency, or internal error details.
  */
 export async function getPublicStatus(
-  options?: { cached?: boolean },
+  options?: { cached?: boolean; recordHistory?: boolean },
 ): Promise<PublicStatusPayload> {
-  const websiteStarted = Date.now();
-
   const [db, providersTimed] = await Promise.all([
     timed(async () => {
       await prisma.$queryRaw`SELECT 1`;
       return true;
     }),
     (async () => {
-      const started = Date.now();
       try {
         const providers = await probeProviders();
         return {
           providers,
-          latencyMs: Date.now() - started,
           ok: true as const,
         };
       } catch {
         return {
           providers: null,
-          latencyMs: Date.now() - started,
           ok: false as const,
         };
       }
@@ -139,7 +140,6 @@ export async function getPublicStatus(
   const jwtOk = isJwtReady();
   const authOk = db.ok && jwtOk;
   const billingConfigured = isSquareConfigured();
-  const websiteLatency = Math.max(0, Date.now() - websiteStarted);
 
   const services: PublicStatusService[] = [
     {
@@ -148,7 +148,6 @@ export async function getPublicStatus(
       description: "Public site and status endpoints.",
       group: "Platform",
       status: "operational",
-      latencyMs: websiteLatency,
     },
     {
       id: "database",
@@ -156,7 +155,6 @@ export async function getPublicStatus(
       description: "Accounts, billing records, and search history.",
       group: "Platform",
       status: db.ok ? "operational" : "outage",
-      latencyMs: db.latencyMs,
     },
     {
       id: "auth",
@@ -164,7 +162,6 @@ export async function getPublicStatus(
       description: "Login, sessions, and account access.",
       group: "Platform",
       status: authOk ? "operational" : db.ok ? "degraded" : "outage",
-      latencyMs: db.latencyMs,
     },
     {
       id: "api",
@@ -172,7 +169,6 @@ export async function getPublicStatus(
       description: "Workspace routes and search API gateway.",
       group: "Platform",
       status: db.ok ? "operational" : "degraded",
-      latencyMs: websiteLatency,
     },
     {
       id: "search",
@@ -180,7 +176,6 @@ export async function getPublicStatus(
       description: "Identity, network, platform, and exposure lookup modules.",
       group: "Intelligence",
       status: providersTimed.ok ? searchStatus : "outage",
-      latencyMs: providersTimed.latencyMs,
     },
     {
       id: "ai",
@@ -188,7 +183,6 @@ export async function getPublicStatus(
       description: "In-workspace AI synthesis and threat briefs.",
       group: "Intelligence",
       status: providersTimed.ok ? aiStatus : "outage",
-      latencyMs: providersTimed.latencyMs,
     },
     {
       id: "billing",
@@ -196,7 +190,6 @@ export async function getPublicStatus(
       description: "Plan purchases, credits, and fulfillment.",
       group: "Platform",
       status: billingConfigured ? "operational" : "degraded",
-      latencyMs: 0,
     },
   ];
 
@@ -206,11 +199,25 @@ export async function getPublicStatus(
     outage: services.filter((s) => s.status === "outage").length,
   };
 
+  const overall = overallFromServices(services);
+
+  let history: StatusHistoryPayload;
+  if (options?.recordHistory !== false) {
+    try {
+      history = recordStatusHistorySample({ overall, services });
+    } catch {
+      history = readStatusHistory();
+    }
+  } else {
+    history = readStatusHistory();
+  }
+
   return {
-    overall: overallFromServices(services),
+    overall,
     checkedAt: new Date().toISOString(),
     cached: options?.cached ?? false,
     services,
     summary,
+    history,
   };
 }

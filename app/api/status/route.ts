@@ -27,7 +27,11 @@ export async function GET() {
     );
   }
 
-  const payload = await getPublicStatus({ cached: false });
+  // Fresh probe records today's sample into the on-disk history ring.
+  const payload = await getPublicStatus({
+    cached: false,
+    recordHistory: true,
+  });
 
   cache = {
     expiresAt: now + CACHE_TTL_MS,

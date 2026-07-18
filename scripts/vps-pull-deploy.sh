@@ -171,7 +171,7 @@ echo "==> Pull latest ${BRANCH} (app keeps serving old build)"
 git fetch origin "${BRANCH}"
 git reset --hard "origin/${BRANCH}"
 # Keep runtime/secrets artifacts; only clean untracked junk that isn't protected.
-git clean -fd -e .env.local -e .env -e 'prisma/dev.db' -e '.next' -e '.next.prev' -e '.next.new'
+git clean -fd -e .env.local -e .env -e 'prisma/dev.db' -e '.next' -e '.next.prev' -e '.next.new' -e 'data' -e 'data/status-history.json'
 
 if [[ -f .env.local ]]; then
   cp -a .env.local /tmp/anya.env.local.bak
