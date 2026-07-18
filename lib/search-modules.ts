@@ -105,7 +105,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "intelx",
         "breach",
         "Paste IntelX Storage ID or URL",
-        "Open an IntelX item by Storage ID (long hex). Paste a full intelx.io link when it includes storageid — share links with only ?did= are not downloadable.",
+        "Paste a Storage ID (long hex) or an intelx.io link that includes storageid. Share links with only ?did= cannot be opened. Buckets are resolved automatically.",
       ),
       mod(
         "Stealer Intel",

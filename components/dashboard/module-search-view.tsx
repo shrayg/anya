@@ -29,7 +29,6 @@ import { DiscordSearchResults } from "@/components/dashboard/discord-search-resu
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
 import { DomainSearchResults } from "@/components/dashboard/domain-search-results";
-import { IntelxBucketPicker } from "@/components/dashboard/intelx-bucket-picker";
 import {
   IntelxSearchResults,
   type IntelxSearchPayload,
@@ -56,10 +55,6 @@ import type {
   UsIdentitySearchResult,
   UsVaSorSearchResult,
 } from "@/lib/us-records";
-import {
-  DEFAULT_INTELX_BUCKET,
-  type IntelxBucket,
-} from "@/lib/intelx-buckets";
 import type { CombCredential, CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import { sanitizePublicContent, sanitizePublicText } from "@/lib/public-branding";
@@ -177,13 +172,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [selectedToolId, setSelectedToolId] = useState(
     moduleDef.tools?.[0]?.id ?? "",
   );
-  const [intelxBucket, setIntelxBucket] = useState<IntelxBucket>(
-    DEFAULT_INTELX_BUCKET,
-  );
 
   useEffect(() => {
     setSelectedToolId(moduleDef.tools?.[0]?.id ?? "");
-    setIntelxBucket(DEFAULT_INTELX_BUCKET);
   }, [moduleDef.slug, moduleDef.tools]);
 
   const [isSearching, setIsSearching] = useState(false);
@@ -728,10 +719,6 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     try {
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
       const moduleParam = `&moduleSlug=${encodeURIComponent(moduleDef.slug)}`;
-      const bucketParam =
-        activeType === "intelx"
-          ? `&bucket=${encodeURIComponent(intelxBucket)}`
-          : "";
       // Progressive Instagram load: first ~100 for fast map paint, then paced
       // batches up to 500 so we self-rate-limit instead of scraping thousands.
       const instagramParam =
@@ -743,7 +730,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           ? `&modules=${encodeURIComponent(pentestModules.join(","))}`
           : "";
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${bucketParam}${instagramParam}${pentestParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}`,
       );
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
@@ -1039,7 +1026,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         const exportBody = sanitizePublicContent(intelxData.content ?? "");
         const storageId = intelxData.storageId ?? trimmed;
-        const bucketId = intelxData.bucket ?? intelxBucket;
+        const bucketId = intelxData.bucket ?? "leaks.public";
 
         setIntelxResult({
           storageId,
@@ -1436,21 +1423,6 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                   </button>
                 );
               })}
-            </div>
-          ) : null}
-          {moduleDef.slug === "intelx" ? (
-            <div className="mb-4 space-y-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <IntelxBucketPicker
-                  disabled={Boolean(moduleLocked) || isSearching}
-                  onChange={setIntelxBucket}
-                  value={intelxBucket}
-                />
-                <p className="text-xs text-zinc-500 sm:max-w-sm">
-                  Prefer the long Storage ID hex. Share links with only{" "}
-                  <span className="font-mono">?did=</span> cannot be opened.
-                </p>
-              </div>
             </div>
           ) : null}
           <form className="flex flex-col gap-3 sm:flex-row sm:items-start" onSubmit={handleSearch}>

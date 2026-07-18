@@ -1343,11 +1343,15 @@ export async function fetchCsintIntelxWithBuckets(
   preferredBucket?: string | null,
 ): Promise<{ content: string; error?: string; bucket: IntelxBucket }> {
   // Keep fan-out small — IntelX is limited to ~50 requests/day (+ ~3 rps).
+  // No UI bucket picker: try the common docs buckets silently.
   const preferred = preferredBucket?.trim();
   const ordered: IntelxBucket[] = [
     preferred && isIntelxBucket(preferred) ? preferred : null,
     DEFAULT_INTELX_BUCKET,
     "leaks.private",
+    "leaks.logs",
+    "dumpster",
+    "pastes",
   ].filter((b, i, arr): b is IntelxBucket => Boolean(b) && arr.indexOf(b) === i);
 
   let lastError = "No IntelX content returned.";

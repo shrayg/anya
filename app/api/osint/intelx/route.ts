@@ -116,6 +116,7 @@ export async function GET(req: NextRequest) {
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
+  // Bucket is optional — UI no longer exposes a picker; we auto-try common buckets.
   const bucketParam = req.nextUrl.searchParams.get("bucket")?.trim() || "";
   const preferredBucket = isIntelxBucket(bucketParam)
     ? bucketParam
@@ -226,7 +227,7 @@ export async function GET(req: NextRequest) {
       error =
         idKind === "uuid"
           ? "Nothing found. If this UUID came from an intelx.io share link (?did=), it cannot be downloaded via the API — use the Storage ID (long hex) from the item instead."
-          : `${error} Tip: Storage ID was accepted but not found in this bucket — pick the bucket that matches the IntelX item.`;
+          : `${error} Tip: Storage ID was accepted but not found in common leak buckets — confirm the ID is a downloadable Storage ID (long hex), not a website share link.`;
     }
 
     return NextResponse.json(
