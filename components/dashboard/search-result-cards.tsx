@@ -49,22 +49,22 @@ function ResultField({
           : undefined
       }
     >
-      <div className="anya-result-field-head">
-        <p className="anya-result-label">{field.label}</p>
+      <p className="anya-result-label">{field.label}</p>
+      <div className="anya-result-field-row">
+        <p
+          className={clsx(
+            "anya-result-value",
+            isBlock && "anya-result-value--block",
+            !expanded && !isBlock && "anya-result-value--clamp",
+            field.highlight && !isBlock && "text-anya-accent",
+          )}
+        >
+          <BlurredValue forceBlur={blurResults} text={displayValue} />
+        </p>
         {expanded && field.value.trim() ? (
           <ResultCopyButton compact text={field.value} />
         ) : null}
       </div>
-      <p
-        className={clsx(
-          "anya-result-value",
-          isBlock && "anya-result-value--block",
-          !expanded && !isBlock && "anya-result-value--clamp",
-          field.highlight && !isBlock && "text-anya-accent",
-        )}
-      >
-        <BlurredValue forceBlur={blurResults} text={displayValue} />
-      </p>
     </div>
   );
 }
@@ -181,7 +181,7 @@ export function SearchResultCards({
         </div>
       </div>
 
-      <div className="anya-result-list">
+      <div className="anya-result-list anya-result-list--grid">
         {visibleRecords.map((record) => {
           const isExpanded = expanded.has(record.index);
           const selected = selectedExportIndex === record.index;

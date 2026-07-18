@@ -1096,6 +1096,11 @@ html[data-splash="active"] [data-splash-target] {
   .anya-result-card--expanded .anya-result-card-body {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
+  .anya-result-list--grid .anya-result-card-body,
+  .anya-result-list--grid .anya-result-card--expanded .anya-result-card-body {
+    grid-template-columns: 1fr;
+  }
 }
 
 .anya-result-card {
@@ -1164,7 +1169,7 @@ html[data-splash="active"] [data-splash-target] {
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .anya-result-list--grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1209,6 +1214,25 @@ html[data-splash="active"] [data-splash-target] {
   justify-content: space-between;
   gap: 0.35rem;
   min-height: 1.1rem;
+}
+
+.anya-result-field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  min-width: 0;
+}
+
+.anya-result-field-row .anya-result-value {
+  margin-top: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.anya-result-field-row .anya-result-copy {
+  flex: 0 0 auto;
+  margin-top: 0.05rem;
 }
 
 .anya-search-empty {
@@ -1345,6 +1369,11 @@ html[data-splash="active"] [data-splash-target] {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.anya-result-list--grid .anya-result-card-body,
+.anya-result-list--grid .anya-result-card--expanded .anya-result-card-body {
+  grid-template-columns: 1fr;
+}
+
 .anya-result-field {
   border-left: 2px solid rgba(255, 255, 255, 0.08);
   padding: 0.15rem 0 0.15rem 0.55rem;
@@ -1352,7 +1381,6 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-result-field--sensitive {
-  grid-column: 1 / -1;
   border-left-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
 }
 

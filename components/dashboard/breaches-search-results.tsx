@@ -84,23 +84,29 @@ export function BreachesSearchResults({
               </header>
               <div className="anya-result-card-body">
                 <div className="anya-result-field">
-                  <div className="anya-result-field-head">
-                    <p className="anya-result-label">Email / login</p>
+                  <p className="anya-result-label">Email / login</p>
+                  <div className="anya-result-field-row">
+                    <p className="anya-result-value text-anya-accent">
+                      <BlurredValue
+                        forceBlur={blurResults}
+                        text={row.identifier}
+                      />
+                    </p>
                     <ResultCopyButton compact text={row.identifier} />
                   </div>
-                  <p className="anya-result-value text-anya-accent">
-                    <BlurredValue forceBlur={blurResults} text={row.identifier} />
-                  </p>
                 </div>
                 {row.secret ? (
                   <div className="anya-result-field anya-result-field--sensitive">
-                    <div className="anya-result-field-head">
-                      <p className="anya-result-label">Password</p>
+                    <p className="anya-result-label">Password</p>
+                    <div className="anya-result-field-row">
+                      <p className="anya-result-value">
+                        <BlurredValue
+                          forceBlur={blurResults}
+                          text={row.secret}
+                        />
+                      </p>
                       <ResultCopyButton compact text={row.secret} />
                     </div>
-                    <p className="anya-result-value">
-                      <BlurredValue forceBlur={blurResults} text={row.secret} />
-                    </p>
                   </div>
                 ) : null}
               </div>
