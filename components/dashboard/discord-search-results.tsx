@@ -416,7 +416,7 @@ function RobloxLinkPanel({
     <SidePanel
       countLabel={hasLink ? "1 linked" : "None"}
       icon={<Link2 className="size-4" />}
-      subtitle="OathNet Discord → Roblox"
+      subtitle="Discord → Roblox link"
       title="Roblox"
       tone="roblox"
     >

@@ -2955,23 +2955,29 @@ html[data-splash="active"] [data-splash-target] {
 .discord-id-layout {
   display: grid;
   grid-template-columns: minmax(16.5rem, 22rem) minmax(0, 1fr);
+  grid-template-areas: "stack breaches";
   gap: 0.85rem;
   align-items: stretch;
 }
 
 .discord-id-col-left {
-  display: grid;
+  grid-area: stack;
+  display: flex;
+  flex-direction: column;
   gap: 0.85rem;
   align-content: start;
   min-width: 0;
+  order: 1;
 }
 
 .discord-id-col-main {
+  grid-area: breaches;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 100%;
   align-self: stretch;
+  order: 2;
 }
 
 .discord-id-col-main > .discord-id-leaks {
@@ -3599,6 +3605,14 @@ html[data-splash="active"] [data-splash-target] {
 
   .discord-id-layout {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "stack"
+      "breaches";
+  }
+
+  .discord-id-col-left,
+  .discord-id-col-main {
+    order: unset;
   }
 
   .discord-id-downloads-row {
