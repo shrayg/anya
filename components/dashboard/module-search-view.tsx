@@ -83,7 +83,6 @@ import {
   WORKSPACE_SEARCH_TOUR_STORAGE_KEY,
 } from "@/lib/search-tour";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
-import { IntelSignalLoader } from "@/components/dashboard/intel-signal-loader";
 import type { FormattedRecord } from "@/lib/search-utils";
 import { formatSearchRecords, formatStructuredSearchData } from "@/lib/search-utils";
 import {
@@ -1419,11 +1418,6 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           )}
         </div>
       </section>
-
-      {/* Lattice rests on the page background — not inside the input panel. */}
-      {isSearching ? (
-        <IntelSignalLoader active title={moduleDef.name} />
-      ) : null}
 
           {moduleDef.slug === "site-pentest" ? (
             <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
