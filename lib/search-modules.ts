@@ -472,7 +472,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Discord ID",
         "discord-id",
         "discord",
-        "Discord snowflake ID",
+        "Discord ID",
         "Live profile (avatar, banner, badges, Nitro, clan) plus indexed leak records.",
       ),
       mod(
@@ -488,7 +488,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Discord → Roblox",
         "oathnet-roblox",
         "oathnet-roblox",
-        "Discord snowflake ID",
+        "Discord ID",
         "Resolve the Roblox account linked to a Discord user ID.",
       ),
       mod(
@@ -605,7 +605,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "fivem",
         "fivem",
         "Linked Discord ID",
-        "FiveM server intel via linked Discord snowflake.",
+        "FiveM server intel via linked Discord ID.",
       ),
     ],
   },

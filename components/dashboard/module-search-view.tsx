@@ -644,13 +644,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     }
 
     if (moduleDef.slug === "discord-id" && !isDiscordSnowflake(trimmed)) {
-      setError("Enter a valid Discord snowflake ID (17–20 digits).");
+      setError("Enter a valid Discord ID (17–20 digits).");
       setIsSearching(false);
       return;
     }
 
     if (moduleDef.slug === "oathnet-roblox" && !isDiscordSnowflake(trimmed)) {
-      setError("Enter a valid Discord snowflake ID (17–20 digits).");
+      setError("Enter a valid Discord ID (17–20 digits).");
       setIsSearching(false);
       return;
     }
@@ -671,7 +671,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     }
 
     if (moduleDef.slug === "fivem" && !isDiscordSnowflake(trimmed)) {
-      setError("FiveM lookups require a Discord snowflake ID (17–20 digits).");
+      setError("FiveM lookups require a Discord ID (17–20 digits).");
       setIsSearching(false);
       return;
     }

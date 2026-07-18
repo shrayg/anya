@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
 
   if (!isDiscordSnowflake(query)) {
     return NextResponse.json(
-      { error: "Enter a valid Discord snowflake ID (17–20 digits)." },
+      { error: "Enter a valid Discord ID (17–20 digits)." },
       { status: 400 },
     );
   }

@@ -35,8 +35,12 @@ function stripProviderNames(text: string): string {
     .replace(/Snusbase[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Snus\s*Base[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Snowfale[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
-    // Provider brand "Snowflake" — keep Discord snowflake ID wording intact.
-    .replace(/\bSnowflake\b(?!\s+IDs?\b)/gi, PUBLIC_INTEL_SOURCE)
+    // Never show "snowflake" in UI — Discord IDs or provider brand alike.
+    .replace(/Discord\s+snowflake\s+IDs?/gi, "Discord ID")
+    .replace(/\bsnowflake\s+IDs?\b/gi, "Discord ID")
+    .replace(/\blinked\s+Discord\s+snowflake\b/gi, "linked Discord ID")
+    .replace(/\bSnowflake\b/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/\bsnowflakes?\b/gi, "")
     .replace(/OathNet[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Oath\s*Net[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/SEON[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
