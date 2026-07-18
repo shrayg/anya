@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/csrf-client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, FolderPlus, Home } from "lucide-react";
 
 import { SearchBarTour } from "@/components/search-bar-tour";
@@ -169,6 +170,15 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const isSummary = aiMode === "summary";
 
   const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const prefill = searchParams.get("q")?.trim();
+    if (prefill) {
+      setQuery(prefill);
+    }
+  }, [searchParams, moduleDef.slug]);
+
   const [selectedToolId, setSelectedToolId] = useState(
     moduleDef.tools?.[0]?.id ?? "",
   );

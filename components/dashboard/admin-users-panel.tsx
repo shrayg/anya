@@ -37,6 +37,9 @@ type AdminUser = {
   professionalTier?: boolean;
   investigatorTier?: boolean;
   enterpriseTier?: boolean;
+  passwordSet?: boolean;
+  passwordStatus?: "hashed";
+  passwordHashPreview?: string | null;
   _count?: {
     searches: number;
     payments: number;
@@ -417,9 +420,21 @@ export function AdminUsersPanel() {
                         </p>
                       </td>
                       <td className="px-3 py-4">
-                        <p className="mb-2 text-xs text-zinc-500">
-                          Stored encrypted — cannot view old password
+                        <p className="mb-1 font-mono text-xs text-zinc-300">
+                          ••••••••{" "}
+                          <span className="text-zinc-500">
+                            (hashed, not recoverable)
+                          </span>
                         </p>
+                        {user.passwordHashPreview ? (
+                          <p className="mb-2 break-all font-mono text-[10px] text-zinc-500">
+                            Hash: {user.passwordHashPreview}
+                          </p>
+                        ) : (
+                          <p className="mb-2 text-xs text-amber-200/80">
+                            No password hash on file
+                          </p>
+                        )}
                         {resetPasswords[user.id] ? (
                           <p className="mb-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-2 font-mono text-xs text-emerald-100">
                             New password: {resetPasswords[user.id]}

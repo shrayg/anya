@@ -16,13 +16,18 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ModuleHealthProvider } from "@/components/dashboard/module-status-provider";
 import { HomeBackground } from "@/components/home-background";
 import type { DashboardUser } from "@/lib/dashboard-user";
-import { hasWorkspaceAdminAccess, type AccountStatus } from "@/lib/workspace-admin";
+import {
+  hasHelperDashboardAccess,
+  hasWorkspaceAdminAccess,
+  type AccountStatus,
+} from "@/lib/workspace-admin";
 
 type MeResponseUser = {
   username: string;
   isAdmin?: boolean;
   staffRole?: string | null;
   canManageWorkspace?: boolean;
+  canAccessHelperDashboard?: boolean;
   accountStatus?: AccountStatus;
   plan?: DashboardUser["plan"];
   balance?: number;
@@ -35,7 +40,11 @@ type MeResponseUser = {
   enterpriseTier?: boolean;
 };
 
-function mapMeUser(user: MeResponseUser, canManageWorkspace?: boolean): DashboardUser {
+function mapMeUser(
+  user: MeResponseUser,
+  canManageWorkspace?: boolean,
+  canAccessHelperDashboard?: boolean,
+): DashboardUser {
   const workspaceAdmin =
     typeof canManageWorkspace === "boolean"
       ? canManageWorkspace
@@ -43,11 +52,19 @@ function mapMeUser(user: MeResponseUser, canManageWorkspace?: boolean): Dashboar
         ? user.canManageWorkspace
         : hasWorkspaceAdminAccess(user);
 
+  const helperDashboard =
+    typeof canAccessHelperDashboard === "boolean"
+      ? canAccessHelperDashboard
+      : typeof user.canAccessHelperDashboard === "boolean"
+        ? user.canAccessHelperDashboard
+        : hasHelperDashboardAccess(user);
+
   return {
     username: user.username,
     isAdmin: Boolean(user.isAdmin),
     staffRole: user.staffRole ?? null,
     canManageWorkspace: workspaceAdmin,
+    canAccessHelperDashboard: helperDashboard,
     accountStatus: user.accountStatus ?? "active",
     plan: user.plan ?? "free",
     balance: user.balance ?? 0,
@@ -105,7 +122,9 @@ export function DashboardAuthProvider({
         return;
       }
 
-      setUser(mapMeUser(data.user, data.canManageWorkspace));
+      setUser(
+        mapMeUser(data.user, data.canManageWorkspace, data.canAccessHelperDashboard),
+      );
     } catch {
       router.replace("/");
     } finally {

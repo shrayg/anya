@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSessionCookie } from "@/app/lib/session";
 import { prisma } from "@/prisma/client";
-import { getAccountStatusMessage, hasWorkspaceAdminAccess } from "@/lib/workspace-admin";
+import {
+  getAccountStatusMessage,
+  hasHelperDashboardAccess,
+  hasWorkspaceAdminAccess,
+} from "@/lib/workspace-admin";
 
 export async function GET() {
   try {
@@ -49,22 +53,26 @@ export async function GET() {
 
     if (user.accountStatus === "frozen") {
       const canManageWorkspace = hasWorkspaceAdminAccess(user);
+      const canAccessHelperDashboard = hasHelperDashboardAccess(user);
 
       return NextResponse.json({
         authenticated: true,
         frozen: true,
         canManageWorkspace,
+        canAccessHelperDashboard,
         message: getAccountStatusMessage(user.accountStatus),
-        user: { ...user, canManageWorkspace },
+        user: { ...user, canManageWorkspace, canAccessHelperDashboard },
       });
     }
 
     const canManageWorkspace = hasWorkspaceAdminAccess(user);
+    const canAccessHelperDashboard = hasHelperDashboardAccess(user);
 
     return NextResponse.json({
       authenticated: true,
       canManageWorkspace,
-      user: { ...user, canManageWorkspace },
+      canAccessHelperDashboard,
+      user: { ...user, canManageWorkspace, canAccessHelperDashboard },
     });
   } catch (error) {
     console.error("Auth me error:", error);

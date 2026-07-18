@@ -9,4 +9,5 @@ export type DashboardUser = UserProfile & {
   staffRole?: string | null;
   accountStatus?: AccountStatus;
   canManageWorkspace: boolean;
+  canAccessHelperDashboard: boolean;
 };

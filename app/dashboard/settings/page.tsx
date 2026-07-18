@@ -5,6 +5,7 @@ import { Shield } from "lucide-react";
 
 import { AdminUsersPanel } from "@/components/dashboard/admin-users-panel";
 import { AdminWorkspaceDashboard } from "@/components/dashboard/admin-workspace-dashboard";
+import { HelperUsersPanel } from "@/components/dashboard/helper-users-panel";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { StaffBadge } from "@/components/dashboard/staff-badge";
 import {
@@ -37,6 +38,7 @@ export default function SettingsPage() {
   );
   const [stats, setStats] = useState<UserStats | null>(null);
   const canManageWorkspace = dashboardUser.canManageWorkspace;
+  const canAccessHelperDashboard = dashboardUser.canAccessHelperDashboard;
 
   useEffect(() => {
     fetch("/api/user/stats")
@@ -67,6 +69,22 @@ export default function SettingsPage() {
           </section>
           <AdminWorkspaceDashboard />
           <AdminUsersPanel />
+        </section>
+      ) : canAccessHelperDashboard ? (
+        <section className="mb-10 space-y-8" id="helper">
+          <section className="anya-hero">
+            <div className="anya-hero-main">
+              <span className="anya-hero-kicker">helper workspace</span>
+              <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
+                Helper Dashboard
+              </h1>
+              <p className="anya-hero-lede">
+                Limited roster access — investigate usernames and view member
+                cases. Payments and passwords are hidden.
+              </p>
+            </div>
+          </section>
+          <HelperUsersPanel />
         </section>
       ) : (
         <>

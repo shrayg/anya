@@ -61,6 +61,16 @@ export function hasWorkspaceAdminAccess(user: {
   return parseStaffRole(user.staffRole) === "admin";
 }
 
+/** Helpers get a limited user list + investigate tools (no payments/passwords). */
+export function hasHelperDashboardAccess(user: {
+  isAdmin?: boolean | null;
+  staffRole?: string | null;
+}) {
+  if (hasWorkspaceAdminAccess(user)) return false;
+
+  return parseStaffRole(user.staffRole) === "helper";
+}
+
 export function getAccountStatusMessage(status: string | null | undefined) {
   if (status === "banned") {
     return "This account has been banned.";

@@ -80,7 +80,7 @@ function isNavActive(item: NavItem, pathname: string) {
   if (item.name === "Settings") {
     return pathname.startsWith("/dashboard/settings");
   }
-  if (item.name === "Admin Dashboard") {
+  if (item.name === "Admin Dashboard" || item.name === "Helper Dashboard") {
     return pathname.startsWith("/dashboard/settings");
   }
   if (item.name === "Coffee Support") {
@@ -222,7 +222,7 @@ export function DashboardSidebar({ username }: { username: string }) {
   const [moduleQuery, setModuleQuery] = useState("");
 
   const footerItems = useMemo<NavItem[]>(() => {
-    const items = profile.canManageWorkspace
+    const items = profile.canManageWorkspace || profile.canAccessHelperDashboard
       ? footerNav.filter((item) => item.name !== "Settings")
       : [...footerNav];
 
@@ -233,14 +233,23 @@ export function DashboardSidebar({ username }: { username: string }) {
         icon: Shield,
         badge: "ADMIN",
       });
+    } else if (profile.canAccessHelperDashboard) {
+      items.unshift({
+        name: "Helper Dashboard",
+        href: "/dashboard/settings#helper",
+        icon: Shield,
+        badge: "HELPER",
+      });
     }
 
     return items;
-  }, [profile.canManageWorkspace]);
+  }, [profile.canAccessHelperDashboard, profile.canManageWorkspace]);
 
   const accountHref = profile.canManageWorkspace
     ? "/dashboard/settings#admin"
-    : "/dashboard/settings";
+    : profile.canAccessHelperDashboard
+      ? "/dashboard/settings#helper"
+      : "/dashboard/settings";
 
   const isModuleLocked = (slug: string) =>
     !checkModuleAccess(plan, slug, { balance }).allowed;

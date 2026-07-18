@@ -42,7 +42,8 @@ export const STAFF_ROLE_META: Record<StaffRole, StaffRoleMeta> = {
   helper: {
     id: "helper",
     label: "Helper",
-    description: "Support staff — display badge only",
+    description:
+      "Limited helper dashboard — usernames + investigate/cases only (no payments or passwords)",
     badgeClass:
       "border-emerald-400/45 bg-gradient-to-r from-emerald-500/20 to-teal-600/10 text-emerald-100 shadow-[0_0_12px_rgba(52,211,153,0.12)]",
     dotClass: "bg-emerald-400",
