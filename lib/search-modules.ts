@@ -101,11 +101,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
     items: [
       mod(
         "Stealer Intel",
-        "IntelX",
+        "Leak Storage",
         "intelx",
         "breach",
-        "Paste IntelX Storage ID or URL",
-        "Paste a Storage ID (long hex) or an intelx.io link that includes storageid. Share links with only ?did= cannot be opened. Buckets are resolved automatically.",
+        "Paste Storage ID or URL",
+        "Paste a Storage ID (long hex) or a share link that includes storageid. Share links with only ?did= cannot be opened. Buckets are resolved automatically.",
       ),
       mod(
         "Stealer Intel",
@@ -154,11 +154,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
       ),
       mod(
         "Breach & Leaks",
-        "BreachBase",
+        "Breach Index",
         "breachbase",
         "breachbase",
         "Email, username, or search term",
-        "Dedicated BreachBase index search — additive to Breaches and Stealer Logs.",
+        "Dedicated breach index search — additive to Breaches and Stealer Logs.",
       ),
     ],
   },
@@ -380,7 +380,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
       ),
       mod(
         "Network",
-        "Shodan Host",
+        "Host Lookup",
         "shodan-host",
         "shodan-host",
         "IPv4 or IPv6 address",
@@ -392,7 +392,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "site-pentest",
         "site-pentest",
         "Domain or URL (e.g. example.com)",
-        "Passive website hardening dashboard — selectable recon (DNS/TLS/headers/cookies/CT/paths/crawl/Shodan). XSS/SQLi/CMDi/traversal/brute stay desktop lab only.",
+        "Passive website hardening dashboard — selectable recon (DNS/TLS/headers/cookies/CT/paths/crawl/host exposure). XSS/SQLi/CMDi/traversal/brute stay desktop lab only.",
         undefined,
         undefined,
         {

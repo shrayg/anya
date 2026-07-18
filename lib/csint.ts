@@ -291,7 +291,13 @@ function sanitizeCsintPayload(
       key === "source" ||
       key === "sources" ||
       key === "_source" ||
-      /csint/i.test(key)
+      key === "provider" ||
+      key === "providers" ||
+      key === "powered_by" ||
+      key === "poweredBy" ||
+      /csint|godseye|osintcat|snusbase|breachvip|breachbase|oathnet|shodan|intelx|cordcat|seon|hackcheck|leakcheck|melissa/i.test(
+        key,
+      )
     ) {
       continue;
     }
@@ -1595,8 +1601,8 @@ export async function fetchCsintIntelx(
       (typeof data.message === "string" && data.message) ||
       (typeof data.error === "string" && data.error) ||
       (res.status === 429
-        ? "IntelX rate limit reached. Try again later."
-        : `IntelX download failed (HTTP ${res.status})`);
+        ? "Storage export rate limit reached. Try again later."
+        : `Storage export failed (HTTP ${res.status})`);
 
     return { content: "", error: sanitizeCsintError(msg), bucket: resolvedBucket };
   } catch (err) {
@@ -1625,7 +1631,7 @@ export async function fetchCsintIntelxWithBuckets(
     "pastes",
   ].filter((b, i, arr): b is IntelxBucket => Boolean(b) && arr.indexOf(b) === i);
 
-  let lastError = "No IntelX content returned.";
+  let lastError = "No export content returned.";
 
   for (const bucket of ordered) {
     const result = await fetchCsintIntelx(storageId, bucket);

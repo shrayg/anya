@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     source: "Stealer Logs",
     data: null,
   };
-  let godseyeSearch: DomainSearchResult["godseyeSearch"] = null;
+  let indexSearch: DomainSearchResult["indexSearch"] = null;
 
   if (combinedStealer.status === "fulfilled") {
     const { osintcat, godseye } = combinedStealer.value;
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (godseye && godseye.count > 0) {
-      godseyeSearch = {
+      indexSearch = {
         count: godseye.count,
         results: godseye.results,
       };
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
   const stealerHits =
     countStealerLogRows(stealerLogs.data) +
     extractStealerLogEntries(
-      godseyeSearch ? { results: godseyeSearch.results } : null,
+      indexSearch ? { results: indexSearch.results } : null,
     ).length;
   const breachHits = breachedData?.returned ?? 0;
   const hasResults = stealerHits > 0 || breachHits > 0;
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
     query,
     domain,
     stealerLogs,
-    godseyeSearch,
+    indexSearch,
     breachedData,
     breachedDataError,
     hasResults,

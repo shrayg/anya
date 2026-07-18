@@ -53,7 +53,7 @@ export function DomainSearchResults({
             Stealer Logs
           </h3>
           <p className="text-xs text-zinc-500">
-            Infostealer indexes tied to {result.domain}
+            Stealer indexes tied to {result.domain}
           </p>
         </div>
         {result.stealerLogs.error ? (

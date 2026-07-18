@@ -23,10 +23,28 @@ const INTERNAL_SOURCE_LABELS = new Set([
   "csint.pro",
   "csint tools",
   "snusbase",
+  "snus base",
+  "snowfale",
+  "snowflake",
   "breachbase",
+  "breach base",
   "oathnet",
+  "oath net",
   "hackcheck",
+  "hack check",
   "leakcheck",
+  "leak check",
+  "seon",
+  "shodan",
+  "intelx",
+  "intelx.io",
+  "intelligence x",
+  "cordcat",
+  "cord.cat",
+  "cord cat",
+  "melissa",
+  "infostealer",
+  "info stealer",
   "index",
 ]);
 
@@ -109,9 +127,20 @@ export function isInternalSourceLabel(value: string): boolean {
   if (INTERNAL_SOURCE_LABELS.has(lower)) return true;
   if (USELESS_DATABANK_LABELS.has(lower)) return true;
   if (lower.startsWith("godseye")) return true;
-  if (lower.startsWith("osintcat")) return true;
-  if (lower === "breach.vip" || lower.startsWith("breachvip")) return true;
+  if (lower.startsWith("osintcat") || lower.startsWith("osint cat")) return true;
+  if (lower === "breach.vip" || lower.startsWith("breachvip") || lower.startsWith("breach vip")) {
+    return true;
+  }
+  if (lower.startsWith("snusbase") || lower.startsWith("breachbase")) return true;
+  if (lower.startsWith("oathnet") || lower.startsWith("cordcat") || lower.startsWith("cord.cat")) {
+    return true;
+  }
+  if (lower.startsWith("intelx") || lower.startsWith("intelligence x")) return true;
+  if (lower.startsWith("shodan") || lower.startsWith("leakcheck") || lower.startsWith("hackcheck")) {
+    return true;
+  }
   if (lower.includes("csint")) return true;
+  if (lower.includes("powered by")) return true;
   if (lower.includes("anya.int") && !lower.includes(" · ")) return true;
   if (lower.includes("enkidu.int") && !lower.includes(" · ")) return true;
 

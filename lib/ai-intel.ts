@@ -644,7 +644,7 @@ function buildUsernameGraph(
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Username`);
   partial.recommendations.push("Try platform modules for handle expansion.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Infostealer mentions." },
+    { label: "Stealer Logs", slug: "stealer-logs", reason: "Stealer log mentions." },
     { label: "Instagram", slug: "instagram", reason: "Expand social footprint." },
     { label: "Reddit", slug: "reddit", reason: "Check Reddit profile history." },
     { label: "GitHub", slug: "github", reason: "Find repos and commit emails." },
@@ -798,7 +798,7 @@ function buildSocialPivot(
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Social`);
   partial.recommendations.push("Open each platform module with this handle.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Infostealer cross-check." },
+    { label: "Stealer Logs", slug: "stealer-logs", reason: "Stealer log cross-check." },
     { label: "Instagram", slug: "instagram", reason: "Profile and link search." },
     { label: "Tinder", slug: "tinder", reason: "Dating profile pivot." },
     { label: "Twitter", slug: "twitter", reason: "X / Twitter footprint." },
@@ -856,7 +856,7 @@ function buildStealerCorrelator(
   partial.recommendations.push("File results into Case ID mind map.");
   partial.pivots.push(
     { label: "Stealer Logs", slug: "stealer-logs", reason: "Raw stealer module." },
-    { label: "IntelX", slug: "intelx", reason: "Open by Storage ID (long hex). Paste URL when it includes storageid — not ?did= share links." },
+    { label: "Leak Storage", slug: "intelx", reason: "Open by Storage ID (long hex). Paste URL when it includes storageid — not ?did= share links." },
   );
 
   return finalizeResult({

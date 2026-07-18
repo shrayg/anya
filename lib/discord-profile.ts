@@ -1,10 +1,13 @@
 import {
-  cordCatProfileUrl,
   fetchCordCatUserInfo,
   type CordCatUserInfo,
 } from "@/lib/cordcat";
 import { badgesFromPublicFlags } from "@/lib/discord-badges";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+
+function discordProfileUrl(discordId: string): string {
+  return `https://discord.com/users/${encodeURIComponent(discordId)}`;
+}
 
 export type DiscordNameplate = {
   asset: string;
@@ -45,7 +48,7 @@ export type DiscordProfile = {
   clanBadgeUrl: string | null;
   avatarDecorationUrl: string | null;
   nameplate: DiscordNameplate | null;
-  /** Discreet external profile preview (cord.cat viewer). */
+  /** External profile link — Discord only (never third-party viewers). */
   profilePreviewUrl: string;
 };
 
@@ -81,9 +84,9 @@ export type DiscordSearchResult = {
     count: number;
     sanctions: DiscordDsaSanction[];
   };
-  /** OathNet Discord→Roblox; null when no link resolved. */
+  /** Discord → Roblox link when resolved; null when none. */
   robloxLink?: DiscordRobloxLink | null;
-  /** Raw CSINT /discord/lookup payload when available. */
+  /** Extra lookup payload when available. */
   enrichment?: Record<string, unknown> | null;
 };
 
@@ -546,7 +549,7 @@ function parseProfileFromRaw(
       buildAvatarDecorationUrl(decorationProvidedUrl) ??
       buildAvatarDecorationUrl(decorationAsset),
     nameplate: extractNameplate(data),
-    profilePreviewUrl: cordCatProfileUrl(id),
+    profilePreviewUrl: discordProfileUrl(id),
   };
 }
 
@@ -568,7 +571,7 @@ function fallbackProfile(id: string): DiscordProfile {
     clanBadgeUrl: null,
     avatarDecorationUrl: null,
     nameplate: null,
-    profilePreviewUrl: cordCatProfileUrl(id),
+    profilePreviewUrl: discordProfileUrl(id),
   };
 }
 
@@ -650,7 +653,7 @@ export async function fetchDiscordProfile(userId: string): Promise<DiscordProfil
         badges:
           cordProfile.badges.length > 0 ? cordProfile.badges : japiProfile.badges,
         createdAt: snowflakeCreatedAt(userId),
-        profilePreviewUrl: cordCatProfileUrl(userId),
+        profilePreviewUrl: discordProfileUrl(userId),
       };
     }
 

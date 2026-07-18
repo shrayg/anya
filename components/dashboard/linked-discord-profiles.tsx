@@ -138,15 +138,6 @@ function DiscordProfileCard({ id, profile }: { id: string; profile: DiscordProfi
               <ExternalLink className="size-3.5" />
               Open on Discord
             </a>
-            <a
-              className="discord-profile-link"
-              href={profile.profilePreviewUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              <ExternalLink className="size-3.5" />
-              Profile preview
-            </a>
           </div>
         </aside>
 

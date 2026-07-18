@@ -1,3 +1,9 @@
+import { sanitizePublicText } from "@/lib/public-branding";
+
+/**
+ * Flatten combined IP lookup payloads into a public-safe shape.
+ * Never expose upstream provider key names (osintcat / godseye / …).
+ */
 export function normalizeIpSearchPayload(
   data: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -8,7 +14,11 @@ export function normalizeIpSearchPayload(
 
   const normalized: Record<string, unknown> = {
     query: data.query,
-    sources: data.sources,
+    sources: Array.isArray(data.sources)
+      ? data.sources.map((s) =>
+          typeof s === "string" ? sanitizePublicText(s) || "index" : s,
+        )
+      : data.sources,
   };
 
   if (osintcat?.ipleaks && typeof osintcat.ipleaks === "object") {
@@ -23,16 +33,20 @@ export function normalizeIpSearchPayload(
     Object.assign(normalized, osintcat);
   }
 
-  if (data.godseye) {
-    normalized.godseye = data.godseye;
+  // Prefer neutral key for merged index hits (legacy godseye payload shape).
+  const indexHits = data.indexHits ?? data.godseye;
+  if (indexHits) {
+    normalized.indexHits = indexHits;
   }
 
-  if (data.osintcatError) {
-    normalized.osintcatError = data.osintcatError;
-  }
-
-  if (data.godseyeError) {
-    normalized.godseyeError = data.godseyeError;
+  const errRaw =
+    (typeof data.error === "string" && data.error) ||
+    (typeof data.osintcatError === "string" && data.osintcatError) ||
+    (typeof data.godseyeError === "string" && data.godseyeError) ||
+    "";
+  const err = sanitizePublicText(errRaw);
+  if (err) {
+    normalized.error = err;
   }
 
   return normalized;

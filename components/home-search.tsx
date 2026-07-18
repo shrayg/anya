@@ -17,6 +17,7 @@ import {
   resolveStarterSearchRoute,
   type StarterSearchMode,
 } from "@/lib/starter-search";
+import { sanitizePublicText } from "@/lib/public-branding";
 import {
   checkDailySearchQuota,
   checkModuleAccess,
@@ -42,10 +43,6 @@ type AuthState =
       searchesLast24h: number;
       intelxUsedToday: number;
     };
-
-function sanitizePublicText(value: string) {
-  return value.replace(/osintcat/gi, "provider").replace(/godseye/gi, "source");
-}
 
 const MODE_ICONS: Record<StarterSearchMode, ElementType> = {
   email: AtSign,

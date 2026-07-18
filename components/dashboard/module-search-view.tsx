@@ -1047,7 +1047,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         if (!intelxData.hasContent) {
           markNoResults(
             sanitizePublicText(
-              intelxData.error || "No IntelX export content returned.",
+              intelxData.error || "No export content returned.",
             ),
           );
           return;
@@ -1057,7 +1057,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         if (!exportBody) {
           markNoResults(
             sanitizePublicText(
-              intelxData.error || "No IntelX export content returned.",
+              intelxData.error || "No export content returned.",
             ),
           );
           return;
@@ -1113,13 +1113,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         const formatted = formatStructuredSearchData(data);
 
         if (formatted.length === 0) {
-          const ipData = data as { error?: string; osintcatError?: string; godseyeError?: string };
+          const ipData = data as { error?: string };
           markNoResults(
             sanitizePublicText(
-              ipData.error ||
-                ipData.osintcatError ||
-                ipData.godseyeError ||
-                "No IP intelligence was returned.",
+              ipData.error || "No IP intelligence was returned.",
             ),
           );
           return;
@@ -1512,7 +1509,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={
                   moduleDef.slug === "intelx"
-                    ? "Paste Storage ID or intelx.io URL…"
+                    ? "Paste Storage ID or share URL…"
                     : moduleDef.hint
                 }
                 spellCheck={moduleDef.slug === "intelx" ? false : undefined}

@@ -14,6 +14,7 @@ import {
 import {
   publicSearchError,
   publicServiceUnavailable,
+  sanitizePublicText,
 } from "@/lib/public-branding";
 import {
   fetchGodsEyeSearchResult,
@@ -274,12 +275,27 @@ export async function fetchCombinedOsintCatEndpoint(
     sources: [] as string[],
   };
 
+  let lookupError = "";
+
   if (endpoint && isOsintCatEndpointSupported(endpoint)) {
     try {
-      payload.osintcat = await fetchOsintCatEndpoint(endpoint, query);
+      const indexPayload = await fetchOsintCatEndpoint(endpoint, query);
+      // Flatten provider blob into neutral top-level fields.
+      if (indexPayload && typeof indexPayload === "object") {
+        const blob = indexPayload as Record<string, unknown>;
+        if (blob.ipleaks && typeof blob.ipleaks === "object") {
+          payload.ipleaks = blob.ipleaks;
+        }
+        if (blob.ipinfo && typeof blob.ipinfo === "object") {
+          payload.ipinfo = blob.ipinfo;
+        }
+        if (!payload.ipleaks && !payload.ipinfo) {
+          Object.assign(payload, blob);
+        }
+      }
       (payload.sources as string[]).push("index");
     } catch (err) {
-      payload.osintcatError =
+      lookupError =
         err instanceof Error ? err.message : "Index lookup failed";
     }
   }
@@ -305,7 +321,7 @@ export async function fetchCombinedOsintCatEndpoint(
     godseyeResult.status === "rejected" &&
     godseyeResult.reason instanceof Error
   ) {
-    payload.godseyeError = godseyeResult.reason.message;
+    lookupError = lookupError || godseyeResult.reason.message;
   }
 
   if (
@@ -325,14 +341,19 @@ export async function fetchCombinedOsintCatEndpoint(
   }
 
   if (mergedParts.length > 0) {
-    payload.godseye = mergeSanitizedResponses(...mergedParts);
+    payload.indexHits = mergeSanitizedResponses(...mergedParts);
     (payload.sources as string[]).push("index");
   }
 
   if ((payload.sources as string[]).length === 0) {
     throw new Error(
-      String(payload.osintcatError || payload.godseyeError || publicSearchError()),
+      sanitizePublicText(lookupError) || publicSearchError(),
     );
+  }
+
+  if (lookupError) {
+    const cleaned = sanitizePublicText(lookupError);
+    if (cleaned) payload.error = cleaned;
   }
 
   return payload;

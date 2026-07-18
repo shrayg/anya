@@ -1,4 +1,5 @@
 import { DATABANK_KEYS, extractDatabank, isBrandPlaceholderValue } from "@/lib/intel-record";
+import { sanitizePublicText } from "@/lib/public-branding";
 
 export type SearchResultRow = {
   label: string;
@@ -171,7 +172,10 @@ function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "";
 
   if (Array.isArray(value)) {
-    return value.map((item) => String(item)).join(", ");
+    return value
+      .map((item) => sanitizePublicText(String(item)))
+      .filter(Boolean)
+      .join(", ");
   }
 
   if (typeof value === "boolean") {
@@ -179,10 +183,10 @@ function formatValue(value: unknown): string {
   }
 
   if (typeof value === "object") {
-    return JSON.stringify(value);
+    return sanitizePublicText(JSON.stringify(value));
   }
 
-  return String(value);
+  return sanitizePublicText(String(value));
 }
 
 function objectFields(
@@ -380,6 +384,16 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
     return formatIpRecords(record);
   }
 
+  if (record.indexHits && typeof record.indexHits === "object") {
+    const indexHits = record.indexHits as Record<string, unknown>;
+    const hitResults = Array.isArray(indexHits.results) ? indexHits.results : [];
+
+    if (hitResults.length > 0) {
+      return formatSearchRecords(hitResults);
+    }
+  }
+
+  // Legacy key (pre-scrub) — still format if present in older cached results.
   if (record.godseye && typeof record.godseye === "object") {
     const godseye = record.godseye as Record<string, unknown>;
     const godseyeResults = Array.isArray(godseye.results) ? godseye.results : [];

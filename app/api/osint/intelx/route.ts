@@ -21,14 +21,14 @@ import {
 import { isBrandPlaceholderValue } from "@/lib/intel-record";
 import { fetchGodsEyeRawExport, getGodsEyeExportApiKey } from "@/lib/godseye";
 
-/** IntelX System ID shape (UUID). API accepts this as storageid when it is a real item id. */
+/** Storage System ID shape (UUID). API accepts this as storageid when it is a real item id. */
 const UUID_RE =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 /** Docs example storage hash is long hex (typically 40–256 chars). */
 const HEX_STORAGE_RE = /^[a-f0-9]{40,256}$/i;
 
 const WEBSITE_DID_UNSUPPORTED =
-  "Nothing found. intelx.io share links (?did=…) use a website ID that cannot be downloaded via the API. Paste the Storage ID (long hex hash) from the IntelX item / download API instead — not the link’s did parameter.";
+  "Nothing found. Share links that only include a website ID (?did=…) cannot be downloaded. Paste the Storage ID (long hex hash) from the item instead — not the link’s did parameter.";
 
 function normalizeStorageId(raw: string): {
   storageId: string;
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
 
   if (!query) {
     return NextResponse.json(
-      { error: "Missing IntelX Storage ID (long hex) or System ID" },
+      { error: "Missing Storage ID (long hex) or System ID" },
       { status: 400 },
     );
   }
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
         storageId,
         idKind,
         bucket: preferredBucket,
-        source: `${PUBLIC_BRAND} · IntelX`,
+        source: PUBLIC_BRAND,
         content: "",
         error: WEBSITE_DID_UNSUPPORTED,
         hasContent: false,
@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Enter an IntelX Storage ID (long hex hash) from the item download API. intelx.io ?did= share links are not supported.",
+          "Enter a Storage ID (long hex hash) from the item download API. Share links with only ?did= are not supported.",
       },
       { status: 400 },
     );
@@ -221,21 +221,21 @@ export async function GET(req: NextRequest) {
   if (content && isBrandPlaceholderValue(content)) {
     content = "";
     if (!lastError) {
-      lastError = "No IntelX export content returned.";
+      lastError = "No export content returned.";
     }
   }
 
   if (!content) {
     let error =
       sanitizePublicText(lastError) ||
-      publicSearchError("No IntelX export content returned.");
+      publicSearchError("No export content returned.");
 
     if (/HTTP 400|bad request/i.test(lastError)) {
-      error = `${error} Tip: use a long Storage ID hex hash from the IntelX item (not an intelx.io ?did= link).`;
+      error = `${error} Tip: use a long Storage ID hex hash from the item (not a ?did= share link).`;
     } else if (/HTTP 404|not found/i.test(lastError)) {
       error =
         idKind === "uuid"
-          ? "Nothing found. If this UUID came from an intelx.io share link (?did=), it cannot be downloaded via the API — use the Storage ID (long hex) from the item instead."
+          ? "Nothing found. If this UUID came from a share link (?did=), it cannot be downloaded — use the Storage ID (long hex) from the item instead."
           : `${error} Tip: Storage ID was accepted but not found in common leak buckets — confirm the ID is a downloadable Storage ID (long hex), not a website share link.`;
     }
 
@@ -243,7 +243,7 @@ export async function GET(req: NextRequest) {
       storageId,
       idKind,
       bucket,
-      source: `${PUBLIC_BRAND} · IntelX`,
+      source: PUBLIC_BRAND,
       content: "",
       error,
       hasContent: false,
@@ -255,7 +255,7 @@ export async function GET(req: NextRequest) {
     storageId,
     idKind,
     bucket,
-    source: `${PUBLIC_BRAND} · IntelX`,
+    source: PUBLIC_BRAND,
     content,
     poweredBy: PUBLIC_BRAND,
     hasContent: true,

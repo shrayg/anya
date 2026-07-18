@@ -20,7 +20,7 @@ export const FAQSection = () => {
     },
     {
       question: "Which modules are supported?",
-      answer: "Discord, Roblox, breaches, stealer logs, phone/username pivots, IntelX, AI search, and dozens more. New modules ship regularly.",
+      answer: "Discord, Roblox, breaches, stealer logs, phone/username pivots, leak storage, AI search, and dozens more. New modules ship regularly.",
     },
     {
       question: "Is my data secure?",

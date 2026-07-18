@@ -7,27 +7,41 @@ export const PUBLIC_AI_LABEL = `${siteConfig.name} AI`;
 
 export const PUBLIC_INTEL_SOURCE = siteConfig.name;
 
+/**
+ * Provider / vendor tokens that must never appear in user-visible strings.
+ * Keep in sync with INTERNAL_SOURCE_LABELS in intel-record.ts.
+ */
 const PROVIDER_PATTERN =
-  /godseye|osintcat|breach\.?vip|breachvip|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|breachbase|oathnet|seon|hackcheck|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|ithil|crowsint|melissa|shodan|proxynova|anya\.search|anya search|anya crypto ai|anya /gi;
+  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|anya\.search|anya search|anya crypto ai|anya /gi;
 
-const POWERED_BY_CSINT =
-  /powered\s+by\s+csint(?:\.pro)?(?:\s+tools)?/gi;
+const POWERED_BY_PROVIDER =
+  /powered\s+by\s+(?:csint(?:\.pro)?(?:\s+tools)?|godseye|osintcat|shodan|intelx|oathnet|snusbase|breachvip|breachbase|seon|cordcat|leakcheck|hackcheck)[^,.\n]*/gi;
 
 function stripProviderNames(text: string): string {
   let cleaned = text
-    .replace(POWERED_BY_CSINT, `Powered by ${PUBLIC_BRAND}`)
+    .replace(POWERED_BY_PROVIDER, `Powered by ${PUBLIC_BRAND}`)
+    .replace(/powered\s+by\s+csint(?:\.pro)?(?:\s+tools)?/gi, `Powered by ${PUBLIC_BRAND}`)
     .replace(/GodsEye[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/OsintCat[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/OSINT\s*Cat[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Breach\.?vip[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/BreachVIP[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Breach\s*VIP[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/BreachBase[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Breach\s*Base[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/ProxyNova[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/csint\.pro[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/csint(?:\s+tools)?[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Snusbase[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Snus\s*Base[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Snowfale[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    // Provider brand "Snowflake" — keep Discord snowflake ID wording intact.
+    .replace(/\bSnowflake\b(?!\s+IDs?\b)/gi, PUBLIC_INTEL_SOURCE)
     .replace(/OathNet[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Oath\s*Net[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/SEON[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/HackCheck[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Hack\s*Check[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/IntelVault[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/LeakOSINT[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/IntelFetch[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
@@ -36,10 +50,18 @@ function stripProviderNames(text: string): string {
     .replace(/Akula[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/LeakSight[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/LeakCheck[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Leak\s*Check[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Ithil[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Crowsint[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Melissa[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Shodan[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/CordCat[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/cord\.cat[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Intelligence\s*X[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/IntelX(?:\.io)?[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/intelx\.io[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Infostealer[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Info\s*stealer[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Anya\.search/gi, PUBLIC_BRAND)
     .replace(/Anya [A-Za-z ]+/gi, PUBLIC_AI_LABEL)
     // Keep Anya.Int intact — bare "Anya" only.
@@ -47,7 +69,12 @@ function stripProviderNames(text: string): string {
     .replace(/GODSEYE_API_KEY/gi, "intelligence API key")
     .replace(/OSINTCAT_API_KEY/gi, "intelligence API key")
     .replace(/CSINT_API_KEY/gi, "intelligence API key")
-    .replace(/BREACH_VIP_API_KEY/gi, "intelligence API key");
+    .replace(/BREACH_VIP_API_KEY/gi, "intelligence API key")
+    .replace(/OATHNET_API_KEY/gi, "intelligence API key")
+    .replace(/SHODAN_API_KEY/gi, "intelligence API key")
+    .replace(/INTELX_API_KEY/gi, "intelligence API key")
+    .replace(/CORDCAT_API_KEY/gi, "intelligence API key")
+    .replace(/SEON_API_KEY/gi, "intelligence API key");
 
   // Reset lastIndex — PROVIDER_PATTERN is global and shared.
   PROVIDER_PATTERN.lastIndex = 0;
@@ -78,7 +105,7 @@ export function sanitizePublicText(text: string): string {
 }
 
 /**
- * Sanitize multi-line export bodies (IntelX dumps, raw downloads)
+ * Sanitize multi-line export bodies (leak storage dumps, raw downloads)
  * without collapsing whitespace / newlines.
  */
 export function sanitizePublicContent(text: string): string {

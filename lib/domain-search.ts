@@ -8,6 +8,13 @@ export type DomainSearchResult = {
     data: Record<string, unknown> | null;
     error?: string;
   };
+  /** Index hits correlated to the domain (neutral key — never provider-named). */
+  indexSearch?: {
+    source?: string;
+    count: number;
+    results: unknown[];
+  } | null;
+  /** @deprecated Use indexSearch — kept for older cached payloads. */
   godseyeSearch?: {
     source?: string;
     count: number;
