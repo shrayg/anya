@@ -32,5 +32,9 @@ jobs:
             set -euo pipefail
             APP_DIR="${APP_DIR:-/var/www/anya.int}"
             cd "$APP_DIR"
-            # All git/build/PM2 work happens inside the flock-guarded script.
+            # Fetch the deploy script from origin BEFORE running it.
+            # Otherwise a mid-flight `git reset` leaves bash executing a
+            # deleted inode of the OLD script (which stops PM2 early).
+            git fetch origin main
+            git checkout origin/main -- scripts/vps-pull-deploy.sh
             bash scripts/vps-pull-deploy.sh
