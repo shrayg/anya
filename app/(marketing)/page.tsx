@@ -31,10 +31,6 @@ export default function Home() {
               unoptimized
               width={72}
             />
-            {/*
-              No ancestor z-index here — splash pins this node with position:fixed;z-index:110.
-              A parent stacking context (e.g. section z-20) trapped it under the veil.
-            */}
             <ShinyText
               className={brandTitleClassName}
               data-splash-target

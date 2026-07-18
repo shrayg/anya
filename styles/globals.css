@@ -53,7 +53,14 @@
   padding-bottom: 0.18em;
 }
 
-/* Splash moves this node in place — never hide it (hiding caused the flash) */
+/*
+ * During splash, keep the REAL homepage wordmark visible above the veil.
+ * Do not hide it, clone it, or animate its position — that caused flash/fly bugs.
+ */
+html[data-splash="active"] [data-splash-target] {
+  position: relative;
+  z-index: 110;
+}
 
 
 /* Hide scrollbar globally */
