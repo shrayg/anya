@@ -54,12 +54,14 @@
 }
 
 /*
- * During splash, keep the REAL homepage wordmark visible above the veil.
- * Do not hide it, clone it, or animate its position — that caused flash/fly bugs.
+ * Splash drives --splash-shift (translateY only).
+ * Title stays in normal layout; no position:fixed, no X motion.
  */
 html[data-splash="active"] [data-splash-target] {
   position: relative;
   z-index: 110;
+  transform: translateY(var(--splash-shift, 0px));
+  will-change: transform;
 }
 
 
