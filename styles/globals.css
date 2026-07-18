@@ -3102,7 +3102,7 @@ html[data-splash="active"] [data-splash-target] {
   position: absolute;
   top: 0.45rem;
   right: 0.55rem;
-  z-index: 1;
+  z-index: 2;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -3112,19 +3112,25 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-id-nameplate-art {
   position: relative;
-  display: flex;
-  align-items: flex-end;
+  display: block;
+  width: 100%;
+  /* Discord nameplates are ~448×84 strips */
+  aspect-ratio: 448 / 84;
   min-height: 4.5rem;
-  padding: 0.75rem 0.85rem;
   overflow: hidden;
+  background: #0c0c0e;
 }
 
 .discord-id-nameplate-media {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  z-index: 0;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
   object-fit: cover;
+  object-position: center;
   pointer-events: none;
 }
 
@@ -3132,6 +3138,7 @@ html[data-splash="active"] [data-splash-target] {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: linear-gradient(
     180deg,
     transparent 25%,
@@ -3141,9 +3148,13 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .discord-id-nameplate-desc {
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  left: 0.85rem;
+  right: 2.5rem;
+  bottom: 0.65rem;
+  z-index: 2;
   max-width: 85%;
+  margin: 0;
   font-size: 0.78rem;
   line-height: 1.4;
   color: #f4f4f5;

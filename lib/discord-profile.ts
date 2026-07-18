@@ -8,10 +8,18 @@ import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 export type DiscordNameplate = {
   asset: string;
-  /** Static PNG for display / download. */
+  /** Static still (`static.png`) — poster / reduced-motion only. */
   url: string;
-  /** Animated media URL (webm / gif / webp / apng) when available. */
+  /**
+   * Animated video (`asset.webm`) — Discord's primary animated nameplate.
+   * Always the CDN webm when an asset path is known.
+   */
   animatedUrl: string | null;
+  /**
+   * Animated PNG (`img.png` APNG) — Discord's image-format animation.
+   * Used when video fails or as a reliable `<img>` animation path.
+   */
+  animatedImageUrl: string | null;
   label: string | null;
   /** Human-readable description for the nameplate card. */
   description: string | null;
@@ -294,12 +302,48 @@ function pickFirstString(...values: unknown[]): string | null {
   return null;
 }
 
-function isAnimatedNameplateUrl(url: string): boolean {
-  return (
-    /\.(webm|mp4|gif|webp)(\?|$)/i.test(url) ||
-    /\/asset\.webm(\?|$)/i.test(url) ||
-    /animated/i.test(url)
-  );
+/** True only for real motion containers — never static .webp/.png previews. */
+function isNameplateVideoUrl(url: string): boolean {
+  return /\.(webm|mp4)(\?|$)/i.test(url) || /\/asset\.webm(\?|$)/i.test(url);
+}
+
+/**
+ * Discord collectible nameplate asset paths look like `nameplates/spell/white_mana/`.
+ * Providers sometimes hand back a full CDN URL or a file name — normalize to the path.
+ */
+function normalizeNameplateAssetPath(raw: string): string | null {
+  let value = raw.trim();
+  if (!value) return null;
+
+  try {
+    if (/^https?:\/\//i.test(value)) {
+      const parsed = new URL(value);
+      const marker = "/assets/collectibles/";
+      const idx = parsed.pathname.indexOf(marker);
+      if (idx >= 0) {
+        value = parsed.pathname.slice(idx + marker.length);
+      }
+    }
+  } catch {
+    /* keep raw */
+  }
+
+  value = value
+    .replace(/^\/+/, "")
+    .replace(/\/(static|img)\.png$/i, "/")
+    .replace(/\/asset\.webm$/i, "/")
+    .replace(/\/+$/, "");
+
+  if (!value || /^https?:\/\//i.test(value)) return null;
+
+  return `${value}/`;
+}
+
+function nameplateCdnUrl(
+  assetPath: string,
+  file: "static.png" | "img.png" | "asset.webm",
+): string {
+  return `https://cdn.discordapp.com/assets/collectibles/${assetPath}${file}`;
 }
 
 function extractNameplate(data: Record<string, unknown>): DiscordNameplate | null {
@@ -311,49 +355,44 @@ function extractNameplate(data: Record<string, unknown>): DiscordNameplate | nul
 
   if (!nameplate) return null;
 
-  const asset =
+  const assetRaw =
     pickFirstString(nameplate.asset, nameplate.asset_path, nameplate.path) ??
     null;
 
-  if (!asset) return null;
+  if (!assetRaw) return null;
 
-  const normalized = asset.endsWith("/") ? asset : `${asset}/`;
+  const normalized = normalizeNameplateAssetPath(assetRaw);
+  if (!normalized) return null;
+
   const label = pickFirstString(nameplate.label, nameplate.description);
   const palette = pickFirstString(nameplate.palette);
 
-  const rawUrl = pickFirstString(nameplate.url, nameplate.src, nameplate.href);
-  const providedAnimated = pickFirstString(
+  const cdnStatic = nameplateCdnUrl(normalized, "static.png");
+  const cdnAnimatedVideo = nameplateCdnUrl(normalized, "asset.webm");
+  const cdnAnimatedImage = nameplateCdnUrl(normalized, "img.png");
+
+  // Only trust provider URLs that are clearly video — never .webp/.gif previews
+  // that would override the CDN webm/APNG and freeze the nameplate.
+  const providedVideo = pickFirstString(
     nameplate.animated_url,
     nameplate.animatedUrl,
     nameplate.animation_url,
     nameplate.animationUrl,
-    nameplate.animation,
     nameplate.video,
     nameplate.video_url,
     nameplate.videoUrl,
-    nameplate.media,
-    nameplate.media_url,
     nameplate.webm,
-    nameplate.gif,
-    rawUrl && isAnimatedNameplateUrl(rawUrl) ? rawUrl : null,
   );
-  const providedStatic = pickFirstString(
-    nameplate.static_url,
-    nameplate.staticUrl,
-    nameplate.img,
-    nameplate.image,
-    nameplate.img_url,
-    rawUrl && !isAnimatedNameplateUrl(rawUrl) ? rawUrl : null,
-  );
-
-  const cdnStatic = `https://cdn.discordapp.com/assets/collectibles/${normalized}static.png`;
-  const cdnAnimated = `https://cdn.discordapp.com/assets/collectibles/${normalized}asset.webm`;
+  const animatedUrl =
+    providedVideo && isNameplateVideoUrl(providedVideo)
+      ? providedVideo
+      : cdnAnimatedVideo;
 
   return {
     asset: normalized,
-    url: providedStatic ?? cdnStatic,
-    // Prefer CordCat animated URL; fall back to Discord CDN webm.
-    animatedUrl: providedAnimated ?? cdnAnimated,
+    url: cdnStatic,
+    animatedUrl,
+    animatedImageUrl: cdnAnimatedImage,
     label,
     description: humanizeNameplateLabel(label, normalized),
     palette,

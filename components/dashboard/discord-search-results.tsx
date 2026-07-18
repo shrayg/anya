@@ -52,6 +52,20 @@ function classifyNameplateMedia(url: string): "video" | "image" {
   return "image";
 }
 
+const NAMEPLATE_PALETTE_BG: Record<string, string> = {
+  crimson: "#9e1d2e",
+  berry: "#9b2f6c",
+  sky: "#3a8fd4",
+  teal: "#1f8a7a",
+  forest: "#2f6b3a",
+  bubble_gum: "#d45a8a",
+  violet: "#6b4bb5",
+  cobalt: "#2f5fad",
+  clover: "#5a9e3c",
+  lemon: "#c4a52a",
+  white: "#d4d4d8",
+};
+
 function DiscordNameplateArt({
   nameplate,
   blurResults,
@@ -60,60 +74,72 @@ function DiscordNameplateArt({
   blurResults: boolean;
 }) {
   const reducedMotion = usePrefersReducedMotion();
-  const [animFailed, setAnimFailed] = useState(false);
+  /** 0 = try webm video, 1 = APNG img.png, 2 = static still */
+  const [tier, setTier] = useState<0 | 1 | 2>(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const animatedSrc =
-    !reducedMotion && !animFailed && nameplate.animatedUrl
-      ? nameplate.animatedUrl
+  useEffect(() => {
+    setTier(0);
+  }, [nameplate.animatedUrl, nameplate.animatedImageUrl, nameplate.url]);
+
+  const videoSrc =
+    !reducedMotion && tier === 0 ? nameplate.animatedUrl : null;
+  const apngSrc =
+    !reducedMotion && tier <= 1
+      ? nameplate.animatedImageUrl
       : null;
-  const mediaKind = animatedSrc ? classifyNameplateMedia(animatedSrc) : null;
+  const mediaSrc = videoSrc ?? apngSrc ?? nameplate.url;
+  const mediaKind = videoSrc
+    ? "video"
+    : classifyNameplateMedia(mediaSrc);
 
   useEffect(() => {
-    setAnimFailed(false);
-  }, [nameplate.animatedUrl, nameplate.url]);
-
-  useEffect(() => {
-    if (mediaKind !== "video" || !videoRef.current) return;
+    if (mediaKind !== "video" || !videoRef.current || !videoSrc) return;
     const el = videoRef.current;
     el.muted = true;
-    const play = el.play();
-    if (play && typeof play.catch === "function") {
-      play.catch(() => {
-        /* Autoplay can be blocked; muted+playsInline usually works. */
-      });
-    }
-  }, [mediaKind, animatedSrc]);
+    el.playsInline = true;
+    void el.play().catch(() => {
+      /* muted autoplay usually succeeds; APNG fallback is via onError only */
+    });
+  }, [mediaKind, videoSrc]);
+
+  const paletteBg =
+    (nameplate.palette && NAMEPLATE_PALETTE_BG[nameplate.palette]) ||
+    undefined;
 
   return (
-    <div className="discord-id-nameplate-art">
-      {mediaKind === "video" && animatedSrc ? (
+    <div
+      className="discord-id-nameplate-art"
+      style={paletteBg ? { backgroundColor: paletteBg } : undefined}
+    >
+      {mediaKind === "video" && videoSrc ? (
         <video
+          key={videoSrc}
           ref={videoRef}
           aria-hidden
           autoPlay
           className="discord-id-nameplate-media"
+          disablePictureInPicture
+          disableRemotePlayback
           loop
           muted
-          onError={() => setAnimFailed(true)}
+          onError={() => setTier(1)}
           playsInline
+          poster={nameplate.url}
           preload="auto"
-          src={animatedSrc}
-        />
-      ) : mediaKind === "image" && animatedSrc ? (
-        <img
-          alt=""
-          aria-hidden
-          className="discord-id-nameplate-media"
-          onError={() => setAnimFailed(true)}
-          src={animatedSrc}
-        />
+        >
+          <source src={videoSrc} type="video/webm" />
+        </video>
       ) : (
         <img
+          key={mediaSrc}
           alt=""
           aria-hidden
           className="discord-id-nameplate-media"
-          src={nameplate.url}
+          onError={() => {
+            if (tier < 2) setTier(2);
+          }}
+          src={mediaSrc}
         />
       )}
       {nameplate.description ? (
@@ -641,7 +667,11 @@ export function DiscordSearchResults({
                 label="Decoration"
               />
               <DownloadButton
-                href={profile.nameplate?.animatedUrl ?? profile.nameplate?.url}
+                href={
+                  profile.nameplate?.animatedUrl ??
+                  profile.nameplate?.animatedImageUrl ??
+                  profile.nameplate?.url
+                }
                 label="Nameplate"
               />
             </div>
