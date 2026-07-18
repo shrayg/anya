@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
   if (type === "subscription") {
     const planId = normalizePlanId((body as { planId?: string }).planId);
     const interval = (body as { interval?: string }).interval;
-    if (!planId || planId === "free" || planId === "enterprise") {
+    if (!planId || planId === "free") {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
     if (!isInterval(interval)) {

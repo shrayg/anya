@@ -80,7 +80,7 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
   if (meta.type === "subscription") {
     const planId = normalizePlanId(meta.planId ?? existing?.plan);
     const interval = (meta.interval ?? existing?.interval ?? "monthly") as BillingInterval;
-    if (!planId || planId === "free" || planId === "enterprise") {
+    if (!planId || planId === "free") {
       return { ok: false as const, reason: "invalid_plan" };
     }
 

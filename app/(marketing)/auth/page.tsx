@@ -27,7 +27,7 @@ import { getAppLandingPath, normalizePlanId } from "@/lib/plans";
 
 async function startPlanCheckout(plan: string, interval: string) {
   const planId = normalizePlanId(plan);
-  if (!planId || planId === "free" || planId === "enterprise") {
+  if (!planId || planId === "free") {
     return { ok: false as const, reason: "invalid_plan" };
   }
 
@@ -202,7 +202,7 @@ function AuthForm() {
       const plan = searchParams.get("plan");
       const interval = searchParams.get("interval") ?? "monthly";
 
-      if (plan && plan !== "enterprise" && plan !== "free") {
+      if (plan && plan !== "free") {
         setInfo("Account ready — opening secure checkout…");
         const checkout = await startPlanCheckout(plan, interval);
         if (checkout.ok) {

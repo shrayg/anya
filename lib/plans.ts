@@ -87,6 +87,10 @@ export type PlanDefinition = {
   name: string;
   description: string;
   monthlyPrice: number | null;
+  /** Pre-sale list price shown struck through when set (e.g. Professional Rabat). */
+  compareAtMonthlyPrice?: number;
+  /** Sale badge label, e.g. "Rabat" / "Sale". */
+  saleBadge?: string;
   dailySearchLimit: number;
   features: string[];
   highlighted?: boolean;
@@ -114,11 +118,11 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     id: "starter",
     name: "Starter",
     description: "Core identity lookups — email, phone, username, and Discord",
-    monthlyPrice: 9.99,
-    dailySearchLimit: 10,
+    monthlyPrice: 4.99,
+    dailySearchLimit: 150,
     panelAccess: false,
     features: [
-      "10 searches per day",
+      "150 searches per day",
       "Email, Phone, Username, Discord ID",
       "Linked accounts, aliases, breach exposure, profile photos",
       "No dashboard / panel access",
@@ -129,12 +133,14 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     id: "professional",
     name: "Professional",
     description: "Full panel access for active investigators",
-    monthlyPrice: 24.99,
-    dailySearchLimit: 50,
+    monthlyPrice: 14.99,
+    compareAtMonthlyPrice: 24.99,
+    saleBadge: "Rabat",
+    dailySearchLimit: 500,
     panelAccess: true,
     highlighted: true,
     features: [
-      "50 searches per day",
+      "500 searches per day",
       "Full dashboard / panel access",
       "All modules except unrestricted AI",
       "Restricted AI Intelligence",
@@ -158,13 +164,12 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
   {
     id: "enterprise",
     name: "Enterprise",
-    description: "Custom deployments for teams and agencies",
-    monthlyPrice: null,
+    description: "Team and agency deployments with dedicated support",
+    monthlyPrice: 99.99,
     dailySearchLimit: Infinity,
     panelAccess: true,
-    customPricing: true,
     features: [
-      "Custom search limits",
+      "Unlimited searches",
       "Dedicated support & SLA",
       "Team seats & onboarding",
       "Priority feature requests",
@@ -489,11 +494,37 @@ export function getPlanPrice(
 /** @deprecated Use getPlanPrice — kept for staff payment recording. */
 export function getDisplayPrice(plan: PlanDefinition) {
   const price = getPlanPrice(plan, "monthly");
+  const onSale =
+    plan.compareAtMonthlyPrice != null &&
+    price.value != null &&
+    plan.compareAtMonthlyPrice > price.value;
   return {
     label: price.label,
     value: price.value,
-    sale: false,
+    sale: onSale,
+    compareAt: onSale ? plan.compareAtMonthlyPrice : null,
+    saleBadge: onSale ? (plan.saleBadge ?? "Sale") : null,
   };
+}
+
+/** Compare-at (list) price for the selected billing interval, when on sale. */
+export function getCompareAtPrice(
+  plan: PlanDefinition,
+  interval: BillingInterval = "monthly",
+): number | null {
+  if (
+    plan.compareAtMonthlyPrice == null ||
+    plan.monthlyPrice == null ||
+    plan.compareAtMonthlyPrice <= plan.monthlyPrice
+  ) {
+    return null;
+  }
+
+  if (interval === "annual") {
+    return Number((plan.compareAtMonthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2));
+  }
+
+  return plan.compareAtMonthlyPrice;
 }
 
 export function getApiPrice(interval: BillingInterval = "monthly"): {

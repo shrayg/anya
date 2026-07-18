@@ -20,6 +20,7 @@ import {
   CREDIT_PACKS,
   annualSavingsLabel,
   getApiPrice,
+  getCompareAtPrice,
   getCreditPackTotal,
   getPlanPrice,
   getPricingPlans,
@@ -193,6 +194,7 @@ export function PricingPageContent({
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => {
             const price = getPlanPrice(plan, interval);
+            const compareAt = getCompareAtPrice(plan, interval);
             const savings =
               interval === "annual" && plan.monthlyPrice
                 ? annualSavingsLabel(plan.monthlyPrice)
@@ -214,7 +216,14 @@ export function PricingPageContent({
                   </span>
                 )}
 
-                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                  {plan.saleBadge && compareAt != null && (
+                    <span className="rounded-md border border-emerald-400/40 bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                      {plan.saleBadge}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 min-h-[2.5rem] text-xs leading-5 text-zinc-400">
                   {plan.description}
                 </p>
@@ -224,7 +233,12 @@ export function PricingPageContent({
                     <span className="text-3xl font-bold text-white">Custom</span>
                   ) : (
                     <div>
-                      <div className="flex items-baseline gap-1">
+                      <div className="flex items-baseline gap-2">
+                        {compareAt != null && (
+                          <span className="text-lg tabular-nums text-zinc-500 line-through">
+                            ${compareAt.toFixed(2)}
+                          </span>
+                        )}
                         <span className="text-3xl font-bold tabular-nums text-white">
                           ${price.label}
                         </span>
