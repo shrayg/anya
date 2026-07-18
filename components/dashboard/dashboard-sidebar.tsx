@@ -138,7 +138,9 @@ function SidebarLink({
 
 function ModuleIcon({ name }: { name: string }) {
   if (hasPlatformBrandIcon(name)) {
-    return <PlatformBrandIcon name={name} />;
+    return (
+      <PlatformBrandIcon className="size-[1.15rem] shrink-0" name={name} />
+    );
   }
 
   return <Search className="size-[1.15rem] shrink-0 text-zinc-400" />;
@@ -186,12 +188,12 @@ function ModuleLink({
         </span>
       ) : (
         <>
-          <div className="min-w-0 flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <ModuleIcon name={name} />
-            <ModuleStatusDot slug={slug} />
             <span className="truncate">{name}</span>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <ModuleStatusDot className="size-1.5" slug={slug} />
             {locked && <Lock className="size-3 text-zinc-500" />}
             {badge && (
               <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-300">
@@ -284,10 +286,10 @@ export function DashboardSidebar({ username }: { username: string }) {
           <Image
             alt={siteConfig.name}
             className={siteLogoClassName}
-            height={32}
+            height={36}
             src={siteLogoSrc}
             unoptimized
-            width={32}
+            width={36}
           />
           {!collapsed && (
             <span className="[font-family:var(--font-bruno-ace-sc)]">

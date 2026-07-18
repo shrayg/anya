@@ -83,6 +83,7 @@ import {
   WORKSPACE_SEARCH_TOUR_STORAGE_KEY,
 } from "@/lib/search-tour";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
+import { IntelSignalLoader } from "@/components/dashboard/intel-signal-loader";
 import type { FormattedRecord } from "@/lib/search-utils";
 import { formatSearchRecords, formatStructuredSearchData } from "@/lib/search-utils";
 import {
@@ -1402,7 +1403,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               type="submit"
             >
               {isSearching
-                ? "Running…"
+                ? "Scanning…"
                 : isAi
                   ? "Analyse"
                   : moduleDef.slug === "intelx"
@@ -1410,6 +1411,14 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                     : "Run"}
             </button>
           </form>
+
+          {/* Default for every module (incl. new ones via ModuleSearchView). */}
+          {isSearching ? (
+            <IntelSignalLoader
+              active
+              title={moduleDef.name}
+            />
+          ) : null}
 
           {error && (
             <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-sm text-red-200">

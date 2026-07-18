@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import "@/styles/anya-pro.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
 import { Bruno_Ace_SC } from "next/font/google";
@@ -6,7 +7,7 @@ import { Bruno_Ace_SC } from "next/font/google";
 import { Providers } from "./providers";
 
 import { siteConfig } from "@/config/site";
-import { fontSans } from "@/config/fonts";
+import { fontMono, fontSans } from "@/config/fonts";
 import {
   siteIconSrc,
   siteLogoSrc,
@@ -58,6 +59,7 @@ export default function RootLayout({
       className={clsx(
         "dark",
         fontSans.variable,
+        fontMono.variable,
         brunoAceSc.variable,
         TEST_LIME_ICON_THEME && "theme-lime-test",
         TEST_MAC_DASHBOARD_THEME && "theme-mac-dashboard",
@@ -65,7 +67,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="min-h-screen bg-background font-sans text-foreground antialiased"
+        className="min-h-screen bg-background font-sans text-foreground antialiased [font-feature-settings:'ss01'_on,'cv11'_on]"
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
           {children}

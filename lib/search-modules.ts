@@ -5,6 +5,11 @@ export type ModuleTool = {
   apiType: string;
 };
 
+/**
+ * Module catalog entry. Pages render via `ModuleSearchView`, which always
+ * shows the shared Intel Signal Lattice loader while a run is in flight —
+ * new modules inherit that UI automatically (no per-module loader wiring).
+ */
 export type SearchModuleDef = {
   name: string;
   slug: string;

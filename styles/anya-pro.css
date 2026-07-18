@@ -1,0 +1,480 @@
+/**
+ * Anya Pro visual layer — polish only.
+ * Light-beam background stays in HomeBackground / LightPillar.
+ * New modules inherit via shared .ui-* / .dash-* / ModuleSearchView.
+ */
+
+:root {
+  --anya-surface: rgba(10, 10, 12, 0.62);
+  --anya-surface-strong: rgba(8, 8, 10, 0.78);
+  --anya-hairline: rgba(255, 255, 255, 0.1);
+  --anya-hairline-strong: rgba(255, 255, 255, 0.16);
+  --anya-ink: #fafafa;
+  --anya-ink-muted: #a1a1aa;
+  --anya-ink-faint: #71717a;
+  --anya-radius-sm: 0.55rem;
+  --anya-radius-md: 0.85rem;
+  --anya-radius-lg: 1.15rem;
+  --anya-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --anya-shadow-panel:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 48px -28px rgba(0, 0, 0, 0.75);
+}
+
+/* —— Global type —— */
+body {
+  letter-spacing: -0.011em;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+.dash-title,
+.module-search-title {
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+
+.font-mono,
+.ui-input,
+code,
+pre,
+.intelx-export-body {
+  font-family: var(--font-anya-mono), var(--font-mono), ui-monospace, monospace;
+  font-feature-settings: "ss01" on, "ss02" on;
+}
+
+/* —— Dashboard chrome —— */
+.dash-shell {
+  color: var(--anya-ink);
+}
+
+.dash-sidebar {
+  border-right-color: var(--anya-hairline);
+  background: linear-gradient(
+    180deg,
+    rgba(12, 12, 14, 0.72) 0%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  backdrop-filter: blur(28px) saturate(1.15);
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+.dash-sidebar-brand span {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.dash-nav-link {
+  border-radius: var(--anya-radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #c4c4cc;
+  transition:
+    background 0.18s var(--anya-ease),
+    color 0.18s var(--anya-ease),
+    box-shadow 0.18s var(--anya-ease),
+    transform 0.18s var(--anya-ease);
+}
+
+.dash-nav-link:hover {
+  background: rgba(255, 255, 255, 0.055);
+  color: #fff;
+}
+
+.dash-nav-link-active {
+  background: color-mix(in srgb, var(--anya-blush) 12%, rgba(255, 255, 255, 0.04));
+  color: #fff;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--anya-blush) 28%, transparent),
+    0 0 24px color-mix(in srgb, var(--anya-blush) 8%, transparent);
+}
+
+.dash-badge {
+  border-radius: 9999px;
+  border-color: color-mix(in srgb, var(--anya-blush) 25%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 8%, transparent);
+  color: color-mix(in srgb, var(--anya-blush) 70%, white);
+  letter-spacing: 0.16em;
+}
+
+.dash-title {
+  font-size: clamp(1.85rem, 3.2vw, 2.45rem);
+  font-weight: 700;
+}
+
+.dash-subtitle {
+  color: var(--anya-ink-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.dash-panel,
+.dash-stat,
+.dash-quick-card {
+  border-radius: var(--anya-radius-md);
+  border-color: var(--anya-hairline);
+  background: var(--anya-surface);
+  box-shadow: var(--anya-shadow-panel);
+  transition:
+    border-color 0.2s var(--anya-ease),
+    transform 0.2s var(--anya-ease),
+    background 0.2s var(--anya-ease);
+}
+
+.dash-quick-card:hover,
+.dash-stat:hover {
+  border-color: var(--anya-hairline-strong);
+  background: rgba(255, 255, 255, 0.035);
+  transform: translateY(-1px);
+}
+
+.dash-stat-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.dash-btn,
+.dash-btn-primary,
+.dash-btn-secondary {
+  border-radius: var(--anya-radius-sm);
+  letter-spacing: -0.01em;
+}
+
+.dash-btn-primary {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--anya-blush) 92%, white),
+    var(--anya-blush)
+  );
+  color: #14110f;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 10px 28px -12px color-mix(in srgb, var(--anya-blush) 55%, transparent);
+}
+
+.dash-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.dash-main {
+  scroll-behavior: smooth;
+}
+
+.dash-main::-webkit-scrollbar {
+  width: 10px;
+}
+
+.dash-main::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.dash-main::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--anya-blush) 35%, rgba(255, 255, 255, 0.15));
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* —— Shared UI primitives —— */
+.ui-panel {
+  border-color: var(--anya-hairline);
+  background: var(--anya-surface-strong);
+  border-radius: var(--anya-radius-lg);
+  backdrop-filter: blur(18px) saturate(1.1);
+  box-shadow: var(--anya-shadow-panel);
+}
+
+.ui-panel-body {
+  padding: 1.35rem 1.4rem;
+}
+
+@media (min-width: 768px) {
+  .ui-panel-body {
+    padding: 1.5rem 1.65rem;
+  }
+}
+
+.ui-input {
+  border-radius: var(--anya-radius-sm);
+  border-color: var(--anya-hairline);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.7rem 0.95rem;
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
+  transition:
+    border-color 0.18s var(--anya-ease),
+    box-shadow 0.18s var(--anya-ease),
+    background 0.18s var(--anya-ease);
+}
+
+.ui-input:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.ui-input:focus {
+  border-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--anya-blush) 16%, transparent);
+}
+
+.ui-btn {
+  border-radius: var(--anya-radius-sm);
+  padding: 0.65rem 1.05rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  transition:
+    background 0.18s var(--anya-ease),
+    border-color 0.18s var(--anya-ease),
+    color 0.18s var(--anya-ease),
+    box-shadow 0.18s var(--anya-ease),
+    transform 0.18s var(--anya-ease),
+    filter 0.18s var(--anya-ease);
+}
+
+.ui-btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.ui-btn-primary {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--anya-blush) 92%, white) 0%,
+    var(--anya-blush) 100%
+  );
+  color: #14110f;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 12px 28px -14px color-mix(in srgb, var(--anya-blush) 60%, transparent);
+}
+
+.ui-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 14px 32px -12px color-mix(in srgb, var(--anya-blush) 70%, transparent);
+}
+
+.ui-btn-ghost {
+  border-color: var(--anya-hairline);
+  background: rgba(255, 255, 255, 0.02);
+  color: #e4e4e7;
+}
+
+.ui-btn-ghost:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--anya-blush) 40%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 8%, transparent);
+  color: #fff;
+}
+
+.ui-tab {
+  border-radius: 0.45rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.ui-tab--active {
+  color: #14110f;
+  box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--anya-blush) 70%, transparent);
+}
+
+/* —— Module search —— */
+.module-search-section {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.module-search-title {
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  font-weight: 700;
+}
+
+.module-search-back {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* —— Marketing —— */
+.container {
+  letter-spacing: -0.01em;
+}
+
+/* —— Auth panels —— */
+.ui-panel--auth {
+  border-radius: var(--anya-radius-lg);
+  box-shadow:
+    var(--anya-shadow-panel),
+    0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+/* —— Intel signal loader: centered stack, never clip —— */
+.intel-signal-loader {
+  overflow: visible;
+  border-radius: var(--anya-radius-lg);
+  border-color: color-mix(in srgb, var(--anya-blush) 22%, transparent);
+  background:
+    radial-gradient(
+      ellipse 85% 70% at 50% 0%,
+      color-mix(in srgb, var(--anya-blush) 12%, transparent),
+      transparent 58%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+  box-shadow: var(--anya-shadow-panel);
+}
+
+.intel-signal-loader--hero {
+  margin-top: 1.25rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+}
+
+.intel-signal-loader--compact {
+  margin-top: 0;
+  padding: 1.1rem 1rem 1rem;
+  border-radius: 0.85rem;
+}
+
+.intel-signal-loader__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.intel-signal-loader__canvas-wrap {
+  position: relative;
+  flex-shrink: 0;
+  overflow: visible;
+  width: 12.5rem;
+  height: 12.5rem;
+  padding: 0.35rem;
+  box-sizing: content-box;
+}
+
+.intel-signal-loader--compact .intel-signal-loader__canvas-wrap {
+  width: 6.5rem;
+  height: 6.5rem;
+  padding: 0.2rem;
+}
+
+.intel-signal-loader__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.intel-signal-loader__pct {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-anya-mono), var(--font-mono), ui-monospace, monospace;
+  font-size: 1.65rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  color: #f4f4f5;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  pointer-events: none;
+}
+
+.intel-signal-loader--compact .intel-signal-loader__pct {
+  font-size: 0.95rem;
+}
+
+.intel-signal-loader__track {
+  width: min(16rem, 100%);
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.intel-signal-loader--compact .intel-signal-loader__track {
+  width: min(12rem, 100%);
+}
+
+.intel-signal-loader__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--anya-blush),
+    color-mix(in srgb, var(--anya-blush) 40%, white)
+  );
+  box-shadow: 0 0 12px color-mix(in srgb, var(--anya-blush) 55%, transparent);
+  transition: width 0.12s linear;
+}
+
+.intel-signal-loader__copy {
+  min-width: 0;
+}
+
+.intel-signal-loader__eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--anya-blush) 85%, white);
+}
+
+.intel-signal-loader__stage-text {
+  margin: 0.4rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #fafafa;
+}
+
+.intel-signal-loader--compact .intel-signal-loader__stage-text {
+  font-size: 0.9rem;
+}
+
+@keyframes intel-signal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.intel-signal-loader {
+  animation: intel-signal-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intel-signal-loader {
+    animation: none;
+  }
+
+  .intel-signal-loader__fill {
+    transition: none;
+  }
+}
+
+/* —— Selection / focus polish —— */
+::selection {
+  background: color-mix(in srgb, var(--anya-blush) 40%, transparent);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--anya-blush) 65%, transparent);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible) {
+  outline: none;
+}
