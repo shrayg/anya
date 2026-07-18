@@ -121,16 +121,16 @@ const ShinyText: React.FC<ShinyTextProps> = ({
 
   return (
     <span
-      className={`inline-grid overflow-visible leading-[1.15] ${className}`}
+      className={`inline-grid overflow-visible pb-[0.18em] leading-[1.28] ${className}`}
       data-splash-target={splashTarget ? "" : undefined}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <span aria-hidden className="invisible col-start-1 row-start-1">
+      <span aria-hidden className="invisible col-start-1 row-start-1 pb-[0.18em]">
         {text}
       </span>
       <motion.span
-        className="col-start-1 row-start-1"
+        className="col-start-1 row-start-1 overflow-visible pb-[0.18em]"
         style={{ ...gradientStyle, backgroundPosition }}
       >
         {text}

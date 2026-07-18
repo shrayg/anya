@@ -46,10 +46,18 @@
   box-shadow: 0 0 10px var(--anya-blush-glow);
 }
 
+/* Hero brand mark — keep descenders (y) visible under background-clip text */
+[data-splash-target] {
+  overflow: visible !important;
+  line-height: 1.28 !important;
+  padding-bottom: 0.18em;
+}
+
 /* Hide hero brand while splash hold + handoff tween are active */
 html[data-splash="active"] [data-splash-target] {
   opacity: 0 !important;
 }
+
 
 /* Hide scrollbar globally */
 ::-webkit-scrollbar {
