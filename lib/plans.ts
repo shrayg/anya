@@ -87,9 +87,9 @@ export type PlanDefinition = {
   name: string;
   description: string;
   monthlyPrice: number | null;
-  /** Pre-sale list price shown struck through when set (e.g. Professional Rabat). */
+  /** Pre-sale list price shown struck through when set (e.g. Professional Sale). */
   compareAtMonthlyPrice?: number;
-  /** Sale badge label, e.g. "Rabat" / "Sale". */
+  /** Sale badge label, e.g. "Sale" or "Discount". */
   saleBadge?: string;
   dailySearchLimit: number;
   features: string[];
@@ -135,7 +135,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     description: "Full panel access for active investigators",
     monthlyPrice: 14.99,
     compareAtMonthlyPrice: 24.99,
-    saleBadge: "Rabat",
+    saleBadge: "Sale",
     dailySearchLimit: 500,
     panelAccess: true,
     highlighted: true,
