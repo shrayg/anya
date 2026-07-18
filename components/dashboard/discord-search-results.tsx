@@ -688,186 +688,186 @@ export function DiscordSearchResults({
       </div>
 
       <div className="discord-id-layout">
-        <article
-          className="discord-id-profile"
-          style={{ "--discord-accent": accent } as React.CSSProperties}
-        >
-          <div className="discord-id-banner-wrap">
-            {profile.bannerUrl && !bannerHidden ? (
-              <img
-                alt=""
-                className="discord-id-banner"
-                src={profile.bannerUrl}
-              />
-            ) : (
-              <div
-                className="discord-id-banner discord-id-banner--solid"
-                style={{ backgroundColor: accent }}
-              />
-            )}
-            <div className="discord-id-banner-actions">
-              <button
-                aria-label={bannerHidden ? "Show banner" : "Hide banner"}
-                className="discord-id-banner-btn"
-                onClick={() => setBannerHidden((value) => !value)}
-                type="button"
-              >
-                <EyeOff className="size-3.5" />
-              </button>
-              {profile.bannerUrl ? (
-                <a
-                  aria-label="Download banner"
+        <div className="discord-id-col-left">
+          <article
+            className="discord-id-profile"
+            style={{ "--discord-accent": accent } as React.CSSProperties}
+          >
+            <div className="discord-id-banner-wrap">
+              {profile.bannerUrl && !bannerHidden ? (
+                <img
+                  alt=""
+                  className="discord-id-banner"
+                  src={profile.bannerUrl}
+                />
+              ) : (
+                <div
+                  className="discord-id-banner discord-id-banner--solid"
+                  style={{ backgroundColor: accent }}
+                />
+              )}
+              <div className="discord-id-banner-actions">
+                <button
+                  aria-label={bannerHidden ? "Show banner" : "Hide banner"}
                   className="discord-id-banner-btn"
-                  download
-                  href={profile.bannerUrl}
+                  onClick={() => setBannerHidden((value) => !value)}
+                  type="button"
+                >
+                  <EyeOff className="size-3.5" />
+                </button>
+                {profile.bannerUrl ? (
+                  <a
+                    aria-label="Download banner"
+                    className="discord-id-banner-btn"
+                    download
+                    href={profile.bannerUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <Download className="size-3.5" />
+                  </a>
+                ) : null}
+                <a
+                  aria-label="Open Discord profile"
+                  className="discord-id-banner-btn"
+                  href={`https://discord.com/users/${profile.id}`}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  <Download className="size-3.5" />
+                  <ExternalLink className="size-3.5" />
                 </a>
-              ) : null}
-              <a
-                aria-label="Open Discord profile"
-                className="discord-id-banner-btn"
-                href={`https://discord.com/users/${profile.id}`}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <ExternalLink className="size-3.5" />
-              </a>
+              </div>
             </div>
-          </div>
 
-          <div className="discord-id-avatar-wrap">
-            <div className="discord-id-avatar-ring">
-              <img
-                alt={`${profile.displayName} avatar`}
-                className="discord-id-avatar"
-                src={profile.avatarUrl}
-              />
-              {profile.avatarDecorationUrl ? (
+            <div className="discord-id-avatar-wrap">
+              <div className="discord-id-avatar-ring">
                 <img
-                  alt=""
-                  aria-hidden
-                  className="discord-id-avatar-decoration"
-                  src={profile.avatarDecorationUrl}
+                  alt={`${profile.displayName} avatar`}
+                  className="discord-id-avatar"
+                  src={profile.avatarUrl}
                 />
-              ) : null}
-            </div>
-          </div>
-
-          <div className="discord-id-identity">
-            <h3 className="discord-id-name">
-              <BlurredValue forceBlur={blurResults} text={profile.displayName} />
-              {profile.clanTag ? (
-                <span className="discord-id-clan">
-                  {profile.clanBadgeUrl ? (
-                    <img
-                      alt=""
-                      aria-hidden
-                      className="discord-id-clan-badge"
-                      src={profile.clanBadgeUrl}
-                    />
-                  ) : null}
-                  <BlurredValue forceBlur={blurResults} text={profile.clanTag} />
-                </span>
-              ) : null}
-              {profile.nitro ? (
-                <span className="discord-id-nitro" title="Nitro">
-                  N
-                </span>
-              ) : null}
-            </h3>
-            <p className="discord-id-handle">
-              <BlurredValue
-                forceBlur={blurResults}
-                text={`@${profile.username}`}
-              />
-            </p>
-          </div>
-
-          {profile.nameplate ? (
-            <div className="discord-id-nameplate">
-              <span className="discord-id-nameplate-tag">Nameplate</span>
-              <DiscordNameplateArt
-                blurResults={blurResults}
-                nameplate={profile.nameplate}
-              />
-            </div>
-          ) : null}
-
-          {badges.length > 0 ? (
-            <div className="discord-id-badges" aria-label="Badges">
-              {badges.map((badge) => (
-                <span
-                  key={badge.key}
-                  className="discord-id-badge"
-                  style={
-                    {
-                      "--badge-color": badge.color,
-                      "--badge-glow": badge.glow,
-                    } as React.CSSProperties
-                  }
-                  title={badge.label}
-                >
-                  {badge.short}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="discord-id-fields">
-            <div className="discord-id-field">
-              <span className="discord-id-field-icon" aria-hidden>
-                <Hash className="size-3.5" />
-              </span>
-              <div className="discord-id-field-body">
-                <p className="discord-id-field-label">Discord ID</p>
-                <p className="discord-id-field-value discord-id-field-value--mono">
-                  <BlurredValue forceBlur={blurResults} text={profile.id} />
-                </p>
-              </div>
-              {!blurResults ? <CopyButton value={profile.id} /> : null}
-            </div>
-
-            <div className="discord-id-field">
-              <span className="discord-id-field-icon" aria-hidden>
-                <Calendar className="size-3.5" />
-              </span>
-              <div className="discord-id-field-body">
-                <p className="discord-id-field-label">Account created</p>
-                <p className="discord-id-field-value">
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={formatDiscordCreatedAtExact(profile.createdAt)}
+                {profile.avatarDecorationUrl ? (
+                  <img
+                    alt=""
+                    aria-hidden
+                    className="discord-id-avatar-decoration"
+                    src={profile.avatarDecorationUrl}
                   />
-                </p>
+                ) : null}
               </div>
             </div>
-          </div>
 
-          <div className="discord-id-downloads">
-            <p className="discord-id-downloads-label">Downloads</p>
-            <div className="discord-id-downloads-row">
-              <DownloadButton href={profile.avatarUrl} label="Avatar" />
-              <DownloadButton href={profile.bannerUrl} label="Banner" />
-              <DownloadButton
-                href={profile.avatarDecorationUrl}
-                label="Decoration"
-              />
-              <DownloadButton
-                href={
-                  profile.nameplate?.animatedUrl ??
-                  profile.nameplate?.animatedImageUrl ??
-                  profile.nameplate?.url
-                }
-                label="Nameplate"
-              />
+            <div className="discord-id-identity">
+              <h3 className="discord-id-name">
+                <BlurredValue forceBlur={blurResults} text={profile.displayName} />
+                {profile.clanTag ? (
+                  <span className="discord-id-clan">
+                    {profile.clanBadgeUrl ? (
+                      <img
+                        alt=""
+                        aria-hidden
+                        className="discord-id-clan-badge"
+                        src={profile.clanBadgeUrl}
+                      />
+                    ) : null}
+                    <BlurredValue forceBlur={blurResults} text={profile.clanTag} />
+                  </span>
+                ) : null}
+                {profile.nitro ? (
+                  <span className="discord-id-nitro" title="Nitro">
+                    N
+                  </span>
+                ) : null}
+              </h3>
+              <p className="discord-id-handle">
+                <BlurredValue
+                  forceBlur={blurResults}
+                  text={`@${profile.username}`}
+                />
+              </p>
             </div>
-          </div>
-        </article>
 
-        <div className="discord-id-side">
+            {profile.nameplate ? (
+              <div className="discord-id-nameplate">
+                <span className="discord-id-nameplate-tag">Nameplate</span>
+                <DiscordNameplateArt
+                  blurResults={blurResults}
+                  nameplate={profile.nameplate}
+                />
+              </div>
+            ) : null}
+
+            {badges.length > 0 ? (
+              <div className="discord-id-badges" aria-label="Badges">
+                {badges.map((badge) => (
+                  <span
+                    key={badge.key}
+                    className="discord-id-badge"
+                    style={
+                      {
+                        "--badge-color": badge.color,
+                        "--badge-glow": badge.glow,
+                      } as React.CSSProperties
+                    }
+                    title={badge.label}
+                  >
+                    {badge.short}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="discord-id-fields">
+              <div className="discord-id-field">
+                <span className="discord-id-field-icon" aria-hidden>
+                  <Hash className="size-3.5" />
+                </span>
+                <div className="discord-id-field-body">
+                  <p className="discord-id-field-label">Discord ID</p>
+                  <p className="discord-id-field-value discord-id-field-value--mono">
+                    <BlurredValue forceBlur={blurResults} text={profile.id} />
+                  </p>
+                </div>
+                {!blurResults ? <CopyButton value={profile.id} /> : null}
+              </div>
+
+              <div className="discord-id-field">
+                <span className="discord-id-field-icon" aria-hidden>
+                  <Calendar className="size-3.5" />
+                </span>
+                <div className="discord-id-field-body">
+                  <p className="discord-id-field-label">Account created</p>
+                  <p className="discord-id-field-value">
+                    <BlurredValue
+                      forceBlur={blurResults}
+                      text={formatDiscordCreatedAtExact(profile.createdAt)}
+                    />
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="discord-id-downloads">
+              <p className="discord-id-downloads-label">Downloads</p>
+              <div className="discord-id-downloads-row">
+                <DownloadButton href={profile.avatarUrl} label="Avatar" />
+                <DownloadButton href={profile.bannerUrl} label="Banner" />
+                <DownloadButton
+                  href={profile.avatarDecorationUrl}
+                  label="Decoration"
+                />
+                <DownloadButton
+                  href={
+                    profile.nameplate?.animatedUrl ??
+                    profile.nameplate?.animatedImageUrl ??
+                    profile.nameplate?.url
+                  }
+                  label="Nameplate"
+                />
+              </div>
+            </div>
+          </article>
+
           <RobloxLinkPanel blurResults={blurResults} link={robloxLink} />
 
           <section className="discord-id-dsa" ref={dsaRef}>
@@ -902,37 +902,39 @@ export function DiscordSearchResults({
               </div>
             )}
           </section>
+
+          <ExpandableRecordsSection
+            count={fivemCount}
+            onToggle={() => setShowFivem((value) => !value)}
+            open={showFivem}
+            title="FiveM records"
+          >
+            <DiscordLeakRecords
+              blurResults={blurResults}
+              emptyDetail="No FiveM accounts linked to this Discord ID."
+              metaDetail="Linked FiveM accounts"
+              records={fivemRecords}
+              totalCount={fivemCount}
+            />
+          </ExpandableRecordsSection>
+        </div>
+
+        <div className="discord-id-col-main">
+          <ExpandableRecordsSection
+            count={leaks.count}
+            onToggle={() => setShowLeaks((value) => !value)}
+            open={showLeaks}
+            title="Breach records"
+          >
+            <DiscordLeakRecords
+              blurResults={blurResults}
+              emptyDetail="No breach or stealer records found for this Discord ID."
+              records={leakRecords}
+              totalCount={leaks.count}
+            />
+          </ExpandableRecordsSection>
         </div>
       </div>
-
-      <ExpandableRecordsSection
-        count={leaks.count}
-        onToggle={() => setShowLeaks((value) => !value)}
-        open={showLeaks}
-        title="Breach records"
-      >
-        <DiscordLeakRecords
-          blurResults={blurResults}
-          emptyDetail="No breach or stealer records found for this Discord ID."
-          records={leakRecords}
-          totalCount={leaks.count}
-        />
-      </ExpandableRecordsSection>
-
-      <ExpandableRecordsSection
-        count={fivemCount}
-        onToggle={() => setShowFivem((value) => !value)}
-        open={showFivem}
-        title="FiveM records"
-      >
-        <DiscordLeakRecords
-          blurResults={blurResults}
-          emptyDetail="No FiveM accounts linked to this Discord ID."
-          metaDetail="Linked FiveM accounts"
-          records={fivemRecords}
-          totalCount={fivemCount}
-        />
-      </ExpandableRecordsSection>
 
       {blurResults ? <ResultsBlurNotice /> : null}
     </div>
