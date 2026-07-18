@@ -21,7 +21,7 @@ HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:3000/}"
 # Re-exec under flock so overlapping deploys cannot race `.next` / PM2.
 if [[ "${ANYA_DEPLOY_LOCKED:-}" != "1" ]]; then
   set +e
-  env ANYA_DEPLOY_LOCKED=1 flock -n -E 42 "${DEPLOY_LOCK}" "$0" "$@"
+  env ANYA_DEPLOY_LOCKED=1 flock -n -E 42 "${DEPLOY_LOCK}" bash "$0" "$@"
   ec=$?
   set -e
   if [[ "${ec}" -eq 42 ]]; then
