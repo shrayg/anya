@@ -101,12 +101,12 @@ export const Navbar = () => {
               </p>
             </NextLink>
           </NavbarBrand>
-          <ul className="hidden lg:flex gap-4 justify-start ml-2 font-mono">
+          <ul className="hidden md:flex shrink-0 gap-1 justify-start ml-2 font-mono">
             {siteConfig.navItems.map((item) => {
               const modalHandler = getModalHandler(item);
 
               return (
-                <NavbarItem key={item.label}>
+                <NavbarItem key={item.label} className="shrink-0">
                   {modalHandler ? (
                     <Button
                       className="ml-1 font-medium hover:-translate-y-1 transition-all duration-200 ease-in-out"
@@ -143,10 +143,10 @@ export const Navbar = () => {
         </NavbarContent>
 
         <NavbarContent
-          className="hidden sm:flex basis-1/5 sm:basis-full"
+          className="hidden md:flex basis-1/5 md:basis-full"
           justify="end"
         >
-          <NavbarItem className="hidden sm:flex gap-2 items-center">
+          <NavbarItem className="hidden md:flex gap-2 items-center shrink-0">
             {username ? (
               <>
                 <span className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300">
@@ -195,7 +195,7 @@ export const Navbar = () => {
           </NavbarItem>
         </NavbarContent>
 
-        <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
+        <NavbarContent className="md:hidden basis-1 pl-4" justify="end">
           <NavbarMenuToggle />
         </NavbarContent>
 

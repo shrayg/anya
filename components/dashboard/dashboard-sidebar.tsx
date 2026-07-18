@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   Coffee,
   CreditCard,
   IdCard,
@@ -68,6 +69,7 @@ const mainNav: NavItem[] = [
 const footerNav: NavItem[] = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Pricing", href: "/pricing", icon: CreditCard },
+  { name: "Status", href: "/status", icon: Activity },
   { name: "Coffee Support", href: "/dashboard/support", icon: Coffee },
 ];
 
