@@ -989,9 +989,22 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       }
 
       if (activeType === "discord") {
-        const discordData = data as DiscordSearchResult & { error?: string };
+        const discordData = data as DiscordSearchResult & {
+          error?: string;
+          enrichment?: Record<string, unknown> | null;
+          robloxLink?: Record<string, unknown> | null;
+        };
 
-        if (!discordData.profile) {
+        const hasProfile = Boolean(discordData.profile);
+        const hasLeaks = (discordData.leaks?.count ?? 0) > 0;
+        const hasRoblox = Boolean(discordData.robloxLink);
+        const hasEnrichment = Boolean(
+          discordData.enrichment &&
+            typeof discordData.enrichment === "object" &&
+            Object.keys(discordData.enrichment).length > 0,
+        );
+
+        if (!hasProfile && !hasLeaks && !hasRoblox && !hasEnrichment) {
           markNoResults(
             discordData.error || "No results were found.",
           );
@@ -1131,6 +1144,24 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
       if (Array.isArray(data.results)) {
         const results = data.results as unknown[];
+        const profile =
+          data.profile &&
+          typeof data.profile === "object" &&
+          !Array.isArray(data.profile)
+            ? (data.profile as Record<string, unknown>)
+            : null;
+
+        if (results.length === 0 && profile) {
+          const formattedProfile = formatSearchRecords([profile]);
+          if (formattedProfile.length > 0) {
+            setRecords(formattedProfile);
+            setResultCount(formattedProfile.length);
+            setRawResult(JSON.stringify(data, null, 2));
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+            persistSearch(trimmed, moduleDef.slug, serialized);
+            return;
+          }
+        }
 
         if (results.length === 0) {
           markNoResults(
@@ -1140,6 +1171,15 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         }
 
         const formatted = formatSearchRecords(results);
+
+        if (formatted.length === 0) {
+          markNoResults(
+            typeof data.message === "string"
+              ? data.message
+              : "No results were found.",
+          );
+          return;
+        }
 
         setRecords(formatted);
         setResultCount(typeof data.count === "number" ? data.count : results.length);

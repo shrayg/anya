@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
-import { fetchCsintTiktokRecon } from "@/lib/csint";
+import { fetchCsintTiktokRecon, flattenCsintEntity } from "@/lib/csint";
 import { publicSearchError } from "@/lib/public-branding";
 
 export async function GET(req: NextRequest) {
@@ -17,13 +17,23 @@ export async function GET(req: NextRequest) {
 
   try {
     const data = await fetchCsintTiktokRecon(query);
-    if (!data) {
-      return NextResponse.json(
-        { error: publicSearchError("No TikTok profile found.") },
-        { status: 404 },
-      );
+    const profile = flattenCsintEntity(data);
+
+    if (!profile) {
+      return NextResponse.json({
+        query,
+        count: 0,
+        results: [],
+        message: "No results were found.",
+      });
     }
-    return NextResponse.json(data);
+
+    return NextResponse.json({
+      query,
+      count: 1,
+      results: [profile],
+      profile,
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : publicSearchError();

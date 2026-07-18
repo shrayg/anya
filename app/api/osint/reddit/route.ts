@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
-import { fetchCsintReddit } from "@/lib/csint";
+import { fetchCsintReddit, flattenCsintEntity } from "@/lib/csint";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
-import { PUBLIC_INTEL_SOURCE } from "@/lib/public-branding";
+import { mergeSanitizedResponses } from "@/lib/osintcat";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "reddit");
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [indexData, profile] = await Promise.all([
+    const [indexData, profilePayload] = await Promise.all([
       fetchGodsEyeOnlySearch(query, "reddit").catch(() => ({
         count: 0,
         results: [] as unknown[],
@@ -25,22 +25,33 @@ export async function GET(req: NextRequest) {
       fetchCsintReddit(query),
     ]);
 
+    const profile = flattenCsintEntity(profilePayload);
+    const parts = [indexData];
     if (profile) {
-      return NextResponse.json({
-        ...indexData,
-        profile,
-        source: PUBLIC_INTEL_SOURCE,
-      });
+      parts.push({ count: 1, results: [profile] });
     }
 
-    if (indexData.count === 0) {
+    const merged = mergeSanitizedResponses(...parts);
+
+    if (merged.count === 0) {
       return NextResponse.json({
-        ...indexData,
+        query,
+        count: 0,
+        results: [],
         message: "No results were found.",
+        ...(profilePayload && !profile
+          ? {}
+          : profile
+            ? { profile }
+            : {}),
       });
     }
 
-    return NextResponse.json(indexData);
+    return NextResponse.json({
+      query,
+      ...merged,
+      ...(profile ? { profile } : {}),
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to reach API";
 

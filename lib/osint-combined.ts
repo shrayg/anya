@@ -112,6 +112,20 @@ function pushSettledSanitized(
   }
 }
 
+/** Rate-limit / quota errors must not hard-fail when other sources were tried. */
+function isSoftProviderFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const lower = error.message.toLowerCase();
+  return (
+    lower.includes("too many searches") ||
+    lower.includes("daily search limit") ||
+    lower.includes("rate limit") ||
+    lower.includes("per-minute") ||
+    lower.includes("quota exceeded") ||
+    lower.includes("temporarily unavailable due to provider limits")
+  );
+}
+
 export async function fetchCombinedStealerLogs(
   query: string,
   scope?: string | null,
@@ -154,7 +168,8 @@ export async function fetchCombinedStealerLogs(
 
   const godseyeError =
     godseyeResult.status === "rejected" &&
-    godseyeResult.reason instanceof Error
+    godseyeResult.reason instanceof Error &&
+    !isSoftProviderFailure(godseyeResult.reason)
       ? godseyeResult.reason
       : null;
 
@@ -195,7 +210,8 @@ export async function fetchCombinedPlatformSearch(
 
   if (
     godseyeResult.status === "rejected" &&
-    godseyeResult.reason instanceof Error
+    godseyeResult.reason instanceof Error &&
+    !isSoftProviderFailure(godseyeResult.reason)
   ) {
     throw godseyeResult.reason;
   }
@@ -238,7 +254,8 @@ export async function fetchGodsEyeOnlySearch(
 
   if (
     godseyeResult.status === "rejected" &&
-    godseyeResult.reason instanceof Error
+    godseyeResult.reason instanceof Error &&
+    !isSoftProviderFailure(godseyeResult.reason)
   ) {
     throw godseyeResult.reason;
   }

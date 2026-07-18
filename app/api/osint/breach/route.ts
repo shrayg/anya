@@ -25,7 +25,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
   }
 
-  if (isDiscordSnowflake(query)) {
+  const platform = getPlatformSearchConfig(scope);
+
+  // Stealer Logs (no platform scope) must not accept Discord snowflakes.
+  // Platform modules (Steam ID64, numeric Telegram IDs, etc.) are allowed through.
+  if (!platform && isDiscordSnowflake(query)) {
     return NextResponse.json(
       {
         error:
@@ -35,7 +39,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const platform = getPlatformSearchConfig(scope);
 
   if (platform) {
     try {

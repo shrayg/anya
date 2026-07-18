@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
-import { fetchCsintShareResolver } from "@/lib/csint";
+import { fetchCsintShareResolver, flattenCsintEntity } from "@/lib/csint";
 import { publicSearchError } from "@/lib/public-branding";
 
 function detectSharePlatform(
@@ -45,10 +45,42 @@ export async function GET(req: NextRequest) {
 
   try {
     const data = await fetchCsintShareResolver(platform, query);
-    return NextResponse.json(data);
+    const resolved = flattenCsintEntity(data);
+
+    if (!resolved) {
+      return NextResponse.json({
+        query,
+        platform,
+        count: 0,
+        results: [],
+        message: "No results were found.",
+      });
+    }
+
+    return NextResponse.json({
+      query,
+      platform,
+      count: 1,
+      results: [{ ...resolved, platform }],
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : publicSearchError();
+    // CSINT returns 400 "Unable to find sharer" for unknown links — show empty, not error.
+    const lower = message.toLowerCase();
+    if (
+      lower.includes("unable to find") ||
+      lower.includes("resolution failed") ||
+      lower.includes("not found")
+    ) {
+      return NextResponse.json({
+        query,
+        platform,
+        count: 0,
+        results: [],
+        message: "No results were found.",
+      });
+    }
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

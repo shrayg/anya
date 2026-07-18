@@ -495,7 +495,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Platforms",
         "Minecraft",
         "minecraft",
-        "breach",
+        "minecraft",
         "Minecraft username or UUID",
         "Search Minecraft breach and OSINT indexes.",
       ),

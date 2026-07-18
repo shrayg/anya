@@ -393,6 +393,15 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
     return formatSearchRecords(record.results);
   }
 
+  if (
+    record.profile &&
+    typeof record.profile === "object" &&
+    !Array.isArray(record.profile)
+  ) {
+    const profileRecords = formatSearchRecords([record.profile]);
+    if (profileRecords.length > 0) return profileRecords;
+  }
+
   if (Array.isArray(record.breach_data)) {
     return formatSearchRecords(record.breach_data);
   }

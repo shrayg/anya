@@ -741,6 +741,81 @@ export async function fetchCsintReddit(
   }
 }
 
+/**
+ * Flatten a CSINT profile/entity payload into one scrubbed intel card row.
+ * Nested objects are skipped so ModuleSearchView can render scalar fields.
+ */
+export function flattenCsintEntity(
+  payload: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  if (!payload) return null;
+
+  const candidates: unknown[] = [
+    payload.profile,
+    payload.data,
+    payload.user,
+    payload.result,
+    payload.sharer,
+    payload.account,
+    // Reddit recon nests account scalars under raw_stats.account
+    (payload.raw_stats as Record<string, unknown> | undefined)?.account,
+    payload,
+  ];
+
+  const flat: Record<string, unknown> = {};
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+      continue;
+    }
+
+    for (const [key, value] of Object.entries(
+      candidate as Record<string, unknown>,
+    )) {
+      if (key in flat) continue;
+      if (META_KEYS.has(key) || /csint/i.test(key)) continue;
+      if (value === null || value === undefined || value === "") continue;
+      if (typeof value === "object") continue;
+      flat[key] = value;
+    }
+  }
+
+  // TikTok recon: merge top-level stats scalars (followers/following/etc.)
+  const stats = payload.stats;
+  if (stats && typeof stats === "object" && !Array.isArray(stats)) {
+    for (const [key, value] of Object.entries(stats as Record<string, unknown>)) {
+      if (key in flat) continue;
+      if (value === null || value === undefined || value === "") continue;
+      if (typeof value === "object") continue;
+      flat[key] = value;
+    }
+  }
+
+  // Reddit: a few useful AI summary strings when present
+  const ai = payload.ai_analysis;
+  if (ai && typeof ai === "object" && !Array.isArray(ai)) {
+    const a = ai as Record<string, unknown>;
+    for (const key of [
+      "summary",
+      "likely_location",
+      "estimated_age_range",
+      "inferred_gender",
+      "timezone_hint",
+    ] as const) {
+      const value = a[key];
+      if (typeof value === "string" && value.trim() && !(key in flat)) {
+        flat[key] = value.trim();
+      }
+    }
+  }
+
+  if (typeof payload.source_url === "string" && payload.source_url.trim()) {
+    flat.source_url = payload.source_url.trim();
+  }
+
+  return scrubIntelRecord(flat);
+}
+
 export async function fetchCsintTiktokRecon(
   username: string,
 ): Promise<Record<string, unknown> | null> {
