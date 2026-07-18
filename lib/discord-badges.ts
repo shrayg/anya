@@ -98,21 +98,10 @@ const BADGE_MAP: Record<string, DiscordBadgeDef> = {
     color: "#45ddc0",
     glow: "rgba(69, 221, 192, 0.4)",
   },
-  PREMIUM: {
-    key: "PREMIUM",
-    label: "Nitro",
-    short: "N",
-    color: "#ff6fb1",
-    glow: "rgba(255, 111, 177, 0.45)",
-  },
-  NITRO: {
-    key: "NITRO",
-    label: "Nitro",
-    short: "N",
-    color: "#ff6fb1",
-    glow: "rgba(255, 111, 177, 0.45)",
-  },
 };
+
+/** Nitro is tracked in profile data but not shown in the badges row. */
+const HIDDEN_BADGE_KEYS = new Set(["NITRO", "PREMIUM"]);
 
 /** Discord UserFlags bitfield → badge keys. */
 const PUBLIC_FLAG_BITS: Array<{ bit: number; key: string }> = [
@@ -148,6 +137,8 @@ export function resolveDiscordBadges(rawBadges: string[]): DiscordBadgeDef[] {
 
   for (const raw of rawBadges) {
     const key = raw.trim().toUpperCase().replace(/\s+/g, "_");
+    if (HIDDEN_BADGE_KEYS.has(key)) continue;
+
     const def = BADGE_MAP[key];
 
     if (!def || seen.has(def.key)) continue;
@@ -160,8 +151,10 @@ export function resolveDiscordBadges(rawBadges: string[]): DiscordBadgeDef[] {
     if (resolved.length > 0) break;
 
     const label = raw.trim();
-
     if (!label) continue;
+
+    const key = label.toUpperCase().replace(/\s+/g, "_");
+    if (HIDDEN_BADGE_KEYS.has(key)) continue;
 
     resolved.push({
       key: label,

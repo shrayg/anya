@@ -115,12 +115,6 @@ function DiscordProfileCard({ id, profile }: { id: string; profile: DiscordProfi
               </p>
             </div>
             <div>
-              <p className="discord-profile-meta-label">Nitro</p>
-              <p className="discord-profile-meta-value">
-                {profile.nitro ? "Yes" : "No"}
-              </p>
-            </div>
-            <div>
               <p className="discord-profile-meta-label">Clan tag</p>
               <p className="discord-profile-meta-value">
                 {profile.clanTag ? `[${profile.clanTag}]` : "—"}
