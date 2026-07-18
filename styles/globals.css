@@ -4011,18 +4011,20 @@ html[data-splash="active"] [data-splash-target] {
   touch-action: none;
   overscroll-behavior: none;
   user-select: none;
+  cursor: grab;
 }
 
-.site-pt-mindmap--locked {
-  cursor: default;
+.site-pt-mindmap.is-panning,
+.site-pt-mindmap.is-dragging-node {
+  cursor: grabbing;
 }
 
 .site-pt-mindmap-svg {
   display: block;
   width: 100%;
   height: 100%;
-  /* Auto-fit via viewBox + preserveAspectRatio meet; overflow clips chrome only. */
   overflow: visible;
+  cursor: inherit;
 }
 
 .site-pt-mindmap-empty {
@@ -4060,10 +4062,21 @@ html[data-splash="active"] [data-splash-target] {
 
 .site-pt-mind-node {
   opacity: 0;
+  cursor: grab;
 }
 
 .site-pt-mind-node.is-in {
   animation: site-pt-bubble-pop 0.5s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+.site-pt-mind-node.is-dragging {
+  cursor: grabbing;
+  animation: none;
+  opacity: 1;
+}
+
+.site-pt-mind-node.is-dragging circle:not([fill="transparent"]) {
+  filter: brightness(1.12);
 }
 
 .site-pt-mind-label {
