@@ -95,8 +95,10 @@ export async function middleware(request: NextRequest) {
           NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
         );
       }
+      // Prefer marketing home over login when session is missing/expired
+      // (e.g. browser restores a /dashboard* tab after close).
       return stripFingerprintHeaders(
-        NextResponse.redirect(new URL("/auth?action=login", request.url)),
+        NextResponse.redirect(new URL("/", request.url)),
       );
     }
 
@@ -110,7 +112,7 @@ export async function middleware(request: NextRequest) {
         );
       }
       return stripFingerprintHeaders(
-        NextResponse.redirect(new URL("/auth?action=login", request.url)),
+        NextResponse.redirect(new URL("/", request.url)),
       );
     }
   }

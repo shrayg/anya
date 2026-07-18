@@ -96,18 +96,18 @@ export function DashboardAuthProvider({
       const data = await response.json();
 
       if (response.status === 403 && data?.blocked) {
-        router.replace("/auth?action=login");
+        router.replace("/");
         return;
       }
 
       if (!response.ok || !data?.authenticated || !data.user?.username) {
-        router.replace("/auth?action=login");
+        router.replace("/");
         return;
       }
 
       setUser(mapMeUser(data.user, data.canManageWorkspace));
     } catch {
-      router.replace("/auth?action=login");
+      router.replace("/");
     } finally {
       setChecked(true);
     }

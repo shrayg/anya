@@ -42,14 +42,24 @@ function shouldUseSecureCookies() {
   return process.env.NODE_ENV === "production";
 }
 
+/** Persist login across browser restarts (not a session-only cookie). */
+export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const SESSION_TTL_JWT = "30d";
+
 /**
  * HttpOnly + Secure session cookie.
  * SameSite=Lax (not Strict) so Square/Cryptomus top-level return redirects
  * still attach the session. Cross-site POST abuse is mitigated via CSRF.
+ * Both `expires` and `maxAge` so the cookie survives browser close.
  */
 export function sessionCookieOptions(expires: Date) {
+  const maxAge = Math.max(
+    0,
+    Math.floor((expires.getTime() - Date.now()) / 1000),
+  );
   return {
     expires,
+    maxAge,
     httpOnly: true,
     secure: shouldUseSecureCookies(),
     sameSite: "lax" as const,
@@ -67,7 +77,7 @@ export async function encrypt(payload: SessionPayload) {
   return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("24h")
+    .setExpirationTime(SESSION_TTL_JWT)
     .sign(getKey());
 }
 
@@ -89,7 +99,7 @@ export async function decrypt(input: string): Promise<SessionPayload> {
 }
 
 export async function createSessionToken(userId: number, isAdmin: boolean) {
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const expires = new Date(Date.now() + SESSION_TTL_MS);
   const token = await encrypt({
     userId,
     isAdmin,

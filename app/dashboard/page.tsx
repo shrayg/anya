@@ -13,7 +13,7 @@ export default function DashboardPage() {
       .then((response) => response.json())
       .then((data) => {
         if (!data?.authenticated || !data.user) {
-          router.replace("/auth?action=login");
+          router.replace("/");
           return;
         }
 
@@ -24,7 +24,7 @@ export default function DashboardPage() {
           }),
         );
       })
-      .catch(() => router.replace("/auth?action=login"));
+      .catch(() => router.replace("/"));
   }, [router]);
 
   return null;
