@@ -52,7 +52,7 @@ export async function PATCH(
       );
     }
 
-    // Send message to flagged user (marks notified; user must acknowledge in dashboard).
+    // Deliver to flagged member only (SafetyFlag.userId). Staff view in review UI.
     if (action === "message" || helperMessage) {
       if (!helperMessage) {
         return NextResponse.json(
@@ -61,7 +61,7 @@ export async function PATCH(
         );
       }
 
-      const flag = await sendFlagHelperMessage({
+      const { flag, deliveredTo } = await sendFlagHelperMessage({
         flagId,
         actorId: auth.staffId,
         actorUsername: auth.username,
@@ -69,7 +69,19 @@ export async function PATCH(
         assignHelper: auth.isHelper,
       });
 
-      return NextResponse.json({ success: true, flag });
+      // Guaranteed: recipient is the case's user, not the acting staff member.
+      if (deliveredTo.userId !== existing.userId) {
+        return NextResponse.json(
+          { error: "Message routing mismatch." },
+          { status: 500 },
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        flag,
+        deliveredTo,
+      });
     }
 
     if (!isSafetyFlagStatus(status)) {

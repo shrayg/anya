@@ -5,6 +5,8 @@ import { hasWorkspaceAdminAccess } from "@/lib/workspace-admin";
 import {
   assessSearchQueryForSafety,
   buildQueryPreview,
+  parseHelperMessageHistory,
+  type HelperMessageHistoryEntry,
   type SafetyFlagSource,
 } from "@/lib/safety-search-flags";
 
@@ -29,6 +31,7 @@ export const SAFETY_FLAG_SELECT = {
   assignedHelperId: true,
   assignedHelperUsername: true,
   helperMessage: true,
+  helperMessageHistory: true,
   notifiedAt: true,
   acknowledgedAt: true,
   reviewedById: true,
@@ -232,7 +235,11 @@ export async function createManualSafetyFlag(params: {
   return flag;
 }
 
-/** Send a helper/admin message to the flagged user (prominent in-app notice). */
+/**
+ * Deliver a staff message to the flagged member (SafetyFlag.userId).
+ * Staff only view the text in the review UI — they are never the recipient.
+ * Resets acknowledgment so the member sees the dashboard overlay again.
+ */
 export async function sendFlagHelperMessage(params: {
   flagId: number;
   actorId: number;
@@ -245,10 +252,39 @@ export async function sendFlagHelperMessage(params: {
     throw new Error("Message is required.");
   }
 
-  return prisma.safetyFlag.update({
+  const existing = await prisma.safetyFlag.findUnique({
+    where: { id: params.flagId },
+    select: {
+      id: true,
+      userId: true,
+      helperMessageHistory: true,
+      user: { select: { id: true, username: true } },
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Flag not found.");
+  }
+
+  // Recipient is always the flagged member — never the acting admin/helper.
+  const recipientUserId = existing.userId;
+  const entry: HelperMessageHistoryEntry = {
+    at: new Date().toISOString(),
+    byId: params.actorId,
+    byUsername: params.actorUsername,
+    message,
+  };
+  const history = [
+    ...parseHelperMessageHistory(existing.helperMessageHistory),
+    entry,
+  ].slice(-50);
+
+  const flag = await prisma.safetyFlag.update({
     where: { id: params.flagId },
     data: {
+      // userId intentionally untouched — delivery stays on the flagged member
       helperMessage: message,
+      helperMessageHistory: JSON.stringify(history),
       notifiedAt: new Date(),
       acknowledgedAt: null,
       reviewedById: params.actorId,
@@ -261,4 +297,12 @@ export async function sendFlagHelperMessage(params: {
     },
     select: SAFETY_FLAG_SELECT,
   });
+
+  return {
+    flag,
+    deliveredTo: {
+      userId: recipientUserId,
+      username: existing.user.username,
+    },
+  };
 }

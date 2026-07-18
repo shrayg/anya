@@ -17,8 +17,8 @@ type SafetyNotice = {
 };
 
 /**
- * Prominent modal for staff messages on safety/investigation flags.
- * Shown until the member acknowledges.
+ * Prominent modal for staff messages on THIS member's safety flags.
+ * Recipient is always the flagged user (session), never admin inbox.
  */
 export function SafetyNoticeOverlay() {
   const [notices, setNotices] = useState<SafetyNotice[]>([]);

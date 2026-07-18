@@ -75,8 +75,10 @@ model SafetyFlag {
   flaggedByUsername    String?
   assignedHelperId     Int?
   assignedHelperUsername String?
-  /// Message from helper/admin shown to the flagged user
+  /// Latest message from helper/admin — delivered to flagged user (not staff inbox)
   helperMessage        String?
+  /// JSON array of { at, byId, byUsername, message } — staff-visible history
+  helperMessageHistory String   @default("[]")
   notifiedAt           DateTime?
   /// When the flagged user acknowledged the on-screen notice
   acknowledgedAt       DateTime?

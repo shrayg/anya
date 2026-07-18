@@ -161,3 +161,37 @@ export function isSafetyFlagStatus(value: string): value is SafetyFlagStatus {
 
 export const SAFETY_FLAG_SOURCES = ["auto", "helper", "admin"] as const;
 export type SafetyFlagSource = (typeof SAFETY_FLAG_SOURCES)[number];
+
+export type HelperMessageHistoryEntry = {
+  at: string;
+  byId: number;
+  byUsername: string;
+  message: string;
+};
+
+export function parseHelperMessageHistory(
+  raw: string | null | undefined,
+): HelperMessageHistoryEntry[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (entry): entry is HelperMessageHistoryEntry =>
+          Boolean(entry) &&
+          typeof entry === "object" &&
+          typeof (entry as HelperMessageHistoryEntry).at === "string" &&
+          typeof (entry as HelperMessageHistoryEntry).message === "string",
+      )
+      .map((entry) => ({
+        at: entry.at,
+        byId: typeof entry.byId === "number" ? entry.byId : 0,
+        byUsername:
+          typeof entry.byUsername === "string" ? entry.byUsername : "staff",
+        message: String(entry.message).slice(0, 1000),
+      }));
+  } catch {
+    return [];
+  }
+}

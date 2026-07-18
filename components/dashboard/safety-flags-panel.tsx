@@ -19,6 +19,7 @@ import {
   StatCard,
 } from "@/components/dashboard/dashboard-ui";
 import { formatDate, formatTime } from "@/lib/format-datetime";
+import { parseHelperMessageHistory } from "@/lib/safety-search-flags";
 
 type SafetyFlagRow = {
   id: number;
@@ -34,6 +35,7 @@ type SafetyFlagRow = {
   matchedRules: string;
   reason: string;
   helperMessage: string | null;
+  helperMessageHistory?: string | null;
   notifiedAt: string | null;
   acknowledgedAt: string | null;
   reviewedByUsername: string | null;
@@ -102,6 +104,7 @@ export function SafetyFlagsPanel({
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [messages, setMessages] = useState<Record<number, string>>({});
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [deliveryNote, setDeliveryNote] = useState("");
 
   const loadFlags = useCallback(async () => {
     setLoading(true);
@@ -155,12 +158,21 @@ export function SafetyFlagsPanel({
     [selectedId, visibleFlags],
   );
 
+  const messageHistory = useMemo(
+    () =>
+      selected
+        ? parseHelperMessageHistory(selected.helperMessageHistory).reverse()
+        : [],
+    [selected],
+  );
+
   const patchFlag = async (
     flagId: number,
     body: Record<string, unknown>,
   ) => {
     setActionId(flagId);
     setError("");
+    setDeliveryNote("");
 
     try {
       const response = await apiFetch(`/api/workspace/flags/${flagId}`, {
@@ -178,6 +190,13 @@ export function SafetyFlagsPanel({
       if (data.flag) {
         setFlags((current) =>
           current.map((flag) => (flag.id === flagId ? data.flag : flag)),
+        );
+      }
+
+      if (body.action === "message" && data.deliveredTo?.username) {
+        setMessages((current) => ({ ...current, [flagId]: "" }));
+        setDeliveryNote(
+          `Delivered to @${data.deliveredTo.username} — they see a dashboard notice until they acknowledge. Staff can only view it here.`,
         );
       }
 
@@ -291,7 +310,10 @@ export function SafetyFlagsPanel({
                         "cursor-pointer border-b border-white/5 transition hover:bg-white/[0.03]",
                         selectedId === flag.id && "bg-amber-500/[0.06]",
                       )}
-                      onClick={() => setSelectedId(flag.id)}
+                      onClick={() => {
+                        setSelectedId(flag.id);
+                        setDeliveryNote("");
+                      }}
                     >
                       <td className="px-3 py-3">
                         <p className="font-medium text-white">
@@ -376,17 +398,40 @@ export function SafetyFlagsPanel({
               {selected.helperMessage && (
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">
-                    Message to user
+                    Latest message to @{selected.user.username}
                   </p>
                   <p className="mt-1 text-zinc-300">{selected.helperMessage}</p>
                   <p className="mt-1 text-xs text-zinc-500">
                     {selected.notifiedAt
-                      ? `Notified ${formatDate(selected.notifiedAt)}`
+                      ? `Delivered ${formatDate(selected.notifiedAt)}`
                       : "Not sent"}
                     {selected.acknowledgedAt
-                      ? ` · acknowledged ${formatDate(selected.acknowledgedAt)}`
-                      : " · awaiting user ack"}
+                      ? ` · user acknowledged ${formatDate(selected.acknowledgedAt)}`
+                      : " · awaiting user acknowledgment"}
                   </p>
+                </div>
+              )}
+              {messageHistory.length > 0 && (
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+                    Message history (staff view)
+                  </p>
+                  <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto text-xs text-zinc-400">
+                    {messageHistory.map((entry, index) => (
+                      <li
+                        className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2"
+                        key={`${entry.at}-${index}`}
+                      >
+                        <p className="text-zinc-300 whitespace-pre-wrap">
+                          {entry.message}
+                        </p>
+                        <p className="mt-1 text-[10px] text-zinc-500">
+                          {entry.byUsername} · {formatDate(entry.at)}{" "}
+                          {formatTime(entry.at)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
               {selected.reviewedByUsername && (
@@ -405,7 +450,7 @@ export function SafetyFlagsPanel({
             <div className="space-y-3">
               <div>
                 <p className="mb-1 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
-                  Message to flagged user
+                  Message to flagged user (@{selected.user.username})
                 </p>
                 <DashInput
                   disabled={actionId === selected.id || selected.status === "resolved"}
@@ -415,7 +460,7 @@ export function SafetyFlagsPanel({
                       [selected.id]: event.target.value,
                     }))
                   }
-                  placeholder="Shown as an on-screen notice until they acknowledge"
+                  placeholder="Shown as their on-screen dashboard notice until they acknowledge"
                   value={messages[selected.id] ?? ""}
                 />
                 <button
@@ -434,8 +479,11 @@ export function SafetyFlagsPanel({
                   type="button"
                 >
                   <Send className="size-3.5" />
-                  Send message to user
+                  Send to @{selected.user.username}
                 </button>
+                {deliveryNote && (
+                  <p className="mt-2 text-xs text-emerald-300/90">{deliveryNote}</p>
+                )}
               </div>
 
               <DashInput

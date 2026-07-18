@@ -4,7 +4,7 @@ import { getSessionCookie } from "@/app/lib/session";
 import { prisma } from "@/prisma/client";
 import { USER_NOTIFICATION_SELECT } from "@/lib/safety-flag-server";
 
-/** Unread staff messages for the logged-in member (safety flag notices). */
+/** Unread staff messages for the logged-in flagged member (not staff inbox). */
 export async function GET() {
   try {
     const session = await getSessionCookie();
@@ -12,6 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Only notices addressed to this session user (SafetyFlag.userId).
     const userId = session.userId as number;
 
     const notices = await prisma.safetyFlag.findMany({
