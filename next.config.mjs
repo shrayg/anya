@@ -42,6 +42,16 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // Allow build-then-swap deploys: `NEXT_DIST_DIR=.next.new npm run build`
+  // while production still serves `.next`. Only relative `.next*` dirs allowed.
+  distDir: (() => {
+    const raw = process.env.NEXT_DIST_DIR?.trim();
+    if (!raw || raw === ".next") return ".next";
+    if (/^\.next[\w.-]*$/.test(raw)) return raw;
+    throw new Error(
+      `Refusing unsafe NEXT_DIST_DIR="${raw}". Use a relative .next* directory name.`,
+    );
+  })(),
   devIndicators: false,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,

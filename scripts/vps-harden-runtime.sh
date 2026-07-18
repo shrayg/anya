@@ -27,12 +27,28 @@ PY
 nginx -t
 systemctl reload nginx
 
-echo "==> Bind Next to localhost only via PM2"
+echo "==> Bind Next to localhost only via PM2 (exactly one process)"
 cd /var/www/anya.int
 pm2 delete anya-int || true
+fuser -k 3000/tcp 2>/dev/null || true
+sleep 1
 pm2 start npx --name anya-int -- next start -H 127.0.0.1 -p 3000
 pm2 save
 sleep 2
+ONLINE="$(pm2 jlist 2>/dev/null | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print(0)
+    raise SystemExit(0)
+print(sum(1 for x in data if x.get('name') == 'anya-int' and x.get('pm2_env', {}).get('status') == 'online'))
+")"
+if [[ "${ONLINE}" -ne 1 ]]; then
+  echo "ERROR: expected exactly 1 online anya-int, found ${ONLINE}"
+  pm2 list || true
+  exit 1
+fi
 ss -tlnp | grep -E ':3000|:80|:443' || true
 
 echo "==> UFW: allow 22/80/443 only"
@@ -45,8 +61,7 @@ ufw allow 443/tcp
 ufw --force enable
 ufw status
 
-pm2 restart anya-int --update-env
-sleep 2
+# Already running with updated env from start; avoid a second restart race.
 curl -sSI https://anyaint.com/api/auth/logout -X POST | tr -d '\r' | grep -i set-cookie || true
 curl -sS -o /dev/null -w "map %{http_code}\n" https://anyaint.com/_next/static/chunks/a6dad97d9634a72d.js.map || true
 curl -sS -o /dev/null -w "direct3000 %{http_code}\n" --connect-timeout 3 http://45.156.87.33:3000/ || echo "direct3000 blocked"

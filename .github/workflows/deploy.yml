@@ -5,9 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Queue deploys — never cancel a mid-flight build (that left production down).
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -31,7 +32,5 @@ jobs:
             set -euo pipefail
             APP_DIR="${APP_DIR:-/var/www/anya.int}"
             cd "$APP_DIR"
-            git fetch origin main
-            git reset --hard origin/main
-            git clean -fd
+            # All git/build/PM2 work happens inside the flock-guarded script.
             bash scripts/vps-pull-deploy.sh
