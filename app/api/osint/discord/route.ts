@@ -3,13 +3,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 import { fetchBreachVipSanitized } from "@/lib/breachvip";
+import { fetchCordCatQuery } from "@/lib/cordcat";
 import {
   extractCsintDiscordLookupLeaks,
   fetchCsintDiscordLookup,
   fetchCsintDiscordOsint,
   fetchCsintOathnetDiscordToRoblox,
 } from "@/lib/csint";
-import { fetchDiscordProfile, type DiscordSearchResult } from "@/lib/discord-profile";
+import {
+  parseDiscordDsaFromStatements,
+  fetchPublicDsaSanctions,
+} from "@/lib/discord-dsa";
+import {
+  fetchDiscordProfile,
+  type DiscordSearchResult,
+} from "@/lib/discord-profile";
+import { fetchFivemIntel } from "@/lib/fivem-search";
 import {
   fetchGodsEyeSearchSafe,
   sanitizeGodsEyeSearch,
@@ -20,6 +29,21 @@ import {
   isDiscordSnowflake,
   mergeSanitizedResponses,
 } from "@/lib/osintcat";
+
+function cordCatFivemRecords(query: Awaited<ReturnType<typeof fetchCordCatQuery>>) {
+  const results = query?.fivem?.data?.results;
+  return Array.isArray(results) ? results : [];
+}
+
+async function resolveDsa(discordId: string, cordStatements: unknown) {
+  const fromCord = parseDiscordDsaFromStatements(cordStatements);
+  if (fromCord.length > 0) {
+    return { count: fromCord.length, sanctions: fromCord };
+  }
+
+  const fromPublic = await fetchPublicDsaSanctions(discordId);
+  return { count: fromPublic.length, sanctions: fromPublic };
+}
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "discord");
@@ -47,6 +71,8 @@ export async function GET(req: NextRequest) {
       csintOsint,
       csintLookup,
       robloxLink,
+      fivemIntel,
+      cordQuery,
     ] = await Promise.all([
       fetchDiscordProfile(query),
       fetchOsintCatEndpoint("discord", query)
@@ -62,7 +88,17 @@ export async function GET(req: NextRequest) {
       fetchCsintDiscordOsint(query).catch(() => null),
       fetchCsintDiscordLookup(query).catch(() => null),
       fetchCsintOathnetDiscordToRoblox(query).catch(() => null),
+      fetchFivemIntel(query).catch(() => ({
+        searchData: null,
+        records: [] as unknown[],
+      })),
+      fetchCordCatQuery(query).catch(() => null),
     ]);
+
+    const dsa = await resolveDsa(query, cordQuery?.statements).catch(() => ({
+      count: 0,
+      sanctions: [],
+    }));
 
     const leaks = mergeSanitizedResponses(
       osintLeaks,
@@ -72,6 +108,15 @@ export async function GET(req: NextRequest) {
       extractCsintDiscordLookupLeaks(csintLookup, query),
     );
 
+    const fivemFromGodsEye = fivemIntel.records ?? [];
+    const fivemFromCord = cordCatFivemRecords(cordQuery);
+    const fivemMerged =
+      fivemFromGodsEye.length > 0 ? fivemFromGodsEye : fivemFromCord;
+    const cordFivemTotal =
+      typeof cordQuery?.fivem?.data?.total === "number"
+        ? cordQuery.fivem.data.total
+        : fivemFromCord.length;
+
     const response: DiscordSearchResult & {
       enrichment?: Record<string, unknown> | null;
       robloxLink?: Record<string, unknown>;
@@ -79,8 +124,13 @@ export async function GET(req: NextRequest) {
       id: query,
       profile,
       leaks,
+      fivem: {
+        count: Math.max(fivemMerged.length, cordFivemTotal),
+        accounts: fivemMerged,
+        bans: [],
+      },
+      dsa,
       enrichment: csintLookup,
-      // Only attach when a real Roblox username/id/profile was resolved.
       ...(robloxLink ? { robloxLink } : {}),
     };
 

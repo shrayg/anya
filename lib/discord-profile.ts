@@ -6,6 +6,18 @@ import {
 import { badgesFromPublicFlags } from "@/lib/discord-badges";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
+export type DiscordNameplate = {
+  asset: string;
+  /** Static PNG for display / download. */
+  url: string;
+  /** Animated WebM when available. */
+  animatedUrl: string | null;
+  label: string | null;
+  /** Human-readable description for the nameplate card. */
+  description: string | null;
+  palette: string | null;
+};
+
 export type DiscordProfile = {
   id: string;
   username: string;
@@ -21,9 +33,21 @@ export type DiscordProfile = {
   bio: string | null;
   nitro: boolean;
   clanTag: string | null;
+  /** Clan / primary guild badge icon URL when available. */
+  clanBadgeUrl: string | null;
   avatarDecorationUrl: string | null;
+  nameplate: DiscordNameplate | null;
   /** Discreet external profile preview (cord.cat viewer). */
   profilePreviewUrl: string;
+};
+
+export type DiscordDsaSanction = {
+  id: string;
+  severity: string;
+  status: string;
+  description: string;
+  date: string;
+  details?: Record<string, unknown>;
 };
 
 export type DiscordSearchResult = {
@@ -34,8 +58,13 @@ export type DiscordSearchResult = {
     results: unknown[];
   };
   fivem?: {
-    accounts: Record<string, unknown> | null;
-    bans: Record<string, unknown> | null;
+    count: number;
+    accounts: unknown[];
+    bans: unknown[];
+  };
+  dsa?: {
+    count: number;
+    sanctions: DiscordDsaSanction[];
   };
 };
 
@@ -118,6 +147,12 @@ function preferCdnUrl(
   return built;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 function extractClanTag(data: Record<string, unknown>): string | null {
   const direct =
     (typeof data.clan_tag === "string" && data.clan_tag.trim()) ||
@@ -126,23 +161,97 @@ function extractClanTag(data: Record<string, unknown>): string | null {
 
   if (direct) return direct.replace(/^\[|\]$/g, "");
 
-  const clan = data.clan;
-  if (clan && typeof clan === "object") {
-    const tag = (clan as { tag?: unknown }).tag;
+  const clan = asRecord(data.clan);
+  if (clan) {
+    const tag = clan.tag;
     if (typeof tag === "string" && tag.trim()) {
       return tag.trim().replace(/^\[|\]$/g, "");
     }
   }
 
-  const primaryGuild = data.primary_guild ?? data.primaryGuild;
-  if (primaryGuild && typeof primaryGuild === "object") {
-    const tag = (primaryGuild as { tag?: unknown }).tag;
+  const primaryGuild = asRecord(data.primary_guild ?? data.primaryGuild);
+  if (primaryGuild) {
+    const tag = primaryGuild.tag;
     if (typeof tag === "string" && tag.trim()) {
       return tag.trim().replace(/^\[|\]$/g, "");
     }
   }
 
   return null;
+}
+
+function extractClanBadgeUrl(data: Record<string, unknown>): string | null {
+  const clan = asRecord(data.clan);
+  const primaryGuild = asRecord(data.primary_guild ?? data.primaryGuild);
+  const source = primaryGuild ?? clan;
+  if (!source) return null;
+
+  const guildId =
+    (typeof source.identity_guild_id === "string" && source.identity_guild_id) ||
+    (typeof source.identityGuildId === "string" && source.identityGuildId) ||
+    (typeof source.id === "string" && source.id) ||
+    null;
+  const badge =
+    (typeof source.badge === "string" && source.badge) ||
+    (typeof source.badge_hash === "string" && source.badge_hash) ||
+    null;
+
+  if (!guildId || !badge) return null;
+
+  return `https://cdn.discordapp.com/clan-badges/${guildId}/${badge}.png?size=64`;
+}
+
+function humanizeNameplateLabel(raw: string | null, asset: string): string | null {
+  if (raw && raw.trim() && !/^COLLECTIBLES_/i.test(raw) && raw.trim().length > 2) {
+    return raw.trim();
+  }
+
+  const fromAsset = asset
+    .replace(/^nameplates\//i, "")
+    .replace(/\/+$/, "")
+    .split("/")
+    .filter(Boolean)
+    .pop();
+
+  if (!fromAsset) return null;
+
+  return fromAsset
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function extractNameplate(data: Record<string, unknown>): DiscordNameplate | null {
+  const collectibles = asRecord(data.collectibles);
+  const nameplate =
+    asRecord(collectibles?.nameplate) ??
+    asRecord(data.nameplate) ??
+    asRecord(data.name_plate);
+
+  if (!nameplate) return null;
+
+  const asset =
+    (typeof nameplate.asset === "string" && nameplate.asset.trim()) ||
+    (typeof nameplate.asset_path === "string" && nameplate.asset_path.trim()) ||
+    null;
+
+  if (!asset) return null;
+
+  const normalized = asset.endsWith("/") ? asset : `${asset}/`;
+  const label =
+    (typeof nameplate.label === "string" && nameplate.label.trim()) ||
+    (typeof nameplate.description === "string" && nameplate.description.trim()) ||
+    null;
+  const palette =
+    (typeof nameplate.palette === "string" && nameplate.palette.trim()) || null;
+
+  return {
+    asset: normalized,
+    url: `https://cdn.discordapp.com/assets/collectibles/${normalized}static.png`,
+    animatedUrl: `https://cdn.discordapp.com/assets/collectibles/${normalized}asset.webm`,
+    label,
+    description: humanizeNameplateLabel(label, normalized),
+    palette,
+  };
 }
 
 function detectNitro(
@@ -266,7 +375,9 @@ function parseProfileFromRaw(
     bio,
     nitro,
     clanTag: extractClanTag(data),
+    clanBadgeUrl: extractClanBadgeUrl(data),
     avatarDecorationUrl: buildAvatarDecorationUrl(decorationAsset),
+    nameplate: extractNameplate(data),
     profilePreviewUrl: cordCatProfileUrl(id),
   };
 }
@@ -286,7 +397,9 @@ function fallbackProfile(id: string): DiscordProfile {
     bio: null,
     nitro: false,
     clanTag: null,
+    clanBadgeUrl: null,
     avatarDecorationUrl: null,
+    nameplate: null,
     profilePreviewUrl: cordCatProfileUrl(id),
   };
 }
@@ -364,6 +477,8 @@ export async function fetchDiscordProfile(userId: string): Promise<DiscordProfil
         clanTag: cordProfile.clanTag ?? japiProfile.clanTag,
         avatarDecorationUrl:
           cordProfile.avatarDecorationUrl ?? japiProfile.avatarDecorationUrl,
+        nameplate: cordProfile.nameplate ?? japiProfile.nameplate,
+        clanBadgeUrl: cordProfile.clanBadgeUrl ?? japiProfile.clanBadgeUrl,
         badges:
           cordProfile.badges.length > 0 ? cordProfile.badges : japiProfile.badges,
         createdAt: snowflakeCreatedAt(userId),
@@ -393,18 +508,17 @@ export function formatDiscordCreatedAt(iso: string): string {
 export function formatDiscordCreatedAtExact(iso: string): string {
   try {
     const date = new Date(iso);
-    const formatted = new Intl.DateTimeFormat("en-GB", {
+    const formatted = new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "short",
-      day: "2-digit",
+      day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
+      hour12: true,
       timeZone: "UTC",
     }).format(date);
 
-    return `${formatted} UTC`;
+    return formatted;
   } catch {
     return iso;
   }
@@ -416,6 +530,19 @@ export function formatDiscordMemberSince(iso: string): string {
       month: "short",
       day: "numeric",
       year: "numeric",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+export function formatDsaDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
     }).format(new Date(iso));
   } catch {
     return iso;
