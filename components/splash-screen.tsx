@@ -22,6 +22,8 @@ function clearBrandStyles(el: HTMLElement) {
   el.style.position = "";
   el.style.left = "";
   el.style.top = "";
+  el.style.right = "";
+  el.style.bottom = "";
   el.style.width = "";
   el.style.height = "";
   el.style.margin = "";
@@ -44,16 +46,14 @@ function ensureSpacer(el: HTMLElement, box: Box) {
     spacer.setAttribute("aria-hidden", "true");
     el.parentElement?.insertBefore(spacer, el);
   }
-  spacer.style.width = `${box.width}px`;
-  spacer.style.height = `${box.height}px`;
+  spacer.style.width = `${Math.max(box.width, 1)}px`;
+  spacer.style.height = `${Math.max(box.height, 1)}px`;
   spacer.style.flexShrink = "0";
   spacer.style.visibility = "hidden";
   spacer.style.pointerEvents = "none";
 }
 
 function measureNaturalBox(el: HTMLElement): Box {
-  clearBrandStyles(el);
-  removeSpacer();
   const rect = el.getBoundingClientRect();
   return {
     left: rect.left,
@@ -63,20 +63,31 @@ function measureNaturalBox(el: HTMLElement): Box {
   };
 }
 
-function pinBrand(el: HTMLElement, box: Box, scale: number, centered: boolean) {
-  ensureSpacer(el, box);
-
-  const left = centered
-    ? window.innerWidth / 2 - box.width / 2
-    : box.left;
-  const top = centered
-    ? window.innerHeight / 2 - box.height / 2
-    : box.top;
-
+function pinCentered(el: HTMLElement, scale: number) {
+  // Viewport-centered without forcing width (forced 0-width was killing the glyphs)
   el.style.position = "fixed";
-  el.style.left = `${left}px`;
-  el.style.top = `${top}px`;
-  el.style.width = `${box.width}px`;
+  el.style.left = "50%";
+  el.style.top = "50%";
+  el.style.right = "auto";
+  el.style.bottom = "auto";
+  el.style.width = "auto";
+  el.style.height = "auto";
+  el.style.margin = "0";
+  el.style.zIndex = "110";
+  el.style.transformOrigin = "center center";
+  el.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  el.style.willChange = "transform, left, top";
+  el.style.pointerEvents = "none";
+}
+
+function pinAtBox(el: HTMLElement, box: Box, scale: number) {
+  el.style.position = "fixed";
+  el.style.left = `${box.left}px`;
+  el.style.top = `${box.top}px`;
+  el.style.right = "auto";
+  el.style.bottom = "auto";
+  el.style.width = "auto";
+  el.style.height = "auto";
   el.style.margin = "0";
   el.style.zIndex = "110";
   el.style.transformOrigin = "center center";
@@ -87,7 +98,10 @@ function pinBrand(el: HTMLElement, box: Box, scale: number, centered: boolean) {
 
 /**
  * Home splash: black veil + spinner only.
- * Moves the homepage ShinyText node in place — never mounts a second wordmark.
+ * Animates the homepage ShinyText node in place — never mounts a second wordmark.
+ *
+ * Requires the home hero section NOT to create a lower stacking context (no z-index),
+ * otherwise position:fixed on the title stays trapped under the veil.
  */
 export const SplashScreen = () => {
   const pathname = usePathname();
@@ -104,16 +118,21 @@ export const SplashScreen = () => {
   const bgOpacity = useMotionValue(1);
   const spinnerOpacity = useMotionValue(1);
 
-  const finish = useCallback(() => {
-    if (finishedRef.current) return;
-    finishedRef.current = true;
+  const releaseBrand = useCallback(() => {
     const el = brandRef.current ?? getTarget();
     if (el) clearBrandStyles(el);
     removeSpacer();
-    delete document.documentElement.dataset.splash;
-    document.documentElement.style.overflow = "";
-    setPhase("done");
+    brandRef.current = null;
   }, []);
+
+  const finish = useCallback(() => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    releaseBrand();
+    delete document.documentElement.dataset.splash;
+    document.body.style.overflow = "";
+    setPhase("done");
+  }, [releaseBrand]);
 
   useLayoutEffect(() => {
     if (!isHome) {
@@ -123,18 +142,15 @@ export const SplashScreen = () => {
 
     finishedRef.current = false;
     document.documentElement.dataset.splash = "active";
-    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
 
     return () => {
-      const el = brandRef.current ?? getTarget();
-      if (el) clearBrandStyles(el);
-      removeSpacer();
+      releaseBrand();
       delete document.documentElement.dataset.splash;
-      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
     };
-  }, [isHome]);
+  }, [isHome, releaseBrand]);
 
-  // Pin the real homepage title to viewport center for the hold
   useLayoutEffect(() => {
     if (!isHome || phase !== "hold") return;
 
@@ -149,11 +165,16 @@ export const SplashScreen = () => {
         return;
       }
 
-      brandRef.current = el;
-      if (!naturalRef.current) {
-        naturalRef.current = measureNaturalBox(el);
+      const box = measureNaturalBox(el);
+      if (box.width < 8 || box.height < 8) {
+        raf = requestAnimationFrame(pin);
+        return;
       }
-      pinBrand(el, naturalRef.current, 1.12, true);
+
+      brandRef.current = el;
+      naturalRef.current = box;
+      ensureSpacer(el, box);
+      pinCentered(el, 1.12);
     };
 
     pin();
@@ -181,25 +202,36 @@ export const SplashScreen = () => {
     return () => window.clearTimeout(safety);
   }, [isHome, phase, finish]);
 
-  // Move the same node from center → its layout slot, then release styles
   useLayoutEffect(() => {
     if (phase !== "reveal") return;
 
     const el = brandRef.current ?? getTarget();
-    let natural = naturalRef.current;
-
     if (!el) {
       finish();
       return;
     }
 
     brandRef.current = el;
-    if (!natural) {
-      const box = measureNaturalBox(el);
-      naturalRef.current = box;
-      natural = box;
-      pinBrand(el, box, 1.12, true);
-    }
+
+    const spacer = document.querySelector<HTMLElement>(SPACER_SEL);
+    const spacerRect = spacer?.getBoundingClientRect();
+    const natural =
+      (spacerRect
+        ? {
+            left: spacerRect.left,
+            top: spacerRect.top,
+            width: spacerRect.width,
+            height: spacerRect.height,
+          }
+        : null) ??
+      naturalRef.current ?? {
+        left: window.innerWidth / 2 - 120,
+        top: Math.max(120, window.innerHeight * 0.28),
+        width: 240,
+        height: 80,
+      };
+
+    naturalRef.current = natural;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -210,23 +242,30 @@ export const SplashScreen = () => {
       return;
     }
 
-    const fromLeft = Number.parseFloat(el.style.left);
-    const fromTop = Number.parseFloat(el.style.top);
-    const toLeft = natural.left;
-    const toTop = natural.top;
+    const fromRect = el.getBoundingClientRect();
+    pinAtBox(
+      el,
+      {
+        left: fromRect.left,
+        top: fromRect.top,
+        width: fromRect.width,
+        height: fromRect.height,
+      },
+      1.12,
+    );
 
     void animate(spinnerOpacity, 0, { duration: 0.25, ease: EASE });
     void animate(bgOpacity, 0, { duration: REVEAL_MS, ease: EASE });
 
     void Promise.all([
-      animate(fromLeft, toLeft, {
+      animate(fromRect.left, natural.left, {
         duration: REVEAL_MS,
         ease: EASE,
         onUpdate: (v) => {
           el.style.left = `${v}px`;
         },
       }),
-      animate(fromTop, toTop, {
+      animate(fromRect.top, natural.top, {
         duration: REVEAL_MS,
         ease: EASE,
         onUpdate: (v) => {
