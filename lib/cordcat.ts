@@ -11,6 +11,8 @@ export type CordCatUserInfo = {
   public_flags?: number;
   accent_color?: number | null;
   banner_color?: string | null;
+  /** Discord Nitro profile theme: `[primary, secondary]` as packed RGB ints. */
+  theme_colors?: [number, number] | number[] | null;
   bio?: string | null;
   premium_type?: number | null;
   nitro?: boolean | null;

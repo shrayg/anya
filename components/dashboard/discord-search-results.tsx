@@ -21,7 +21,9 @@ import { resolveDiscordBadges } from "@/lib/discord-badges";
 import {
   formatDiscordMemberSince,
   formatDsaDate,
+  NAMEPLATE_PALETTE_COLORS,
   profileAccent,
+  profileThemeColor,
   type DiscordDsaSanction,
   type DiscordNameplate,
   type DiscordRobloxLink,
@@ -52,20 +54,6 @@ function classifyNameplateMedia(url: string): "video" | "image" {
   if (/\.(webm|mp4|ogg)(\?|$)/i.test(url)) return "video";
   return "image";
 }
-
-const NAMEPLATE_PALETTE_BG: Record<string, string> = {
-  crimson: "#9e1d2e",
-  berry: "#9b2f6c",
-  sky: "#3a8fd4",
-  teal: "#1f8a7a",
-  forest: "#2f6b3a",
-  bubble_gum: "#d45a8a",
-  violet: "#6b4bb5",
-  cobalt: "#2f5fad",
-  clover: "#5a9e3c",
-  lemon: "#c4a52a",
-  white: "#d4d4d8",
-};
 
 function DiscordNameplateArt({
   nameplate,
@@ -105,7 +93,7 @@ function DiscordNameplateArt({
   }, [mediaKind, videoSrc]);
 
   const paletteBg =
-    (nameplate.palette && NAMEPLATE_PALETTE_BG[nameplate.palette]) ||
+    (nameplate.palette && NAMEPLATE_PALETTE_COLORS[nameplate.palette]) ||
     undefined;
 
   return (
@@ -544,6 +532,7 @@ export function DiscordSearchResults({
 }) {
   const { profile, leaks, fivem, dsa, robloxLink } = result;
   const accent = profileAccent(profile);
+  const themeColor = profileThemeColor(profile);
   const [dataTab, setDataTab] = useState<DataTab>(() =>
     leaks.count > 0
       ? "breaches"
@@ -645,7 +634,14 @@ export function DiscordSearchResults({
         <div className="discord-id-col-left">
           <article
             className="discord-id-profile discord-id-profile--popout"
-            style={{ "--discord-accent": accent } as React.CSSProperties}
+            style={
+              {
+                "--discord-accent": accent,
+                ...(themeColor
+                  ? { "--discord-theme": themeColor }
+                  : {}),
+              } as React.CSSProperties
+            }
           >
             <div className="discord-id-banner-wrap">
               {profile.bannerUrl ? (

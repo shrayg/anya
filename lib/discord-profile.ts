@@ -112,16 +112,69 @@ function defaultAvatarUrl(id: string): string {
   }
 }
 
+/** Discord collectible nameplate palette → representative hex. */
+export const NAMEPLATE_PALETTE_COLORS: Record<string, string> = {
+  crimson: "#9e1d2e",
+  berry: "#9b2f6c",
+  sky: "#3a8fd4",
+  teal: "#1f8a7a",
+  forest: "#2f6b3a",
+  bubble_gum: "#d45a8a",
+  violet: "#6b4bb5",
+  cobalt: "#2f5fad",
+  clover: "#5a9e3c",
+  lemon: "#c4a52a",
+  white: "#d4d4d8",
+};
+
 function formatAccentColor(value: unknown): string | null {
-  if (typeof value === "string" && value.startsWith("#")) {
-    return value;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+      return trimmed.toLowerCase();
+    }
+    if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+      return `#${trimmed.toLowerCase()}`;
+    }
+    if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+      const [, r, g, b] = trimmed;
+      return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+    }
   }
 
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-    return `#${value.toString(16).padStart(6, "0")}`;
+    return `#${Math.floor(value).toString(16).padStart(6, "0")}`;
   }
 
   return null;
+}
+
+/** Discord Nitro profile theme primary from `theme_colors: [primary, secondary]`. */
+function extractThemePrimary(data: Record<string, unknown>): string | null {
+  const direct = data.theme_colors ?? data.themeColors;
+  if (Array.isArray(direct) && direct.length > 0) {
+    const primary = formatAccentColor(direct[0]);
+    if (primary) return primary;
+  }
+
+  const nested =
+    asRecord(data.user_profile) ??
+    asRecord(data.userProfile) ??
+    asRecord(data.profile);
+  if (nested) {
+    const colors = nested.theme_colors ?? nested.themeColors;
+    if (Array.isArray(colors) && colors.length > 0) {
+      const primary = formatAccentColor(colors[0]);
+      if (primary) return primary;
+    }
+  }
+
+  return null;
+}
+
+function accentFromNameplatePalette(palette: string | null | undefined): string | null {
+  if (!palette) return null;
+  return NAMEPLATE_PALETTE_COLORS[palette] ?? null;
 }
 
 function isAnimatedHash(hash: unknown): hash is string {
@@ -527,6 +580,18 @@ function parseProfileFromRaw(
       ? data.bio.trim()
       : null;
 
+  const nameplate = extractNameplate(data);
+  // Prefer explicit profile theme, then banner/accent, then nameplate palette.
+  const accentColor =
+    extractThemePrimary(data) ??
+    formatAccentColor(
+      data.banner_color ??
+        data.bannerColor ??
+        data.accent_color ??
+        data.accentColor,
+    ) ??
+    accentFromNameplatePalette(nameplate?.palette);
+
   return {
     id,
     username,
@@ -534,9 +599,7 @@ function parseProfileFromRaw(
     displayName,
     avatarUrl,
     bannerUrl,
-    accentColor: formatAccentColor(
-      data.banner_color ?? data.accent_color ?? data.accentColor,
-    ),
+    accentColor,
     // Always derive from snowflake for exact millisecond precision.
     createdAt: snowflakeCreatedAt(id),
     badges,
@@ -548,7 +611,7 @@ function parseProfileFromRaw(
     avatarDecorationUrl:
       buildAvatarDecorationUrl(decorationProvidedUrl) ??
       buildAvatarDecorationUrl(decorationAsset),
-    nameplate: extractNameplate(data),
+    nameplate,
     profilePreviewUrl: discordProfileUrl(id),
   };
 }
@@ -649,6 +712,7 @@ export async function fetchDiscordProfile(userId: string): Promise<DiscordProfil
         avatarDecorationUrl:
           cordProfile.avatarDecorationUrl ?? japiProfile.avatarDecorationUrl,
         nameplate: cordProfile.nameplate ?? japiProfile.nameplate,
+        accentColor: cordProfile.accentColor ?? japiProfile.accentColor,
         clanBadgeUrl: cordProfile.clanBadgeUrl ?? japiProfile.clanBadgeUrl,
         badges:
           cordProfile.badges.length > 0 ? cordProfile.badges : japiProfile.badges,
@@ -720,6 +784,15 @@ export function formatDsaDate(iso: string): string {
   }
 }
 
+/** Banner / solid fill accent — blurple when the profile has no theme color. */
 export function profileAccent(profile: DiscordProfile): string {
   return profile.accentColor ?? "#5865f2";
+}
+
+/**
+ * Profile theme color for tinting the popout body.
+ * Returns null when nothing theme-like is available (keep Discord dark grey).
+ */
+export function profileThemeColor(profile: DiscordProfile): string | null {
+  return profile.accentColor;
 }

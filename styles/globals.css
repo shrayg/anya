@@ -3037,9 +3037,17 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .discord-id-profile--popout {
-  /* Discord dark popout shell — accent only on banner, not chrome */
-  background: #111214;
-  border-color: rgba(0, 0, 0, 0.55);
+  /* Discord-style themed shell: low-alpha accent mixed into dark base */
+  background: color-mix(
+    in srgb,
+    var(--discord-theme, #111214) 20%,
+    #111214
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--discord-theme, #000000) 28%,
+    rgba(0, 0, 0, 0.55)
+  );
   box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -3292,8 +3300,15 @@ html[data-splash="active"] [data-splash-target] {
 .discord-id-popout-card {
   padding: 0.75rem 0.85rem 0.9rem;
   border-radius: 0.5rem;
-  background: #232428;
+  /* Inner panel: stronger accent tint than the outer shell */
+  background: color-mix(
+    in srgb,
+    var(--discord-theme, #232428) 26%,
+    #232428
+  );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border: 1px solid
+    color-mix(in srgb, var(--discord-theme, #ffffff) 10%, transparent);
 }
 
 .discord-id-identity {
@@ -3377,7 +3392,8 @@ html[data-splash="active"] [data-splash-target] {
 .discord-id-section {
   margin-top: 0.85rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid
+    color-mix(in srgb, var(--discord-theme, #ffffff) 14%, transparent);
 }
 
 .discord-id-bio {
@@ -3393,7 +3409,8 @@ html[data-splash="active"] [data-splash-target] {
   gap: 0.75rem;
   margin-top: 0.85rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid
+    color-mix(in srgb, var(--discord-theme, #ffffff) 14%, transparent);
 }
 
 .discord-id-meta-block {
