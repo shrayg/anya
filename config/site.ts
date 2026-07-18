@@ -20,9 +20,11 @@ export const siteConfig = {
   governingLawState: "Delaware",
   navItems: [
     { label: "Pricing", href: "/pricing" },
+    { label: "Status", href: "/status" },
   ] as NavItem[],
   navMenuItems: [
     { label: "Pricing", href: "/pricing" },
+    { label: "Status", href: "/status" },
   ] as NavItem[],
   links: {
     telegram: "https://t.me/anyasearch",

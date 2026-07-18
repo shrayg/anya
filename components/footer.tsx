@@ -65,6 +65,13 @@ export const Footer = () => {
               >
                 Pricing
               </NextLink>
+              <span className="mx-2 text-zinc-700">·</span>
+              <NextLink
+                className="transition-colors hover:text-zinc-300"
+                href="/status"
+              >
+                Status
+              </NextLink>
             </p>
           </div>
 
