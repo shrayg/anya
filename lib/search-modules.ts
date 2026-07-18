@@ -411,8 +411,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Crypto Wallet",
         "crypto-wallet",
         "crypto-wallet",
-        "Bitcoin (1/3/bc1), Ethereum (0x), or Solana address",
-        "Live balance, token holdings, recent transactions, and on-chain stats.",
+        "Bitcoin (1/3/bc1), Ethereum (0x…), or Solana address — wallet only",
+        "Detects chain from address format. Live balance, tokens, and recent txs.",
       ),
       mod(
         "Financial & Assets",

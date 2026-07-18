@@ -34,14 +34,94 @@ export type CryptoWalletResult = {
   stats: Record<string, string>;
 };
 
-const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+export const CRYPTO_WALLET_INPUT_HINT =
+  "Bitcoin (1/3/bc1), Ethereum (0x…), or Solana address";
+
+export const CRYPTO_WALLET_INVALID_MESSAGE =
+  "Enter a valid Bitcoin (1/3/bc1), Ethereum (0x), or Solana wallet address — not free text, emails, or arbitrary strings.";
+
+const BASE58_ALPHABET =
+  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+
+const SOLANA_RPC_URLS = [
+  "https://api.mainnet-beta.solana.com",
+  "https://solana.publicnode.com",
+  "https://solana-rpc.publicnode.com",
+];
+
+function decodeBase58(value: string): Uint8Array | null {
+  if (!value) return null;
+
+  const bytes: number[] = [];
+
+  for (const char of value) {
+    const digit = BASE58_ALPHABET.indexOf(char);
+    if (digit < 0) return null;
+
+    let carry = digit;
+    for (let i = 0; i < bytes.length; i += 1) {
+      carry += bytes[i]! * 58;
+      bytes[i] = carry & 0xff;
+      carry >>= 8;
+    }
+
+    while (carry > 0) {
+      bytes.push(carry & 0xff);
+      carry >>= 8;
+    }
+  }
+
+  let leadingZeros = 0;
+  for (const char of value) {
+    if (char !== "1") break;
+    leadingZeros += 1;
+  }
+
+  const decoded = new Uint8Array(leadingZeros + bytes.length);
+  for (let i = 0; i < bytes.length; i += 1) {
+    decoded[decoded.length - 1 - i] = bytes[i]!;
+  }
+
+  return decoded;
+}
+
+function isValidEthereumAddress(address: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+function isValidBitcoinAddress(address: string): boolean {
+  const lower = address.toLowerCase();
+
+  if (lower.startsWith("bc1")) {
+    // Mainnet bech32 / bech32m (SegWit v0/v1); reject testnet and free text.
+    if (address.length < 14 || address.length > 74) return false;
+    if (!/^bc1[a-z0-9]+$/i.test(address)) return false;
+    const body = lower.slice(3);
+    return body.length >= 11 && [...body].every((c) => BECH32_CHARSET.includes(c));
+  }
+
+  // Legacy P2PKH (1…) / P2SH (3…) — Base58Check payload is 25 bytes.
+  if (!/^[13][a-km-zA-HJ-NP-Z1-9]{25,33}$/.test(address)) return false;
+  const decoded = decodeBase58(address);
+  return decoded !== null && decoded.length === 25;
+}
+
+function isValidSolanaAddress(address: string): boolean {
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) return false;
+  const decoded = decodeBase58(address);
+  return decoded !== null && decoded.length === 32;
+}
 
 export function detectCryptoChain(query: string): CryptoChain | null {
   const trimmed = query.trim();
 
-  if (/^0x[a-fA-F0-9]{40}$/.test(trimmed)) return "ethereum";
-  if (/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(trimmed)) return "bitcoin";
-  if (SOLANA_ADDRESS_RE.test(trimmed)) return "solana";
+  if (!trimmed || /\s/.test(trimmed) || trimmed.includes("@")) return null;
+
+  if (isValidEthereumAddress(trimmed)) return "ethereum";
+  if (isValidBitcoinAddress(trimmed)) return "bitcoin";
+  if (isValidSolanaAddress(trimmed)) return "solana";
 
   return null;
 }
@@ -364,19 +444,75 @@ export async function lookupEthereumWallet(
   };
 }
 
-async function solanaRpc<T>(method: string, params: unknown[]): Promise<T | null> {
-  const data = await fetchJson<{ result?: T }>("https://api.mainnet-beta.solana.com", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method,
-      params,
-    }),
-  });
+type SolanaRpcResponse<T> = {
+  result?: T;
+  error?: { code?: number; message?: string };
+};
 
-  return data?.result ?? null;
+async function solanaRpcOnce<T>(
+  rpcUrl: string,
+  method: string,
+  params: unknown[],
+): Promise<{ result: T | null; invalidAddress: boolean; transportFailed: boolean }> {
+  try {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params,
+      }),
+    });
+
+    if (!res.ok) {
+      return { result: null, invalidAddress: false, transportFailed: true };
+    }
+
+    const data = (await res.json()) as SolanaRpcResponse<T>;
+    const message = data.error?.message?.toLowerCase() ?? "";
+
+    if (
+      message.includes("wrongsize") ||
+      message.includes("invalid pubkey")
+    ) {
+      return { result: null, invalidAddress: true, transportFailed: false };
+    }
+
+    if (data.error) {
+      return { result: null, invalidAddress: false, transportFailed: true };
+    }
+
+    return {
+      result: (data.result ?? null) as T | null,
+      invalidAddress: false,
+      transportFailed: false,
+    };
+  } catch {
+    return { result: null, invalidAddress: false, transportFailed: true };
+  }
+}
+
+async function solanaRpc<T>(
+  method: string,
+  params: unknown[],
+): Promise<{ result: T | null; invalidAddress: boolean }> {
+  for (const rpcUrl of SOLANA_RPC_URLS) {
+    const outcome = await solanaRpcOnce<T>(rpcUrl, method, params);
+    if (outcome.invalidAddress) {
+      return { result: null, invalidAddress: true };
+    }
+    if (!outcome.transportFailed) {
+      return { result: outcome.result, invalidAddress: false };
+    }
+  }
+
+  return { result: null, invalidAddress: false };
 }
 
 type SolanaSignature = {
@@ -389,25 +525,36 @@ type SolanaSignature = {
 export async function lookupSolanaWallet(
   address: string,
 ): Promise<CryptoWalletResult> {
-  const [balanceResult, signatures] = await Promise.all([
+  if (!isValidSolanaAddress(address)) {
+    throw new Error(CRYPTO_WALLET_INVALID_MESSAGE);
+  }
+
+  const [balanceOutcome, signaturesOutcome] = await Promise.all([
     solanaRpc<{ value: number }>("getBalance", [address]),
     solanaRpc<SolanaSignature[]>("getSignaturesForAddress", [address, { limit: 8 }]),
   ]);
 
-  if (balanceResult === null && signatures === null) {
-    throw new Error("Solana wallet lookup failed");
+  if (balanceOutcome.invalidAddress || signaturesOutcome.invalidAddress) {
+    throw new Error(CRYPTO_WALLET_INVALID_MESSAGE);
   }
 
-  const lamports = balanceResult?.value ?? 0;
+  if (balanceOutcome.result === null && signaturesOutcome.result === null) {
+    throw new Error(
+      "Solana wallet lookup is temporarily unavailable. Try again shortly.",
+    );
+  }
+
+  const lamports = balanceOutcome.result?.value ?? 0;
+  const signatures = signaturesOutcome.result ?? [];
 
   return {
     chain: "solana",
     address,
     balance: `${lamportsToSol(lamports)} SOL`,
     balanceNative: lamportsToSol(lamports),
-    txCount: signatures?.length ?? 0,
+    txCount: signatures.length,
     tokens: [],
-    recentTransactions: (signatures ?? []).map((entry) => ({
+    recentTransactions: signatures.map((entry) => ({
       hash: entry.signature,
       timestamp: entry.blockTime ? formatTimestamp(entry.blockTime) : undefined,
       direction: entry.err ? undefined : "self",
@@ -415,19 +562,17 @@ export async function lookupSolanaWallet(
     })),
     stats: {
       Lamports: String(lamports),
-      "Recent signatures": String(signatures?.length ?? 0),
+      "Recent signatures": String(signatures.length),
     },
   };
 }
 
 export async function lookupCryptoWallet(query: string): Promise<CryptoWalletResult> {
-  const chain = detectCryptoChain(query);
   const address = query.trim();
+  const chain = detectCryptoChain(address);
 
   if (!chain) {
-    throw new Error(
-      "Enter a valid Bitcoin (1/3/bc1), Ethereum (0x), or Solana wallet address.",
-    );
+    throw new Error(CRYPTO_WALLET_INVALID_MESSAGE);
   }
 
   if (chain === "bitcoin") return lookupBitcoinWallet(address);

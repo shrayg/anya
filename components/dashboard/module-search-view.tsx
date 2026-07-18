@@ -44,6 +44,10 @@ import { aiModeFromSidebarItem, type AiIntelResult } from "@/lib/ai-intel";
 import type { BankSearchResult } from "@/lib/bank-search";
 import type { BinLookupResult } from "@/lib/bin-lookup";
 import type { CryptoWalletResult } from "@/lib/crypto-wallet";
+import {
+  CRYPTO_WALLET_INVALID_MESSAGE,
+  detectCryptoChain,
+} from "@/lib/crypto-wallet";
 import type { IbanLookupResult } from "@/lib/iban-lookup";
 import type { UsProviderSearchResult } from "@/lib/us-provider-directory";
 import type { VinDecodeResult } from "@/lib/vin-decode";
@@ -620,6 +624,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
     if (activeType === "breaches" && !normalizeEmail(trimmed)) {
       setError("Enter a valid email address.");
+      setIsSearching(false);
+      return;
+    }
+
+    if (activeType === "crypto-wallet" && !detectCryptoChain(trimmed)) {
+      setError(CRYPTO_WALLET_INVALID_MESSAGE);
       setIsSearching(false);
       return;
     }

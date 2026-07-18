@@ -1118,12 +1118,12 @@ export async function runAiIntel(
         ...baseResult("crypto", trimmed, queryType, Date.now()),
         riskScore: 0,
         aiBrief:
-          "Invalid crypto address. Expected Bitcoin (1/3/bc1), Ethereum (0x), or Solana.",
+          "Invalid crypto address. Expected a Bitcoin (1/3/bc1), Ethereum (0x), or Solana wallet — not free text.",
         signals: [
           {
             level: "warn",
             title: "Format mismatch",
-            detail: "Input does not match supported wallet patterns.",
+            detail: "Input does not match a plausible BTC, ETH, or Solana wallet address.",
           },
         ],
         recommendations: ["Verify address and chain."],

@@ -7,7 +7,11 @@ import {
   fetchCsintCrypto,
 } from "@/lib/csint";
 import { PUBLIC_INTEL_SOURCE } from "@/lib/public-branding";
-import { lookupCryptoWallet } from "@/lib/crypto-wallet";
+import {
+  CRYPTO_WALLET_INVALID_MESSAGE,
+  detectCryptoChain,
+  lookupCryptoWallet,
+} from "@/lib/crypto-wallet";
 import { fetchGodsEyeSearchSafe } from "@/lib/godseye";
 
 export async function GET(req: NextRequest) {
@@ -18,6 +22,14 @@ export async function GET(req: NextRequest) {
 
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
+  }
+
+  const chain = detectCryptoChain(query);
+  if (!chain) {
+    return NextResponse.json(
+      { error: CRYPTO_WALLET_INVALID_MESSAGE },
+      { status: 400 },
+    );
   }
 
   try {

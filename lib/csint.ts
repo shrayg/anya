@@ -643,10 +643,13 @@ export function detectCsintCryptoSymbol(
   address: string,
 ): "BTC" | "ETH" | "LTC" | "DOGE" | null {
   const a = address.trim();
+  if (!a || /\s/.test(a) || a.includes("@")) return null;
   if (/^0x[a-fA-F0-9]{40}$/.test(a)) return "ETH";
-  if (/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/i.test(a)) return "BTC";
+  // Align with on-chain wallet detector: bech32 bc1… or Base58Check 1…/3…
+  if (/^bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{11,71}$/i.test(a)) return "BTC";
+  if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,33}$/.test(a)) return "BTC";
   if (/^[LM][a-km-zA-HJ-NP-Z1-9]{26,33}$/.test(a)) return "LTC";
-  if (/^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$/.test(a)) return "DOGE";
+  if (/^D[5-9A-HJ-NP-U][1-9A-HJ-NP-Za-km-z]{32}$/.test(a)) return "DOGE";
   return null;
 }
 
