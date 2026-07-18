@@ -4,6 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { animate, motion, useMotionValue } from "framer-motion";
 import { usePathname } from "next/navigation";
 
+import ShinyText from "@/components/shiny-text";
+import { brandTitleClassName } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 
 const HOLD_MS = 2000;
@@ -17,15 +19,9 @@ function measureHeroTarget() {
   if (!target) return null;
 
   const rect = target.getBoundingClientRect();
-  const computed = window.getComputedStyle(target);
-  const fontSize =
-    Number.parseFloat(computed.fontSize) ||
-    (window.innerWidth >= 768 ? 96 : 48);
-
   return {
     x: rect.left + rect.width / 2,
     y: rect.top + rect.height / 2,
-    fontSize,
   };
 }
 
@@ -36,7 +32,6 @@ export const SplashScreen = () => {
 
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<Phase>("hold");
-  const [fontSize, setFontSize] = useState(96);
 
   const bgOpacity = useMotionValue(1);
   const spinnerOpacity = useMotionValue(1);
@@ -75,11 +70,7 @@ export const SplashScreen = () => {
   useLayoutEffect(() => {
     if (!mounted || !isHome || phase === "done") return;
 
-    const to = measureHeroTarget();
-    const size = to?.fontSize ?? (window.innerWidth >= 768 ? 96 : 48);
-    setFontSize(size);
-
-    // Start at true viewport center, sized to final hero type (GPU scale only later)
+    // Start at true viewport center (GPU scale only later)
     textX.set(window.innerWidth / 2);
     textY.set(window.innerHeight / 2);
     textScale.set(1.12);
@@ -97,6 +88,13 @@ export const SplashScreen = () => {
     return () => window.clearTimeout(timer);
   }, [mounted, isHome, phase]);
 
+  // Safety: never leave the hero brand stuck at opacity 0
+  useEffect(() => {
+    if (!mounted || !isHome || phase === "done") return;
+    const safety = window.setTimeout(finish, HOLD_MS + REVEAL_MS * 1000 + 1500);
+    return () => window.clearTimeout(safety);
+  }, [mounted, isHome, phase, finish]);
+
   useLayoutEffect(() => {
     if (phase !== "reveal") return;
 
@@ -104,10 +102,7 @@ export const SplashScreen = () => {
     const to = measureHeroTarget() ?? {
       x: window.innerWidth / 2,
       y: Math.max(120, window.innerHeight * 0.28),
-      fontSize: window.innerWidth >= 768 ? 96 : 48,
     };
-
-    setFontSize(to.fontSize);
 
     if (reduced) {
       void animate(bgOpacity, 0, { duration: 0.2 });
@@ -146,14 +141,12 @@ export const SplashScreen = () => {
         <div className="absolute left-1/2 top-0 h-full w-[min(40vw,18rem)] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.14)_0%,transparent_68%)]" />
       </motion.div>
 
-      <motion.span
-        className="pointer-events-none absolute left-0 top-0 z-[101] whitespace-nowrap font-extrabold tracking-normal text-white"
+      <motion.div
+        className="pointer-events-none absolute left-0 top-0 z-[101]"
         style={{
           x: textX,
           y: textY,
           scale: textScale,
-          fontSize,
-          lineHeight: 1.15,
           willChange: "transform",
           backfaceVisibility: "hidden",
         }}
@@ -161,8 +154,8 @@ export const SplashScreen = () => {
           `translate3d(${x}, ${y}, 0) translate(-50%, -50%) scale(${scale})`
         }
       >
-        {siteConfig.name}
-      </motion.span>
+        <ShinyText className={brandTitleClassName} text={siteConfig.name} />
+      </motion.div>
 
       <motion.div
         className="absolute left-1/2 top-[calc(50%+4.5rem)] z-[101] -translate-x-1/2"

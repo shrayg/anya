@@ -1,22 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect } from "react";
 import { ShieldCheck, Users } from "lucide-react";
 
 import { HomeBackground } from "@/components/home-background";
 import { HomeSearch } from "@/components/home-search";
 import { IntelligenceModulesSection } from "@/components/intelligence-modules-section";
 import ShinyText from "@/components/shiny-text";
-import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
+import {
+  brandTitleClassName,
+  siteLogoClassName,
+  siteLogoSrc,
+} from "@/config/branding";
 import { siteConfig } from "@/config/site";
 
 export default function Home() {
-  // Never leave the splash handoff stuck hiding the brand mark.
-  useEffect(() => {
-    delete document.documentElement.dataset.splash;
-  }, []);
-
   return (
     <>
       <HomeBackground />
@@ -34,7 +32,7 @@ export default function Home() {
               width={72}
             />
             <ShinyText
-              className="z-20 text-5xl font-extrabold tracking-normal transition-all ease-in-out md:text-8xl"
+              className={brandTitleClassName}
               data-splash-target
               text={siteConfig.name}
             />
