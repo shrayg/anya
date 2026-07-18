@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import { Snowflake } from "lucide-react";
 import { SiTelegram } from "react-icons/si";
 
@@ -9,7 +11,7 @@ export function FrozenAccountOverlay({ username }: { username: string }) {
   const telegramUrl = siteConfig.links.telegram;
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await apiFetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/auth?action=login";
   };
 

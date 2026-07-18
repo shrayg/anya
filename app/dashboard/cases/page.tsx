@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import { useCallback, useEffect, useState } from "react";
 import {
   FolderOpen,
@@ -145,7 +147,7 @@ export default function CasesPage() {
     setError("");
 
     try {
-      const response = await fetch(`/api/cases/${selectedId}`, {
+      const response = await apiFetch(`/api/cases/${selectedId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -176,7 +178,7 @@ export default function CasesPage() {
     if (!window.confirm("Delete this case permanently?")) return;
 
     try {
-      const response = await fetch(`/api/cases/${selectedId}`, {
+      const response = await apiFetch(`/api/cases/${selectedId}`, {
         method: "DELETE",
       });
 

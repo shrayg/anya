@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Ban, KeyRound, RefreshCw, Shield, Snowflake, Trash2, Users } from "lucide-react";
 import clsx from "clsx";
@@ -108,7 +110,7 @@ export function AdminUsersPanel() {
     setError("");
 
     try {
-      const response = await fetch(`/api/workspace/members/${userId}/staff-role`, {
+      const response = await apiFetch(`/api/workspace/members/${userId}/staff-role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ staffRole }),
@@ -140,7 +142,7 @@ export function AdminUsersPanel() {
     setError("");
 
     try {
-      const response = await fetch(`/api/workspace/members/${userId}/password`, {
+      const response = await apiFetch(`/api/workspace/members/${userId}/password`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
@@ -169,7 +171,7 @@ export function AdminUsersPanel() {
     setError("");
 
     try {
-      const response = await fetch(`/api/workspace/members/${userId}/plan`, {
+      const response = await apiFetch(`/api/workspace/members/${userId}/plan`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan }),
@@ -194,7 +196,7 @@ export function AdminUsersPanel() {
     setError("");
 
     try {
-      const response = await fetch(`/api/workspace/members/${userId}/status`, {
+      const response = await apiFetch(`/api/workspace/members/${userId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -225,7 +227,7 @@ export function AdminUsersPanel() {
     setError("");
 
     try {
-      const response = await fetch(`/api/workspace/members/${user.id}`, {
+      const response = await apiFetch(`/api/workspace/members/${user.id}`, {
         method: "DELETE",
       });
       const data = await response.json();

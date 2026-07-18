@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import { useEffect, useState } from "react";
 import { Check, Plus, Search, X } from "lucide-react";
 
@@ -77,7 +79,7 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
     setError("");
 
     try {
-      const response = await fetch("/api/cases", {
+      const response = await apiFetch("/api/cases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

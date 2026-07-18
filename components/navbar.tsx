@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -67,7 +69,7 @@ export const Navbar = () => {
   }, []);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await apiFetch("/api/auth/logout", { method: "POST" });
     setUsername(null);
     window.location.href = "/";
   };

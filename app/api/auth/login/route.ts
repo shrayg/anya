@@ -10,6 +10,7 @@ import {
   recordAuthFailure,
 } from "@/lib/auth-lockout";
 import { normalizeUsername } from "@/lib/password-policy";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 import { prisma } from "@/prisma/client";
 
 async function findUserForLogin(rawUsername: string) {
@@ -34,6 +35,8 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null);
     const username = typeof body?.username === "string" ? body.username : "";
     const password = typeof body?.password === "string" ? body.password : "";
+    const turnstileToken =
+      typeof body?.turnstileToken === "string" ? body.turnstileToken : "";
 
     if (!username.trim() || !password) {
       return NextResponse.json(
@@ -44,6 +47,11 @@ export async function POST(request: Request) {
 
     const lockoutUsername = normalizeUsername(username);
     const ip = getClientIp(request);
+
+    const turnstile = await verifyTurnstileToken(turnstileToken, ip);
+    if (!turnstile.ok) {
+      return NextResponse.json({ error: turnstile.error }, { status: 400 });
+    }
     const lockout = getAuthLockoutStatus(ip, lockoutUsername);
 
     if (lockout.locked) {

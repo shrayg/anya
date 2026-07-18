@@ -37,7 +37,7 @@ export const PRIORITY_STATE_COUNTY_PORTALS: Array<{
     name: "Hillsborough HOVER Case Search",
     url: "https://hover.hillsclerk.com/html/case/caseSearch.html",
     kind: "court",
-    note: "County case search — live adapter uses anonymous GUID captcha bypass; PerimeterX may still challenge some IPs",
+    note: "County case search — live adapter validates the anonymous search GUID; PerimeterX may still challenge some IPs",
   },
   {
     state: "FL",

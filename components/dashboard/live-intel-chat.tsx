@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 
@@ -68,7 +70,7 @@ export function LiveIntelChat() {
 
     if (!text || !guestName) return;
 
-    const response = await fetch("/api/waiting-room/messages", {
+    const response = await apiFetch("/api/waiting-room/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, guestName }),

@@ -253,7 +253,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "court-records",
         "us-court",
         "John Doe, VA — or John Doe, DE — or a federal docket number",
-        "Federal RECAP dockets, live Virginia OCIS, Delaware CourtConnect, Oklahoma OSCN (Turnstile bypass), Hillsborough FL HOVER (captcha GUID bypass), and MD/TX/NY county portal routing when live automation is blocked.",
+        "Federal RECAP dockets, live Virginia OCIS, Delaware CourtConnect, Oklahoma OSCN party search, Hillsborough FL HOVER case lookup, and MD/TX/NY county portal routing when live automation is unavailable.",
         undefined,
         undefined,
         { lawfulUseNotice: true },

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -149,7 +151,7 @@ export default function Sidebar() {
       <div className="p-4 border-t border-[#1f1f1f]">
         <button 
           onClick={() => {
-            fetch("/api/auth/logout", { method: "POST" }).then(() => {
+            apiFetch("/api/auth/logout", { method: "POST" }).then(() => {
               window.location.href = "/";
             });
           }}

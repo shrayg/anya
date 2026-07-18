@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MessageCircle, RefreshCw, Send, Ticket } from "lucide-react";
@@ -140,7 +142,7 @@ export default function SupportTicketsClient() {
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch("/api/support/tickets", {
+      const response = await apiFetch("/api/support/tickets", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -169,7 +171,7 @@ export default function SupportTicketsClient() {
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch(`/api/support/tickets/${encodeURIComponent(selectedId)}`, {
+      const response = await apiFetch(`/api/support/tickets/${encodeURIComponent(selectedId)}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -195,7 +197,7 @@ export default function SupportTicketsClient() {
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch(`/api/support/tickets/${encodeURIComponent(selectedId)}`, {
+      const response = await apiFetch(`/api/support/tickets/${encodeURIComponent(selectedId)}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

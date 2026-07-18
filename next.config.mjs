@@ -25,21 +25,32 @@ const securityHeaders = [
     value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
   },
   {
+    // Report-Only: tighter policy for monitoring. Residual unsafe-inline/unsafe-eval
+    // remain because Next.js App Router + HeroUI still need them in production without
+    // a full nonce pipeline. Turnstile + Square checkout domains are allowlisted.
     key: "Content-Security-Policy-Report-Only",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https:",
+      "connect-src 'self' https: https://challenges.cloudflare.com",
+      "frame-src https://challenges.cloudflare.com https://*.squarecdn.com https://*.squareup.com",
+      "worker-src 'self' blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
       "object-src 'none'",
+      "upgrade-insecure-requests",
     ].join("; "),
   },
 ];
+
+const noStore = {
+  key: "Cache-Control",
+  value: "private, no-store, max-age=0",
+};
 
 const nextConfig = {
   // Allow build-then-swap deploys: `NEXT_DIST_DIR=.next.new npm run build`
@@ -73,19 +84,32 @@ const nextConfig = {
       },
       {
         source: "/",
-        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+        headers: [noStore],
       },
       {
         source: "/auth",
-        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+        headers: [noStore],
       },
       {
         source: "/dashboard/:path*",
-        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+        headers: [noStore],
       },
       {
         source: "/api/:path*",
-        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+        headers: [noStore],
+      },
+      // Error / not-found HTML must never be CDN-cached with long s-maxage.
+      {
+        source: "/404",
+        headers: [noStore],
+      },
+      {
+        source: "/_not-found",
+        headers: [noStore],
+      },
+      {
+        source: "/_error",
+        headers: [noStore],
       },
     ];
   },

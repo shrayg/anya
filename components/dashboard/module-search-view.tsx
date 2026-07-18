@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/csrf-client";
+
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Download, FolderPlus, Home } from "lucide-react";
@@ -421,7 +423,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   ]);
 
   const authorizeSearch = async () => {
-    const response = await fetch("/api/user/search/authorize", {
+    const response = await apiFetch("/api/user/search/authorize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ moduleSlug: moduleDef.slug }),
@@ -443,7 +445,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   };
 
   const recordSearch = async (trimmed: string, type: string, resultData: string) => {
-    const response = await fetch("/api/user/stats", {
+    const response = await apiFetch("/api/user/stats", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1275,7 +1277,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       const previousIntel = existingData.case?.intelData || "";
       const block = `--- ${lastSearchLabel} ---\n${rawResult}\n\n`;
 
-      const response = await fetch(`/api/cases/${saveCaseId}`, {
+      const response = await apiFetch(`/api/cases/${saveCaseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

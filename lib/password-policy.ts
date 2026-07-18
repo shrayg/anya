@@ -1,7 +1,33 @@
 export const MIN_PASSWORD_LENGTH = 12;
-export const MIN_USERNAME_LENGTH = 5;
+export const MIN_USERNAME_LENGTH = 8;
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
+
+/** Reserved names blocked at registration only (existing accounts still log in). */
+const RESERVED_USERNAMES = new Set([
+  "admin",
+  "administrator",
+  "root",
+  "support",
+  "help",
+  "anya",
+  "anyaint",
+  "anya_int",
+  "system",
+  "moderator",
+  "mod",
+  "staff",
+  "owner",
+  "security",
+  "billing",
+  "noreply",
+  "no_reply",
+  "postmaster",
+  "webmaster",
+  "api",
+  "null",
+  "undefined",
+]);
 
 const UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const LOWER = "abcdefghijkmnopqrstuvwxyz";
@@ -50,6 +76,19 @@ export function validateUsername(username: string): string | null {
 
   if (!USERNAME_PATTERN.test(trimmed)) {
     return "Username may only contain letters, numbers, and underscores.";
+  }
+
+  return null;
+}
+
+/** Extra registration-only checks (reserved / brand names). */
+export function validateUsernameForRegistration(username: string): string | null {
+  const base = validateUsername(username);
+  if (base) return base;
+
+  const normalized = normalizeUsername(username);
+  if (RESERVED_USERNAMES.has(normalized)) {
+    return "That username is reserved. Please choose another.";
   }
 
   return null;

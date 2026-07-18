@@ -8,8 +8,8 @@ import {
 import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
 
 /**
- * Oklahoma OSCN party search via Results.ashx — bypasses the Turnstile wall
- * that blocks Results.aspx / Search.aspx.
+ * Oklahoma OSCN party search via Results.ashx — uses the public results
+ * endpoint rather than the interactive search form that shows Turnstile.
  */
 const BASE = "https://www.oscn.net/dockets";
 

@@ -8,15 +8,20 @@ import clsx from "clsx";
 import { ArrowLeft, Check, Clock, Copy, LogIn, RefreshCw, UserPlus } from "lucide-react";
 
 import { HomeBackground } from "@/components/home-background";
+import {
+  isTurnstileEnabledOnClient,
+  TurnstileWidget,
+} from "@/components/turnstile-widget";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
+import { apiFetch } from "@/lib/csrf-client";
 import {
   generateStrongPassword,
   MIN_PASSWORD_LENGTH,
   MIN_USERNAME_LENGTH,
   passwordRequirementsHint,
   validatePassword,
-  validateUsername,
+  validateUsernameForRegistration,
 } from "@/lib/password-policy";
 import { getAppLandingPath, normalizePlanId } from "@/lib/plans";
 
@@ -26,10 +31,9 @@ async function startPlanCheckout(plan: string, interval: string) {
     return { ok: false as const, reason: "invalid_plan" };
   }
 
-  const checkoutRes = await fetch("/api/billing/checkout", {
+  const checkoutRes = await apiFetch("/api/billing/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify({
       type: "subscription",
       planId,
@@ -69,15 +73,25 @@ function AuthForm() {
   const [info, setInfo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRequired = isTurnstileEnabledOnClient();
 
   useEffect(() => {
     setMode(searchParams.get("action") === "register" ? "register" : "login");
   }, [searchParams]);
 
+  useEffect(() => {
+    // Mint CSRF cookie early so login/register POSTs succeed.
+    void apiFetch("/api/auth/csrf", { method: "GET", cache: "no-store" }).catch(
+      () => null,
+    );
+  }, []);
+
   const switchMode = (next: "login" | "register") => {
     setMode(next);
     setError("");
     setInfo("");
+    setTurnstileToken("");
     const params = new URLSearchParams(searchParams.toString());
     params.set("action", next);
     router.replace(`/auth?${params.toString()}`, { scroll: false });
@@ -123,7 +137,7 @@ function AuthForm() {
           setError("Please agree to the Terms, Privacy Policy, and Acceptable Use Policy.");
           return;
         }
-        const usernameError = validateUsername(username);
+        const usernameError = validateUsernameForRegistration(username);
         if (usernameError) {
           setError(usernameError);
           return;
@@ -135,20 +149,26 @@ function AuthForm() {
         }
       }
 
+      if (turnstileRequired && !turnstileToken) {
+        setError("Complete the security check and try again.");
+        return;
+      }
+
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           username: username.trim(),
           password,
+          turnstileToken: turnstileToken || undefined,
         }),
       });
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         setError(data.error || "Something went wrong.");
+        setTurnstileToken("");
         return;
       }
 
@@ -257,7 +277,7 @@ function AuthForm() {
               autoCapitalize="none"
               autoCorrect="off"
               className="ui-input ui-input--lg"
-              minLength={MIN_USERNAME_LENGTH}
+              minLength={mode === "register" ? MIN_USERNAME_LENGTH : 1}
               maxLength={32}
               pattern="[A-Za-z0-9_]+"
               title="Letters, numbers, and underscores only"
@@ -333,6 +353,15 @@ function AuthForm() {
             </div>
           </div>
 
+          {turnstileRequired && (
+            <TurnstileWidget
+              key={mode}
+              className="flex justify-center"
+              onExpire={() => setTurnstileToken("")}
+              onToken={setTurnstileToken}
+            />
+          )}
+
           {info && (
             <p className="rounded-lg border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-sm text-emerald-100 md:text-base">
               {info}
@@ -377,7 +406,11 @@ function AuthForm() {
 
           <button
             className="ui-btn ui-btn-primary ui-btn-primary--lg w-full"
-            disabled={isSubmitting || (mode === "register" && !acceptedLegal)}
+            disabled={
+              isSubmitting ||
+              (mode === "register" && !acceptedLegal) ||
+              (turnstileRequired && !turnstileToken)
+            }
             type="submit"
           >
             {mode === "login" ? <LogIn className="size-5" /> : <UserPlus className="size-5" />}

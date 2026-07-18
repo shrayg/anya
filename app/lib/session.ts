@@ -42,6 +42,11 @@ function shouldUseSecureCookies() {
   return process.env.NODE_ENV === "production";
 }
 
+/**
+ * HttpOnly + Secure session cookie.
+ * SameSite=Lax (not Strict) so Square/Cryptomus top-level return redirects
+ * still attach the session. Cross-site POST abuse is mitigated via CSRF.
+ */
 export function sessionCookieOptions(expires: Date) {
   return {
     expires,
