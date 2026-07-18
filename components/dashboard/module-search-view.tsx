@@ -1412,19 +1412,18 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             </button>
           </form>
 
-          {/* Default for every module (incl. new ones via ModuleSearchView). */}
-          {isSearching ? (
-            <IntelSignalLoader
-              active
-              title={moduleDef.name}
-            />
-          ) : null}
-
           {error && (
             <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-sm text-red-200">
               {error}
             </p>
           )}
+        </div>
+      </section>
+
+      {/* Lattice rests on the page background — not inside the input panel. */}
+      {isSearching ? (
+        <IntelSignalLoader active title={moduleDef.name} />
+      ) : null}
 
           {moduleDef.slug === "site-pentest" ? (
             <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
@@ -1626,8 +1625,6 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               ) : null}
             </div>
           )}
-        </div>
-      </section>
 
       <SearchBarTour
         ariaLabel="Workspace search guide"

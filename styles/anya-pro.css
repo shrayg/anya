@@ -314,30 +314,31 @@ pre,
     0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
-/* —— Intel signal loader: centered stack, never clip —— */
+/* —— Intel signal loader: no card — floats on the page background —— */
 .intel-signal-loader {
+  --isl-blush: var(--anya-blush, #f0a4b8);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  padding: 1.5rem 1rem 0.5rem;
+  border: none;
+  background: transparent;
+  box-shadow: none;
   overflow: visible;
-  border-radius: var(--anya-radius-lg);
-  border-color: color-mix(in srgb, var(--anya-blush) 22%, transparent);
-  background:
-    radial-gradient(
-      ellipse 85% 70% at 50% 0%,
-      color-mix(in srgb, var(--anya-blush) 12%, transparent),
-      transparent 58%
-    ),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
-  box-shadow: var(--anya-shadow-panel);
+  animation: intel-signal-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .intel-signal-loader--hero {
-  margin-top: 1.25rem;
-  padding: 1.75rem 1.5rem 1.5rem;
+  margin-top: 2.25rem;
+  padding: 1.75rem 1rem 1rem;
 }
 
 .intel-signal-loader--compact {
-  margin-top: 0;
-  padding: 1.1rem 1rem 1rem;
-  border-radius: 0.85rem;
+  margin-top: 1.25rem;
+  padding: 1rem 0.5rem 0.5rem;
 }
 
 .intel-signal-loader__stack {
@@ -345,29 +346,30 @@ pre,
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 1rem;
+  gap: 1.15rem;
+  width: 100%;
+  max-width: 22rem;
+  overflow: visible;
 }
 
 .intel-signal-loader__canvas-wrap {
   position: relative;
   flex-shrink: 0;
   overflow: visible;
-  width: 12.5rem;
-  height: 12.5rem;
-  padding: 0.35rem;
-  box-sizing: content-box;
+  width: 14rem;
+  height: 14rem;
 }
 
 .intel-signal-loader--compact .intel-signal-loader__canvas-wrap {
-  width: 6.5rem;
-  height: 6.5rem;
-  padding: 0.2rem;
+  width: 7.5rem;
+  height: 7.5rem;
 }
 
 .intel-signal-loader__canvas {
   display: block;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 
 .intel-signal-loader__pct {
@@ -376,29 +378,29 @@ pre,
   display: grid;
   place-items: center;
   font-family: var(--font-anya-mono), var(--font-mono), ui-monospace, monospace;
-  font-size: 1.65rem;
+  font-size: 1.75rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
   color: #f4f4f5;
-  text-shadow: 0 0 24px color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--isl-blush) 45%, transparent);
   pointer-events: none;
 }
 
 .intel-signal-loader--compact .intel-signal-loader__pct {
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .intel-signal-loader__track {
-  width: min(16rem, 100%);
+  width: min(14rem, 72%);
   height: 2px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .intel-signal-loader--compact .intel-signal-loader__track {
-  width: min(12rem, 100%);
+  width: min(10rem, 70%);
 }
 
 .intel-signal-loader__fill {
@@ -407,10 +409,10 @@ pre,
   background: linear-gradient(
     90deg,
     transparent,
-    var(--anya-blush),
-    color-mix(in srgb, var(--anya-blush) 40%, white)
+    var(--isl-blush),
+    color-mix(in srgb, var(--isl-blush) 40%, white)
   );
-  box-shadow: 0 0 12px color-mix(in srgb, var(--anya-blush) 55%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--isl-blush) 55%, transparent);
   transition: width 0.12s linear;
 }
 
@@ -424,7 +426,7 @@ pre,
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--anya-blush) 85%, white);
+  color: color-mix(in srgb, var(--isl-blush) 85%, white);
 }
 
 .intel-signal-loader__stage-text {
@@ -448,10 +450,6 @@ pre,
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.intel-signal-loader {
-  animation: intel-signal-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

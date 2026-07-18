@@ -242,14 +242,13 @@ export default function DesignPreviewPage() {
                         {scanning ? "Scanning…" : "Run"}
                       </button>
                     </form>
+                  </div>
+                </section>
 
-                    <IntelSignalLoader
-                      active={scanning}
-                      title="Instagram"
-                    />
+                <IntelSignalLoader active={scanning} title="Instagram" />
 
-                    {!scanning ? (
-                      <div className="mt-5 border-t border-white/8 pt-5">
+                {!scanning ? (
+                  <div className="mt-5">
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <p className="text-sm text-zinc-400">
                             Instagram · keeganhoyne
@@ -313,20 +312,18 @@ export default function DesignPreviewPage() {
                         >
                           Replay scan animation
                         </button>
-                      </div>
-                    ) : (
-                      <div className="mt-4 flex justify-end">
-                        <button
-                          className="ui-btn ui-btn-ghost"
-                          onClick={() => setScanning(false)}
-                          type="button"
-                        >
-                          Simulate results ready
-                        </button>
-                      </div>
-                    )}
                   </div>
-                </section>
+                ) : (
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      className="ui-btn ui-btn-ghost"
+                      onClick={() => setScanning(false)}
+                      type="button"
+                    >
+                      Simulate results ready
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </main>

@@ -54,34 +54,32 @@ export default function SignalLoaderPreviewPage() {
           </button>
         </div>
 
-        <section className="mt-10 rounded-2xl border border-white/10 bg-zinc-950/80 p-5 shadow-[0_0_80px_rgba(240,164,184,0.06)] md:p-8">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
-              className="ui-input flex-1 font-mono text-sm"
-              defaultValue="https://www.instagram.com/keeganhoyne/"
-              readOnly
-            />
-            <button
-              className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
-              disabled={active}
-              type="button"
-            >
-              {active ? "Scanning…" : "Run"}
-            </button>
+        <section className="ui-panel mt-10">
+          <div className="ui-panel-body">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                className="ui-input flex-1 font-mono text-sm"
+                defaultValue="https://www.instagram.com/keeganhoyne/"
+                readOnly
+              />
+              <button
+                className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
+                disabled={active}
+                type="button"
+              >
+                {active ? "Scanning…" : "Run"}
+              </button>
+            </div>
           </div>
-
-          {active ? (
-            <IntelSignalLoader
-              active
-              title="Instagram"
-              variant={variant}
-            />
-          ) : (
-            <p className="rounded-xl border border-dashed border-white/10 px-4 py-10 text-center text-sm text-zinc-500">
-              Animation stopped — hit Start to replay.
-            </p>
-          )}
         </section>
+
+        {active ? (
+          <IntelSignalLoader active title="Instagram" variant={variant} />
+        ) : (
+          <p className="mt-10 rounded-xl border border-dashed border-white/10 px-4 py-10 text-center text-sm text-zinc-500">
+            Animation stopped — hit Start to replay.
+          </p>
+        )}
 
         <p className="mt-6 text-xs text-zinc-600">
           Dev route only — not linked from the product nav.

@@ -105,7 +105,7 @@ export function IntelSignalLoader({
 
     type Pt = { x: number; y: number; z: number; sx: number; sy: number };
     const project = (x: number, y: number, z: number, size: number): Pt => {
-      const scale = size * 0.3;
+      const scale = size * 0.26;
       const persp = 2.6 / (2.6 + z);
       return {
         x,
@@ -213,7 +213,7 @@ export function IntelSignalLoader({
         }
       }
 
-      const ringR = size * 0.42;
+      const ringR = size * 0.38;
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, ringR, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(255,255,255,0.08)";
