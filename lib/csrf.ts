@@ -8,6 +8,7 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 export function isCsrfExemptPath(pathname: string): boolean {
   return (
     pathname.startsWith("/api/billing/webhook") ||
+    pathname.startsWith("/api/billing/oxapay/webhook") ||
     pathname.startsWith("/api/internal/")
   );
 }

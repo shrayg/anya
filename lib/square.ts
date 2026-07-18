@@ -1,5 +1,11 @@
 import { SquareClient, SquareEnvironment } from "square";
 
+export {
+  decodeBillingMeta,
+  encodeBillingMeta,
+  type BillingMeta,
+} from "@/lib/billing-meta";
+
 let client: SquareClient | null = null;
 
 export function isSquareConfigured(): boolean {
@@ -58,35 +64,4 @@ export function getAppBaseUrl(requestUrl?: string): string {
 
 export function dollarsToCents(amount: number): bigint {
   return BigInt(Math.round(amount * 100));
-}
-
-export type BillingMeta = {
-  paymentId: string;
-  userId: string;
-  type: "subscription" | "credits" | "api_access";
-  planId?: string;
-  interval?: string;
-  packId?: string;
-};
-
-export function encodeBillingMeta(meta: BillingMeta): string {
-  return Buffer.from(JSON.stringify(meta), "utf8").toString("base64url");
-}
-
-export function decodeBillingMeta(raw: string | null | undefined): BillingMeta | null {
-  if (!raw) return null;
-  try {
-    const text = Buffer.from(raw, "base64url").toString("utf8");
-    const parsed = JSON.parse(text) as BillingMeta;
-    if (!parsed?.userId || !parsed?.type) return null;
-    return parsed;
-  } catch {
-    try {
-      const parsed = JSON.parse(raw) as BillingMeta;
-      if (!parsed?.userId || !parsed?.type) return null;
-      return parsed;
-    } catch {
-      return null;
-    }
-  }
 }

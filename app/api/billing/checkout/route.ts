@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionCookie } from "@/app/lib/session";
 import {
+  type BillingMeta,
+  type BillingProvider,
+  encodeBillingMeta,
+  resolveBillingProvider,
+} from "@/lib/billing-meta";
+import {
+  createOxapayInvoice,
+  isOxapayConfigured,
+  oxapayCallbackUrl,
+  oxapayReturnUrl,
+} from "@/lib/oxapay";
+import {
   API_PRODUCT,
   CREDIT_PACKS,
   getApiPrice,
@@ -15,12 +27,10 @@ import {
 import { recordPayment } from "@/lib/payments";
 import {
   dollarsToCents,
-  encodeBillingMeta,
   getAppBaseUrl,
   getSquareClient,
   getSquareLocationId,
   isSquareConfigured,
-  type BillingMeta,
 } from "@/lib/square";
 import { prisma } from "@/prisma/client";
 
@@ -71,23 +81,103 @@ async function createSquareCheckout(input: {
   };
 }
 
+async function finalizeCheckout(input: {
+  provider: BillingProvider;
+  paymentId: number | undefined;
+  name: string;
+  description: string;
+  amountDollars: number;
+  meta: BillingMeta;
+  baseUrl: string;
+  requestUrl: string;
+  email?: string;
+}) {
+  const meta: BillingMeta = { ...input.meta, provider: input.provider };
+
+  if (input.provider === "square") {
+    const link = await createSquareCheckout({
+      name: input.name,
+      description: input.description,
+      amountDollars: input.amountDollars,
+      meta,
+      baseUrl: input.baseUrl,
+    });
+
+    if (input.paymentId) {
+      await prisma.payment.update({
+        where: { id: input.paymentId },
+        data: {
+          stripeSessionId: link.id,
+          stripePaymentIntentId: link.orderId,
+        },
+      });
+    }
+
+    return {
+      ok: true as const,
+      url: link.url,
+      sessionId: link.id,
+      provider: "square" as const,
+    };
+  }
+
+  const orderId = String(
+    input.paymentId ?? (meta.paymentId || crypto.randomUUID()),
+  );
+  const invoice = await createOxapayInvoice({
+    amountUsd: input.amountDollars,
+    orderId,
+    description: `${input.name} — ${input.description}`,
+    callbackUrl: oxapayCallbackUrl(input.requestUrl),
+    returnUrl: oxapayReturnUrl(input.requestUrl),
+    email: input.email,
+  });
+
+  if (input.paymentId) {
+    await prisma.payment.update({
+      where: { id: input.paymentId },
+      data: {
+        stripeSessionId: invoice.trackId,
+        stripePaymentIntentId: orderId,
+      },
+    });
+  }
+
+  return {
+    ok: true as const,
+    url: invoice.paymentUrl,
+    sessionId: invoice.trackId,
+    provider: "oxapay" as const,
+  };
+}
+
 export async function POST(request: NextRequest) {
   const session = await getSessionCookie();
   if (!session?.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!isSquareConfigured()) {
+  const userId = session.userId as number;
+  const body = (await request.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+
+  const provider = resolveBillingProvider(body) ?? "square";
+  if (provider === "square" && !isSquareConfigured()) {
     return NextResponse.json(
-      { error: "Square is not configured on this server" },
+      { error: "Card checkout (Square) is not configured on this server" },
       { status: 503 },
     );
   }
-
-  const userId = session.userId as number;
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  if (provider === "oxapay" && !isOxapayConfigured()) {
+    return NextResponse.json(
+      { error: "Crypto checkout (OxaPay) is not configured on this server" },
+      { status: 503 },
+    );
   }
 
   const dbUser = await prisma.user.findUnique({
@@ -98,169 +188,152 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const type = (body as { type?: string }).type;
+  const type = body.type;
   const baseUrl = getAppBaseUrl(request.url);
 
-  if (type === "subscription") {
-    const planId = normalizePlanId((body as { planId?: string }).planId);
-    const interval = (body as { interval?: string }).interval;
-    if (!planId || planId === "free") {
-      return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-    }
-    if (!isInterval(interval)) {
-      return NextResponse.json({ error: "Invalid billing interval" }, { status: 400 });
-    }
+  try {
+    if (type === "subscription") {
+      const planId = normalizePlanId(
+        typeof body.planId === "string" ? body.planId : undefined,
+      );
+      const interval = body.interval;
+      if (!planId || planId === "free") {
+        return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+      }
+      if (!isInterval(interval)) {
+        return NextResponse.json({ error: "Invalid billing interval" }, { status: 400 });
+      }
 
-    const plan = getPlanDefinition(planId as PlanId);
-    const price = getPlanPrice(plan, interval);
-    if (price.value == null) {
-      return NextResponse.json({ error: "Plan requires sales contact" }, { status: 400 });
-    }
+      const plan = getPlanDefinition(planId as PlanId);
+      const price = getPlanPrice(plan, interval);
+      if (price.value == null) {
+        return NextResponse.json({ error: "Plan requires sales contact" }, { status: 400 });
+      }
 
-    const payment = await recordPayment({
-      userId,
-      amount: price.value,
-      type: "subscription",
-      plan: planId,
-      interval,
-      status: "pending",
-      description: `${plan.name} (${interval}) — awaiting payment confirmation`,
-    });
-
-    const meta: BillingMeta = {
-      paymentId: String(payment?.id ?? ""),
-      userId: String(userId),
-      type: "subscription",
-      planId,
-      interval,
-    };
-
-    const link = await createSquareCheckout({
-      name: `Anya.Int ${plan.name}`,
-      description:
-        interval === "annual"
-          ? `${plan.name} plan billed annually`
-          : `${plan.name} plan billed monthly`,
-      amountDollars: price.value,
-      meta,
-      baseUrl,
-    });
-
-    if (payment?.id) {
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          stripeSessionId: link.id,
-          stripePaymentIntentId: link.orderId,
-        },
+      const payment = await recordPayment({
+        userId,
+        amount: price.value,
+        type: "subscription",
+        plan: planId,
+        interval,
+        status: "pending",
+        description: `${plan.name} (${interval}) — awaiting payment confirmation`,
       });
-    }
 
-    return NextResponse.json({
-      ok: true,
-      url: link.url,
-      sessionId: link.id,
-    });
-  }
+      const meta: BillingMeta = {
+        paymentId: String(payment?.id ?? ""),
+        userId: String(userId),
+        type: "subscription",
+        planId,
+        interval,
+        provider,
+      };
 
-  if (type === "credits") {
-    const packId = (body as { packId?: string }).packId;
-    const pack = CREDIT_PACKS.find((entry) => entry.id === packId);
-    if (!pack) {
-      return NextResponse.json({ error: "Invalid credit pack" }, { status: 400 });
-    }
-
-    const creditTotal = getCreditPackTotal(pack);
-
-    const payment = await recordPayment({
-      userId,
-      amount: pack.price,
-      type: "balance_topup",
-      status: "pending",
-      description: `${pack.name}: $${creditTotal.toFixed(2)} credit (pending payment)`,
-    });
-
-    const meta: BillingMeta = {
-      paymentId: String(payment?.id ?? ""),
-      userId: String(userId),
-      type: "credits",
-      packId: pack.id,
-    };
-
-    const link = await createSquareCheckout({
-      name: `Anya.Int ${pack.name}`,
-      description: `$${creditTotal.toFixed(2)} investigation credit`,
-      amountDollars: pack.price,
-      meta,
-      baseUrl,
-    });
-
-    if (payment?.id) {
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          stripeSessionId: link.id,
-          stripePaymentIntentId: link.orderId,
-        },
+      const result = await finalizeCheckout({
+        provider,
+        paymentId: payment?.id,
+        name: `Anya.Int ${plan.name}`,
+        description:
+          interval === "annual"
+            ? `${plan.name} plan billed annually`
+            : `${plan.name} plan billed monthly`,
+        amountDollars: price.value,
+        meta,
+        baseUrl,
+        requestUrl: request.url,
       });
+
+      return NextResponse.json(result);
     }
 
-    return NextResponse.json({
-      ok: true,
-      url: link.url,
-      sessionId: link.id,
-    });
-  }
+    if (type === "credits") {
+      const packId = typeof body.packId === "string" ? body.packId : undefined;
+      const pack = CREDIT_PACKS.find((entry) => entry.id === packId);
+      if (!pack) {
+        return NextResponse.json({ error: "Invalid credit pack" }, { status: 400 });
+      }
 
-  if (type === "api_access") {
-    const interval = (body as { interval?: string }).interval;
-    if (!isInterval(interval)) {
-      return NextResponse.json({ error: "Invalid billing interval" }, { status: 400 });
-    }
+      const creditTotal = getCreditPackTotal(pack);
 
-    const price = getApiPrice(interval);
-
-    const payment = await recordPayment({
-      userId,
-      amount: price.value,
-      type: "api_access",
-      plan: API_PRODUCT.id,
-      interval,
-      status: "pending",
-      description: `API Access (${interval}) — awaiting payment confirmation`,
-    });
-
-    const meta: BillingMeta = {
-      paymentId: String(payment?.id ?? ""),
-      userId: String(userId),
-      type: "api_access",
-      interval,
-    };
-
-    const link = await createSquareCheckout({
-      name: "Anya.Int API Access",
-      description: API_PRODUCT.description,
-      amountDollars: price.value,
-      meta,
-      baseUrl,
-    });
-
-    if (payment?.id) {
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          stripeSessionId: link.id,
-          stripePaymentIntentId: link.orderId,
-        },
+      const payment = await recordPayment({
+        userId,
+        amount: pack.price,
+        type: "balance_topup",
+        status: "pending",
+        description: `${pack.name}: $${creditTotal.toFixed(2)} credit (pending payment)`,
       });
+
+      const meta: BillingMeta = {
+        paymentId: String(payment?.id ?? ""),
+        userId: String(userId),
+        type: "credits",
+        packId: pack.id,
+        provider,
+      };
+
+      const result = await finalizeCheckout({
+        provider,
+        paymentId: payment?.id,
+        name: `Anya.Int ${pack.name}`,
+        description: `$${creditTotal.toFixed(2)} investigation credit`,
+        amountDollars: pack.price,
+        meta,
+        baseUrl,
+        requestUrl: request.url,
+      });
+
+      return NextResponse.json(result);
     }
 
-    return NextResponse.json({
-      ok: true,
-      url: link.url,
-      sessionId: link.id,
-    });
-  }
+    if (type === "api_access") {
+      const interval = body.interval;
+      if (!isInterval(interval)) {
+        return NextResponse.json({ error: "Invalid billing interval" }, { status: 400 });
+      }
 
-  return NextResponse.json({ error: "Unknown checkout type" }, { status: 400 });
+      const price = getApiPrice(interval);
+
+      const payment = await recordPayment({
+        userId,
+        amount: price.value,
+        type: "api_access",
+        plan: API_PRODUCT.id,
+        interval,
+        status: "pending",
+        description: `API Access (${interval}) — awaiting payment confirmation`,
+      });
+
+      const meta: BillingMeta = {
+        paymentId: String(payment?.id ?? ""),
+        userId: String(userId),
+        type: "api_access",
+        interval,
+        provider,
+      };
+
+      const result = await finalizeCheckout({
+        provider,
+        paymentId: payment?.id,
+        name: "Anya.Int API Access",
+        description: API_PRODUCT.description,
+        amountDollars: price.value,
+        meta,
+        baseUrl,
+        requestUrl: request.url,
+      });
+
+      return NextResponse.json(result);
+    }
+
+    return NextResponse.json({ error: "Unknown checkout type" }, { status: 400 });
+  } catch (error) {
+    console.error("[billing/checkout]", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Checkout failed",
+      },
+      { status: 502 },
+    );
+  }
 }

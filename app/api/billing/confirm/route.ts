@@ -53,6 +53,7 @@ async function fulfillFromOrderId(orderId: string) {
             : "subscription",
       planId: byOrder.plan ?? undefined,
       interval: byOrder.interval ?? undefined,
+      provider: "square",
     };
 
     // packId recovery for credits from description / pending row alone is enough
@@ -85,6 +86,8 @@ async function fulfillFromOrderId(orderId: string) {
   if (!meta) {
     return { ok: false as const, reason: "missing_meta" };
   }
+
+  meta = { ...meta, provider: meta.provider ?? "square" };
 
   const amountCents = Number(order.totalMoney?.amount ?? 0);
 

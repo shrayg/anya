@@ -25,11 +25,18 @@ import {
 } from "@/lib/password-policy";
 import { getAppLandingPath, normalizePlanId } from "@/lib/plans";
 
-async function startPlanCheckout(plan: string, interval: string) {
+async function startPlanCheckout(
+  plan: string,
+  interval: string,
+  method: string | null = null,
+) {
   const planId = normalizePlanId(plan);
   if (!planId || planId === "free") {
     return { ok: false as const, reason: "invalid_plan" };
   }
+
+  const provider =
+    method === "crypto" || method === "oxapay" ? "oxapay" : "square";
 
   const checkoutRes = await apiFetch("/api/billing/checkout", {
     method: "POST",
@@ -38,6 +45,7 @@ async function startPlanCheckout(plan: string, interval: string) {
       type: "subscription",
       planId,
       interval: interval === "annual" ? "annual" : "monthly",
+      provider,
     }),
   }).catch(() => null);
 
@@ -201,10 +209,11 @@ function AuthForm() {
 
       const plan = searchParams.get("plan");
       const interval = searchParams.get("interval") ?? "monthly";
+      const method = searchParams.get("method");
 
       if (plan && plan !== "free") {
         setInfo("Account ready — opening secure checkout…");
-        const checkout = await startPlanCheckout(plan, interval);
+        const checkout = await startPlanCheckout(plan, interval, method);
         if (checkout.ok) {
           window.location.assign(checkout.url);
           return;

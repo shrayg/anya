@@ -8,16 +8,32 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { notifyPaymentDiscord } from "@/lib/discord-payments-webhook";
-import type { BillingMeta } from "@/lib/square";
+import type { BillingMeta } from "@/lib/billing-meta";
 import { prisma } from "@/prisma/client";
 
 export type FulfillBillingInput = {
   meta: BillingMeta;
-  /** Square payment link id or order id — stored in checkout session column */
+  /** Provider session id (Square link id or OxaPay track_id) */
   checkoutSessionId: string;
   paymentReferenceId?: string | null;
   amountCents?: number | null;
 };
+
+function paidViaLabel(meta: BillingMeta): string {
+  return meta.provider === "oxapay" ? "paid via OxaPay" : "paid via Square";
+}
+
+function markPaidDescription(existing: string | undefined, meta: BillingMeta, fallback: string) {
+  const via = paidViaLabel(meta);
+  if (!existing) return fallback;
+  return existing
+    .replace("awaiting payment confirmation", via)
+    .replace("pending payment confirmation", via)
+    .replace("pending payment", via)
+    .replace("paid via Stripe", via)
+    .replace("paid via Square", via)
+    .replace("paid via OxaPay", via);
+}
 
 async function sendPaymentNotification(input: {
   userId: number;
@@ -77,6 +93,8 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
       ? amountCents / 100
       : existing?.amount ?? 0;
 
+  const via = paidViaLabel(meta);
+
   if (meta.type === "subscription") {
     const planId = normalizePlanId(meta.planId ?? existing?.plan);
     const interval = (meta.interval ?? existing?.interval ?? "monthly") as BillingInterval;
@@ -84,11 +102,11 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
       return { ok: false as const, reason: "invalid_plan" };
     }
 
-    const description = existing
-      ? existing.description
-          .replace("awaiting payment confirmation", "paid via Square")
-          .replace("paid via Stripe", "paid via Square")
-      : `${planId} (${interval}) — paid via Square`;
+    const description = markPaidDescription(
+      existing?.description,
+      meta,
+      `${planId} (${interval}) — ${via}`,
+    );
 
     await prisma.$transaction([
       prisma.user.update({
@@ -149,11 +167,11 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
         ? Number(existing.description.match(/\$([\d.]+)/)?.[1] ?? existing.amount)
         : amount;
 
-    const description = existing
-      ? existing.description
-          .replace("pending payment", "paid via Square")
-          .replace("paid via Stripe", "paid via Square")
-      : `Credit top-up $${creditTotal.toFixed(2)} — paid via Square`;
+    const description = markPaidDescription(
+      existing?.description,
+      meta,
+      `Credit top-up $${creditTotal.toFixed(2)} — ${via}`,
+    );
 
     await prisma.$transaction([
       prisma.user.update({
@@ -208,12 +226,11 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
     const apiKey =
       user?.apiKey || `anya_${crypto.randomUUID().replace(/-/g, "")}`;
 
-    const description = existing
-      ? existing.description
-          .replace("awaiting payment confirmation", "paid via Square")
-          .replace("pending payment confirmation", "paid via Square")
-          .replace("paid via Stripe", "paid via Square")
-      : `API Access (${interval}) — paid via Square`;
+    const description = markPaidDescription(
+      existing?.description,
+      meta,
+      `API Access (${interval}) — ${via}`,
+    );
 
     await prisma.$transaction([
       prisma.user.update({

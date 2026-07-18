@@ -58,6 +58,7 @@ async function metaFromPaymentNote(
           : "subscription",
     planId: byOrder.plan ?? undefined,
     interval: byOrder.interval ?? undefined,
+    provider: "square",
   };
 
   if (byOrder.type === "balance_topup") {

@@ -25,7 +25,6 @@ import {
   getPlanPrice,
   getPricingPlans,
   type BillingInterval,
-  type PlanId,
 } from "@/lib/plans";
 
 type PricingTab = "subscriptions" | "credits" | "api";
@@ -35,29 +34,40 @@ type PricingPageContentProps = {
   authenticated?: boolean;
 };
 
-function checkoutHref(plan: PlanId, interval: BillingInterval) {
-  const params = new URLSearchParams({
-    action: "register",
-    plan,
-    interval,
-  });
-  return `/auth?${params.toString()}`;
-}
-
-function billingStatusMessage(status: string | null): string | null {
+function billingStatusMessage(status: string | null): {
+  kind: "ok" | "err";
+  text: string;
+} | null {
   switch (status) {
     case "success":
-      return "Payment successful. Your plan or credits are now active.";
+      return {
+        kind: "ok",
+        text: "Payment successful. Your plan or credits are now active.",
+      };
     case "cancelled":
-      return "Checkout cancelled. No charge was made.";
-    case "error":
-      return "Payment confirmation failed. If you were charged, contact support.";
+      return { kind: "ok", text: "Checkout cancelled. No charge was made." };
     case "pending":
-      return "Payment is still processing. Refresh in a moment or contact support.";
+      return {
+        kind: "ok",
+        text: "Crypto payment detecting — access unlocks after blockchain confirmation. Refresh in a moment.",
+      };
+    case "error":
+      return {
+        kind: "err",
+        text: "Payment confirmation failed. If you were charged, contact support.",
+      };
     default:
       return null;
   }
 }
+
+type CheckoutProvider = "square" | "oxapay";
+
+type PendingCheckout = {
+  body: Record<string, unknown>;
+  id: string;
+};
+
 
 export function PricingPageContent({
   className,
@@ -69,29 +79,43 @@ export function PricingPageContent({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingCheckout, setPendingCheckout] = useState<PendingCheckout | null>(
+    null,
+  );
 
   useEffect(() => {
     const status = new URLSearchParams(window.location.search).get("billing");
     const note = billingStatusMessage(status);
     if (note) {
-      if (status === "success" || status === "cancelled") setMessage(note);
-      else setError(note);
+      if (note.kind === "ok") setMessage(note.text);
+      else setError(note.text);
     }
   }, []);
 
   const plans = useMemo(() => getPricingPlans(), []);
 
-  async function submitBilling(body: Record<string, unknown>, id: string) {
+  async function runCheckout(
+    body: Record<string, unknown>,
+    id: string,
+    provider: CheckoutProvider,
+  ) {
     setBusyId(id);
     setMessage(null);
     setError(null);
+    setPendingCheckout(null);
 
     try {
       if (!authenticated) {
         if (body.type === "subscription" && typeof body.planId === "string") {
-          router.push(
-            checkoutHref(body.planId as PlanId, (body.interval as BillingInterval) ?? "monthly"),
-          );
+          const params = new URLSearchParams({
+            action: "register",
+            plan: body.planId,
+            interval: String(
+              (body.interval as BillingInterval) ?? "monthly",
+            ),
+            method: provider === "oxapay" ? "crypto" : "card",
+          });
+          router.push(`/auth?${params.toString()}`);
           return;
         }
         router.push("/auth?action=register");
@@ -102,7 +126,7 @@ export function PricingPageContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, provider }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -112,12 +136,16 @@ export function PricingPageContent({
         window.location.assign(data.url);
         return;
       }
-      setMessage(data.message ?? "Redirecting to Square…");
+      setMessage(data.message ?? "Opening secure checkout…");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
     } finally {
       setBusyId(null);
     }
+  }
+
+  function requestCheckout(body: Record<string, unknown>, id: string) {
+    setPendingCheckout({ body, id });
   }
 
   return (
@@ -279,7 +307,7 @@ export function PricingPageContent({
                       router.push("/dashboard/support");
                       return;
                     }
-                    void submitBilling(
+                    requestCheckout(
                       {
                         type: "subscription",
                         planId: plan.id,
@@ -332,7 +360,7 @@ export function PricingPageContent({
                     isDisabled={busyId === pack.id}
                     isLoading={busyId === pack.id}
                     onPress={() =>
-                      void submitBilling({ type: "credits", packId: pack.id }, pack.id)
+                      requestCheckout({ type: "credits", packId: pack.id }, pack.id)
                     }
                   >
                     Buy credits
@@ -387,7 +415,7 @@ export function PricingPageContent({
                   isDisabled={busyId === "api_access"}
                   isLoading={busyId === "api_access"}
                   onPress={() =>
-                    void submitBilling(
+                    requestCheckout(
                       { type: "api_access", interval },
                       "api_access",
                     )
@@ -407,12 +435,71 @@ export function PricingPageContent({
 
       <p className="mt-10 text-center text-xs text-zinc-500">
         Annual plans are billed as {ANNUAL_MONTHS_CHARGED} months upfront (2 months free).
-        Need help choosing?{" "}
+        Pay with card (Square) or crypto (OxaPay). Need help choosing?{" "}
         <NextLink className="text-indigo-300 hover:underline" href="/dashboard/support">
           Contact support
         </NextLink>
         .
       </p>
+
+      {pendingCheckout && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="checkout-method-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl">
+            <h3
+              className="text-lg font-semibold text-white"
+              id="checkout-method-title"
+            >
+              Choose payment method
+            </h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              Card checkout uses Square. Crypto invoices are powered by OxaPay and
+              unlock after network confirmation.
+            </p>
+            <div className="mt-5 grid gap-3">
+              <Button
+                className="h-11 w-full border border-indigo-300/40 bg-indigo-500 text-sm font-semibold text-white"
+                isDisabled={busyId === pendingCheckout.id}
+                isLoading={busyId === pendingCheckout.id}
+                onPress={() =>
+                  void runCheckout(
+                    pendingCheckout.body,
+                    pendingCheckout.id,
+                    "square",
+                  )
+                }
+              >
+                Pay with card
+              </Button>
+              <Button
+                className="h-11 w-full border border-white/15 bg-white/10 text-sm font-semibold text-white"
+                isDisabled={busyId === pendingCheckout.id}
+                isLoading={busyId === pendingCheckout.id}
+                onPress={() =>
+                  void runCheckout(
+                    pendingCheckout.body,
+                    pendingCheckout.id,
+                    "oxapay",
+                  )
+                }
+              >
+                Pay with crypto
+              </Button>
+              <button
+                className="mt-1 text-sm text-zinc-500 hover:text-zinc-300"
+                onClick={() => setPendingCheckout(null)}
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
