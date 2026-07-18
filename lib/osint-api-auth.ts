@@ -64,7 +64,6 @@ export function resolveOsintModuleSlug(
     "email-analyze": "email-analyze",
     "tiktok-recon": "tiktok-recon",
     "share-resolver": "share-resolver",
-    "image-geolocate": "image-geolocate",
     "contact-enrich": "contact-enrich",
     "shodan-host": "shodan-host",
     "site-pentest": "site-pentest",

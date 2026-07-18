@@ -57,7 +57,6 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   ip: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
   "shodan-host": { kind: "any", providers: ["csint"] },
   "site-pentest": { kind: "any", providers: ["builtin", "csint"] },
-  "image-geolocate": { kind: "any", providers: ["csint", "godseye"] },
   "crypto-wallet": { kind: "any", providers: ["builtin", "godseye", "csint"] },
   "bin-lookup": { kind: "any", providers: ["builtin"] },
   "iban-check": { kind: "any", providers: ["builtin"] },

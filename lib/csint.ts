@@ -342,6 +342,18 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
   }
 }
 
+/** Drop paywalled preview rows whose values are mostly ***UPGRADE_TO_SEE***. */
+function isUpgradeToSeePlaceholder(row: Record<string, unknown>): boolean {
+  const values = Object.values(row).filter(
+    (v): v is string => typeof v === "string" && v.trim().length > 0,
+  );
+  if (values.length === 0) return false;
+  const placeholders = values.filter((v) =>
+    /UPGRADE_TO_SEE/i.test(v),
+  );
+  return placeholders.length >= Math.ceil(values.length / 2);
+}
+
 function payloadToSanitized(
   payload: Record<string, unknown>,
 ): SanitizedBreachResponse {
@@ -351,6 +363,7 @@ function payloadToSanitized(
   const seen = new Set<string>();
   const deduped: Record<string, unknown>[] = [];
   for (const row of results) {
+    if (isUpgradeToSeePlaceholder(row)) continue;
     const key = JSON.stringify(row);
     if (seen.has(key)) continue;
     seen.add(key);
@@ -371,10 +384,12 @@ function mergeOptionalSanitized(
     if (!part?.results?.length) continue;
     for (const row of part.results) {
       if (!row || typeof row !== "object") continue;
-      const key = JSON.stringify(row);
+      const record = row as Record<string, unknown>;
+      if (isUpgradeToSeePlaceholder(record)) continue;
+      const key = JSON.stringify(record);
       if (seen.has(key)) continue;
       seen.add(key);
-      merged.push(row as Record<string, unknown>);
+      merged.push(record);
       if (merged.length >= MAX_ROWS) {
         return { count: merged.length, results: merged };
       }
@@ -671,22 +686,6 @@ export async function fetchCsintEmailAnalyze(
   return csintPost("/email/analyze", { email: email.trim() }, 45_000);
 }
 
-export async function fetchCsintImageGeolocate(
-  imageBase64: string,
-): Promise<Record<string, unknown>> {
-  // Provider accepts raw base64 or data-URL; prefer raw payload.
-  const trimmed = imageBase64.trim();
-  const raw = trimmed.includes(",")
-    ? trimmed.slice(trimmed.indexOf(",") + 1)
-    : trimmed.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "");
-
-  if (!raw || raw.length < 100) {
-    throw new Error("Image is too small or invalid. Use a real photo URL.");
-  }
-
-  return csintPost("/geolocate", { image: raw }, 45_000);
-}
-
 export async function fetchCsintMelissaLookup(
   body: Record<string, string>,
 ): Promise<Record<string, unknown>> {
@@ -799,36 +798,6 @@ export async function fetchCsintBreachBase(
     const body: Record<string, unknown> = { term: cleaned };
     if (searchType) body.search_type = searchType;
     const payload = await csintPost("/breachbase", body);
-    return payloadToSanitized(payload);
-  } catch {
-    return null;
-  }
-}
-
-export async function fetchCsintOathnetBreach(
-  query: string,
-): Promise<SanitizedBreachResponse | null> {
-  if (!isCsintEnabled()) return null;
-  const cleaned = query.trim();
-  if (!cleaned) return null;
-
-  try {
-    const payload = await csintPost("/oathnet/breach", { query: cleaned });
-    return payloadToSanitized(payload);
-  } catch {
-    return null;
-  }
-}
-
-export async function fetchCsintOathnetStealer(
-  query: string,
-): Promise<SanitizedBreachResponse | null> {
-  if (!isCsintEnabled()) return null;
-  const cleaned = query.trim();
-  if (!cleaned) return null;
-
-  try {
-    const payload = await csintPost("/oathnet/stealer", { query: cleaned });
     return payloadToSanitized(payload);
   } catch {
     return null;
@@ -1230,8 +1199,9 @@ export async function fetchCsintSeonPhone(
 }
 
 /**
- * Parallel additive CSINT breach sources (universal + BreachBase + Snusbase + OathNet).
+ * Parallel additive CSINT breach sources (universal + BreachBase + Snusbase).
  * Soft-fails individually so one down provider does not wipe the rest.
+ * OathNet breach/stealer is omitted — paywalled previews return ***UPGRADE_TO_SEE***.
  */
 export async function fetchCsintAdditiveBreachSearch(
   query: string,
@@ -1247,18 +1217,18 @@ export async function fetchCsintAdditiveBreachSearch(
     type === "auto" ? detectCsintSearchType(cleaned) : type;
   const snusTypes = snusbaseTypesForCsint(resolvedType);
 
-  const [universal, breachBase, snusbase, oathnet] = await Promise.all([
+  const [universal, breachBase, snusbase] = await Promise.all([
     fetchCsintUniversalSearch(cleaned, resolvedType, timeoutMs),
     fetchCsintBreachBase(cleaned, resolvedType),
     fetchCsintSnusbaseSearch(cleaned, snusTypes),
-    fetchCsintOathnetBreach(cleaned),
   ]);
 
-  return mergeOptionalSanitized(universal, breachBase, snusbase, oathnet);
+  return mergeOptionalSanitized(universal, breachBase, snusbase);
 }
 
 /**
- * Stealer-oriented additive sources (universal + OathNet stealer + BreachBase).
+ * Stealer-oriented additive sources (universal + BreachBase).
+ * OathNet stealer/breach omitted — paywalled ***UPGRADE_TO_SEE*** previews only.
  */
 export async function fetchCsintAdditiveStealerSearch(
   query: string,
@@ -1273,14 +1243,12 @@ export async function fetchCsintAdditiveStealerSearch(
   const resolvedType =
     type === "auto" ? detectCsintSearchType(cleaned) : type;
 
-  const [universal, stealer, breachBase, oathnet] = await Promise.all([
+  const [universal, breachBase] = await Promise.all([
     fetchCsintUniversalSearch(cleaned, resolvedType, timeoutMs),
-    fetchCsintOathnetStealer(cleaned),
     fetchCsintBreachBase(cleaned, resolvedType),
-    fetchCsintOathnetBreach(cleaned),
   ]);
 
-  return mergeOptionalSanitized(universal, stealer, breachBase, oathnet);
+  return mergeOptionalSanitized(universal, breachBase);
 }
 
 export async function fetchCsintShodanHost(
