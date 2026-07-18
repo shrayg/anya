@@ -101,8 +101,31 @@ export const Navbar = () => {
               </p>
             </NextLink>
           </NavbarBrand>
-          <ul className="hidden md:flex shrink-0 gap-1 justify-start ml-2 font-mono">
-            {siteConfig.navItems.map((item) => {
+          <ul className="hidden md:flex shrink-0 flex-nowrap gap-1 justify-start ml-2 overflow-visible font-mono">
+            {/* Hardcoded: Pricing + Status must always render (do not rely only on navItems map). */}
+            <NavbarItem className="shrink-0">
+              <Button
+                as={NextLink}
+                href="/pricing"
+                variant="light"
+                className="ml-1 font-medium hover:-translate-y-1 transition-all duration-200 ease-in-out"
+              >
+                Pricing
+              </Button>
+            </NavbarItem>
+            <NavbarItem className="shrink-0">
+              <Button
+                as={NextLink}
+                href="/status"
+                variant="light"
+                className="ml-1 font-medium hover:-translate-y-1 transition-all duration-200 ease-in-out"
+              >
+                Status
+              </Button>
+            </NavbarItem>
+            {siteConfig.navItems
+              .filter((item) => item.href !== "/pricing" && item.href !== "/status")
+              .map((item) => {
               const modalHandler = getModalHandler(item);
 
               return (
@@ -201,7 +224,20 @@ export const Navbar = () => {
 
         <NavbarMenu>
           <div className="mx-4 mt-2 flex flex-col gap-2">
-            {siteConfig.navMenuItems.map((item) => {
+            {/* Hardcoded mobile: Pricing + Status always visible in the menu. */}
+            <NavbarMenuItem>
+              <Link as={NextLink} color="foreground" href="/pricing" size="lg">
+                Pricing
+              </Link>
+            </NavbarMenuItem>
+            <NavbarMenuItem>
+              <Link as={NextLink} color="foreground" href="/status" size="lg">
+                Status
+              </Link>
+            </NavbarMenuItem>
+            {siteConfig.navMenuItems
+              .filter((item) => item.href !== "/pricing" && item.href !== "/status")
+              .map((item) => {
               const modalHandler = getModalHandler(item);
 
               return (
