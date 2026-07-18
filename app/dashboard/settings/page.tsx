@@ -6,6 +6,7 @@ import { Shield } from "lucide-react";
 import { AdminUsersPanel } from "@/components/dashboard/admin-users-panel";
 import { AdminWorkspaceDashboard } from "@/components/dashboard/admin-workspace-dashboard";
 import { HelperUsersPanel } from "@/components/dashboard/helper-users-panel";
+import { SafetyFlagsPanel } from "@/components/dashboard/safety-flags-panel";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { StaffBadge } from "@/components/dashboard/staff-badge";
 import {
@@ -68,6 +69,7 @@ export default function SettingsPage() {
             </div>
           </section>
           <AdminWorkspaceDashboard />
+          <SafetyFlagsPanel mode="admin" />
           <AdminUsersPanel />
         </section>
       ) : canAccessHelperDashboard ? (
@@ -79,11 +81,12 @@ export default function SettingsPage() {
                 Helper Dashboard
               </h1>
               <p className="anya-hero-lede">
-                Limited roster access — investigate usernames and view member
-                cases. Payments and passwords are hidden.
+                Check safety flags, message flagged users, Investigate accounts,
+                and view member cases. Payments and passwords are hidden.
               </p>
             </div>
           </section>
+          <SafetyFlagsPanel mode="helper" />
           <HelperUsersPanel />
         </section>
       ) : (

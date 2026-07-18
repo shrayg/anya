@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { apiFetch } from "@/lib/csrf-client";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Flag,
   FolderOpen,
   RefreshCw,
-  Search,
   Users,
 } from "lucide-react";
 import clsx from "clsx";
@@ -20,7 +21,9 @@ import { StaffBadge } from "@/components/dashboard/staff-badge";
 import { formatDate } from "@/lib/format-datetime";
 import {
   ACCOUNT_STATUS_META,
+  INVESTIGATION_STATUS_META,
   type AccountStatus,
+  type InvestigationStatus,
 } from "@/lib/workspace-admin";
 
 type HelperUser = {
@@ -28,6 +31,10 @@ type HelperUser = {
   username: string;
   staffRole?: string | null;
   accountStatus: AccountStatus;
+  investigationStatus?: InvestigationStatus | null;
+  investigationFlaggedAt?: string | null;
+  investigationFlaggedByUsername?: string | null;
+  investigationNote?: string | null;
   createdAt: string;
   _count?: {
     cases: number;
@@ -70,6 +77,8 @@ export function HelperUsersPanel() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
+  const [actionId, setActionId] = useState<number | null>(null);
+  const [flagNotes, setFlagNotes] = useState<Record<number, string>>({});
   const [casesUserId, setCasesUserId] = useState<number | null>(null);
   const [casesUsername, setCasesUsername] = useState("");
   const [cases, setCases] = useState<HelperCase[]>([]);
@@ -112,6 +121,53 @@ export function HelperUsersPanel() {
     );
   }, [query, users]);
 
+  const flaggedCount = useMemo(
+    () => users.filter((user) => user.accountStatus === "investigate").length,
+    [users],
+  );
+
+  const updateUser = (userId: number, patch: Partial<HelperUser>) => {
+    setUsers((current) =>
+      current.map((user) => (user.id === userId ? { ...user, ...patch } : user)),
+    );
+  };
+
+  const handleFlag = async (user: HelperUser) => {
+    setActionId(user.id);
+    setError("");
+
+    try {
+      const response = await apiFetch(
+        `/api/workspace/helper/members/${user.id}/flag`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            note: flagNotes[user.id]?.trim() || undefined,
+            investigationStatus: "flagged",
+          }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Could not flag account.");
+        return;
+      }
+
+      if (data.user) updateUser(user.id, data.user);
+      setFlagNotes((current) => {
+        const next = { ...current };
+        delete next[user.id];
+        return next;
+      });
+    } catch {
+      setError("Could not flag account.");
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const loadUserCases = async (user: HelperUser) => {
     setCasesUserId(user.id);
     setCasesUsername(user.username);
@@ -151,10 +207,10 @@ export function HelperUsersPanel() {
         />
         <StatCard
           accent="amber"
-          hint="No payments or passwords in this view"
-          icon={Search}
-          label="Investigate tools"
-          value="2"
+          hint="Awaiting admin review"
+          icon={Flag}
+          label="Flagged"
+          value={flaggedCount}
         />
       </div>
 
@@ -163,8 +219,8 @@ export function HelperUsersPanel() {
           <div>
             <h2 className="text-lg font-semibold text-white">Helper roster</h2>
             <p className="text-sm text-zinc-400">
-              Usernames only. Investigate opens OSINT username search; Cases shows
-              that member&apos;s case files (read-only).
+              Usernames only. Investigate flags the account for admins; Cases
+              shows that member&apos;s case files (read-only).
             </p>
           </div>
 
@@ -199,7 +255,7 @@ export function HelperUsersPanel() {
                 <th className="px-3 py-3 font-semibold">User</th>
                 <th className="px-3 py-3 font-semibold">Status</th>
                 <th className="px-3 py-3 font-semibold">Activity</th>
-                <th className="px-3 py-3 font-semibold">Investigate</th>
+                <th className="px-3 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -218,6 +274,11 @@ export function HelperUsersPanel() {
               ) : (
                 filteredUsers.map((user) => {
                   const status = user.accountStatus ?? "active";
+                  const flagged = status === "investigate";
+                  const busy = actionId === user.id;
+                  const phase = user.investigationStatus
+                    ? INVESTIGATION_STATUS_META[user.investigationStatus]?.label
+                    : null;
 
                   return (
                     <tr
@@ -247,6 +308,17 @@ export function HelperUsersPanel() {
                       </td>
                       <td className="px-3 py-4">
                         <StatusBadge status={status} />
+                        {flagged && (
+                          <p className="mt-2 text-xs text-yellow-200/80">
+                            {phase ?? "Flagged"}
+                            {user.investigationFlaggedByUsername
+                              ? ` · by ${user.investigationFlaggedByUsername}`
+                              : ""}
+                            {user.investigationFlaggedAt
+                              ? ` · ${formatDate(user.investigationFlaggedAt)}`
+                              : ""}
+                          </p>
+                        )}
                       </td>
                       <td className="px-3 py-4 text-zinc-400">
                         <p>{user._count?.searches ?? 0} searches</p>
@@ -255,22 +327,45 @@ export function HelperUsersPanel() {
                         </p>
                       </td>
                       <td className="px-3 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
-                            href={`/dashboard/search/username?q=${encodeURIComponent(user.username)}`}
-                          >
-                            <Search className="size-3.5" />
-                            Investigate
-                          </Link>
-                          <button
-                            className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/20"
-                            onClick={() => loadUserCases(user)}
-                            type="button"
-                          >
-                            <FolderOpen className="size-3.5" />
-                            Cases
-                          </button>
+                        <div className="flex min-w-[12rem] flex-col gap-2">
+                          {!flagged && (
+                            <DashInput
+                              className="text-xs"
+                              disabled={busy}
+                              onChange={(event) =>
+                                setFlagNotes((current) => ({
+                                  ...current,
+                                  [user.id]: event.target.value,
+                                }))
+                              }
+                              placeholder="Optional note for admins"
+                              value={flagNotes[user.id] ?? ""}
+                            />
+                          )}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              className={clsx(
+                                "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition",
+                                flagged
+                                  ? "border-yellow-400/30 bg-yellow-500/10 text-yellow-100"
+                                  : "border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20",
+                              )}
+                              disabled={busy || flagged}
+                              onClick={() => handleFlag(user)}
+                              type="button"
+                            >
+                              <Flag className="size-3.5" />
+                              {flagged ? "Flagged" : "Investigate"}
+                            </button>
+                            <button
+                              className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/20"
+                              onClick={() => loadUserCases(user)}
+                              type="button"
+                            >
+                              <FolderOpen className="size-3.5" />
+                              Cases
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>

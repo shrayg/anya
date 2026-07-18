@@ -21,6 +21,7 @@ type OverviewResponse = {
     frozenUsers: number;
     bannedUsers: number;
     investigateUsers: number;
+    openSafetyFlags: number;
     searches24h: number;
     searches7d: number;
     searches30d: number;
@@ -138,14 +139,16 @@ export function AdminWorkspaceDashboard() {
         />
         <StatCard
           accent="rose"
-          hint={`${overview?.summary.investigateUsers ?? 0} flagged`}
+          hint={
+            overview
+              ? `${overview.summary.openSafetyFlags} open safety case${overview.summary.openSafetyFlags === 1 ? "" : "s"} · ${overview.summary.investigateUsers} account${overview.summary.investigateUsers === 1 ? "" : "s"} flagged`
+              : "Open safety cases and flagged accounts"
+          }
           icon={Activity}
           label="Moderation"
           value={
             overview
-              ? overview.summary.frozenUsers +
-                overview.summary.bannedUsers +
-                overview.summary.investigateUsers
+              ? overview.summary.openSafetyFlags
               : "—"
           }
         />

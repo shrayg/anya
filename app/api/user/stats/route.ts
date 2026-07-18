@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionCookie } from "@/app/lib/session";
 import { authorizeSearch, getUserPlanContext, invalidateUserPlanContext, recordSearchUsage } from "@/lib/plan-access";
+import { maybeAutoFlagRiskySearch } from "@/lib/safety-flag-server";
 import { prisma } from "@/prisma/client";
 
 export async function GET() {
@@ -73,6 +74,17 @@ export async function POST(req: NextRequest) {
         searchType,
         resultData: resultData ? String(resultData) : "",
       },
+    });
+
+    // Silent auto-flag for concerning queries (esp. underage risk).
+    void maybeAutoFlagRiskySearch({
+      userId,
+      query: String(query),
+      moduleSlug: slug,
+      searchType,
+      searchHistoryId: record.id,
+    }).catch((error) => {
+      console.error("Auto safety flag (stats) failed:", error);
     });
 
     if (access.balanceCost) {

@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "@/app/lib/session";
 import { authorizeSearch } from "@/lib/plan-access";
 import { getPlatformSearchConfig } from "@/lib/platform-search";
+import { maybeAutoFlagRiskySearch } from "@/lib/safety-flag-server";
+import { assessSearchQueryForSafety } from "@/lib/safety-search-flags";
 
 /**
  * Resolve which plan module a /api/osint/* call should be billed/gated as.
@@ -104,7 +106,22 @@ export async function requireOsintAccess(
     );
   }
 
-  return { userId: session.userId as number };
+  const userId = session.userId as number;
+  const query = req.nextUrl.searchParams.get("query")?.trim();
+
+  // Silent safety flag — never block the OSINT response.
+  if (query && assessSearchQueryForSafety(query).flagged) {
+    void maybeAutoFlagRiskySearch({
+      userId,
+      query,
+      moduleSlug,
+      searchType: moduleSlug,
+    }).catch((error) => {
+      console.error("Auto safety flag (osint) failed:", error);
+    });
+  }
+
+  return { userId };
 }
 
 export async function requireAuthenticatedSession(): Promise<

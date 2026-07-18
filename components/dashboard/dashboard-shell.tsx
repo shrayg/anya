@@ -6,6 +6,7 @@ import { DashboardTour } from "@/components/dashboard/dashboard-tour";
 import { WorkspaceAccessGuard } from "@/components/dashboard/workspace-access-guard";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { FrozenAccountOverlay } from "@/components/dashboard/frozen-account-overlay";
+import { SafetyNoticeOverlay } from "@/components/dashboard/safety-notice-overlay";
 import { HomeBackground } from "@/components/home-background";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import {
@@ -53,6 +54,7 @@ function DashboardShellInner({
       </main>
       <DashboardTour />
       <WorkspaceAccessGuard />
+      <SafetyNoticeOverlay />
       {isFrozen ? <FrozenAccountOverlay username={username} /> : null}
     </div>
   );

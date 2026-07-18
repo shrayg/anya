@@ -2,11 +2,18 @@ import { parseStaffRole } from "@/lib/staff-roles";
 
 export type AccountStatus = "active" | "frozen" | "banned" | "investigate";
 
+export type InvestigationStatus = "flagged" | "under_investigation";
+
 export const ACCOUNT_STATUSES: AccountStatus[] = [
   "active",
   "frozen",
   "banned",
   "investigate",
+];
+
+export const INVESTIGATION_STATUSES: InvestigationStatus[] = [
+  "flagged",
+  "under_investigation",
 ];
 
 export const ACCOUNT_STATUS_META: Record<
@@ -36,13 +43,36 @@ export const ACCOUNT_STATUS_META: Record<
       "border-red-400/30 bg-red-500/15 text-red-100 hover:bg-red-500/25",
   },
   investigate: {
-    label: "Investigate",
+    label: "Flagged",
     badgeClass: "border-yellow-400/30 bg-yellow-500/15 text-yellow-200",
     rowClass: "bg-yellow-500/[0.04]",
     actionClass:
       "border-yellow-400/30 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25",
   },
 };
+
+export const INVESTIGATION_STATUS_META: Record<
+  InvestigationStatus,
+  { label: string }
+> = {
+  flagged: { label: "Flagged" },
+  under_investigation: { label: "Under investigation" },
+};
+
+export function isInvestigationStatus(
+  value: string,
+): value is InvestigationStatus {
+  return INVESTIGATION_STATUSES.includes(value as InvestigationStatus);
+}
+
+/** Clears investigation metadata when an account leaves investigate status. */
+export const CLEARED_INVESTIGATION_FIELDS = {
+  investigationStatus: null,
+  investigationFlaggedAt: null,
+  investigationFlaggedById: null,
+  investigationFlaggedByUsername: null,
+  investigationNote: null,
+} as const;
 
 export function isAccountStatus(value: string): value is AccountStatus {
   return ACCOUNT_STATUSES.includes(value as AccountStatus);

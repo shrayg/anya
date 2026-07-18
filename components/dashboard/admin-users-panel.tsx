@@ -3,7 +3,16 @@
 import { apiFetch } from "@/lib/csrf-client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Ban, KeyRound, RefreshCw, Shield, Snowflake, Trash2, Users } from "lucide-react";
+import {
+  Ban,
+  Flag,
+  KeyRound,
+  RefreshCw,
+  Shield,
+  Snowflake,
+  Trash2,
+  Users,
+} from "lucide-react";
 import clsx from "clsx";
 
 import {
@@ -20,9 +29,13 @@ import { resolveUserPlan, type PlanId } from "@/lib/plans";
 import { parseStaffRole, type StaffRole } from "@/lib/staff-roles";
 import {
   ACCOUNT_STATUS_META,
+  INVESTIGATION_STATUS_META,
   hasWorkspaceAdminAccess,
   type AccountStatus,
+  type InvestigationStatus,
 } from "@/lib/workspace-admin";
+
+type StatusFilter = "all" | AccountStatus;
 
 type AdminUser = {
   id: number;
@@ -32,6 +45,11 @@ type AdminUser = {
   plan: string;
   balance: number;
   accountStatus: AccountStatus;
+  investigationStatus?: InvestigationStatus | null;
+  investigationFlaggedAt?: string | null;
+  investigationFlaggedById?: number | null;
+  investigationFlaggedByUsername?: string | null;
+  investigationNote?: string | null;
   createdAt: string;
   freeTier?: boolean;
   professionalTier?: boolean;
@@ -65,6 +83,7 @@ export function AdminUsersPanel() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [error, setError] = useState("");
   const [actionId, setActionId] = useState<number | null>(null);
   const [passwordDrafts, setPasswordDrafts] = useState<Record<number, string>>({});
@@ -95,12 +114,24 @@ export function AdminUsersPanel() {
     loadUsers();
   }, [loadUsers]);
 
+  const flaggedCount = useMemo(
+    () => users.filter((user) => user.accountStatus === "investigate").length,
+    [users],
+  );
+
   const filteredUsers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return users;
 
-    return users.filter((user) => user.username.toLowerCase().includes(normalized));
-  }, [query, users]);
+    return users.filter((user) => {
+      if (statusFilter !== "all" && (user.accountStatus ?? "active") !== statusFilter) {
+        return false;
+      }
+
+      if (!normalized) return true;
+
+      return user.username.toLowerCase().includes(normalized);
+    });
+  }, [query, statusFilter, users]);
 
   const updateUser = (userId: number, patch: Partial<AdminUser>) => {
     setUsers((current) =>
@@ -194,7 +225,11 @@ export function AdminUsersPanel() {
     }
   };
 
-  const handleStatusChange = async (userId: number, status: AccountStatus) => {
+  const handleStatusChange = async (
+    userId: number,
+    status: AccountStatus,
+    options?: { investigationStatus?: InvestigationStatus },
+  ) => {
     setActionId(userId);
     setError("");
 
@@ -202,7 +237,10 @@ export function AdminUsersPanel() {
       const response = await apiFetch(`/api/workspace/members/${userId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status,
+          investigationStatus: options?.investigationStatus,
+        }),
       });
       const data = await response.json();
 
@@ -250,7 +288,7 @@ export function AdminUsersPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           accent="violet"
           hint="Registered accounts"
@@ -274,15 +312,17 @@ export function AdminUsersPanel() {
         />
         <StatCard
           accent="rose"
-          hint="Banned or flagged"
+          hint="Banned accounts"
           icon={Ban}
-          label="Restricted"
-          value={
-            users.filter(
-              (user) =>
-                user.accountStatus === "banned" || user.accountStatus === "investigate",
-            ).length
-          }
+          label="Banned"
+          value={users.filter((user) => user.accountStatus === "banned").length}
+        />
+        <StatCard
+          accent="amber"
+          hint="Awaiting admin review"
+          icon={Flag}
+          label="Flagged"
+          value={flaggedCount}
         />
       </div>
 
@@ -291,11 +331,28 @@ export function AdminUsersPanel() {
           <div>
             <h2 className="text-lg font-semibold text-white">Member control</h2>
             <p className="text-sm text-zinc-400">
-              Assign plans, reset passwords, freeze, ban, investigate, or delete accounts.
+              Assign plans, reset passwords, freeze, ban, flag for investigation, or
+              delete accounts.
+              {flaggedCount > 0
+                ? ` ${flaggedCount} account${flaggedCount === 1 ? "" : "s"} flagged for investigation.`
+                : ""}
             </p>
           </div>
 
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <select
+              className="rounded-md border border-white/10 bg-zinc-950/80 px-3 py-2 text-sm text-zinc-200 outline-none transition focus:border-violet-400/40"
+              onChange={(event) =>
+                setStatusFilter(event.target.value as StatusFilter)
+              }
+              value={statusFilter}
+            >
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="frozen">Frozen</option>
+              <option value="banned">Banned</option>
+              <option value="investigate">Flagged / Investigate</option>
+            </select>
             <DashInput
               className="sm:w-64"
               onChange={(event) => setQuery(event.target.value)}
@@ -380,6 +437,29 @@ export function AdminUsersPanel() {
                       </td>
                       <td className="px-3 py-4">
                         <StatusBadge status={status} />
+                        {status === "investigate" && (
+                          <div className="mt-2 space-y-1 text-xs text-yellow-200/85">
+                            <p>
+                              {user.investigationStatus
+                                ? INVESTIGATION_STATUS_META[user.investigationStatus]
+                                    ?.label
+                                : "Flagged"}
+                              {user.investigationFlaggedByUsername
+                                ? ` · by ${user.investigationFlaggedByUsername}`
+                                : ""}
+                            </p>
+                            {user.investigationFlaggedAt && (
+                              <p className="text-zinc-500">
+                                Flagged {formatDate(user.investigationFlaggedAt)}
+                              </p>
+                            )}
+                            {user.investigationNote && (
+                              <p className="text-zinc-400">
+                                Note: {user.investigationNote}
+                              </p>
+                            )}
+                          </div>
+                        )}
                         {isWorkspaceAdmin && (
                           <p className="mt-2 text-xs text-zinc-500">Admin dashboard access</p>
                         )}
@@ -501,11 +581,30 @@ export function AdminUsersPanel() {
                                 ACCOUNT_STATUS_META.investigate.actionClass,
                               )}
                               disabled={busy}
-                              onClick={() => handleStatusChange(user.id, "investigate")}
+                              onClick={() =>
+                                handleStatusChange(user.id, "investigate", {
+                                  investigationStatus: "flagged",
+                                })
+                              }
                               type="button"
                             >
-                              Investigate
+                              Flag
                             </button>
+                            {status === "investigate" &&
+                              user.investigationStatus !== "under_investigation" && (
+                                <button
+                                  className="rounded-md border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/20"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    handleStatusChange(user.id, "investigate", {
+                                      investigationStatus: "under_investigation",
+                                    })
+                                  }
+                                  type="button"
+                                >
+                                  Under investigation
+                                </button>
+                              )}
                             {status !== "active" && (
                               <button
                                 className={clsx(
@@ -516,7 +615,7 @@ export function AdminUsersPanel() {
                                 onClick={() => handleStatusChange(user.id, "active")}
                                 type="button"
                               >
-                                Restore
+                                {status === "investigate" ? "Clear flag" : "Restore"}
                               </button>
                             )}
                             <button

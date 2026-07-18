@@ -17,6 +17,11 @@ export const MEMBER_SELECT = {
   balance: true,
   staffRole: true,
   accountStatus: true,
+  investigationStatus: true,
+  investigationFlaggedAt: true,
+  investigationFlaggedById: true,
+  investigationFlaggedByUsername: true,
+  investigationNote: true,
   freeTier: true,
   professionalTier: true,
   investigatorTier: true,
@@ -36,6 +41,11 @@ export const HELPER_MEMBER_SELECT = {
   username: true,
   staffRole: true,
   accountStatus: true,
+  investigationStatus: true,
+  investigationFlaggedAt: true,
+  investigationFlaggedById: true,
+  investigationFlaggedByUsername: true,
+  investigationNote: true,
   createdAt: true,
   _count: {
     select: {
@@ -75,7 +85,7 @@ export async function requireWorkspaceAdmin() {
 
   const admin = await prisma.user.findUnique({
     where: { id: session.userId as number },
-    select: { id: true, isAdmin: true, staffRole: true },
+    select: { id: true, isAdmin: true, staffRole: true, username: true },
   });
 
   if (!admin || !hasWorkspaceAdminAccess(admin)) {
@@ -84,7 +94,7 @@ export async function requireWorkspaceAdmin() {
     };
   }
 
-  return { adminId: admin.id };
+  return { adminId: admin.id, username: admin.username };
 }
 
 export async function requireWorkspaceHelper() {
@@ -98,7 +108,7 @@ export async function requireWorkspaceHelper() {
 
   const helper = await prisma.user.findUnique({
     where: { id: session.userId as number },
-    select: { id: true, isAdmin: true, staffRole: true },
+    select: { id: true, isAdmin: true, staffRole: true, username: true },
   });
 
   if (!helper || !hasHelperDashboardAccess(helper)) {
@@ -107,5 +117,43 @@ export async function requireWorkspaceHelper() {
     };
   }
 
-  return { helperId: helper.id };
+  return { helperId: helper.id, username: helper.username };
+}
+
+/** Helper or admin — for shared safety-flag review queues. */
+export async function requireWorkspaceStaff() {
+  const session = await getSessionCookie();
+
+  if (!session?.userId) {
+    return {
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  const staff = await prisma.user.findUnique({
+    where: { id: session.userId as number },
+    select: { id: true, isAdmin: true, staffRole: true, username: true },
+  });
+
+  if (!staff) {
+    return {
+      error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
+
+  const isAdmin = hasWorkspaceAdminAccess(staff);
+  const isHelper = hasHelperDashboardAccess(staff);
+
+  if (!isAdmin && !isHelper) {
+    return {
+      error: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
+
+  return {
+    staffId: staff.id,
+    username: staff.username,
+    isAdmin,
+    isHelper,
+  };
 }

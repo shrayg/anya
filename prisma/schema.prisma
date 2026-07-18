@@ -20,6 +20,12 @@ model User {
   isAdmin   Boolean @default(false)
   staffRole String?
   accountStatus String @default("active")
+  /// Set when accountStatus is "investigate": "flagged" | "under_investigation"
+  investigationStatus String?
+  investigationFlaggedAt DateTime?
+  investigationFlaggedById Int?
+  investigationFlaggedByUsername String?
+  investigationNote String?
   createdAt DateTime @default(now())
   subscripted Boolean @default(false)
   licenseId Int?      @unique
@@ -39,6 +45,52 @@ model User {
   payments  Payment[]
   tickets   SupportTicket[]
   ticketMessages SupportTicketMessage[]
+  safetyFlags SafetyFlag[]
+}
+
+/// Unified safety / investigation case for auto underage-risk flags and helper Investigate.
+model SafetyFlag {
+  id                   Int      @id @default(autoincrement())
+  publicId             String   @unique @default(cuid())
+  userId               Int
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  searchHistoryId      Int?
+  searchHistory        SearchHistory? @relation(fields: [searchHistoryId], references: [id], onDelete: SetNull)
+  /// auto | helper | admin
+  source               String
+  /// underage_search | helper_investigate | admin_investigate | other
+  reasonCode           String   @default("underage_search")
+  /// underage_risk | manual_review | other
+  category             String   @default("underage_risk")
+  /// open | reviewing | resolved
+  status               String   @default("open")
+  /// Query that triggered the flag (staff-only review)
+  queryPreview         String
+  moduleSlug           String?
+  searchType           String?
+  /// JSON array of matched rule ids
+  matchedRules         String   @default("[]")
+  reason               String   @default("")
+  flaggedById          Int?
+  flaggedByUsername    String?
+  assignedHelperId     Int?
+  assignedHelperUsername String?
+  /// Message from helper/admin shown to the flagged user
+  helperMessage        String?
+  notifiedAt           DateTime?
+  /// When the flagged user acknowledged the on-screen notice
+  acknowledgedAt       DateTime?
+  reviewedById         Int?
+  reviewedByUsername   String?
+  reviewNote           String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  resolvedAt           DateTime?
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([source, status])
+  @@index([userId, acknowledgedAt, notifiedAt])
 }
 
 model SupportTicket {
@@ -111,6 +163,7 @@ model SearchHistory {
   userId     Int
   user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   caseLinks  CaseSearch[]
+  safetyFlags SafetyFlag[]
 }
 
 model Case {
