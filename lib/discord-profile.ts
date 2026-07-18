@@ -10,7 +10,7 @@ export type DiscordNameplate = {
   asset: string;
   /** Static PNG for display / download. */
   url: string;
-  /** Animated WebM when available. */
+  /** Animated media URL (webm / gif / webp / apng) when available. */
   animatedUrl: string | null;
   label: string | null;
   /** Human-readable description for the nameplate card. */
@@ -106,45 +106,110 @@ function isAnimatedHash(hash: unknown): hash is string {
   return typeof hash === "string" && hash.startsWith("a_");
 }
 
+/** Pull a Discord avatar/banner hash from a raw hash or CDN URL. */
+function extractMediaHash(value: unknown): string | null {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+
+  const raw = value.trim();
+  const bare = raw.replace(/\.(gif|png|webp|jpe?g)(\?.*)?$/i, "");
+  if (/^(a_[a-zA-Z0-9]+|[a-f0-9]{16,})$/i.test(bare) && !bare.includes("/")) {
+    return bare;
+  }
+
+  const fromUrl = raw.match(
+    /\/(?:avatars|banners)\/\d+\/(a_[a-zA-Z0-9]+|[a-f0-9]{16,})\./i,
+  );
+  return fromUrl?.[1] ?? null;
+}
+
+/**
+ * Discord serves the first frame for a_* hashes when the extension is png/webp.
+ * Rewrite those CDN URLs to .gif so the animation actually plays.
+ */
+function rewriteAnimatedDiscordCdnUrl(url: string): string {
+  return url.replace(
+    /(\/(?:avatars|banners)\/\d+\/a_[a-zA-Z0-9]+)\.(?:png|webp|jpe?g)(\?|$)/i,
+    "$1.gif$2",
+  );
+}
+
+function isLikelyAnimatedUrl(url: string): boolean {
+  if (/\.(gif|webm|mp4)(\?|$)/i.test(url)) return true;
+  if (/[?&]passthrough=true\b/i.test(url)) return true;
+  if (/\/a_[a-zA-Z0-9]+\.gif/i.test(url)) return true;
+  return false;
+}
+
 function buildAvatarUrl(id: string, avatar: unknown): string {
-  if (typeof avatar !== "string" || avatar.length === 0) {
+  const hash = extractMediaHash(avatar);
+  if (!hash) {
     return defaultAvatarUrl(id);
   }
 
-  const extension = isAnimatedHash(avatar) ? "gif" : "png";
+  const extension = isAnimatedHash(hash) ? "gif" : "png";
 
-  return `https://cdn.discordapp.com/avatars/${id}/${avatar}.${extension}?size=256`;
+  return `https://cdn.discordapp.com/avatars/${id}/${hash}.${extension}?size=256`;
 }
 
 function buildBannerUrl(id: string, banner: unknown): string | null {
-  if (typeof banner !== "string" || banner.length === 0) {
+  const hash = extractMediaHash(banner);
+  if (!hash) {
     return null;
   }
 
-  const extension = isAnimatedHash(banner) ? "gif" : "png";
+  const extension = isAnimatedHash(hash) ? "gif" : "png";
 
-  return `https://cdn.discordapp.com/banners/${id}/${banner}.${extension}?size=512`;
+  return `https://cdn.discordapp.com/banners/${id}/${hash}.${extension}?size=512`;
 }
 
 function buildAvatarDecorationUrl(asset: unknown): string | null {
   if (typeof asset !== "string" || asset.length === 0) return null;
 
-  return `https://cdn.discordapp.com/avatar-decoration-presets/${asset}.png?size=256&passthrough=true`;
-}
-
-function preferCdnUrl(
-  provided: unknown,
-  built: string | null,
-  preferAnimated: boolean,
-): string | null {
-  if (typeof provided === "string" && provided.length > 0) {
-    if (preferAnimated && built && built.includes(".gif")) {
-      return built;
+  if (/^https?:\/\//i.test(asset)) {
+    try {
+      const parsed = new URL(asset);
+      if (
+        parsed.hostname.includes("discord") &&
+        parsed.pathname.includes("avatar-decoration")
+      ) {
+        // passthrough=true is required for Discord APNG decorations to animate.
+        parsed.searchParams.set("passthrough", "true");
+        if (!parsed.searchParams.has("size")) {
+          parsed.searchParams.set("size", "256");
+        }
+      }
+      return parsed.toString();
+    } catch {
+      return asset;
     }
-    return provided;
   }
 
-  return built;
+  const hash = asset.replace(/\.(png|webp|gif)$/i, "");
+  return `https://cdn.discordapp.com/avatar-decoration-presets/${hash}.png?size=256&passthrough=true`;
+}
+
+/**
+ * Prefer CordCat / provider media URLs when they already animate;
+ * otherwise fall back to a correctly built Discord CDN URL (gif for a_*).
+ */
+function preferAnimatedMediaUrl(
+  provided: unknown,
+  built: string | null,
+): string | null {
+  const providedUrl =
+    typeof provided === "string" && provided.length > 0
+      ? rewriteAnimatedDiscordCdnUrl(provided)
+      : null;
+
+  if (providedUrl && isLikelyAnimatedUrl(providedUrl)) {
+    return providedUrl;
+  }
+
+  if (built && (built.includes(".gif") || isLikelyAnimatedUrl(built))) {
+    return built;
+  }
+
+  return providedUrl ?? built;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -220,6 +285,23 @@ function humanizeNameplateLabel(raw: string | null, asset: string): string | nul
     .replace(/\b\w/g, (ch) => ch.toUpperCase());
 }
 
+function pickFirstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+function isAnimatedNameplateUrl(url: string): boolean {
+  return (
+    /\.(webm|mp4|gif|webp)(\?|$)/i.test(url) ||
+    /\/asset\.webm(\?|$)/i.test(url) ||
+    /animated/i.test(url)
+  );
+}
+
 function extractNameplate(data: Record<string, unknown>): DiscordNameplate | null {
   const collectibles = asRecord(data.collectibles);
   const nameplate =
@@ -230,24 +312,48 @@ function extractNameplate(data: Record<string, unknown>): DiscordNameplate | nul
   if (!nameplate) return null;
 
   const asset =
-    (typeof nameplate.asset === "string" && nameplate.asset.trim()) ||
-    (typeof nameplate.asset_path === "string" && nameplate.asset_path.trim()) ||
+    pickFirstString(nameplate.asset, nameplate.asset_path, nameplate.path) ??
     null;
 
   if (!asset) return null;
 
   const normalized = asset.endsWith("/") ? asset : `${asset}/`;
-  const label =
-    (typeof nameplate.label === "string" && nameplate.label.trim()) ||
-    (typeof nameplate.description === "string" && nameplate.description.trim()) ||
-    null;
-  const palette =
-    (typeof nameplate.palette === "string" && nameplate.palette.trim()) || null;
+  const label = pickFirstString(nameplate.label, nameplate.description);
+  const palette = pickFirstString(nameplate.palette);
+
+  const rawUrl = pickFirstString(nameplate.url, nameplate.src, nameplate.href);
+  const providedAnimated = pickFirstString(
+    nameplate.animated_url,
+    nameplate.animatedUrl,
+    nameplate.animation_url,
+    nameplate.animationUrl,
+    nameplate.animation,
+    nameplate.video,
+    nameplate.video_url,
+    nameplate.videoUrl,
+    nameplate.media,
+    nameplate.media_url,
+    nameplate.webm,
+    nameplate.gif,
+    rawUrl && isAnimatedNameplateUrl(rawUrl) ? rawUrl : null,
+  );
+  const providedStatic = pickFirstString(
+    nameplate.static_url,
+    nameplate.staticUrl,
+    nameplate.img,
+    nameplate.image,
+    nameplate.img_url,
+    rawUrl && !isAnimatedNameplateUrl(rawUrl) ? rawUrl : null,
+  );
+
+  const cdnStatic = `https://cdn.discordapp.com/assets/collectibles/${normalized}static.png`;
+  const cdnAnimated = `https://cdn.discordapp.com/assets/collectibles/${normalized}asset.webm`;
 
   return {
     asset: normalized,
-    url: `https://cdn.discordapp.com/assets/collectibles/${normalized}static.png`,
-    animatedUrl: `https://cdn.discordapp.com/assets/collectibles/${normalized}asset.webm`,
+    url: providedStatic ?? cdnStatic,
+    // Prefer CordCat animated URL; fall back to Discord CDN webm.
+    animatedUrl: providedAnimated ?? cdnAnimated,
     label,
     description: humanizeNameplateLabel(label, normalized),
     palette,
@@ -325,27 +431,37 @@ function parseProfileFromRaw(
         : null;
   const displayName = globalName ?? username;
 
-  const avatarHash = data.avatar;
-  const bannerHash = data.banner;
+  const avatarHash =
+    extractMediaHash(data.avatar) ??
+    extractMediaHash(data.avatarURL ?? data.avatar_url ?? data.avatarUrl);
+  const bannerHash =
+    extractMediaHash(data.banner) ??
+    extractMediaHash(data.bannerURL ?? data.banner_url ?? data.bannerUrl);
 
   const avatarUrl =
-    preferCdnUrl(
+    preferAnimatedMediaUrl(
       data.avatarURL ?? data.avatar_url ?? data.avatarUrl,
-      buildAvatarUrl(id, avatarHash),
-      true,
+      avatarHash ? buildAvatarUrl(id, avatarHash) : null,
     ) ?? defaultAvatarUrl(id);
 
-  const bannerUrl = preferCdnUrl(
+  const bannerUrl = preferAnimatedMediaUrl(
     data.bannerURL ?? data.banner_url ?? data.bannerUrl,
-    buildBannerUrl(id, bannerHash),
-    true,
+    bannerHash ? buildBannerUrl(id, bannerHash) : null,
   );
 
+  const decorationData = asRecord(data.avatar_decoration_data);
   const decorationAsset =
-    (data.avatar_decoration_data as { asset?: unknown } | null | undefined)
-      ?.asset ??
+    decorationData?.asset ??
     data.avatar_decoration ??
     data.avatarDecoration;
+  const decorationProvidedUrl =
+    data.avatar_decoration_url ??
+    data.avatarDecorationUrl ??
+    data.avatar_decoration_sku_url ??
+    (typeof data.avatar_decoration === "string" &&
+    /^https?:\/\//i.test(data.avatar_decoration)
+      ? data.avatar_decoration
+      : null);
 
   const badges = collectBadges(data);
   const nitro = detectNitro(data, avatarHash, bannerHash, badges);
@@ -376,7 +492,9 @@ function parseProfileFromRaw(
     nitro,
     clanTag: extractClanTag(data),
     clanBadgeUrl: extractClanBadgeUrl(data),
-    avatarDecorationUrl: buildAvatarDecorationUrl(decorationAsset),
+    avatarDecorationUrl:
+      buildAvatarDecorationUrl(decorationProvidedUrl) ??
+      buildAvatarDecorationUrl(decorationAsset),
     nameplate: extractNameplate(data),
     profilePreviewUrl: cordCatProfileUrl(id),
   };

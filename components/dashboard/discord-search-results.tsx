@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
   ChevronDown,
@@ -25,12 +25,108 @@ import {
   formatDsaDate,
   profileAccent,
   type DiscordDsaSanction,
+  type DiscordNameplate,
   type DiscordSearchResult,
 } from "@/lib/discord-profile";
 import { formatSearchRecords, type FormattedRecord } from "@/lib/search-utils";
 
 const LEAK_PAGE_SIZE = 5;
 const LEAK_VALUE_PREVIEW = 72;
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  return reduced;
+}
+
+function classifyNameplateMedia(url: string): "video" | "image" {
+  if (/\.(webm|mp4|ogg)(\?|$)/i.test(url)) return "video";
+  return "image";
+}
+
+function DiscordNameplateArt({
+  nameplate,
+  blurResults,
+}: {
+  nameplate: DiscordNameplate;
+  blurResults: boolean;
+}) {
+  const reducedMotion = usePrefersReducedMotion();
+  const [animFailed, setAnimFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const animatedSrc =
+    !reducedMotion && !animFailed && nameplate.animatedUrl
+      ? nameplate.animatedUrl
+      : null;
+  const mediaKind = animatedSrc ? classifyNameplateMedia(animatedSrc) : null;
+
+  useEffect(() => {
+    setAnimFailed(false);
+  }, [nameplate.animatedUrl, nameplate.url]);
+
+  useEffect(() => {
+    if (mediaKind !== "video" || !videoRef.current) return;
+    const el = videoRef.current;
+    el.muted = true;
+    const play = el.play();
+    if (play && typeof play.catch === "function") {
+      play.catch(() => {
+        /* Autoplay can be blocked; muted+playsInline usually works. */
+      });
+    }
+  }, [mediaKind, animatedSrc]);
+
+  return (
+    <div className="discord-id-nameplate-art">
+      {mediaKind === "video" && animatedSrc ? (
+        <video
+          ref={videoRef}
+          aria-hidden
+          autoPlay
+          className="discord-id-nameplate-media"
+          loop
+          muted
+          onError={() => setAnimFailed(true)}
+          playsInline
+          preload="auto"
+          src={animatedSrc}
+        />
+      ) : mediaKind === "image" && animatedSrc ? (
+        <img
+          alt=""
+          aria-hidden
+          className="discord-id-nameplate-media"
+          onError={() => setAnimFailed(true)}
+          src={animatedSrc}
+        />
+      ) : (
+        <img
+          alt=""
+          aria-hidden
+          className="discord-id-nameplate-media"
+          src={nameplate.url}
+        />
+      )}
+      {nameplate.description ? (
+        <p className="discord-id-nameplate-desc">
+          <BlurredValue
+            forceBlur={blurResults}
+            text={nameplate.description}
+          />
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function DiscordLeakRecords({
   records,
@@ -383,9 +479,10 @@ export function DiscordSearchResults({
         >
           <div className="discord-id-banner-wrap">
             {profile.bannerUrl && !bannerHidden ? (
-              <div
+              <img
+                alt=""
                 className="discord-id-banner"
-                style={{ backgroundImage: `url(${profile.bannerUrl})` }}
+                src={profile.bannerUrl}
               />
             ) : (
               <div
@@ -477,19 +574,10 @@ export function DiscordSearchResults({
           {profile.nameplate ? (
             <div className="discord-id-nameplate">
               <span className="discord-id-nameplate-tag">Nameplate</span>
-              <div
-                className="discord-id-nameplate-art"
-                style={{ backgroundImage: `url(${profile.nameplate.url})` }}
-              >
-                {profile.nameplate.description ? (
-                  <p className="discord-id-nameplate-desc">
-                    <BlurredValue
-                      forceBlur={blurResults}
-                      text={profile.nameplate.description}
-                    />
-                  </p>
-                ) : null}
-              </div>
+              <DiscordNameplateArt
+                blurResults={blurResults}
+                nameplate={profile.nameplate}
+              />
             </div>
           ) : null}
 
@@ -552,7 +640,10 @@ export function DiscordSearchResults({
                 href={profile.avatarDecorationUrl}
                 label="Decoration"
               />
-              <DownloadButton href={profile.nameplate?.url} label="Nameplate" />
+              <DownloadButton
+                href={profile.nameplate?.animatedUrl ?? profile.nameplate?.url}
+                label="Nameplate"
+              />
             </div>
           </div>
         </article>

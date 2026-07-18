@@ -21,9 +21,10 @@ function DiscordProfileCard({ id, profile }: { id: string; profile: DiscordProfi
   return (
     <div className="discord-profile-shell">
       {profile.bannerUrl ? (
-        <div
+        <img
+          alt=""
           className="discord-profile-banner"
-          style={{ backgroundImage: `url(${profile.bannerUrl})` }}
+          src={profile.bannerUrl}
         />
       ) : (
         <div
