@@ -5,15 +5,12 @@ import {
   ChevronDown,
   Copy,
   Download,
-  Ellipsis,
   ExternalLink,
   Gamepad2,
   Link2,
-  MessageCircle,
   Scale,
   Shield,
   TriangleAlert,
-  UserPlus,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -581,9 +578,7 @@ export function DiscordSearchResults({
       (robloxLink.username || robloxLink.userId || robloxLink.profileUrl),
   );
   const memberSince = formatDiscordMemberSince(profile.createdAt);
-  const handleLine = profile.clanTag
-    ? `${profile.username} • ${profile.clanTag}`
-    : profile.username;
+  const handleLine = profile.username;
 
   return (
     <div className="discord-id-shell">
@@ -709,102 +704,79 @@ export function DiscordSearchResults({
             </div>
 
             <div className="discord-id-popout-body">
-              <h3 className="discord-id-name">
-                <BlurredValue forceBlur={blurResults} text={profile.displayName} />
-              </h3>
+              <div className="discord-id-popout-card">
+                <h3 className="discord-id-name">
+                  <BlurredValue forceBlur={blurResults} text={profile.displayName} />
+                </h3>
 
-              <div className="discord-id-handle-row">
-                <p className="discord-id-handle">
-                  <BlurredValue forceBlur={blurResults} text={handleLine} />
-                </p>
-                {profile.clanBadgeUrl ? (
-                  <img
-                    alt=""
-                    aria-hidden
-                    className="discord-id-clan-inline"
-                    src={profile.clanBadgeUrl}
-                  />
-                ) : null}
-                {badges.length > 0 ? (
-                  <div className="discord-id-badges discord-id-badges--inline" aria-label="Badges">
-                    {badges.map((badge) => (
-                      <span
-                        key={badge.key}
-                        className="discord-id-badge"
-                        style={
-                          {
-                            "--badge-color": badge.color,
-                            "--badge-glow": badge.glow,
-                          } as React.CSSProperties
-                        }
-                        title={badge.label}
-                      >
-                        {badge.short}
-                      </span>
-                    ))}
+                <div className="discord-id-handle-row">
+                  <p className="discord-id-handle">
+                    <BlurredValue forceBlur={blurResults} text={handleLine} />
+                  </p>
+                  {profile.clanBadgeUrl ? (
+                    <img
+                      alt=""
+                      aria-hidden
+                      className="discord-id-clan-inline"
+                      src={profile.clanBadgeUrl}
+                    />
+                  ) : null}
+                  {profile.clanTag ? (
+                    <span className="discord-id-clan-tag">{profile.clanTag}</span>
+                  ) : null}
+                  {badges.length > 0 ? (
+                    <div className="discord-id-badges discord-id-badges--inline" aria-label="Badges">
+                      {badges.map((badge) => (
+                        <span
+                          key={badge.key}
+                          className="discord-id-badge"
+                          style={
+                            {
+                              "--badge-color": badge.color,
+                              "--badge-glow": badge.glow,
+                            } as React.CSSProperties
+                          }
+                          title={badge.label}
+                        >
+                          {badge.short}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {profile.nameplate ? (
+                  <div className="discord-id-nameplate discord-id-nameplate--inline">
+                    <DiscordNameplateArt
+                      blurResults={blurResults}
+                      nameplate={profile.nameplate}
+                    />
                   </div>
                 ) : null}
-              </div>
 
-              {profile.nameplate ? (
-                <div className="discord-id-nameplate discord-id-nameplate--inline">
-                  <DiscordNameplateArt
-                    blurResults={blurResults}
-                    nameplate={profile.nameplate}
-                  />
-                </div>
-              ) : null}
+                {profile.bio ? (
+                  <div className="discord-id-section">
+                    <p className="discord-id-meta-label">About Me</p>
+                    <p className="discord-id-bio">
+                      <BlurredValue forceBlur={blurResults} text={profile.bio} />
+                    </p>
+                  </div>
+                ) : null}
 
-              <div className="discord-id-actions" aria-label="Profile actions">
-                <button
-                  className="discord-id-action discord-id-action--primary"
-                  disabled
-                  title="Preview only — messaging is not available here"
-                  type="button"
-                >
-                  <MessageCircle className="size-4" />
-                  Message
-                </button>
-                <button
-                  aria-label="Add friend unavailable"
-                  className="discord-id-action discord-id-action--icon"
-                  disabled
-                  title="Preview only"
-                  type="button"
-                >
-                  <UserPlus className="size-4" />
-                </button>
-                <a
-                  aria-label="Open on Discord"
-                  className="discord-id-action discord-id-action--icon"
-                  href={`https://discord.com/users/${profile.id}`}
-                  rel="noreferrer"
-                  target="_blank"
-                  title="Open on Discord"
-                >
-                  <Ellipsis className="size-4" />
-                </a>
-              </div>
-
-              {profile.bio ? (
-                <p className="discord-id-bio">
-                  <BlurredValue forceBlur={blurResults} text={profile.bio} />
-                </p>
-              ) : null}
-
-              <div className="discord-id-meta-grid">
-                <div className="discord-id-meta-block">
-                  <p className="discord-id-meta-label">Member Since</p>
-                  <p className="discord-id-meta-value">
-                    <BlurredValue forceBlur={blurResults} text={memberSince} />
-                  </p>
-                </div>
-                <div className="discord-id-meta-block">
-                  <p className="discord-id-meta-label">Discord ID</p>
-                  <p className="discord-id-meta-value discord-id-meta-value--mono">
-                    <BlurredValue forceBlur={blurResults} text={profile.id} />
-                    {!blurResults ? <CopyButton value={profile.id} /> : null}
-                  </p>
+                <div className="discord-id-meta-grid">
+                  <div className="discord-id-meta-block">
+                    <p className="discord-id-meta-label">Member Since</p>
+                    <p className="discord-id-meta-value">
+                      <BlurredValue forceBlur={blurResults} text={memberSince} />
+                    </p>
+                  </div>
+                  <div className="discord-id-meta-block">
+                    <p className="discord-id-meta-label">Discord ID</p>
+                    <p className="discord-id-meta-value discord-id-meta-value--mono">
+                      <BlurredValue forceBlur={blurResults} text={profile.id} />
+                      {!blurResults ? <CopyButton value={profile.id} /> : null}
+                    </p>
+                  </div>
                 </div>
               </div>
 
