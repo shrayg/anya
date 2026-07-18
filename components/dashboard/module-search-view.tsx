@@ -1024,7 +1024,16 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           return;
         }
 
-        const exportBody = sanitizePublicContent(intelxData.content ?? "");
+        const exportBody = sanitizePublicContent(intelxData.content ?? "").trim();
+        if (!exportBody) {
+          markNoResults(
+            sanitizePublicText(
+              intelxData.error || "No IntelX export content returned.",
+            ),
+          );
+          return;
+        }
+
         const storageId = intelxData.storageId ?? trimmed;
         const bucketId = intelxData.bucket ?? "leaks.public";
 
@@ -1055,6 +1064,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         }
 
         const formatted = formatSearchRecords(results);
+
+        if (formatted.length === 0) {
+          markNoResults(breachData.message || breachData.error || "No results were found.");
+          return;
+        }
 
         setRecords(formatted);
         setResultCount(

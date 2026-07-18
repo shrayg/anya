@@ -4,7 +4,12 @@
  */
 
 import {
-  PUBLIC_INTEL_SOURCE,
+  isBrandPlaceholderValue,
+  isIdentityFieldKey,
+  isInternalSourceLabel,
+  scrubIntelRecord,
+} from "@/lib/intel-record";
+import {
   publicSearchError,
   publicServiceUnavailable,
   sanitizePublicContent,
@@ -137,6 +142,26 @@ async function csintPost(
   return sanitizeCsintPayload(data);
 }
 
+function sanitizeCsintStringField(key: string, value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  // Never rewrite identity/secret fields to the product brand — that produced
+  // fake Snapchat "credentials" like username/password/raw = "Anya.Int".
+  if (isIdentityFieldKey(key)) {
+    if (isBrandPlaceholderValue(trimmed)) return null;
+    return trimmed;
+  }
+
+  if (/^(source|sources|_source|provider|providers|service|credit|credits)$/i.test(key)) {
+    return null;
+  }
+
+  const cleaned = sanitizePublicText(trimmed);
+  if (!cleaned || isBrandPlaceholderValue(cleaned)) return null;
+  return cleaned;
+}
+
 function sanitizeCsintPayload(
   value: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -147,13 +172,17 @@ function sanitizeCsintPayload(
       key === "credits" ||
       key === "credit" ||
       key === "service" ||
+      key === "source" ||
+      key === "sources" ||
+      key === "_source" ||
       /csint/i.test(key)
     ) {
       continue;
     }
 
     if (typeof raw === "string") {
-      out[key] = sanitizePublicText(raw);
+      const cleaned = sanitizeCsintStringField(key, raw);
+      if (cleaned !== null) out[key] = cleaned;
     } else if (Array.isArray(raw)) {
       out[key] = raw.map((item) =>
         item && typeof item === "object" && !Array.isArray(item)
@@ -169,7 +198,6 @@ function sanitizeCsintPayload(
     }
   }
 
-  out.source = PUBLIC_INTEL_SOURCE;
   return out;
 }
 
@@ -206,17 +234,43 @@ function pushBreachMapEntry(
   value: unknown,
   out: Record<string, unknown>[],
 ) {
+  const dbLabel =
+    breachName.trim() && !isInternalSourceLabel(breachName) && !META_KEYS.has(breachName)
+      ? breachName.trim()
+      : undefined;
+
   if (typeof value === "string") {
     const trimmed = value.trim();
+    if (!trimmed || isBrandPlaceholderValue(trimmed)) return;
+
     const [left, ...rest] = trimmed.split(":");
-    out.push({
-      database: breachName,
-      email: left?.includes("@") ? left : undefined,
-      username: left && !left.includes("@") ? left : undefined,
-      password: rest.length > 0 ? rest.join(":") : trimmed || undefined,
-      raw: trimmed || breachName,
-      source: PUBLIC_INTEL_SOURCE,
-    });
+    const secret = rest.length > 0 ? rest.join(":").trim() : "";
+    const login = (left ?? "").trim();
+
+    // Colon-less strings are identifiers only — never invent a password from them.
+    const email = login.includes("@") ? login : undefined;
+    const username = login && !login.includes("@") ? login : undefined;
+
+    if (
+      (email && isBrandPlaceholderValue(email)) ||
+      (username && isBrandPlaceholderValue(username)) ||
+      (secret && isBrandPlaceholderValue(secret))
+    ) {
+      return;
+    }
+
+    if (!email && !username && !secret) return;
+
+    const row: Record<string, unknown> = {
+      ...(dbLabel ? { database: dbLabel } : {}),
+      ...(email ? { email } : {}),
+      ...(username ? { username } : {}),
+      ...(secret ? { password: secret } : {}),
+      raw: trimmed,
+    };
+
+    const scrubbed = scrubIntelRecord(row);
+    if (scrubbed) out.push(scrubbed);
     return;
   }
 
@@ -226,18 +280,16 @@ function pushBreachMapEntry(
   }
 
   if (value && typeof value === "object") {
-    out.push({
+    const row = {
       ...(value as Record<string, unknown>),
-      database: breachName,
-      source: PUBLIC_INTEL_SOURCE,
-    });
+      ...(dbLabel ? { database: dbLabel } : {}),
+    };
+    const scrubbed = scrubIntelRecord(row);
+    if (scrubbed) out.push(scrubbed);
     return;
   }
 
-  out.push({
-    database: breachName,
-    source: PUBLIC_INTEL_SOURCE,
-  });
+  // Empty / null map values are not hits.
 }
 
 function looksLikeBreachMap(record: Record<string, unknown>): boolean {
@@ -338,7 +390,8 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
     asString(record.roblox_id) ||
     asString(record.user_id)
   ) {
-    out.push({ ...record, source: PUBLIC_INTEL_SOURCE });
+    const scrubbed = scrubIntelRecord(record);
+    if (scrubbed) out.push(scrubbed);
   }
 }
 
@@ -364,10 +417,12 @@ function payloadToSanitized(
   const deduped: Record<string, unknown>[] = [];
   for (const row of results) {
     if (isUpgradeToSeePlaceholder(row)) continue;
-    const key = JSON.stringify(row);
+    const scrubbed = scrubIntelRecord(row);
+    if (!scrubbed) continue;
+    const key = JSON.stringify(scrubbed);
     if (seen.has(key)) continue;
     seen.add(key);
-    deduped.push(row);
+    deduped.push(scrubbed);
     if (deduped.length >= MAX_ROWS) break;
   }
 
@@ -386,10 +441,12 @@ function mergeOptionalSanitized(
       if (!row || typeof row !== "object") continue;
       const record = row as Record<string, unknown>;
       if (isUpgradeToSeePlaceholder(record)) continue;
-      const key = JSON.stringify(record);
+      const scrubbed = scrubIntelRecord(record);
+      if (!scrubbed) continue;
+      const key = JSON.stringify(scrubbed);
       if (seen.has(key)) continue;
       seen.add(key);
-      merged.push(record);
+      merged.push(scrubbed);
       if (merged.length >= MAX_ROWS) {
         return { count: merged.length, results: merged };
       }
@@ -413,7 +470,11 @@ function flattenUniversalResults(
       collectRows(value, rows);
       // Tag rows that came from a named nested source when they lack database
       for (let i = before; i < rows.length; i++) {
-        if (!asString(rows[i].database) && !META_KEYS.has(sourceKey)) {
+        if (
+          !asString(rows[i].database) &&
+          !META_KEYS.has(sourceKey) &&
+          !isInternalSourceLabel(sourceKey)
+        ) {
           rows[i] = { ...rows[i], database: sourceKey };
         }
       }
@@ -426,10 +487,20 @@ function flattenUniversalResults(
   const deduped: Record<string, unknown>[] = [];
 
   for (const row of rows) {
-    const key = JSON.stringify(row);
+    const scrubbed = scrubIntelRecord(row);
+    if (!scrubbed) continue;
+    // Reject meta-only databank labels like "source" / provider names.
+    if (
+      typeof scrubbed.database === "string" &&
+      isInternalSourceLabel(scrubbed.database)
+    ) {
+      delete scrubbed.database;
+      if (!scrubIntelRecord(scrubbed)) continue;
+    }
+    const key = JSON.stringify(scrubbed);
     if (seen.has(key)) continue;
     seen.add(key);
-    deduped.push(row);
+    deduped.push(scrubbed);
     if (deduped.length >= MAX_ROWS) break;
   }
 
@@ -532,8 +603,11 @@ export function csintRowsToCredentials(
       asString(record.pass) ||
       asString(record.hash);
     if (!identifier && !secret) continue;
+    if (identifier && isBrandPlaceholderValue(identifier)) continue;
+    if (secret && isBrandPlaceholderValue(secret)) continue;
 
     const id = identifier || "(unknown)";
+    if (isBrandPlaceholderValue(id)) continue;
     const key = `${id.toLowerCase()}\0${secret}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -572,12 +646,12 @@ export async function fetchCsintDiscordOsint(
       asString(payload.ip) ||
       asString(payload.ip_address)
     ) {
-      results.push({
+      const scrubbed = scrubIntelRecord({
         email: asString(payload.email) || undefined,
         ip: asString(payload.ip) || asString(payload.ip_address) || undefined,
         user_id: userId,
-        source: PUBLIC_INTEL_SOURCE,
       });
+      if (scrubbed) results.push(scrubbed);
     }
 
     collectRows(payload, results);
@@ -603,16 +677,16 @@ export function extractCsintDiscordLookupLeaks(
   const ip = asString(o.ip) || asString(o.ip_address);
   if (!email && !ip) return { count: 0, results: [] };
 
+  const scrubbed = scrubIntelRecord({
+    email: email || undefined,
+    ip: ip || undefined,
+    user_id: userId,
+  });
+  if (!scrubbed) return { count: 0, results: [] };
+
   return {
     count: 1,
-    results: [
-      {
-        email: email || undefined,
-        ip: ip || undefined,
-        user_id: userId,
-        source: PUBLIC_INTEL_SOURCE,
-      },
-    ],
+    results: [scrubbed],
   };
 }
 
@@ -736,11 +810,9 @@ export async function fetchCsintHashLookup(
     });
     const sanitized = payloadToSanitized(payload);
     if (sanitized.count > 0) return sanitized;
-    if (Object.keys(payload).length > 0) {
-      return {
-        count: 1,
-        results: [{ ...payload, source: PUBLIC_INTEL_SOURCE }],
-      };
+    const scrubbed = scrubIntelRecord(payload);
+    if (scrubbed) {
+      return { count: 1, results: [scrubbed] };
     }
     return { count: 0, results: [] };
   } catch {
@@ -924,14 +996,12 @@ function tryNormalizeRobloxAccount(
 
   if (!username && !userId && !profileUrl) return null;
 
-  const out: Record<string, unknown> = {
-    source: PUBLIC_INTEL_SOURCE,
-  };
+  const out: Record<string, unknown> = {};
   if (username) out.username = username;
   if (userId) out.userId = userId;
   if (profileUrl) out.profileUrl = profileUrl;
 
-  return out;
+  return scrubIntelRecord(out);
 }
 
 export async function fetchCsintOathnetDiscordToRoblox(

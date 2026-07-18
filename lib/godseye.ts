@@ -5,7 +5,7 @@ import {
   sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
-import { extractDatabank, isInternalSourceLabel } from "@/lib/intel-record";
+import { isInternalSourceLabel, scrubIntelResults } from "@/lib/intel-record";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { normalizeDomain } from "@/lib/domain-search";
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
@@ -337,15 +337,9 @@ export function sanitizeGodsEyeSearch(
 ): SanitizedBreachResponse {
   if (!data) return { count: 0, results: [] };
 
-  const results = extractGodsEyeResults(data);
-  const count =
-    typeof data.count === "number"
-      ? data.count
-      : typeof data.total === "number"
-        ? data.total
-        : results.length;
+  const results = scrubIntelResults(extractGodsEyeResults(data));
 
-  return { count, results };
+  return { count: results.length, results };
 }
 
 export async function fetchGodsEyeSearch(

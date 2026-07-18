@@ -1,6 +1,7 @@
 import { publicSearchError, publicServiceUnavailable } from "@/lib/public-branding";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { normalizeDomain } from "@/lib/domain-search";
+import { scrubIntelResults } from "@/lib/intel-record";
 
 const OSINTCAT_BASE = "https://www.osintcat.net/api";
 
@@ -103,15 +104,8 @@ export function filterDiscordResultsForId(
 export function sanitizeBreachResponse(
   data: OsintCatResponse,
 ): SanitizedBreachResponse {
-  const results = extractOsintCatResults(data);
-  const count =
-    typeof data.results_count === "number"
-      ? data.results_count
-      : typeof data.count === "number"
-        ? data.count
-        : results.length;
-
-  return { count, results };
+  const results = scrubIntelResults(extractOsintCatResults(data));
+  return { count: results.length, results };
 }
 
 export function mergeSanitizedResponses(
@@ -131,7 +125,9 @@ export function mergeSanitizedResponses(
     }
   }
 
-  return { count: results.length, results };
+  const scrubbed = scrubIntelResults(results);
+
+  return { count: scrubbed.length, results: scrubbed };
 }
 
 export async function fetchOsintCat(

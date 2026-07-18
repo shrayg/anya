@@ -1,4 +1,4 @@
-import { DATABANK_KEYS, extractDatabank } from "@/lib/intel-record";
+import { DATABANK_KEYS, extractDatabank, isBrandPlaceholderValue } from "@/lib/intel-record";
 
 export type SearchResultRow = {
   label: string;
@@ -204,6 +204,7 @@ function objectFields(
       const formatted = formatValue(value);
 
       if (!formatted) return null;
+      if (isBrandPlaceholderValue(formatted)) return null;
 
       const label = humanizeKey(key);
       if (/^sources?$/i.test(label)) return null;
@@ -270,14 +271,24 @@ function recordTitle(data: Record<string, unknown>, index: number): string {
 }
 
 function recordSubtitle(data: Record<string, unknown>): string | undefined {
-  if (typeof data.email === "string") return data.email;
-  if (typeof data.phone === "string") return data.phone;
+  if (typeof data.email === "string" && !isBrandPlaceholderValue(data.email)) {
+    return data.email;
+  }
+  if (typeof data.phone === "string" && !isBrandPlaceholderValue(data.phone)) {
+    return data.phone;
+  }
   if (typeof data.number === "string" || typeof data.number === "number") {
     return String(data.number);
   }
-  if (typeof data.username === "string") return `@${data.username}`;
-  if (typeof data.user_id === "string") return data.user_id;
-  if (typeof data.domain === "string") return data.domain;
+  if (typeof data.username === "string" && !isBrandPlaceholderValue(data.username)) {
+    return `@${data.username}`;
+  }
+  if (typeof data.user_id === "string" && !isBrandPlaceholderValue(data.user_id)) {
+    return data.user_id;
+  }
+  if (typeof data.domain === "string" && !isBrandPlaceholderValue(data.domain)) {
+    return data.domain;
+  }
 
   return undefined;
 }
@@ -290,6 +301,9 @@ export function formatSearchRecords(results: unknown[]): FormattedRecord[] {
   return results
     .map((entry, index) => {
       if (!entry || typeof entry !== "object") {
+        const value = String(entry ?? "").trim();
+        if (!value || isBrandPlaceholderValue(value)) return null;
+
         return {
           index: index + 1,
           title: `Record ${index + 1}`,
@@ -297,7 +311,7 @@ export function formatSearchRecords(results: unknown[]): FormattedRecord[] {
             {
               key: "value",
               label: "Value",
-              value: String(entry ?? ""),
+              value,
             },
           ],
         };
@@ -308,6 +322,12 @@ export function formatSearchRecords(results: unknown[]): FormattedRecord[] {
 
       if (fields.length === 0) return null;
 
+      // Drop cards whose only "data" is brand pollution (Anya.Int as username/password).
+      const useful = fields.some(
+        (field) => field.value.trim() && !isBrandPlaceholderValue(field.value),
+      );
+      if (!useful) return null;
+
       return {
         index: index + 1,
         title: recordTitle(data, index + 1),
@@ -316,7 +336,8 @@ export function formatSearchRecords(results: unknown[]): FormattedRecord[] {
         fields,
       };
     })
-    .filter((record): record is FormattedRecord => record !== null);
+    .filter((record): record is FormattedRecord => record !== null)
+    .map((record, index) => ({ ...record, index: index + 1 }));
 }
 
 function formatIpRecords(data: Record<string, unknown>): FormattedRecord[] {

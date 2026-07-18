@@ -63,7 +63,18 @@ function stripProviderNames(text: string): string {
 export function sanitizePublicText(text: string): string {
   if (!text) return text;
 
-  return stripProviderNames(text).replace(/\s{2,}/g, " ").trim();
+  const original = text.trim();
+  const cleaned = stripProviderNames(text).replace(/\s{2,}/g, " ").trim();
+
+  // Provider-only strings must not become the product brand (fake credentials / Source ads).
+  if (
+    cleaned.toLowerCase() === PUBLIC_INTEL_SOURCE.toLowerCase() &&
+    original.toLowerCase() !== PUBLIC_INTEL_SOURCE.toLowerCase()
+  ) {
+    return "";
+  }
+
+  return cleaned;
 }
 
 /**
@@ -72,7 +83,18 @@ export function sanitizePublicText(text: string): string {
  */
 export function sanitizePublicContent(text: string): string {
   if (!text) return text;
-  return stripProviderNames(text);
+
+  const cleaned = stripProviderNames(text);
+  const trimmed = cleaned.trim();
+
+  if (
+    trimmed.toLowerCase() === PUBLIC_INTEL_SOURCE.toLowerCase() &&
+    text.trim().toLowerCase() !== PUBLIC_INTEL_SOURCE.toLowerCase()
+  ) {
+    return "";
+  }
+
+  return cleaned;
 }
 
 export function publicSearchError(fallback = "Search failed. Try again or contact support.") {

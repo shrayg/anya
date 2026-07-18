@@ -18,6 +18,7 @@ import {
   sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
+import { isBrandPlaceholderValue } from "@/lib/intel-record";
 import { fetchGodsEyeRawExport, getGodsEyeExportApiKey } from "@/lib/godseye";
 
 /** IntelX System ID shape (UUID). API accepts this as storageid when it is a real item id. */
@@ -214,7 +215,15 @@ export async function GET(req: NextRequest) {
   }
 
   // Defense in depth: strip upstream credits / "powered by csint tools" footers.
-  content = sanitizePublicContent(content);
+  content = sanitizePublicContent(content).trim();
+
+  // Provider-name scrubbing must never leave the product brand as fake "content".
+  if (content && isBrandPlaceholderValue(content)) {
+    content = "";
+    if (!lastError) {
+      lastError = "No IntelX export content returned.";
+    }
+  }
 
   if (!content) {
     let error =
