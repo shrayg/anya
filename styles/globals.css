@@ -53,10 +53,7 @@
   padding-bottom: 0.18em;
 }
 
-/* Hide hero brand while splash hold + handoff tween are active */
-html[data-splash="active"] [data-splash-target] {
-  opacity: 0 !important;
-}
+/* Splash moves this node in place — never hide it (hiding caused the flash) */
 
 
 /* Hide scrollbar globally */
