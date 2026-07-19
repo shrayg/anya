@@ -60,13 +60,67 @@ export function PricingPageContent({
   const [billingStatus, setBillingStatus] = useState<BillingStatusKind | null>(
     null,
   );
+  const [billingChecking, setBillingChecking] = useState(false);
   const [pendingCheckout, setPendingCheckout] = useState<PendingCheckout | null>(
     null,
   );
 
+  function replaceBillingQuery(next: BillingStatusKind | null) {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (next) url.searchParams.set("billing", next);
+    else url.searchParams.delete("billing");
+    url.searchParams.delete("reason");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  async function checkBillingConfirmation(options?: { silent?: boolean }) {
+    if (!options?.silent) setBillingChecking(true);
+    try {
+      const res = await fetch("/api/billing/status", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (data?.confirmed) {
+        setBillingStatus("success");
+        replaceBillingQuery("success");
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      if (!options?.silent) setBillingChecking(false);
+    }
+  }
+
   useEffect(() => {
     const status = new URLSearchParams(window.location.search).get("billing");
-    setBillingStatus(billingStatusFromQuery(status));
+    const kind = billingStatusFromQuery(status);
+    setBillingStatus(kind);
+
+    if (kind !== "pending") return;
+
+    let cancelled = false;
+    let attempts = 0;
+
+    const tick = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      const confirmed = await checkBillingConfirmation({ silent: true });
+      if (confirmed || cancelled) return;
+      // Keep polling briefly after crypto return; webhook may beat the browser.
+      if (attempts < 40) {
+        window.setTimeout(() => {
+          void tick();
+        }, attempts < 10 ? 2000 : 4000);
+      }
+    };
+
+    void tick();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount for return URL
   }, []);
 
   const plans = useMemo(() => getPricingPlans(), []);
@@ -185,7 +239,19 @@ export function PricingPageContent({
         </div>
       )}
 
-      {billingStatus ? <BillingStatusBanner kind={billingStatus} /> : null}
+      {billingStatus ? (
+        <BillingStatusBanner
+          kind={billingStatus}
+          onRefresh={
+            billingStatus === "pending"
+              ? () => {
+                  void checkBillingConfirmation();
+                }
+              : undefined
+          }
+          refreshing={billingChecking}
+        />
+      ) : null}
       {!billingStatus && message ? (
         <p className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-sm text-emerald-200">
           {message}

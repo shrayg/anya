@@ -16,6 +16,8 @@ export type BillingStatusKind = "success" | "cancelled" | "pending" | "error";
 type BillingStatusBannerProps = {
   kind: BillingStatusKind;
   className?: string;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 };
 
 const COPY: Record<
@@ -62,7 +64,12 @@ function StatusIcon({ kind }: { kind: BillingStatusKind }) {
   }
 }
 
-export function BillingStatusBanner({ kind, className }: BillingStatusBannerProps) {
+export function BillingStatusBanner({
+  kind,
+  className,
+  onRefresh,
+  refreshing = false,
+}: BillingStatusBannerProps) {
   const copy = COPY[kind];
 
   const shell =
@@ -133,12 +140,18 @@ export function BillingStatusBanner({ kind, className }: BillingStatusBannerProp
             <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
               {copy.showRefresh ? (
                 <button
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.06] px-3.5 text-sm font-medium text-zinc-200 transition hover:border-white/20 hover:bg-white/[0.1] hover:text-white"
-                  onClick={() => window.location.reload()}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.06] px-3.5 text-sm font-medium text-zinc-200 transition hover:border-white/20 hover:bg-white/[0.1] hover:text-white disabled:opacity-60"
+                  disabled={refreshing}
+                  onClick={() => {
+                    if (onRefresh) onRefresh();
+                    else window.location.reload();
+                  }}
                   type="button"
                 >
-                  <RefreshCw className="size-3.5" />
-                  Refresh
+                  <RefreshCw
+                    className={clsx("size-3.5", refreshing && "animate-spin")}
+                  />
+                  {refreshing ? "Checking…" : "Refresh"}
                 </button>
               ) : null}
               {copy.showSupport ? (
