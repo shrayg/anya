@@ -30,6 +30,8 @@ export type UserStats = {
   quotaRefreshAt: string | null;
   /** Estimated plan period end from last completed subscription payment (ISO). */
   planEndsAt: string | null;
+  /** User scheduled cancel — access remains until planEndsAt. */
+  cancelAtPeriodEnd?: boolean;
   /** How the current plan period was paid. */
   billingChannel: "crypto" | "card" | "unknown" | null;
   billingInterval: "monthly" | "annual" | string | null;

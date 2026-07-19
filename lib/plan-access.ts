@@ -8,6 +8,7 @@ import {
   type SearchAccessResult,
 } from "@/lib/plans";
 import { recordPayment } from "@/lib/payments";
+import { syncUserPlanLifecycle } from "@/lib/plan-lifecycle";
 import {
   getAccountStatusMessage,
   isAccountBlocked,
@@ -36,6 +37,8 @@ const PLAN_CONTEXT_CACHE = new Map<number, PlanContextCacheEntry>();
 const PLAN_CONTEXT_TTL_MS = 15_000;
 
 async function buildUserPlanContext(userId: number) {
+  await syncUserPlanLifecycle(userId);
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -46,6 +49,9 @@ async function buildUserPlanContext(userId: number) {
       professionalTier: true,
       investigatorTier: true,
       enterpriseTier: true,
+      planEndsAt: true,
+      cancelAtPeriodEnd: true,
+      billingInterval: true,
     },
   });
 
@@ -85,6 +91,9 @@ async function buildUserPlanContext(userId: number) {
     quota: getDailySearchQuota(plan),
     searchesLast24h,
     intelxUsedToday,
+    planEndsAt: user.planEndsAt,
+    cancelAtPeriodEnd: Boolean(user.cancelAtPeriodEnd),
+    billingInterval: user.billingInterval ?? "monthly",
   };
 }
 

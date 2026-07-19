@@ -10,14 +10,14 @@ import { HelperUsersPanel } from "@/components/dashboard/helper-users-panel";
 import { SafetyFlagsPanel } from "@/components/dashboard/safety-flags-panel";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { StaffBadge } from "@/components/dashboard/staff-badge";
+import { AccountPlanBillingPanel } from "@/components/dashboard/account-plan-billing-panel";
 import {
-  AccountBillingNote,
   AccountStatRail,
   AccountUsagePanel,
   UpgradeLink,
 } from "@/components/dashboard/account-stat-rail";
 import type { UserProfile, UserStats } from "@/lib/account-plan";
-import { formatCredits, getPlanDisplayLabel } from "@/lib/account-plan";
+import { formatCredits } from "@/lib/account-plan";
 import { getPlanDefinition, resolveUserPlan } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
 
@@ -146,32 +146,23 @@ export default function SettingsPage() {
             />
           </section>
 
+          <AccountPlanBillingPanel
+            onUpdated={() => {
+              fetch("/api/user/stats")
+                .then((response) => response.json())
+                .then((data) => {
+                  if (!data.error) setStats(data);
+                })
+                .catch(() => undefined);
+            }}
+            profile={profile}
+            stats={stats}
+          />
+
           <section className="mb-8 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h3 className="text-sm font-semibold text-white">Plan & billing</h3>
-            <p className="mt-1 text-xs text-zinc-500">
-              Current access:{" "}
-              <span className="capitalize text-zinc-300">
-                {getPlanDisplayLabel(profile)}
-              </span>
-              {stats?.billingInterval
-                ? ` · billed ${stats.billingInterval}`
-                : profile.billingInterval
-                  ? ` · billed ${profile.billingInterval}`
-                  : null}
-              {stats?.planEndsAt
-                ? ` · period ends ${new Date(stats.planEndsAt).toLocaleDateString()}`
-                : null}
-              . Upgrade, switch plans, or buy credits on Pricing.
-            </p>
-            <AccountBillingNote stats={stats} />
-            <div className="mt-4 flex flex-wrap gap-3">
-              <UpgradeLink />
-              <a className="anya-link-btn" href="/pricing">
-                Manage plan / credits
-              </a>
-            </div>
+            <h3 className="text-sm font-semibold text-white">API access</h3>
             {dashboardUser.apiAccess && dashboardUser.apiKey ? (
-              <div className="mt-4 rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-3">
+              <div className="mt-3 rounded-xl border border-indigo-400/20 bg-indigo-500/10 p-3">
                 <p className="text-[10px] uppercase tracking-wider text-indigo-200">
                   API key
                 </p>
@@ -180,7 +171,7 @@ export default function SettingsPage() {
                 </code>
               </div>
             ) : (
-              <p className="mt-3 text-xs text-zinc-500">
+              <p className="mt-2 text-xs text-zinc-500">
                 No API access on this account yet.
               </p>
             )}

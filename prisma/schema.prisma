@@ -33,6 +33,10 @@ model User {
   plan String @default("free")
   balance Float @default(0)
   billingInterval String @default("monthly")
+  /// When the current paid plan period ends (access drops to free after this unless renewed).
+  planEndsAt DateTime?
+  /// If true, do not expect renewal — access remains until planEndsAt, then free.
+  cancelAtPeriodEnd Boolean @default(false)
   apiAccess Boolean @default(false)
   apiKey String?
   recoveryEmail String?

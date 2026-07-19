@@ -7,23 +7,11 @@ import {
   invalidateUserPlanContext,
   recordSearchUsage,
 } from "@/lib/plan-access";
+import { detectBillingChannel } from "@/lib/plan-lifecycle";
 import { maybeAutoFlagRiskySearch } from "@/lib/safety-flag-server";
 import { prisma } from "@/prisma/client";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-function intervalDurationMs(interval: string | null | undefined) {
-  return interval === "annual" ? 365 * DAY_MS : 30 * DAY_MS;
-}
-
-function detectBillingChannel(
-  description: string | null | undefined,
-): "crypto" | "card" | "unknown" {
-  const text = (description ?? "").toLowerCase();
-  if (text.includes("oxapay") || text.includes("crypto")) return "crypto";
-  if (text.includes("square") || text.includes("card")) return "card";
-  return "unknown";
-}
 
 export async function GET() {
   try {
@@ -72,7 +60,12 @@ export async function GET() {
         }),
         prisma.user.findUnique({
           where: { id: userId },
-          select: { billingInterval: true, plan: true },
+          select: {
+            billingInterval: true,
+            plan: true,
+            planEndsAt: true,
+            cancelAtPeriodEnd: true,
+          },
         }),
       ]);
 
@@ -82,14 +75,18 @@ export async function GET() {
         : new Date(oldestInWindow.createdAt.getTime() + DAY_MS).toISOString();
 
     const billingInterval =
-      lastSubscription?.interval ?? user?.billingInterval ?? null;
+      ("billingInterval" in context && context.billingInterval) ||
+      lastSubscription?.interval ||
+      user?.billingInterval ||
+      null;
+
     const planEndsAt =
-      lastSubscription && context.plan !== "free"
-        ? new Date(
-            lastSubscription.createdAt.getTime() +
-              intervalDurationMs(billingInterval),
-          ).toISOString()
-        : null;
+      ("planEndsAt" in context && context.planEndsAt
+        ? context.planEndsAt.toISOString()
+        : null) ||
+      user?.planEndsAt?.toISOString() ||
+      null;
+
     const billingChannel =
       context.plan === "free"
         ? null
@@ -104,6 +101,10 @@ export async function GET() {
       intelxUsedToday: context.intelxUsedToday,
       quotaRefreshAt,
       planEndsAt,
+      cancelAtPeriodEnd: Boolean(
+        ("cancelAtPeriodEnd" in context && context.cancelAtPeriodEnd) ||
+          user?.cancelAtPeriodEnd,
+      ),
       billingChannel,
       billingInterval,
       usage: {
@@ -149,7 +150,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Silent auto-flag for concerning queries (esp. underage risk).
     void maybeAutoFlagRiskySearch({
       userId,
       query: String(query),

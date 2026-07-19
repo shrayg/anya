@@ -147,10 +147,10 @@ export function AccountBillingNote({ stats }: { stats: UserStats | null }) {
   if (stats.billingChannel === "crypto") {
     return (
       <p className="mt-3 text-xs leading-5 text-amber-200/90">
-        Paid with crypto — this period does not auto-renew. Renew manually on
-        Pricing before it ends
+        Paid with crypto — this period does not auto-renew. Use Renew plan below
+        before it ends
         {stats.planEndsAt ? ` (${formatPlanEndDate(stats.planEndsAt)})` : ""}.
-        Use card (Square) if you want recurring billing.
+        Prefer card (Square) if you want easier recurring renewals.
       </p>
     );
   }
@@ -158,8 +158,7 @@ export function AccountBillingNote({ stats }: { stats: UserStats | null }) {
   if (stats.billingChannel === "card") {
     return (
       <p className="mt-3 text-xs leading-5 text-zinc-500">
-        Paid by card. Recurring billing is available through Square checkout;
-        renew from Pricing if your period ends.
+        Paid by card. Renew from here before the period ends to keep access.
         {stats.planEndsAt
           ? ` Current period ends ${formatPlanEndDate(stats.planEndsAt)}.`
           : ""}
@@ -170,7 +169,7 @@ export function AccountBillingNote({ stats }: { stats: UserStats | null }) {
   return (
     <p className="mt-3 text-xs leading-5 text-zinc-500">
       Crypto invoices are one-time and must be renewed manually. Card (Square) is
-      required for recurring payments.
+      the path for recurring-style renewals.
     </p>
   );
 }

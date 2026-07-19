@@ -9,6 +9,7 @@ import {
 } from "@/lib/plans";
 import { notifyPaymentDiscord } from "@/lib/discord-payments-webhook";
 import type { BillingMeta } from "@/lib/billing-meta";
+import { computePlanEndsAt } from "@/lib/plan-lifecycle";
 import { prisma } from "@/prisma/client";
 
 export type FulfillBillingInput = {
@@ -114,6 +115,8 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
         data: {
           ...planUpdatesFromId(planId as PlanId),
           billingInterval: interval,
+          cancelAtPeriodEnd: false,
+          planEndsAt: computePlanEndsAt(new Date(), interval),
         },
       }),
       ...(existing
