@@ -274,21 +274,27 @@ export function PricingPageContent({
                 : null;
 
             return (
-              <article
+              <div
                 key={plan.id}
                 className={clsx(
-                  "relative flex h-full flex-col overflow-visible rounded-2xl border bg-white/[0.04] p-5 backdrop-blur-md transition hover:bg-white/[0.07]",
-                  plan.highlighted
-                    ? "border-indigo-400/40 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-400/30"
-                    : "border-white/10",
+                  "relative h-full",
+                  plan.highlighted && "pt-3",
                 )}
               >
-                {plan.highlighted && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-indigo-300/40 bg-indigo-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                {plan.highlighted ? (
+                  <span className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-indigo-300/50 bg-indigo-600 px-3 py-1 text-[10px] font-semibold tracking-wide text-white shadow-lg shadow-indigo-500/30">
                     Most Popular
                   </span>
-                )}
+                ) : null}
 
+                <article
+                  className={clsx(
+                    "relative flex h-full flex-col rounded-2xl border bg-white/[0.04] p-5 backdrop-blur-md transition hover:bg-white/[0.07]",
+                    plan.highlighted
+                      ? "border-indigo-400/40 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-400/30"
+                      : "border-white/10",
+                  )}
+                >
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-white">{plan.name}</h3>
                   {plan.saleBadge && compareAt != null && (
@@ -364,7 +370,8 @@ export function PricingPageContent({
                 >
                   {plan.customPricing ? "Contact Sales" : "Get Started"}
                 </Button>
-              </article>
+                </article>
+              </div>
             );
           })}
         </div>
