@@ -11,12 +11,13 @@ import { SafetyFlagsPanel } from "@/components/dashboard/safety-flags-panel";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { StaffBadge } from "@/components/dashboard/staff-badge";
 import {
+  AccountBillingNote,
   AccountStatRail,
   AccountUsagePanel,
   UpgradeLink,
 } from "@/components/dashboard/account-stat-rail";
 import type { UserProfile, UserStats } from "@/lib/account-plan";
-import { formatBalance, getPlanDisplayLabel } from "@/lib/account-plan";
+import { formatCredits, getPlanDisplayLabel } from "@/lib/account-plan";
 import { getPlanDefinition, resolveUserPlan } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
 
@@ -132,7 +133,7 @@ export default function SettingsPage() {
 
           <section className="mb-8 max-w-md">
             <AccountStatRail
-              credits={formatBalance(profile?.balance)}
+              credits={formatCredits(profile?.balance)}
               profile={profile}
               stats={stats}
             />
@@ -152,11 +153,17 @@ export default function SettingsPage() {
               <span className="capitalize text-zinc-300">
                 {getPlanDisplayLabel(profile)}
               </span>
-              {profile.billingInterval
-                ? ` · billed ${profile.billingInterval}`
+              {stats?.billingInterval
+                ? ` · billed ${stats.billingInterval}`
+                : profile.billingInterval
+                  ? ` · billed ${profile.billingInterval}`
+                  : null}
+              {stats?.planEndsAt
+                ? ` · period ends ${new Date(stats.planEndsAt).toLocaleDateString()}`
                 : null}
               . Upgrade, switch plans, or buy credits on Pricing.
             </p>
+            <AccountBillingNote stats={stats} />
             <div className="mt-4 flex flex-wrap gap-3">
               <UpgradeLink />
               <a className="anya-link-btn" href="/pricing">

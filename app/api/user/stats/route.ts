@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionCookie } from "@/app/lib/session";
-import { authorizeSearch, getUserPlanContext, invalidateUserPlanContext, recordSearchUsage } from "@/lib/plan-access";
+import {
+  authorizeSearch,
+  getUserPlanContext,
+  invalidateUserPlanContext,
+  recordSearchUsage,
+} from "@/lib/plan-access";
 import { maybeAutoFlagRiskySearch } from "@/lib/safety-flag-server";
 import { prisma } from "@/prisma/client";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function intervalDurationMs(interval: string | null | undefined) {
+  return interval === "annual" ? 365 * DAY_MS : 30 * DAY_MS;
+}
+
+function detectBillingChannel(
+  description: string | null | undefined,
+): "crypto" | "card" | "unknown" {
+  const text = (description ?? "").toLowerCase();
+  if (text.includes("oxapay") || text.includes("crypto")) return "crypto";
+  if (text.includes("square") || text.includes("card")) return "card";
+  return "unknown";
+}
 
 export async function GET() {
   try {
@@ -20,19 +40,72 @@ export async function GET() {
     }
 
     const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const oneDayAgo = new Date(now.getTime() - DAY_MS);
+    const oneWeekAgo = new Date(now.getTime() - 7 * DAY_MS);
+    const oneMonthAgo = new Date(now.getTime() - 30 * DAY_MS);
 
-    const [searches1w, searches1m] = await Promise.all([
-      prisma.searchHistory.count({ where: { userId, createdAt: { gte: oneWeekAgo } } }),
-      prisma.searchHistory.count({ where: { userId, createdAt: { gte: oneMonthAgo } } }),
-    ]);
+    const [searches1w, searches1m, oldestInWindow, lastSubscription, user] =
+      await Promise.all([
+        prisma.searchHistory.count({
+          where: { userId, createdAt: { gte: oneWeekAgo } },
+        }),
+        prisma.searchHistory.count({
+          where: { userId, createdAt: { gte: oneMonthAgo } },
+        }),
+        prisma.searchHistory.findFirst({
+          where: { userId, createdAt: { gte: oneDayAgo } },
+          orderBy: { createdAt: "asc" },
+          select: { createdAt: true },
+        }),
+        prisma.payment.findFirst({
+          where: {
+            userId,
+            type: "subscription",
+            status: "completed",
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            createdAt: true,
+            interval: true,
+            description: true,
+          },
+        }),
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { billingInterval: true, plan: true },
+        }),
+      ]);
+
+    const quotaRefreshAt =
+      context.quota === Infinity || !oldestInWindow
+        ? null
+        : new Date(oldestInWindow.createdAt.getTime() + DAY_MS).toISOString();
+
+    const billingInterval =
+      lastSubscription?.interval ?? user?.billingInterval ?? null;
+    const planEndsAt =
+      lastSubscription && context.plan !== "free"
+        ? new Date(
+            lastSubscription.createdAt.getTime() +
+              intervalDurationMs(billingInterval),
+          ).toISOString()
+        : null;
+    const billingChannel =
+      context.plan === "free"
+        ? null
+        : lastSubscription
+          ? detectBillingChannel(lastSubscription.description)
+          : "unknown";
 
     return NextResponse.json({
       plan: context.plan,
       balance: context.balance,
       quota: context.quota,
       intelxUsedToday: context.intelxUsedToday,
+      quotaRefreshAt,
+      planEndsAt,
+      billingChannel,
+      billingInterval,
       usage: {
         last24h: context.searchesLast24h,
         last1w: searches1w,
