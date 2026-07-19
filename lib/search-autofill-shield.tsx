@@ -4,36 +4,52 @@ import type {
   TextareaHTMLAttributes,
 } from "react";
 
+type SearchInputShield = InputHTMLAttributes<HTMLInputElement> & {
+  "data-1p-ignore"?: boolean | string;
+  "data-lpignore"?: string;
+  "data-bwignore"?: boolean | string;
+  "data-form-type"?: string;
+  "data-op-ignore"?: boolean | string;
+};
+
+type SearchTextareaShield = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  "data-1p-ignore"?: boolean | string;
+  "data-lpignore"?: string;
+  "data-bwignore"?: boolean | string;
+  "data-form-type"?: string;
+  "data-op-ignore"?: boolean | string;
+};
+
 /**
  * Chromium + password managers often ignore autocomplete="off" when placeholders
  * mention email/username. Use these attrs on OSINT/search fields only — never on
  * real auth password inputs.
  */
-export const SEARCH_AUTOFILL_SHIELD = {
+export const SEARCH_AUTOFILL_SHIELD: SearchInputShield = {
   autoComplete: "one-time-code",
   autoCorrect: "off",
   autoCapitalize: "off",
-  spellCheck: false as const,
-  inputMode: "search" as const,
+  spellCheck: false,
+  inputMode: "search",
   role: "searchbox",
   "data-1p-ignore": true,
   "data-lpignore": "true",
   "data-bwignore": true,
   "data-form-type": "other",
   "data-op-ignore": true,
-} satisfies InputHTMLAttributes<HTMLInputElement>;
+};
 
-export const TEXTAREA_AUTOFILL_SHIELD = {
+export const TEXTAREA_AUTOFILL_SHIELD: SearchTextareaShield = {
   autoComplete: "off",
   autoCorrect: "off",
   autoCapitalize: "off",
-  spellCheck: false as const,
+  spellCheck: false,
   "data-1p-ignore": true,
   "data-lpignore": "true",
   "data-bwignore": true,
   "data-form-type": "other",
   "data-op-ignore": true,
-} satisfies TextareaHTMLAttributes<HTMLTextAreaElement>;
+};
 
 /** Hidden decoys so managers dump credentials here instead of the real query box. */
 export function AutofillDecoyFields() {
