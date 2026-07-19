@@ -118,9 +118,9 @@ export const FreeSearch = () => {
             onFocus={unlockAutofillShield}
             disabled={hasSearched}
             autoComplete={SEARCH_AUTOFILL_SHIELD.autoComplete}
-            autoCapitalize={SEARCH_AUTOFILL_SHIELD.autoCapitalize}
-            autoCorrect={SEARCH_AUTOFILL_SHIELD.autoCorrect}
-            spellCheck={SEARCH_AUTOFILL_SHIELD.spellCheck}
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck="false"
             startContent={<Search className="text-gray-500" size={20} />}
             endContent={
               <button
