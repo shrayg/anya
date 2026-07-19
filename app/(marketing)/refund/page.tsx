@@ -1,4 +1,5 @@
 import { LegalPage, LegalSection } from "@/components/legal-page";
+import { siteConfig } from "@/config/site";
 
 export default function RefundPage() {
   return (
@@ -50,11 +51,11 @@ export default function RefundPage() {
           / Telegram{" "}
           <a
             className="text-zinc-100 underline-offset-4 hover:underline"
-            href="https://t.me/anyasearch"
+            href={siteConfig.links.telegram}
             rel="noreferrer"
             target="_blank"
           >
-            @anyasearch
+            @anyaintel
           </a>
           .
         </p>

@@ -29,7 +29,7 @@ export const siteConfig = {
     { label: "Support", href: "/support" },
   ] as NavItem[],
   links: {
-    telegram: "https://t.me/anyasearch",
+    telegram: "https://t.me/anyaintel",
     supportEmail: "support@anyaint.com",
   },
   legalLinks: [
