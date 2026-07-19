@@ -4,6 +4,10 @@ import { apiFetch } from "@/lib/csrf-client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  SEARCH_AUTOFILL_SHIELD,
+  unlockAutofillShield,
+} from "@/lib/search-autofill-shield";
 import { 
   LayoutDashboard, 
   Settings, 
@@ -128,9 +132,13 @@ export default function Sidebar() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input 
-            type="text" 
+            {...SEARCH_AUTOFILL_SHIELD}
+            type="text"
+            name="legacy-module-filter"
             placeholder="Search modules..." 
             className="w-full bg-[#141414] border border-[#2a2a2a] rounded-md py-1.5 pl-9 pr-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white"
+            onFocus={unlockAutofillShield}
+            readOnly
           />
         </div>
       </div>

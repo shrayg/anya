@@ -13,6 +13,10 @@ type ChatMessage = {
 };
 
 import { formatTime } from "@/lib/format-datetime";
+import {
+  SEARCH_AUTOFILL_SHIELD,
+  unlockAutofillShield,
+} from "@/lib/search-autofill-shield";
 
 export function LiveIntelChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -121,11 +125,16 @@ export function LiveIntelChat() {
           )}
         </div>
 
-        <form className="flex items-center gap-2" onSubmit={handleSend}>
+        <form autoComplete="off" className="relative flex items-center gap-2" onSubmit={handleSend}>
           <input
+            {...SEARCH_AUTOFILL_SHIELD}
             className="dash-input min-w-0 flex-1 py-2.5 font-mono text-sm"
+            name="live-intel-message"
             onChange={(event) => setInput(event.target.value)}
+            onFocus={unlockAutofillShield}
             placeholder="transmit message…"
+            readOnly
+            type="text"
             value={input}
           />
           <button

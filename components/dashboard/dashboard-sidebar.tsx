@@ -22,6 +22,10 @@ import clsx from "clsx";
 import { useMemo, useState } from "react";
 
 import {
+  SEARCH_AUTOFILL_SHIELD,
+  unlockAutofillShield,
+} from "@/lib/search-autofill-shield";
+import {
   AI_SEARCH_MODULES,
   SEARCH_MODULE_SECTIONS,
   type SearchModuleDef,
@@ -329,10 +333,15 @@ export function DashboardSidebar({ username }: { username: string }) {
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
             <input
+              {...SEARCH_AUTOFILL_SHIELD}
               className="dash-input dash-input--icon py-2 pr-3"
               data-tour="sidebar-filter"
+              name="module-filter"
               onChange={(event) => setModuleQuery(event.target.value)}
+              onFocus={unlockAutofillShield}
               placeholder="Filter modules..."
+              readOnly
+              type="text"
               value={moduleQuery}
             />
           </div>

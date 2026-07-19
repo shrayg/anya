@@ -8,6 +8,10 @@ import clsx from "clsx";
 import { Search } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
+import {
+  SEARCH_AUTOFILL_SHIELD,
+  unlockAutofillShield,
+} from "@/lib/search-autofill-shield";
 
 const BlurredText = ({ text, blurPercentage = 0.4 }: { text: string; blurPercentage?: number }) => {
   const chars = text.split("");
@@ -102,15 +106,21 @@ export const FreeSearch = () => {
         </p>
       </div>
 
-      <form onSubmit={handleSearch} className="flex gap-0 mb-8">
-        <div className="flex-1 relative">
+      <form autoComplete="off" onSubmit={handleSearch} className="relative mb-8 flex gap-0">
+        <div className="relative flex-1">
           <Input
             isClearable
             type="text"
+            name="free-osint-query"
             placeholder="Enter email, username, phone number, IP, or domain..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={unlockAutofillShield}
             disabled={hasSearched}
+            autoComplete={SEARCH_AUTOFILL_SHIELD.autoComplete}
+            autoCapitalize={SEARCH_AUTOFILL_SHIELD.autoCapitalize}
+            autoCorrect={SEARCH_AUTOFILL_SHIELD.autoCorrect}
+            spellCheck={SEARCH_AUTOFILL_SHIELD.spellCheck}
             startContent={<Search className="text-gray-500" size={20} />}
             endContent={
               <button

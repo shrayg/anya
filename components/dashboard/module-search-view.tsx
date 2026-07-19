@@ -59,6 +59,12 @@ import type {
 import type { CombCredential, CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import { sanitizePublicContent, sanitizePublicText } from "@/lib/public-branding";
+import {
+  AutofillDecoyFields,
+  SEARCH_AUTOFILL_SHIELD,
+  TEXTAREA_AUTOFILL_SHIELD,
+  unlockAutofillShield,
+} from "@/lib/search-autofill-shield";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import type { DiscordSearchResult } from "@/lib/discord-profile";
 import { normalizeInstagramUsername } from "@/lib/instagram-username";
@@ -1502,27 +1508,40 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               })}
             </div>
           ) : null}
-          <form className="flex flex-col gap-3 sm:flex-row sm:items-start" onSubmit={handleSearch}>
+          <form
+            autoComplete="off"
+            className="relative flex flex-col gap-3 sm:flex-row sm:items-start"
+            onSubmit={handleSearch}
+          >
+            <AutofillDecoyFields />
             {isSummary ? (
               <textarea
+                {...TEXTAREA_AUTOFILL_SHIELD}
                 className="ui-input min-h-[7rem] flex-1 resize-y font-mono text-sm"
                 data-tour="search-input"
+                name="osint-summary-query"
                 onChange={(event) => setQuery(event.target.value)}
+                onFocus={unlockAutofillShield}
                 placeholder="Paste intel, JSON, logs, or case notes…"
+                readOnly
                 value={query}
               />
             ) : (
               <input
+                {...SEARCH_AUTOFILL_SHIELD}
                 autoFocus
                 className="ui-input flex-1 font-mono text-sm"
                 data-tour="search-input"
+                name="osint-search-query"
                 onChange={(event) => setQuery(event.target.value)}
+                onFocus={unlockAutofillShield}
                 placeholder={
                   moduleDef.slug === "intelx"
                     ? "Paste Storage ID or share URL…"
                     : moduleDef.hint
                 }
-                spellCheck={moduleDef.slug === "intelx" ? false : undefined}
+                readOnly
+                type="text"
                 value={query}
               />
             )}

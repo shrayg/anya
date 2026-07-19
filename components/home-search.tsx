@@ -19,6 +19,11 @@ import {
 } from "@/lib/starter-search";
 import { sanitizePublicText } from "@/lib/public-branding";
 import {
+  AutofillDecoyFields,
+  SEARCH_AUTOFILL_SHIELD,
+  unlockAutofillShield,
+} from "@/lib/search-autofill-shield";
+import {
   checkDailySearchQuota,
   checkModuleAccess,
   getPlanDefinition,
@@ -255,16 +260,22 @@ export function HomeSearch() {
     });
 
   const searchBar = (
-    <div className="home-search-input-wrap" data-tour="home-search-input">
+    <div className="home-search-input-wrap relative" data-tour="home-search-input">
+      <AutofillDecoyFields />
       <Search className="home-search-icon" />
       <input
+        {...SEARCH_AUTOFILL_SHIELD}
         className="home-search-input"
+        name="home-osint-query"
         onChange={(event) => setQuery(event.target.value)}
+        onFocus={unlockAutofillShield}
         placeholder={
           useStarterSearch
             ? activeStarterMode.placeholder
             : "Email, username, phone, Discord ID, or dating profile link…"
         }
+        readOnly
+        type="text"
         value={query}
       />
       <button
@@ -297,7 +308,7 @@ export function HomeSearch() {
         </button>
       </div>
 
-      <form className="home-search-form" onSubmit={handleSearch}>
+      <form autoComplete="off" className="home-search-form" onSubmit={handleSearch}>
         {useStarterSearch ? (
           <div
             aria-label="Search type"

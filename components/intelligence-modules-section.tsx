@@ -14,6 +14,10 @@ import {
   CATALOG_MODULE_COUNT,
 } from "@/lib/featured-modules";
 import { hasWorkspaceDashboardAccess } from "@/lib/plans";
+import {
+  SEARCH_AUTOFILL_SHIELD,
+  unlockAutofillShield,
+} from "@/lib/search-autofill-shield";
 import { siteConfig } from "@/config/site";
 
 export function IntelligenceModulesSection() {
@@ -115,10 +119,14 @@ export function IntelligenceModulesSection() {
         <label className="mod-search" htmlFor="module-directory-filter">
           <Search className="size-4 text-zinc-500" />
           <input
+            {...SEARCH_AUTOFILL_SHIELD}
             id="module-directory-filter"
+            name="module-directory-filter"
             onChange={(event) => setFilter(event.target.value)}
+            onFocus={unlockAutofillShield}
             placeholder="Filter modules by name or input type…"
-            type="search"
+            readOnly
+            type="text"
             value={filter}
           />
         </label>
