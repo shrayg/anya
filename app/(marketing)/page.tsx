@@ -17,6 +17,7 @@ export default function Home() {
           <ShinyText
             className={brandTitleClassName}
             data-splash-target
+            disabled
             text={siteConfig.name}
           />
           <p className="max-w-3xl px-2 text-lg leading-8 text-gray-300 md:text-2xl md:leading-9">
