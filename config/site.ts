@@ -3,7 +3,6 @@ export type SiteConfig = typeof siteConfig;
 export type NavItem = {
   label: string;
   href: string;
-  modal?: "pricing";
   newTab?: boolean;
 };
 

@@ -27,7 +27,6 @@ import clsx from "clsx";
 import Image from "next/image";
 import { motion } from "framer-motion";
 
-import { PricingModal } from "@/components/pricing-modal";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
@@ -38,7 +37,8 @@ import {
   resolveUserPlan,
 } from "@/lib/plans";
 
-const PILL_SPRING = { type: "spring" as const, stiffness: 280, damping: 32 };
+/** Tween (no spring overshoot) — leftmost Pricing tab was twitching at the track edge. */
+const PILL_TWEEN = { type: "tween" as const, duration: 0.28, ease: [0.22, 1, 0.36, 1] };
 
 function isNavActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";
@@ -48,26 +48,16 @@ function isNavActive(href: string, pathname: string) {
 function NavPillLink({
   item,
   active,
-  onModal,
   tabRef,
 }: {
   item: NavItem;
   active: boolean;
-  onModal?: () => void;
   tabRef: (node: HTMLElement | null) => void;
 }) {
   const className = clsx(
     "relative z-10 inline-flex items-center justify-center rounded-full px-4 py-1.5 text-sm font-medium transition-[color] duration-200",
     active ? "text-white" : "text-white/55 hover:text-white/90",
   );
-
-  if (onModal) {
-    return (
-      <button ref={tabRef} type="button" className={className} onClick={onModal}>
-        {item.label}
-      </button>
-    );
-  }
 
   if (item.newTab) {
     return (
@@ -96,10 +86,10 @@ export const Navbar = () => {
   const [planLabel, setPlanLabel] = useState<string | null>(null);
   const [workspacePath, setWorkspacePath] = useState("/dashboard/search/ai-search");
   const [showWorkspace, setShowWorkspace] = useState(false);
-  const [pricingOpen, setPricingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pillNavRef = useRef<HTMLElement>(null);
   const pillTabRefs = useRef<(HTMLElement | null)[]>([]);
+  const activePillIndexRef = useRef(-1);
   const [pillHighlight, setPillHighlight] = useState({
     left: 0,
     width: 0,
@@ -132,13 +122,16 @@ export const Navbar = () => {
     [navItems, pathname],
   );
 
+  activePillIndexRef.current = activePillIndex;
+
   const measurePillHighlight = useCallback(() => {
     const nav = pillNavRef.current;
-    const tab = pillTabRefs.current[activePillIndex];
-    if (!nav || !tab || activePillIndex < 0) {
-      setPillHighlight((prev) => (prev.ready ? { ...prev, ready: false } : prev));
-      return;
-    }
+    const index = activePillIndexRef.current;
+    const tab = pillTabRefs.current[index];
+
+    // Keep last geometry if the active tab node is briefly missing — never
+    // unmount the highlight mid-route (that remount jump hit Pricing hardest).
+    if (!nav || !tab || index < 0) return;
 
     const navRect = nav.getBoundingClientRect();
     const tabRect = tab.getBoundingClientRect();
@@ -155,11 +148,14 @@ export const Navbar = () => {
       }
       return { left, width, ready: true };
     });
-  }, [activePillIndex]);
+  }, []);
 
   useLayoutEffect(() => {
     measurePillHighlight();
-  }, [measurePillHighlight, navItems.length]);
+    // Pricing mounts a heavy WebGL background; remeasure after paint settles.
+    const raf = requestAnimationFrame(() => measurePillHighlight());
+    return () => cancelAnimationFrame(raf);
+  }, [measurePillHighlight, activePillIndex, navItems.length]);
 
   useEffect(() => {
     const nav = pillNavRef.current;
@@ -167,12 +163,15 @@ export const Navbar = () => {
 
     const observer = new ResizeObserver(() => measurePillHighlight());
     observer.observe(nav);
+    for (const tab of pillTabRefs.current) {
+      if (tab) observer.observe(tab);
+    }
     window.addEventListener("resize", measurePillHighlight);
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", measurePillHighlight);
     };
-  }, [measurePillHighlight]);
+  }, [measurePillHighlight, navItems.length]);
 
   const loadAuth = useCallback(() => {
     fetch("/api/auth/me", { cache: "no-store", credentials: "include" })
@@ -217,16 +216,6 @@ export const Navbar = () => {
     setUsername(null);
     setPlanLabel(null);
     window.location.href = "/";
-  };
-
-  const openPricingModal = () => {
-    setMenuOpen(false);
-    window.location.assign("/pricing");
-  };
-
-  const getModalHandler = (item: NavItem) => {
-    if (item.modal === "pricing") return openPricingModal;
-    return null;
   };
 
   return (
@@ -289,22 +278,20 @@ export const Navbar = () => {
                 animate={{
                   left: pillHighlight.left,
                   width: pillHighlight.width,
-                  opacity: 1,
+                  opacity: activePillIndex >= 0 ? 1 : 0,
                 }}
                 style={{ originX: 0 }}
-                transition={PILL_SPRING}
+                transition={PILL_TWEEN}
               />
             ) : null}
             {navItems.map((item, index) => {
-              const modalHandler = getModalHandler(item);
               const active = !item.newTab && isNavActive(item.href, pathname);
 
               return (
-                <NavbarItem key={item.label} className="relative z-10 shrink-0">
+                <NavbarItem key={item.href} className="relative z-10 shrink-0">
                   <NavPillLink
                     item={item}
                     active={active}
-                    onModal={modalHandler ?? undefined}
                     tabRef={(node) => {
                       pillTabRefs.current[index] = node;
                     }}
@@ -384,22 +371,11 @@ export const Navbar = () => {
         <NavbarMenu className="bg-black/90 backdrop-blur-xl">
           <div className="mx-4 mt-2 flex flex-col gap-2">
             {navItems.map((item) => {
-              const modalHandler = getModalHandler(item);
               const active = !item.newTab && isNavActive(item.href, pathname);
 
               return (
-                <NavbarMenuItem key={item.label}>
-                  {modalHandler ? (
-                    <Link
-                      color="foreground"
-                      className={clsx(active && "text-anya-accent")}
-                      href="#"
-                      size="lg"
-                      onPress={modalHandler}
-                    >
-                      {item.label}
-                    </Link>
-                  ) : item.newTab ? (
+                <NavbarMenuItem key={item.href}>
+                  {item.newTab ? (
                     <Link
                       color="foreground"
                       className={clsx(active && "text-anya-accent")}
@@ -407,6 +383,7 @@ export const Navbar = () => {
                       rel="noopener noreferrer"
                       size="lg"
                       target="_blank"
+                      onPress={() => setMenuOpen(false)}
                     >
                       {item.label}
                     </Link>
@@ -417,6 +394,7 @@ export const Navbar = () => {
                       className={clsx(active && "text-anya-accent")}
                       href={item.href}
                       size="lg"
+                      onPress={() => setMenuOpen(false)}
                     >
                       {item.label}
                     </Link>
@@ -465,8 +443,6 @@ export const Navbar = () => {
           </div>
         </NavbarMenu>
       </HeroUINavbar>
-
-      <PricingModal onClose={() => setPricingOpen(false)} open={pricingOpen} />
     </>
   );
 };
