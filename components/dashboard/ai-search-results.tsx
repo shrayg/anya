@@ -1,16 +1,18 @@
 "use client";
 
+import type { AiIntelResult } from "@/lib/ai-intel";
+
 import Link from "next/link";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { themeAccent } from "@/config/branding";
-import type { AiIntelResult } from "@/lib/ai-intel";
 
 function riskColor(score: number) {
   if (score >= 75) return "#f87171";
   if (score >= 50) return "#fb923c";
   if (score >= 25) return themeAccent.blush;
+
   return "#86efac";
 }
 
@@ -27,11 +29,16 @@ export function AiSearchResults({
     <div className="anya-ai-results space-y-5">
       <div className="anya-ai-brief">
         <div className="anya-ai-brief-header">
-          <span className="anya-ai-mode-tag">{result.mode.replace(/-/g, " ")}</span>
+          <span className="anya-ai-mode-tag">
+            {result.mode.replace(/-/g, " ")}
+          </span>
           <div className="flex flex-wrap items-center gap-2">
             {result.confidence !== undefined && (
               <span className="anya-ai-confidence">
-                <BlurredValue forceBlur={blurResults} text={`${result.confidence}% confidence`} />
+                <BlurredValue
+                  forceBlur={blurResults}
+                  text={`${result.confidence}% confidence`}
+                />
               </span>
             )}
             <span

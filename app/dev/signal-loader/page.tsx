@@ -38,17 +38,17 @@ export default function SignalLoaderPreviewPage() {
         <div className="mt-6 flex flex-wrap gap-2">
           <button
             className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-zinc-200 hover:border-white/30"
-            onClick={() => setActive((v) => !v)}
             type="button"
+            onClick={() => setActive((v) => !v)}
           >
             {active ? "Stop" : "Start"} animation
           </button>
           <button
             className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-zinc-200 hover:border-white/30"
+            type="button"
             onClick={() =>
               setVariant((v) => (v === "hero" ? "compact" : "hero"))
             }
-            type="button"
           >
             Variant: {variant}
           </button>
@@ -58,9 +58,9 @@ export default function SignalLoaderPreviewPage() {
           <div className="ui-panel-body">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input
+                readOnly
                 className="ui-input flex-1 font-mono text-sm"
                 defaultValue="https://www.instagram.com/keeganhoyne/"
-                readOnly
               />
               <button
                 className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"

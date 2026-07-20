@@ -33,7 +33,10 @@ export default function ModuleSearchPage() {
         <p className="mt-2 text-sm text-zinc-400">
           No search module matches &quot;{slug}&quot;.
         </p>
-        <Link className="anya-link-btn mt-6 inline-flex" href="/dashboard/search">
+        <Link
+          className="anya-link-btn mt-6 inline-flex"
+          href="/dashboard/search"
+        >
           Back to search hub
         </Link>
       </div>

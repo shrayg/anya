@@ -12,6 +12,7 @@ export async function PATCH(
 ) {
   try {
     const auth = await requireWorkspaceAdmin();
+
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -24,6 +25,7 @@ export async function PATCH(
     const { password } = (await request.json()) as { password?: string };
 
     const passwordError = validatePassword(password ?? "");
+
     if (passwordError) {
       return NextResponse.json({ error: passwordError }, { status: 400 });
     }
@@ -37,10 +39,7 @@ export async function PATCH(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (
-      hasWorkspaceAdminAccess(target) &&
-      target.id !== auth.adminId
-    ) {
+    if (hasWorkspaceAdminAccess(target) && target.id !== auth.adminId) {
       return NextResponse.json(
         { error: "You cannot reset another admin's password." },
         { status: 400 },
@@ -62,6 +61,10 @@ export async function PATCH(
     });
   } catch (error) {
     console.error("Error resetting member password:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

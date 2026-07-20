@@ -39,10 +39,19 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "threat-brief": { kind: "any", providers: ["osintcat"] },
   intelx: { kind: "any", providers: ["godseye-export", "csint"] },
   "stealer-logs": { kind: "any", providers: ["osintcat", "godseye", "csint"] },
-  breaches: { kind: "any", providers: ["builtin", "godseye", "breachvip", "csint"] },
-  domain: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
+  breaches: {
+    kind: "any",
+    providers: ["builtin", "godseye", "breachvip", "csint"],
+  },
+  domain: {
+    kind: "any",
+    providers: ["osintcat", "godseye", "breachvip", "csint"],
+  },
   "hash-lookup": { kind: "any", providers: ["godseye", "csint"] },
-  "password-search": { kind: "any", providers: ["godseye", "breachvip", "csint"] },
+  "password-search": {
+    kind: "any",
+    providers: ["godseye", "breachvip", "csint"],
+  },
   "name-search": {
     kind: "any",
     providers: ["godseye", "breachvip", "builtin", "courtlistener", "csint"],
@@ -52,8 +61,14 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   breachbase: { kind: "any", providers: ["csint"] },
   "oathnet-roblox": { kind: "any", providers: ["csint"] },
   "contact-enrich": { kind: "any", providers: ["csint"] },
-  phone: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
-  username: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
+  phone: {
+    kind: "any",
+    providers: ["osintcat", "godseye", "breachvip", "csint"],
+  },
+  username: {
+    kind: "any",
+    providers: ["osintcat", "godseye", "breachvip", "csint"],
+  },
   ip: { kind: "any", providers: ["osintcat", "godseye", "breachvip", "csint"] },
   "shodan-host": { kind: "any", providers: ["csint"] },
   "site-pentest": { kind: "any", providers: ["builtin", "csint"] },
@@ -68,7 +83,10 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "identity-search": { kind: "any", providers: ["builtin", "courtlistener"] },
   "npd-search": { kind: "any", providers: ["builtin", "courtlistener"] },
   "va-sex-offender": { kind: "any", providers: ["builtin"] },
-  "global-public-records": { kind: "any", providers: ["builtin", "courtlistener"] },
+  "global-public-records": {
+    kind: "any",
+    providers: ["builtin", "courtlistener"],
+  },
   "sanctions-watchlists": { kind: "any", providers: ["builtin"] },
   "wanted-persons": { kind: "any", providers: ["builtin"] },
   "national-sor": { kind: "any", providers: ["builtin"] },
@@ -77,7 +95,14 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "international-records-directory": { kind: "any", providers: ["builtin"] },
   "discord-id": {
     kind: "any",
-    providers: ["cordcat", "osintcat", "godseye", "breachvip", "csint", "builtin"],
+    providers: [
+      "cordcat",
+      "osintcat",
+      "godseye",
+      "breachvip",
+      "csint",
+      "builtin",
+    ],
   },
   roblox: { kind: "any", providers: ["godseye", "csint"] },
   minecraft: {
@@ -111,6 +136,7 @@ export type ProviderHealth = Record<ProviderId, boolean>;
 
 async function probeOsintCat(): Promise<boolean> {
   const apiKey = getOsintCatApiKey();
+
   if (!apiKey) return false;
 
   try {
@@ -133,14 +159,17 @@ async function probeOsintCat(): Promise<boolean> {
 
 async function probeGodsEye(): Promise<boolean> {
   const apiKey = getGodsEyeApiKey();
+
   if (!apiKey) return false;
 
   const ingress = await fetchGodsEyeIngressCheck();
+
   if (ingress?.success === true) return true;
 
   const errorText = String(
     ingress?.error || ingress?.message || "",
   ).toLowerCase();
+
   if (
     errorText.includes("invalid") ||
     errorText.includes("revoked") ||
@@ -152,6 +181,7 @@ async function probeGodsEye(): Promise<boolean> {
 
   try {
     await fetchGodsEyeSearch("roblox", "healthcheck", 8_000);
+
     return true;
   } catch {
     return false;
@@ -162,9 +192,11 @@ async function probeGodsEyeExport(): Promise<boolean> {
   if (!getGodsEyeExportApiKey()) return false;
 
   const { error } = await fetchGodsEyeRawExport("0".repeat(32));
+
   if (!error) return true;
 
   const lower = error.toLowerCase();
+
   if (
     lower.includes("not configured") ||
     lower.includes("invalid") ||
@@ -180,6 +212,7 @@ async function probeGodsEyeExport(): Promise<boolean> {
 
 async function probeCourtListenerHealth(): Promise<boolean> {
   const token = getCourtListenerToken();
+
   if (!token) return false;
 
   try {
@@ -196,6 +229,7 @@ async function probeCourtListenerHealth(): Promise<boolean> {
     );
 
     if (res.status === 401 || res.status === 403) return false;
+
     return res.ok || res.status === 400 || res.status === 429;
   } catch {
     return false;
@@ -240,7 +274,10 @@ export async function probeProviders(): Promise<ProviderHealth> {
   };
 }
 
-function evaluateRule(rule: ModuleHealthRule, providers: ProviderHealth): boolean {
+function evaluateRule(
+  rule: ModuleHealthRule,
+  providers: ProviderHealth,
+): boolean {
   if (rule.kind === "off") return false;
 
   if (rule.kind === "any") {
@@ -271,6 +308,7 @@ export function isModuleOperationalFromMap(
   }
 
   const rule = MODULE_HEALTH_RULES[slug];
+
   if (!rule) return false;
   if (rule.kind === "off") return false;
 

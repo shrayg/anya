@@ -10,9 +10,11 @@ export function isOxapayConfigured(): boolean {
 
 function getMerchantApiKey(): string {
   const key = process.env.OXAPAY_MERCHANT_API_KEY?.trim();
+
   if (!key) {
     throw new Error("OXAPAY_MERCHANT_API_KEY is not configured");
   }
+
   return key;
 }
 
@@ -60,7 +62,8 @@ export async function createOxapayInvoice(
     callback_url: input.callbackUrl,
     return_url: input.returnUrl,
     thanks_message:
-      input.thanksMessage ?? "Payment received. Your Anya.Int access will unlock shortly.",
+      input.thanksMessage ??
+      "Payment received. Your Anya.Int access will unlock shortly.",
     sandbox: isOxapaySandbox(),
   };
 
@@ -77,12 +80,16 @@ export async function createOxapayInvoice(
     body: JSON.stringify(body),
   });
 
-  const json = (await res.json().catch(() => null)) as OxapayInvoiceResponse | null;
+  const json = (await res
+    .json()
+    .catch(() => null)) as OxapayInvoiceResponse | null;
+
   if (!res.ok || !json?.data?.payment_url || json.data.track_id == null) {
     const detail =
       json?.error?.message ||
       json?.message ||
       `OxaPay invoice failed (${res.status})`;
+
     throw new Error(detail);
   }
 
@@ -101,6 +108,7 @@ export function verifyOxapayHmac(
   if (!hmacHeader) return false;
 
   const key = process.env.OXAPAY_MERCHANT_API_KEY?.trim();
+
   if (!key) return false;
 
   const calculated = createHmac("sha512", key).update(rawBody).digest("hex");
@@ -108,7 +116,9 @@ export function verifyOxapayHmac(
   try {
     const a = new Uint8Array(Buffer.from(calculated, "utf8"));
     const b = new Uint8Array(Buffer.from(hmacHeader, "utf8"));
+
     if (a.length !== b.length) return false;
+
     return timingSafeEqual(a, b);
   } catch {
     return false;

@@ -49,13 +49,14 @@ export function DashboardModuleProvider({
       setActiveModuleItem(itemName);
       setActiveModule(module);
 
-      const def = slug
-        ? getSearchModuleBySlug(slug)
-        : undefined;
+      const def = slug ? getSearchModuleBySlug(slug) : undefined;
       const targetSlug =
         slug ??
         def?.slug ??
-        itemName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        itemName
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
 
       router.push(`/dashboard/search/${targetSlug}`);
     },
@@ -76,10 +77,12 @@ export function DashboardModuleProvider({
 
 export function useDashboardModule() {
   const context = useContext(DashboardModuleContext);
+
   if (!context) {
     throw new Error(
       "useDashboardModule must be used within DashboardModuleProvider",
     );
   }
+
   return context;
 }

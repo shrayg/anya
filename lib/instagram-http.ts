@@ -60,16 +60,19 @@ async function loadGotScraping() {
   if (!gotScrapingLoader) {
     gotScrapingLoader = import("got-scraping");
   }
+
   return gotScrapingLoader;
 }
 
 function dispatcherFor(proxyUrl?: string): ProxyAgent | undefined {
   if (!proxyUrl) return undefined;
   let dispatcher = proxyDispatcherCache.get(proxyUrl);
+
   if (!dispatcher) {
     dispatcher = new ProxyAgent(proxyUrl);
     proxyDispatcherCache.set(proxyUrl, dispatcher);
   }
+
   return dispatcher;
 }
 
@@ -77,7 +80,9 @@ function buildSessionCookie(account: InstagramAccount): string {
   const sessionId = account.sessionId ?? "";
   const csrfToken = account.csrfToken ?? "0";
   const dsUserId =
-    account.dsUserId || (sessionId.includes(":") ? sessionId.split(":")[0] : "");
+    account.dsUserId ||
+    (sessionId.includes(":") ? sessionId.split(":")[0] : "");
+
   return [
     sessionId ? `sessionid=${sessionId}` : "",
     `csrftoken=${csrfToken}`,
@@ -117,6 +122,7 @@ export function browserHeadersForAccount(
   const cookie =
     cookieOverride ||
     (account?.sessionId ? buildSessionCookie(account) : undefined);
+
   if (cookie) headers.Cookie = cookie;
 
   return headers;
@@ -128,6 +134,7 @@ function toHttpResponse(
   headerMap?: Record<string, string | string[] | undefined>,
 ): InstagramHttpResponse {
   const headers = new Headers();
+
   if (headerMap) {
     for (const [key, value] of Object.entries(headerMap)) {
       if (value == null) continue;
@@ -139,6 +146,7 @@ function toHttpResponse(
     }
   }
   const textBody = body;
+
   return {
     status,
     ok: status >= 200 && status < 300,
@@ -153,12 +161,14 @@ function shouldReportFailure(
   body: string,
 ): { report: boolean; kind: InstagramFailureKind } {
   const kind = classifyInstagramFailure(status, body);
+
   if (kind === "challenge" || kind === "rate_limit" || kind === "auth") {
     return { report: true, kind };
   }
   if (!body.trim() && (status === 429 || status >= 500 || status === 0)) {
     return { report: true, kind: status === 429 ? "rate_limit" : "empty" };
   }
+
   return { report: false, kind };
 }
 
@@ -178,7 +188,11 @@ async function fetchViaGotScraping(
     | "HEAD"
     | "OPTIONS";
   const headers = {
-    ...browserHeadersForAccount(account, options.username, options.cookieOverride),
+    ...browserHeadersForAccount(
+      account,
+      options.username,
+      options.cookieOverride,
+    ),
     ...options.headers,
   };
 
@@ -189,7 +203,8 @@ async function fetchViaGotScraping(
     method,
     headers,
     body: options.body as string | undefined,
-    proxyUrl: account?.proxyUrl || process.env.INSTAGRAM_PROXY_URL?.trim() || undefined,
+    proxyUrl:
+      account?.proxyUrl || process.env.INSTAGRAM_PROXY_URL?.trim() || undefined,
     timeout: { request: timeoutMs },
     throwHttpErrors: false,
     responseType: "text",
@@ -206,7 +221,9 @@ async function fetchViaGotScraping(
 
   return toHttpResponse(
     response.statusCode,
-    typeof response.body === "string" ? response.body : String(response.body ?? ""),
+    typeof response.body === "string"
+      ? response.body
+      : String(response.body ?? ""),
     response.headers as Record<string, string | string[] | undefined>,
   );
 }
@@ -222,7 +239,11 @@ async function fetchViaUndici(
   const response = await fetchWithTimeout(url, {
     method: options.method ?? "GET",
     headers: {
-      ...browserHeadersForAccount(account, options.username, options.cookieOverride),
+      ...browserHeadersForAccount(
+        account,
+        options.username,
+        options.cookieOverride,
+      ),
       ...options.headers,
     },
     body: options.body as BodyInit | undefined,
@@ -231,6 +252,7 @@ async function fetchViaUndici(
     dispatcher: dispatcherFor(proxyUrl),
   });
   const text = await response.text();
+
   return toHttpResponse(response.status, text);
 }
 
@@ -258,6 +280,7 @@ export async function instagramFetch(
 
   if (account?.label) {
     const index = findInstagramAccountIndex(account.label);
+
     if (index >= 0) setActiveInstagramAccountIndex(index);
   }
 
@@ -268,6 +291,7 @@ export async function instagramFetch(
   }
 
   let response: InstagramHttpResponse;
+
   try {
     if (options.preferUndici) {
       response = await fetchViaUndici(url, options, account);
@@ -285,6 +309,7 @@ export async function instagramFetch(
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+
     if (reportToPool && account?.label) {
       reportPoolFailure("network", message, account.label);
     }
@@ -294,6 +319,7 @@ export async function instagramFetch(
   // Materialize body once so pool classification and callers share the same text.
   const bodyText = await response.text();
   const headerMap: Record<string, string> = {};
+
   response.headers.forEach((value, key) => {
     headerMap[key] = value;
   });
@@ -301,6 +327,7 @@ export async function instagramFetch(
 
   if (reportToPool && account?.label) {
     const verdict = shouldReportFailure(response.status, bodyText);
+
     if (verdict.report) {
       reportPoolFailure(
         verdict.kind,
@@ -323,6 +350,7 @@ export function getInstagramDispatcherForAccount(
 ): ProxyAgent | undefined {
   const proxyUrl =
     account?.proxyUrl || process.env.INSTAGRAM_PROXY_URL?.trim() || undefined;
+
   return dispatcherFor(proxyUrl);
 }
 

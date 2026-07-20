@@ -58,6 +58,7 @@ export function ResultExportControls({
 
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKey);
+
     return () => {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKey);
@@ -69,14 +70,14 @@ export function ResultExportControls({
   }, [disabled]);
 
   return (
-    <div className={clsx("result-export", className)} ref={rootRef}>
+    <div ref={rootRef} className={clsx("result-export", className)}>
       <button
         aria-expanded={open}
         aria-haspopup="menu"
         className="ui-btn ui-btn-ghost result-export-trigger"
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
         type="button"
+        onClick={() => setOpen((current) => !current)}
       >
         <Download className="size-3.5" />
         <span>{label}</span>
@@ -100,14 +101,14 @@ export function ResultExportControls({
             <li key={format} role="none">
               <button
                 className="result-export-option"
+                role="menuitem"
+                type="button"
                 onClick={() => {
                   onExport(format);
                   setOpen(false);
                 }}
-                role="menuitem"
-                type="button"
               >
-                <span className="result-export-option-icon" aria-hidden>
+                <span aria-hidden className="result-export-option-icon">
                   {FORMAT_ICONS[format]}
                 </span>
                 <span>{EXPORT_FORMAT_LABELS[format]}</span>

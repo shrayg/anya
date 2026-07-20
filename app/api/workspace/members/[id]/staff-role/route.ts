@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { MEMBER_SELECT, requireWorkspaceAdmin } from "@/lib/workspace-admin-server";
+import {
+  MEMBER_SELECT,
+  requireWorkspaceAdmin,
+} from "@/lib/workspace-admin-server";
 import { parseStaffRole } from "@/lib/staff-roles";
 import { prisma } from "@/prisma/client";
 
@@ -10,6 +13,7 @@ export async function PATCH(
 ) {
   try {
     const auth = await requireWorkspaceAdmin();
+
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -26,7 +30,10 @@ export async function PATCH(
         : parseStaffRole(body.staffRole);
 
     if (body.staffRole && !staffRole) {
-      return NextResponse.json({ error: "Invalid staff role" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid staff role" },
+        { status: 400 },
+      );
     }
 
     const target = await prisma.user.findUnique({
@@ -50,6 +57,10 @@ export async function PATCH(
     return NextResponse.json({ user });
   } catch (error) {
     console.error("Error updating staff role:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

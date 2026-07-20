@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import { fetchCsintReddit, flattenCsintEntity } from "@/lib/csint";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
 import { mergeSanitizedResponses } from "@/lib/osintcat";
@@ -9,6 +8,7 @@ import { osintFailureResponse } from "@/lib/osint-search-guard";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "reddit");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
 
     const profile = flattenCsintEntity(profilePayload);
     const parts = [indexData];
+
     if (profile) {
       parts.push({ count: 1, results: [profile] });
     }
@@ -40,11 +41,7 @@ export async function GET(req: NextRequest) {
         count: 0,
         results: [],
         message: "No results were found.",
-        ...(profilePayload && !profile
-          ? {}
-          : profile
-            ? { profile }
-            : {}),
+        ...(profilePayload && !profile ? {} : profile ? { profile } : {}),
       });
     }
 
@@ -56,6 +53,8 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to reach API";
 
-    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
+    return osintFailureResponse(
+      err instanceof Error ? err : new Error(String(message)),
+    );
   }
 }

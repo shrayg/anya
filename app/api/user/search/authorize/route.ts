@@ -14,7 +14,10 @@ export async function POST(req: NextRequest) {
     const { moduleSlug } = (await req.json()) as { moduleSlug?: string };
 
     if (!moduleSlug) {
-      return NextResponse.json({ error: "Missing moduleSlug" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing moduleSlug" },
+        { status: 400 },
+      );
     }
 
     const access = await authorizeSearch({
@@ -25,6 +28,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(access);
   } catch (error) {
     console.error("Search authorize error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

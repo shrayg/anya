@@ -33,8 +33,8 @@ export default function RefundPage() {
       <LegalSection title="Chargebacks and abuse">
         <p>
           Friendly fraud and abusive chargebacks may result in permanent account
-          termination and collection of amounts owed. Contact support first so we
-          can help resolve billing issues.
+          termination and collection of amounts owed. Contact support first so
+          we can help resolve billing issues.
         </p>
       </LegalSection>
 
@@ -46,8 +46,7 @@ export default function RefundPage() {
             href="mailto:support@anyaint.com"
           >
             support@anyaint.com
-          </a>
-          {" "}
+          </a>{" "}
           / Telegram{" "}
           <a
             className="text-zinc-100 underline-offset-4 hover:underline"

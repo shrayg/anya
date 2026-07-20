@@ -6,19 +6,24 @@ function readCsrfCookie(): string | null {
   if (typeof document === "undefined") return null;
 
   const parts = document.cookie.split("; ");
+
   for (const part of parts) {
     const eq = part.indexOf("=");
+
     if (eq === -1) continue;
     const name = part.slice(0, eq);
+
     if (name === CSRF_COOKIE_NAME) {
       return decodeURIComponent(part.slice(eq + 1));
     }
   }
+
   return null;
 }
 
 async function ensureCsrfToken(): Promise<string | null> {
   let token = readCsrfCookie();
+
   if (token) return token;
 
   try {
@@ -49,6 +54,7 @@ export async function apiFetch(
 
   if (MUTATING.has(method)) {
     const token = await ensureCsrfToken();
+
     if (token) {
       headers.set(CSRF_HEADER_NAME, token);
     }

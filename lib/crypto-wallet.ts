@@ -64,9 +64,11 @@ function decodeBase58(value: string): Uint8Array | null {
 
   for (const char of value) {
     const digit = BASE58_ALPHABET.indexOf(char);
+
     if (digit < 0) return null;
 
     let carry = digit;
+
     for (let i = 0; i < bytes.length; i += 1) {
       carry += bytes[i]! * 58;
       bytes[i] = carry & 0xff;
@@ -80,12 +82,14 @@ function decodeBase58(value: string): Uint8Array | null {
   }
 
   let leadingZeros = 0;
+
   for (const char of value) {
     if (char !== "1") break;
     leadingZeros += 1;
   }
 
   const decoded = new Uint8Array(leadingZeros + bytes.length);
+
   for (let i = 0; i < bytes.length; i += 1) {
     decoded[decoded.length - 1 - i] = bytes[i]!;
   }
@@ -98,6 +102,7 @@ function isValidBase58Check(
   allowedVersions?: readonly number[],
 ): boolean {
   const decoded = decodeBase58(address);
+
   if (!decoded || decoded.length !== 25) return false;
 
   if (allowedVersions && !allowedVersions.includes(decoded[0]!)) return false;
@@ -118,11 +123,15 @@ function isValidBase58Check(
 function isValidBech32Address(address: string, hrp: string): boolean {
   const lower = address.toLowerCase();
   const prefix = `${hrp}1`;
+
   if (!lower.startsWith(prefix)) return false;
   if (address.length < hrp.length + 1 + 11 || address.length > 90) return false;
   if (!new RegExp(`^${hrp}1[a-z0-9]+$`, "i").test(address)) return false;
   const body = lower.slice(prefix.length);
-  return body.length >= 11 && [...body].every((c) => BECH32_CHARSET.includes(c));
+
+  return (
+    body.length >= 11 && [...body].every((c) => BECH32_CHARSET.includes(c))
+  );
 }
 
 function isValidEthereumAddress(address: string): boolean {
@@ -137,6 +146,7 @@ function isValidBitcoinAddress(address: string): boolean {
   // Legacy P2PKH (1…) / P2SH (3…) — Base58Check payload is 25 bytes.
   if (!/^[13][a-km-zA-HJ-NP-Z1-9]{25,33}$/.test(address)) return false;
   const decoded = decodeBase58(address);
+
   return decoded !== null && decoded.length === 25;
 }
 
@@ -147,12 +157,14 @@ function isValidLitecoinAddress(address: string): boolean {
 
   // Mainnet legacy P2PKH (L…) / P2SH (M…) with Base58Check + version bytes.
   if (!/^[LM][a-km-zA-HJ-NP-Z1-9]{25,33}$/.test(address)) return false;
+
   return isValidBase58Check(address, [LTC_VERSION_P2PKH, LTC_VERSION_P2SH]);
 }
 
 function isValidSolanaAddress(address: string): boolean {
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) return false;
   const decoded = decodeBase58(address);
+
   return decoded !== null && decoded.length === 32;
 }
 
@@ -193,7 +205,10 @@ function lamportsToSol(lamports: number): string {
 }
 
 function formatUsd(value: number): string {
-  return value.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  return value.toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+  });
 }
 
 function formatTimestamp(unixSeconds: number): string {
@@ -202,10 +217,14 @@ function formatTimestamp(unixSeconds: number): string {
 
 function shortenHash(hash: string): string {
   if (hash.length <= 16) return hash;
+
   return `${hash.slice(0, 8)}…${hash.slice(-6)}`;
 }
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> {
+async function fetchJson<T>(
+  url: string,
+  init?: RequestInit,
+): Promise<T | null> {
   try {
     const res = await fetch(url, {
       cache: "no-store",
@@ -287,8 +306,12 @@ export async function lookupBitcoinWallet(
   address: string,
 ): Promise<CryptoWalletResult> {
   const [addressData, txData] = await Promise.all([
-    fetchJson<MempoolAddress>(`https://mempool.space/api/address/${encodeURIComponent(address)}`),
-    fetchJson<MempoolTx[]>(`https://mempool.space/api/address/${encodeURIComponent(address)}/txs`),
+    fetchJson<MempoolAddress>(
+      `https://mempool.space/api/address/${encodeURIComponent(address)}`,
+    ),
+    fetchJson<MempoolTx[]>(
+      `https://mempool.space/api/address/${encodeURIComponent(address)}/txs`,
+    ),
   ]);
 
   let stats = addressData?.chain_stats;
@@ -297,6 +320,7 @@ export async function lookupBitcoinWallet(
     const fallback = await fetchJson<MempoolAddress>(
       `https://blockstream.info/api/address/${encodeURIComponent(address)}`,
     );
+
     stats = fallback?.chain_stats;
   }
 
@@ -407,7 +431,10 @@ export async function lookupLitecoinWallet(
       throw new Error("Litecoin wallet lookup failed");
     }
 
-    const balanceLitoshis = Math.max(0, fallback.final_balance ?? fallback.balance ?? 0);
+    const balanceLitoshis = Math.max(
+      0,
+      fallback.final_balance ?? fallback.balance ?? 0,
+    );
 
     return {
       chain: "litecoin",
@@ -424,9 +451,7 @@ export async function lookupLitecoinWallet(
         direction:
           tx.tx_input_n !== undefined && tx.tx_input_n >= 0 ? "out" : "in",
         amount:
-          tx.value !== undefined
-            ? `${litoshisToLtc(tx.value)} LTC`
-            : undefined,
+          tx.value !== undefined ? `${litoshisToLtc(tx.value)} LTC` : undefined,
       })),
       stats: {
         "Total received": `${litoshisToLtc(fallback.total_received ?? 0)} LTC`,
@@ -509,11 +534,15 @@ type EthplorerTx = {
   rawValue?: string;
 };
 
-function parseBlockscoutTokens(items: BlockscoutTokenItem[]): CryptoTokenBalance[] {
+function parseBlockscoutTokens(
+  items: BlockscoutTokenItem[],
+): CryptoTokenBalance[] {
   return items.slice(0, 10).map((item) => {
     const decimals = Number(item.token?.decimals ?? 18);
     const raw = Number(item.value ?? 0) / 10 ** decimals;
-    const rate = item.token?.exchange_rate ? Number(item.token.exchange_rate) : undefined;
+    const rate = item.token?.exchange_rate
+      ? Number(item.token.exchange_rate)
+      : undefined;
 
     return {
       symbol: item.token?.symbol ?? "TOKEN",
@@ -525,7 +554,9 @@ function parseBlockscoutTokens(items: BlockscoutTokenItem[]): CryptoTokenBalance
   });
 }
 
-function parseEthplorerTokens(tokens: EthplorerAddressInfo["tokens"]): CryptoTokenBalance[] {
+function parseEthplorerTokens(
+  tokens: EthplorerAddressInfo["tokens"],
+): CryptoTokenBalance[] {
   return (tokens ?? []).slice(0, 10).map((item) => {
     const rate = item.tokenInfo?.price?.rate;
     const balance = item.balance ?? 0;
@@ -545,38 +576,45 @@ export async function lookupEthereumWallet(
 ): Promise<CryptoWalletResult> {
   const normalized = address.toLowerCase();
 
-  const [blockscoutAddress, blockscoutTokens, blockscoutTxs, ethplorerInfo, ethplorerTxs] =
-    await Promise.all([
-      fetchJson<BlockscoutAddress>(
-        `https://eth.blockscout.com/api/v2/addresses/${encodeURIComponent(address)}`,
-      ),
-      fetchJson<{ items?: BlockscoutTokenItem[] }>(
-        `https://eth.blockscout.com/api/v2/addresses/${encodeURIComponent(address)}/tokens?type=ERC-20`,
-      ),
-      fetchJson<{ items?: unknown[]; next_page_params?: unknown }>(
-        `https://eth.blockscout.com/api/v2/addresses/${encodeURIComponent(address)}/transactions`,
-      ),
-      fetchJson<EthplorerAddressInfo>(
-        `https://api.ethplorer.io/getAddressInfo/${encodeURIComponent(address)}?apiKey=freekey`,
-      ),
-      fetchJson<EthplorerTx[]>(
-        `https://api.ethplorer.io/getAddressTransactions/${encodeURIComponent(address)}?apiKey=freekey&limit=8`,
-      ),
-    ]);
+  const [
+    blockscoutAddress,
+    blockscoutTokens,
+    blockscoutTxs,
+    ethplorerInfo,
+    ethplorerTxs,
+  ] = await Promise.all([
+    fetchJson<BlockscoutAddress>(
+      `https://eth.blockscout.com/api/v2/addresses/${encodeURIComponent(address)}`,
+    ),
+    fetchJson<{ items?: BlockscoutTokenItem[] }>(
+      `https://eth.blockscout.com/api/v2/addresses/${encodeURIComponent(address)}/tokens?type=ERC-20`,
+    ),
+    fetchJson<{ items?: unknown[]; next_page_params?: unknown }>(
+      `https://eth.blockscout.com/api/v2/addresses/${encodeURIComponent(address)}/transactions`,
+    ),
+    fetchJson<EthplorerAddressInfo>(
+      `https://api.ethplorer.io/getAddressInfo/${encodeURIComponent(address)}?apiKey=freekey`,
+    ),
+    fetchJson<EthplorerTx[]>(
+      `https://api.ethplorer.io/getAddressTransactions/${encodeURIComponent(address)}?apiKey=freekey&limit=8`,
+    ),
+  ]);
 
   const wei =
-    blockscoutAddress?.coin_balance ??
-    ethplorerInfo?.ETH?.rawBalance ??
-    "0";
+    blockscoutAddress?.coin_balance ?? ethplorerInfo?.ETH?.rawBalance ?? "0";
   const eth = weiToEth(wei);
   const rate =
-    Number(blockscoutAddress?.exchange_rate ?? ethplorerInfo?.ETH?.price?.rate ?? 0) ||
-    undefined;
+    Number(
+      blockscoutAddress?.exchange_rate ?? ethplorerInfo?.ETH?.price?.rate ?? 0,
+    ) || undefined;
   const usd = rate ? eth * rate : undefined;
 
-  const blockscoutTokenList = parseBlockscoutTokens(blockscoutTokens?.items ?? []);
+  const blockscoutTokenList = parseBlockscoutTokens(
+    blockscoutTokens?.items ?? [],
+  );
   const ethplorerTokenList = parseEthplorerTokens(ethplorerInfo?.tokens);
-  const tokens = blockscoutTokenList.length > 0 ? blockscoutTokenList : ethplorerTokenList;
+  const tokens =
+    blockscoutTokenList.length > 0 ? blockscoutTokenList : ethplorerTokenList;
 
   const recentTransactions = (ethplorerTxs ?? []).map((tx) => ({
     hash: tx.hash ?? "",
@@ -620,7 +658,9 @@ export async function lookupEthereumWallet(
       "Transaction history": blockscoutTxs?.next_page_params
         ? "50+ indexed transactions"
         : `${blockscoutTxs?.items?.length ?? recentTransactions.length} indexed transactions`,
-      "Has token transfers": blockscoutAddress?.has_token_transfers ? "Yes" : "No",
+      "Has token transfers": blockscoutAddress?.has_token_transfers
+        ? "Yes"
+        : "No",
       "Contract wallet": blockscoutAddress?.is_contract ? "Yes" : "No",
     },
   };
@@ -635,7 +675,11 @@ async function solanaRpcOnce<T>(
   rpcUrl: string,
   method: string,
   params: unknown[],
-): Promise<{ result: T | null; invalidAddress: boolean; transportFailed: boolean }> {
+): Promise<{
+  result: T | null;
+  invalidAddress: boolean;
+  transportFailed: boolean;
+}> {
   try {
     const res = await fetch(rpcUrl, {
       method: "POST",
@@ -659,10 +703,7 @@ async function solanaRpcOnce<T>(
     const data = (await res.json()) as SolanaRpcResponse<T>;
     const message = data.error?.message?.toLowerCase() ?? "";
 
-    if (
-      message.includes("wrongsize") ||
-      message.includes("invalid pubkey")
-    ) {
+    if (message.includes("wrongsize") || message.includes("invalid pubkey")) {
       return { result: null, invalidAddress: true, transportFailed: false };
     }
 
@@ -686,6 +727,7 @@ async function solanaRpc<T>(
 ): Promise<{ result: T | null; invalidAddress: boolean }> {
   for (const rpcUrl of SOLANA_RPC_URLS) {
     const outcome = await solanaRpcOnce<T>(rpcUrl, method, params);
+
     if (outcome.invalidAddress) {
       return { result: null, invalidAddress: true };
     }
@@ -713,7 +755,10 @@ export async function lookupSolanaWallet(
 
   const [balanceOutcome, signaturesOutcome] = await Promise.all([
     solanaRpc<{ value: number }>("getBalance", [address]),
-    solanaRpc<SolanaSignature[]>("getSignaturesForAddress", [address, { limit: 8 }]),
+    solanaRpc<SolanaSignature[]>("getSignaturesForAddress", [
+      address,
+      { limit: 8 },
+    ]),
   ]);
 
   if (balanceOutcome.invalidAddress || signaturesOutcome.invalidAddress) {
@@ -749,7 +794,9 @@ export async function lookupSolanaWallet(
   };
 }
 
-export async function lookupCryptoWallet(query: string): Promise<CryptoWalletResult> {
+export async function lookupCryptoWallet(
+  query: string,
+): Promise<CryptoWalletResult> {
   const address = query.trim();
   const chain = detectCryptoChain(address);
 

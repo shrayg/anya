@@ -1,4 +1,8 @@
-import { DATABANK_KEYS, extractDatabank, isBrandPlaceholderValue } from "@/lib/intel-record";
+import {
+  DATABANK_KEYS,
+  extractDatabank,
+  isBrandPlaceholderValue,
+} from "@/lib/intel-record";
 import { sanitizePublicText } from "@/lib/public-branding";
 
 export type SearchResultRow = {
@@ -156,6 +160,7 @@ function isHiddenResultKey(key: string): boolean {
 function isBlockTextField(key: string, value: string): boolean {
   if (BLOCK_TEXT_KEY.test(key)) return true;
   if (value.includes("\n")) return true;
+
   return value.length > 160;
 }
 
@@ -211,6 +216,7 @@ function objectFields(
       if (isBrandPlaceholderValue(formatted)) return null;
 
       const label = humanizeKey(key);
+
       if (/^sources?$/i.test(label)) return null;
 
       return {
@@ -250,6 +256,7 @@ function buildRecordFields(data: Record<string, unknown>): FormattedField[] {
       !RECORD_TITLE_KEYS.has(key) &&
       !isHiddenResultKey(key),
   );
+
   // Databank / breach collection names may still title the card, but never as a Source row.
   return objectFields(data, keys);
 }
@@ -284,13 +291,22 @@ function recordSubtitle(data: Record<string, unknown>): string | undefined {
   if (typeof data.number === "string" || typeof data.number === "number") {
     return String(data.number);
   }
-  if (typeof data.username === "string" && !isBrandPlaceholderValue(data.username)) {
+  if (
+    typeof data.username === "string" &&
+    !isBrandPlaceholderValue(data.username)
+  ) {
     return `@${data.username}`;
   }
-  if (typeof data.user_id === "string" && !isBrandPlaceholderValue(data.user_id)) {
+  if (
+    typeof data.user_id === "string" &&
+    !isBrandPlaceholderValue(data.user_id)
+  ) {
     return data.user_id;
   }
-  if (typeof data.domain === "string" && !isBrandPlaceholderValue(data.domain)) {
+  if (
+    typeof data.domain === "string" &&
+    !isBrandPlaceholderValue(data.domain)
+  ) {
     return data.domain;
   }
 
@@ -306,6 +322,7 @@ export function formatSearchRecords(results: unknown[]): FormattedRecord[] {
     .map((entry, index) => {
       if (!entry || typeof entry !== "object") {
         const value = String(entry ?? "").trim();
+
         if (!value || isBrandPlaceholderValue(value)) return null;
 
         return {
@@ -330,6 +347,7 @@ export function formatSearchRecords(results: unknown[]): FormattedRecord[] {
       const useful = fields.some(
         (field) => field.value.trim() && !isBrandPlaceholderValue(field.value),
       );
+
       if (!useful) return null;
 
       return {
@@ -386,7 +404,9 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
 
   if (record.indexHits && typeof record.indexHits === "object") {
     const indexHits = record.indexHits as Record<string, unknown>;
-    const hitResults = Array.isArray(indexHits.results) ? indexHits.results : [];
+    const hitResults = Array.isArray(indexHits.results)
+      ? indexHits.results
+      : [];
 
     if (hitResults.length > 0) {
       return formatSearchRecords(hitResults);
@@ -396,7 +416,9 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
   // Legacy key (pre-scrub) — still format if present in older cached results.
   if (record.godseye && typeof record.godseye === "object") {
     const godseye = record.godseye as Record<string, unknown>;
-    const godseyeResults = Array.isArray(godseye.results) ? godseye.results : [];
+    const godseyeResults = Array.isArray(godseye.results)
+      ? godseye.results
+      : [];
 
     if (godseyeResults.length > 0) {
       return formatSearchRecords(godseyeResults);
@@ -413,6 +435,7 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
     !Array.isArray(record.profile)
   ) {
     const profileRecords = formatSearchRecords([record.profile]);
+
     if (profileRecords.length > 0) return profileRecords;
   }
 
@@ -422,9 +445,11 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
 
   // CSINT-style wrappers: useful payload under `data`, meta at top level.
   const nested = record.data;
+
   if (nested && typeof nested === "object" && !Array.isArray(nested)) {
     const nestedObj = nested as Record<string, unknown>;
     const nestedFields = objectFields(nestedObj);
+
     if (nestedFields.length > 0) {
       record = nestedObj;
     }
@@ -445,10 +470,15 @@ export function formatStructuredSearchData(data: unknown): FormattedRecord[] {
   ];
 }
 
-export function formatBreachSearchResults(results: unknown[]): SearchResultRow[] {
+export function formatBreachSearchResults(
+  results: unknown[],
+): SearchResultRow[] {
   return formatSearchRecords(results).flatMap((record) =>
     record.fields.map((field) => ({
-      label: record.fields.length > 1 ? `${record.title} · ${field.label}` : field.label,
+      label:
+        record.fields.length > 1
+          ? `${record.title} · ${field.label}`
+          : field.label,
       value: field.value,
     })),
   );
@@ -466,11 +496,13 @@ export function flattenSearchData(
       label: prefix || "Results",
       value: data.map((item) => JSON.stringify(item)).join(" · "),
     });
+
     return rows;
   }
 
   if (typeof data !== "object") {
     rows.push({ label: prefix || "Value", value: String(data) });
+
     return rows;
   }
 
@@ -479,6 +511,7 @@ export function flattenSearchData(
 
     const label = prefix ? `${prefix}.${key}` : key;
     const leaf = humanizeKey(label.split(".").pop() ?? label);
+
     if (/^sources?$/i.test(leaf)) continue;
 
     if (value && typeof value === "object") {

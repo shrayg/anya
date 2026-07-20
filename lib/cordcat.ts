@@ -91,6 +91,7 @@ async function cordCatGet<T>(
   timeoutMs = 12_000,
 ): Promise<T | null> {
   const apiKey = getCordCatApiKey();
+
   if (!apiKey) return null;
 
   const res = await fetchWithTimeout(`${CORDCAT_API_BASE}${path}`, {
@@ -149,6 +150,7 @@ export async function fetchCordCatUserInfo(
   discordId: string,
 ): Promise<CordCatUserInfo | null> {
   const query = await fetchCordCatQuery(discordId);
+
   if (query?.userInfo && typeof query.userInfo === "object") {
     return query.userInfo;
   }

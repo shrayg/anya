@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { getSessionCookie } from "@/app/lib/session";
 import { prisma } from "@/prisma/client";
 import {
@@ -10,7 +11,7 @@ import {
 export async function GET() {
   try {
     const session = await getSessionCookie();
-    
+
     if (!session || !session.userId) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
@@ -77,6 +78,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Auth me error:", error);
+
     return NextResponse.json({ authenticated: false }, { status: 500 });
   }
 }

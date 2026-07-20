@@ -17,6 +17,7 @@ export function isSquareConfigured(): boolean {
 
 export function getSquareClient(): SquareClient {
   const token = process.env.SQUARE_ACCESS_TOKEN?.trim();
+
   if (!token) {
     throw new Error("SQUARE_ACCESS_TOKEN is not configured");
   }
@@ -38,9 +39,11 @@ export function getSquareClient(): SquareClient {
 
 export function getSquareLocationId(): string {
   const locationId = process.env.SQUARE_LOCATION_ID?.trim();
+
   if (!locationId) {
     throw new Error("SQUARE_LOCATION_ID is not configured");
   }
+
   return locationId;
 }
 

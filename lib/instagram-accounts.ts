@@ -31,6 +31,7 @@ let activeIndex = 0;
 function decodeMaybe(value?: string): string | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
+
   if (!trimmed) return undefined;
   if (trimmed.includes("%")) {
     try {
@@ -39,6 +40,7 @@ function decodeMaybe(value?: string): string | undefined {
       return trimmed;
     }
   }
+
   return trimmed;
 }
 
@@ -57,9 +59,11 @@ function primaryAccount(): InstagramAccount {
 
 function parseExtraAccounts(): InstagramAccount[] {
   const raw = process.env.INSTAGRAM_ACCOUNTS?.trim();
+
   if (!raw) return [];
 
   let parsed: unknown;
+
   try {
     parsed = JSON.parse(raw);
   } catch {
@@ -77,12 +81,15 @@ function parseExtraAccounts(): InstagramAccount[] {
     const pick = (...keys: string[]): string | undefined => {
       for (const key of keys) {
         const value = entry[key];
+
         if (typeof value === "string" && value.trim()) return value.trim();
       }
+
       return undefined;
     };
 
     const sessionId = decodeMaybe(pick("sessionId", "INSTAGRAM_SESSION_ID"));
+
     if (!sessionId) return;
 
     accounts.push({
@@ -105,12 +112,15 @@ export function getInstagramAccounts(): InstagramAccount[] {
   const accounts = [primaryAccount(), ...parseExtraAccounts()].filter(
     (account) => Boolean(account.sessionId),
   );
+
   return accounts;
 }
 
 export function getActiveInstagramAccount(): InstagramAccount | null {
   const accounts = getInstagramAccounts();
+
   if (accounts.length === 0) return null;
+
   return accounts[activeIndex % accounts.length] ?? accounts[0];
 }
 
@@ -128,8 +138,10 @@ export function instagramAccountCount(): number {
  */
 export function rotateInstagramAccount(): boolean {
   const count = getInstagramAccounts().length;
+
   if (count <= 1) return false;
   activeIndex = (activeIndex + 1) % count;
+
   return true;
 }
 
@@ -140,6 +152,7 @@ export function resetInstagramAccountRotation(): void {
 /** Used by the session pool when it force-rotates, so both indexes stay aligned. */
 export function setActiveInstagramAccountIndex(index: number): void {
   const count = getInstagramAccounts().length;
+
   if (count === 0) return;
   activeIndex = ((index % count) + count) % count;
 }

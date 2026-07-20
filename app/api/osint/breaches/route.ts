@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import { searchBreachVipForEmail } from "@/lib/breachvip";
 import {
   csintRowsToCredentials,
@@ -29,6 +28,7 @@ function mergeCredentials(
 
   for (const row of [...primary, ...secondary]) {
     const key = `${row.identifier.toLowerCase()}\0${row.secret}`;
+
     if (seen.has(key)) continue;
     seen.add(key);
     merged.push(row);
@@ -43,6 +43,7 @@ function settledValue<T>(result: PromiseSettledResult<T>): T | null {
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "breaches");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
@@ -87,9 +88,7 @@ export async function GET(req: NextRequest) {
     const breachVip = settledValue(breachVipSettled);
     const csint = settledValue(csintSettled);
 
-    const csintCredentials = csint
-      ? csintRowsToCredentials(csint.results)
-      : [];
+    const csintCredentials = csint ? csintRowsToCredentials(csint.results) : [];
 
     const mergedCredentials = mergeCredentials(
       mergeCredentials(combResult.credentials, breachVip?.credentials ?? []),

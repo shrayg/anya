@@ -3,6 +3,9 @@
  * Key via CSINT_API_KEY. Set CSINT_ENABLED=false to disable without removing the key.
  */
 
+import type { SanitizedBreachResponse } from "@/lib/osintcat";
+import type { CombCredential } from "@/lib/proxynova-comb";
+
 import {
   isBrandPlaceholderValue,
   isIdentityFieldKey,
@@ -15,21 +18,16 @@ import {
   sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
-import {
-  fetchWithTimeout,
-  readResponseText,
-} from "@/lib/fetch-with-timeout";
+import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
 import {
   DEFAULT_INTELX_BUCKET,
   isIntelxBucket,
   type IntelxBucket,
 } from "@/lib/intelx-buckets";
-import type { SanitizedBreachResponse } from "@/lib/osintcat";
 import {
   OSINT_PROVIDER_TIMEOUT_MS,
   withDeadline,
 } from "@/lib/osint-search-guard";
-import type { CombCredential } from "@/lib/proxynova-comb";
 
 const CSINT_BASE = "https://csint.pro/api";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
@@ -38,38 +36,40 @@ const MAX_ROWS = 200;
 const MAX_SHODAN_SERVICES = 48;
 const MAX_SHODAN_BANNER_CHARS = 1_500;
 
-export type CsintSearchType =
-  | "email"
-  | "phone"
-  | "username"
-  | "ip"
-  | "auto";
+export type CsintSearchType = "email" | "phone" | "username" | "ip" | "auto";
 
 export function getCsintApiKey(): string | undefined {
   const key = process.env.CSINT_API_KEY?.trim();
+
   return key || undefined;
 }
 
 export function isCsintEnabled(): boolean {
   if (process.env.CSINT_ENABLED === "false") return false;
+
   return Boolean(getCsintApiKey());
 }
 
 function sanitizeCsintError(message: string): string {
   const cleaned = sanitizePublicText(message).trim();
+
   if (!cleaned) return publicSearchError();
 
   const lower = cleaned.toLowerCase();
+
   if (
     lower.includes("quota") ||
     lower.includes("credit") ||
     (lower.includes("limit") &&
-      (lower.includes("exceed") || lower.includes("reached") || lower.includes("daily")))
+      (lower.includes("exceed") ||
+        lower.includes("reached") ||
+        lower.includes("daily")))
   ) {
     return "Provider quota exceeded for this source. Try again later.";
   }
   if (
-    (lower.includes("rate") && (lower.includes("limit") || lower.includes("429"))) ||
+    (lower.includes("rate") &&
+      (lower.includes("limit") || lower.includes("429"))) ||
     lower.includes("too many requests") ||
     lower.includes("429")
   ) {
@@ -112,6 +112,7 @@ async function csintPost(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<Record<string, unknown>> {
   const apiKey = getCsintApiKey();
+
   if (!apiKey) {
     throw new Error(publicServiceUnavailable());
   }
@@ -139,7 +140,9 @@ async function csintPost(
     if (!res.ok) {
       throw new Error(sanitizeCsintError(`HTTP ${res.status}`));
     }
-    throw new Error(publicSearchError("Invalid response from intelligence index."));
+    throw new Error(
+      publicSearchError("Invalid response from intelligence index."),
+    );
   }
 
   if (!res.ok) {
@@ -147,6 +150,7 @@ async function csintPost(
       (typeof data.message === "string" && data.message) ||
       (typeof data.error === "string" && data.error) ||
       `HTTP ${res.status}`;
+
     throw new Error(sanitizeCsintError(msg));
   }
 
@@ -155,6 +159,7 @@ async function csintPost(
       (typeof data.message === "string" && data.message) ||
       (typeof data.error === "string" && data.error) ||
       publicSearchError();
+
     throw new Error(sanitizeCsintError(msg));
   }
 
@@ -164,8 +169,10 @@ async function csintPost(
 function truncateBanner(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const cleaned = sanitizePublicText(value);
+
   if (!cleaned) return null;
   if (cleaned.length <= MAX_SHODAN_BANNER_CHARS) return cleaned;
+
   return `${cleaned.slice(0, MAX_SHODAN_BANNER_CHARS)}…`;
 }
 
@@ -179,6 +186,7 @@ export function compactShodanHostPayload(
       : data;
 
   const ports = new Set<number>();
+
   if (Array.isArray(root.ports)) {
     for (const p of root.ports) {
       if (typeof p === "number" && Number.isFinite(p)) ports.add(p);
@@ -187,10 +195,12 @@ export function compactShodanHostPayload(
 
   const services: Record<string, unknown>[] = [];
   const serviceRows = Array.isArray(root.data) ? root.data : [];
+
   for (const row of serviceRows.slice(0, MAX_SHODAN_SERVICES)) {
     if (!row || typeof row !== "object" || Array.isArray(row)) continue;
     const svc = row as Record<string, unknown>;
     const port = typeof svc.port === "number" ? svc.port : null;
+
     if (port != null) ports.add(port);
 
     const banner =
@@ -200,7 +210,9 @@ export function compactShodanHostPayload(
 
     services.push({
       ...(port != null ? { port } : {}),
-      ...(typeof svc.transport === "string" ? { transport: svc.transport } : {}),
+      ...(typeof svc.transport === "string"
+        ? { transport: svc.transport }
+        : {}),
       ...(typeof svc.product === "string"
         ? { product: sanitizePublicText(svc.product) }
         : {}),
@@ -223,6 +235,7 @@ export function compactShodanHostPayload(
     : [];
 
   let vulns: string[] = [];
+
   if (Array.isArray(root.vulns)) {
     vulns = root.vulns.map(String).slice(0, 40);
   } else if (root.vulns && typeof root.vulns === "object") {
@@ -252,29 +265,36 @@ export function compactShodanHostPayload(
       (typeof root.country_code === "string" && root.country_code) ||
       null,
     city: typeof root.city === "string" ? sanitizePublicText(root.city) : null,
-    last_update:
-      typeof root.last_update === "string" ? root.last_update : null,
+    last_update: typeof root.last_update === "string" ? root.last_update : null,
     services,
   };
 }
 
 function sanitizeCsintStringField(key: string, value: string): string | null {
   const trimmed = value.trim();
+
   if (!trimmed) return null;
 
   // Never rewrite identity/secret fields to the product brand — that produced
   // fake Snapchat "credentials" like username/password/raw = "Anya.Int".
   if (isIdentityFieldKey(key)) {
     if (isBrandPlaceholderValue(trimmed)) return null;
+
     return trimmed;
   }
 
-  if (/^(source|sources|_source|provider|providers|service|credit|credits)$/i.test(key)) {
+  if (
+    /^(source|sources|_source|provider|providers|service|credit|credits)$/i.test(
+      key,
+    )
+  ) {
     return null;
   }
 
   const cleaned = sanitizePublicText(trimmed);
+
   if (!cleaned || isBrandPlaceholderValue(cleaned)) return null;
+
   return cleaned;
 }
 
@@ -304,6 +324,7 @@ function sanitizeCsintPayload(
 
     if (typeof raw === "string") {
       const cleaned = sanitizeCsintStringField(key, raw);
+
       if (cleaned !== null) out[key] = cleaned;
     } else if (Array.isArray(raw)) {
       out[key] = raw.map((item) =>
@@ -328,6 +349,7 @@ function asString(value: unknown): string {
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
   }
+
   return "";
 }
 
@@ -357,12 +379,15 @@ function pushBreachMapEntry(
   out: Record<string, unknown>[],
 ) {
   const dbLabel =
-    breachName.trim() && !isInternalSourceLabel(breachName) && !META_KEYS.has(breachName)
+    breachName.trim() &&
+    !isInternalSourceLabel(breachName) &&
+    !META_KEYS.has(breachName)
       ? breachName.trim()
       : undefined;
 
   if (typeof value === "string") {
     const trimmed = value.trim();
+
     if (!trimmed || isBrandPlaceholderValue(trimmed)) return;
 
     const [left, ...rest] = trimmed.split(":");
@@ -392,12 +417,15 @@ function pushBreachMapEntry(
     };
 
     const scrubbed = scrubIntelRecord(row);
+
     if (scrubbed) out.push(scrubbed);
+
     return;
   }
 
   if (Array.isArray(value)) {
     collectRows(value, out);
+
     return;
   }
 
@@ -407,7 +435,9 @@ function pushBreachMapEntry(
       ...(dbLabel ? { database: dbLabel } : {}),
     };
     const scrubbed = scrubIntelRecord(row);
+
     if (scrubbed) out.push(scrubbed);
+
     return;
   }
 
@@ -416,6 +446,7 @@ function pushBreachMapEntry(
 
 function looksLikeBreachMap(record: Record<string, unknown>): boolean {
   const entries = Object.entries(record).filter(([key]) => !META_KEYS.has(key));
+
   if (entries.length === 0) return false;
 
   return entries.every(([, value]) => {
@@ -424,6 +455,7 @@ function looksLikeBreachMap(record: Record<string, unknown>): boolean {
     if (Array.isArray(value)) return true;
     if (typeof value === "object") {
       const nested = value as Record<string, unknown>;
+
       return Boolean(
         asString(nested.email) ||
           asString(nested.username) ||
@@ -433,6 +465,7 @@ function looksLikeBreachMap(record: Record<string, unknown>): boolean {
           asString(nested.phone),
       );
     }
+
     return false;
   });
 }
@@ -442,6 +475,7 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
 
   if (Array.isArray(node)) {
     for (const item of node) collectRows(item, out);
+
     return;
   }
 
@@ -474,8 +508,10 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
     "found",
   ]) {
     const nested = record[key];
+
     if (Array.isArray(nested)) {
       collectRows(nested, out);
+
       return;
     }
     // Snusbase-style map: { "BREACH_NAME": "email:pass" | "" | object }
@@ -485,16 +521,22 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
       )) {
         pushBreachMapEntry(breachName, value, out);
       }
+
       return;
     }
   }
 
   // Unkeyed breach map at this level (common in nested snusbase payloads)
-  if (looksLikeBreachMap(record) && !asString(record.email) && !asString(record.username)) {
+  if (
+    looksLikeBreachMap(record) &&
+    !asString(record.email) &&
+    !asString(record.username)
+  ) {
     for (const [breachName, value] of Object.entries(record)) {
       if (META_KEYS.has(breachName)) continue;
       pushBreachMapEntry(breachName, value, out);
     }
+
     return;
   }
 
@@ -513,6 +555,7 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
     asString(record.user_id)
   ) {
     const scrubbed = scrubIntelRecord(record);
+
     if (scrubbed) out.push(scrubbed);
   }
 }
@@ -522,10 +565,10 @@ function isUpgradeToSeePlaceholder(row: Record<string, unknown>): boolean {
   const values = Object.values(row).filter(
     (v): v is string => typeof v === "string" && v.trim().length > 0,
   );
+
   if (values.length === 0) return false;
-  const placeholders = values.filter((v) =>
-    /UPGRADE_TO_SEE/i.test(v),
-  );
+  const placeholders = values.filter((v) => /UPGRADE_TO_SEE/i.test(v));
+
   return placeholders.length >= Math.ceil(values.length / 2);
 }
 
@@ -533,15 +576,19 @@ function payloadToSanitized(
   payload: Record<string, unknown>,
 ): SanitizedBreachResponse {
   const results: Record<string, unknown>[] = [];
+
   collectRows(payload, results);
 
   const seen = new Set<string>();
   const deduped: Record<string, unknown>[] = [];
+
   for (const row of results) {
     if (isUpgradeToSeePlaceholder(row)) continue;
     const scrubbed = scrubIntelRecord(row);
+
     if (!scrubbed) continue;
     const key = JSON.stringify(scrubbed);
+
     if (seen.has(key)) continue;
     seen.add(key);
     deduped.push(scrubbed);
@@ -562,10 +609,13 @@ function mergeOptionalSanitized(
     for (const row of part.results) {
       if (!row || typeof row !== "object") continue;
       const record = row as Record<string, unknown>;
+
       if (isUpgradeToSeePlaceholder(record)) continue;
       const scrubbed = scrubIntelRecord(record);
+
       if (!scrubbed) continue;
       const key = JSON.stringify(scrubbed);
+
       if (seen.has(key)) continue;
       seen.add(key);
       merged.push(scrubbed);
@@ -589,6 +639,7 @@ function flattenUniversalResults(
       results as Record<string, unknown>,
     )) {
       const before = rows.length;
+
       collectRows(value, rows);
       // Tag rows that came from a named nested source when they lack database
       for (let i = before; i < rows.length; i++) {
@@ -610,6 +661,7 @@ function flattenUniversalResults(
 
   for (const row of rows) {
     const scrubbed = scrubIntelRecord(row);
+
     if (!scrubbed) continue;
     // Reject meta-only databank labels like "source" / provider names.
     if (
@@ -620,6 +672,7 @@ function flattenUniversalResults(
       if (!scrubIntelRecord(scrubbed)) continue;
     }
     const key = JSON.stringify(scrubbed);
+
     if (seen.has(key)) continue;
     seen.add(key);
     deduped.push(scrubbed);
@@ -631,11 +684,16 @@ function flattenUniversalResults(
 
 export function detectCsintSearchType(query: string): CsintSearchType {
   const trimmed = query.trim();
+
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "email";
   if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(trimmed)) return "ip";
-  if (/^[\d\s+\-().]+$/.test(trimmed) && trimmed.replace(/\D/g, "").length >= 10) {
+  if (
+    /^[\d\s+\-().]+$/.test(trimmed) &&
+    trimmed.replace(/\D/g, "").length >= 10
+  ) {
     return "phone";
   }
+
   return "username";
 }
 
@@ -681,6 +739,7 @@ export async function fetchCsintUniversalSearch(
       timeoutMs,
     );
     const results = flattenUniversalResults(payload);
+
     return { count: results.length, results };
   } catch {
     return null;
@@ -702,12 +761,11 @@ export async function fetchCsintUniversalSearchOrThrow(
     timeoutMs,
   );
   const results = flattenUniversalResults(payload);
+
   return { count: results.length, results };
 }
 
-export function csintRowsToCredentials(
-  results: unknown[],
-): CombCredential[] {
+export function csintRowsToCredentials(results: unknown[]): CombCredential[] {
   const credentials: CombCredential[] = [];
   const seen = new Set<string>();
 
@@ -724,13 +782,16 @@ export function csintRowsToCredentials(
       asString(record.password) ||
       asString(record.pass) ||
       asString(record.hash);
+
     if (!identifier && !secret) continue;
     if (identifier && isBrandPlaceholderValue(identifier)) continue;
     if (secret && isBrandPlaceholderValue(secret)) continue;
 
     const id = identifier || "(unknown)";
+
     if (isBrandPlaceholderValue(id)) continue;
     const key = `${id.toLowerCase()}\0${secret}`;
+
     if (seen.has(key)) continue;
     seen.add(key);
 
@@ -773,10 +834,12 @@ export async function fetchCsintDiscordOsint(
         ip: asString(payload.ip) || asString(payload.ip_address) || undefined,
         user_id: userId,
       });
+
       if (scrubbed) results.push(scrubbed);
     }
 
     collectRows(payload, results);
+
     return results.length > 0 ? { count: results.length, results } : null;
   } catch {
     return null;
@@ -790,6 +853,7 @@ export function extractCsintDiscordLookupLeaks(
   if (!lookup) return { count: 0, results: [] };
 
   const osint = lookup.osint_data;
+
   if (!osint || typeof osint !== "object") {
     return { count: 0, results: [] };
   }
@@ -797,6 +861,7 @@ export function extractCsintDiscordLookupLeaks(
   const o = osint as Record<string, unknown>;
   const email = asString(o.email);
   const ip = asString(o.ip) || asString(o.ip_address);
+
   if (!email && !ip) return { count: 0, results: [] };
 
   const scrubbed = scrubIntelRecord({
@@ -804,6 +869,7 @@ export function extractCsintDiscordLookupLeaks(
     ip: ip || undefined,
     user_id: userId,
   });
+
   if (!scrubbed) return { count: 0, results: [] };
 
   return {
@@ -839,6 +905,7 @@ export function detectCsintCryptoSymbol(
   address: string,
 ): "BTC" | "ETH" | "LTC" | "DOGE" | null {
   const a = address.trim();
+
   if (!a || /\s/.test(a) || a.includes("@")) return null;
   if (/^0x[a-fA-F0-9]{40}$/.test(a)) return "ETH";
   // Align with on-chain wallet detector: bech32 bc1… or Base58Check 1…/3…
@@ -848,6 +915,7 @@ export function detectCsintCryptoSymbol(
   if (/^ltc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{11,71}$/i.test(a)) return "LTC";
   if (/^[LM][a-km-zA-HJ-NP-Z1-9]{25,33}$/.test(a)) return "LTC";
   if (/^D[5-9A-HJ-NP-U][1-9A-HJ-NP-Za-km-z]{32}$/.test(a)) return "DOGE";
+
   return null;
 }
 
@@ -857,6 +925,7 @@ export async function fetchCsintReddit(
   if (!isCsintEnabled()) return null;
   try {
     const cleaned = username.trim().replace(/^u\//i, "");
+
     return await csintPost("/reddit", { username: cleaned });
   } catch {
     return null;
@@ -887,7 +956,11 @@ export function flattenCsintEntity(
   const flat: Record<string, unknown> = {};
 
   for (const candidate of candidates) {
-    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+    if (
+      !candidate ||
+      typeof candidate !== "object" ||
+      Array.isArray(candidate)
+    ) {
       continue;
     }
 
@@ -904,8 +977,11 @@ export function flattenCsintEntity(
 
   // TikTok recon: merge top-level stats scalars (followers/following/etc.)
   const stats = payload.stats;
+
   if (stats && typeof stats === "object" && !Array.isArray(stats)) {
-    for (const [key, value] of Object.entries(stats as Record<string, unknown>)) {
+    for (const [key, value] of Object.entries(
+      stats as Record<string, unknown>,
+    )) {
       if (key in flat) continue;
       if (value === null || value === undefined || value === "") continue;
       if (typeof value === "object") continue;
@@ -915,8 +991,10 @@ export function flattenCsintEntity(
 
   // Reddit: a few useful AI summary strings when present
   const ai = payload.ai_analysis;
+
   if (ai && typeof ai === "object" && !Array.isArray(ai)) {
     const a = ai as Record<string, unknown>;
+
     for (const key of [
       "summary",
       "likely_location",
@@ -925,6 +1003,7 @@ export function flattenCsintEntity(
       "timezone_hint",
     ] as const) {
       const value = a[key];
+
       if (typeof value === "string" && value.trim() && !(key in flat)) {
         flat[key] = value.trim();
       }
@@ -988,7 +1067,10 @@ export async function fetchCsintGithub(
 
   // intelfetch/github is metered and often 429; crowsint/github no longer exists.
   // Universal username search covers GitHub-linked breach hits without burning quota.
-  return fetchCsintUniversalSearch(username.trim().replace(/^@/, ""), "username");
+  return fetchCsintUniversalSearch(
+    username.trim().replace(/^@/, ""),
+    "username",
+  );
 }
 
 export async function fetchCsintMinecraftServer(
@@ -1006,11 +1088,14 @@ export async function fetchCsintHashLookup(
       hash: hash.trim(),
     });
     const sanitized = payloadToSanitized(payload);
+
     if (sanitized.count > 0) return sanitized;
     const scrubbed = scrubIntelRecord(payload);
+
     if (scrubbed) {
       return { count: 1, results: [scrubbed] };
     }
+
     return { count: 0, results: [] };
   } catch {
     return null;
@@ -1046,6 +1131,7 @@ export async function fetchCsintSnusbaseSearch(
 ): Promise<SanitizedBreachResponse | null> {
   if (!isCsintEnabled()) return null;
   const cleaned = term.trim();
+
   if (!cleaned || types.length === 0) return null;
 
   try {
@@ -1054,6 +1140,7 @@ export async function fetchCsintSnusbaseSearch(
       types,
       wildcard,
     });
+
     return payloadToSanitized(payload);
   } catch {
     return null;
@@ -1066,12 +1153,15 @@ export async function fetchCsintBreachBase(
 ): Promise<SanitizedBreachResponse | null> {
   if (!isCsintEnabled()) return null;
   const cleaned = term.trim();
+
   if (!cleaned) return null;
 
   try {
     const body: Record<string, unknown> = { term: cleaned };
+
     if (searchType) body.search_type = searchType;
     const payload = await csintPost("/breachbase", body);
+
     return payloadToSanitized(payload);
   } catch {
     return null;
@@ -1105,8 +1195,10 @@ export function normalizeDiscordToRobloxPayload(
   }
 
   const data = payload.data;
+
   if (data && typeof data === "object" && !Array.isArray(data)) {
     const nested = data as Record<string, unknown>;
+
     if (nested.success === false) return null;
     candidates.push(
       nested.roblox,
@@ -1120,6 +1212,7 @@ export function normalizeDiscordToRobloxPayload(
 
   for (const candidate of candidates) {
     const resolved = tryNormalizeRobloxAccount(candidate);
+
     if (resolved) return resolved;
   }
 
@@ -1132,6 +1225,7 @@ function tryNormalizeRobloxAccount(
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const record = value as Record<string, unknown>;
+
   if (record.success === false) return null;
 
   if (Array.isArray(record.results) && record.results.length === 0) {
@@ -1142,6 +1236,7 @@ function tryNormalizeRobloxAccount(
       asString(record.userId) ||
       asString(record.roblox_id) ||
       asString(record.robloxId);
+
     if (!hasOwnIdentity) return null;
   }
 
@@ -1162,6 +1257,7 @@ function tryNormalizeRobloxAccount(
 
   if (!userId) {
     const maybe = asString(record.user_id ?? record.id);
+
     // Prefer Roblox-sized numeric ids; skip Discord snowflakes (17–20 digits).
     if (maybe && /^\d{1,16}$/.test(maybe)) {
       userId = maybe;
@@ -1186,6 +1282,7 @@ function tryNormalizeRobloxAccount(
 
   if (!profileUrl && username) {
     const handle = username.replace(/^@/, "");
+
     if (handle) {
       profileUrl = `https://www.roblox.com/users/profile?username=${encodeURIComponent(handle)}`;
     }
@@ -1194,6 +1291,7 @@ function tryNormalizeRobloxAccount(
   if (!username && !userId && !profileUrl) return null;
 
   const out: Record<string, unknown> = {};
+
   if (username) out.username = username;
   if (userId) out.userId = userId;
   if (profileUrl) out.profileUrl = profileUrl;
@@ -1206,6 +1304,7 @@ export async function fetchCsintOathnetDiscordToRoblox(
 ): Promise<Record<string, unknown> | null> {
   if (!isCsintEnabled()) return null;
   const cleaned = discordId.trim();
+
   if (!cleaned) return null;
 
   try {
@@ -1213,7 +1312,9 @@ export async function fetchCsintOathnetDiscordToRoblox(
       discord_id: cleaned,
     });
     const resolved = normalizeDiscordToRobloxPayload(payload);
+
     if (!resolved) return null;
+
     return {
       ...resolved,
       discord_id: cleaned,
@@ -1242,11 +1343,13 @@ function unwrapSeonPayload(
   payload: Record<string, unknown>,
 ): Record<string, unknown> | null {
   const nested = payload.data;
+
   if (nested && typeof nested === "object" && !Array.isArray(nested)) {
     return nested as Record<string, unknown>;
   }
 
   const rest: Record<string, unknown> = {};
+
   for (const [key, value] of Object.entries(payload)) {
     if (SEON_META_KEYS.has(key) || key === "data") continue;
     rest[key] = value;
@@ -1263,9 +1366,11 @@ function pushScalarFields(
 ) {
   for (const key of keys) {
     const value = source[key];
+
     if (value === null || value === undefined || value === "") continue;
     if (typeof value === "object") continue;
     const outKey = rename?.[key] ?? key;
+
     target[outKey] = value;
   }
 }
@@ -1274,6 +1379,7 @@ function seonRegisteredAccounts(accountDetails: unknown): string[] {
   if (!accountDetails || typeof accountDetails !== "object") return [];
 
   const registered: string[] = [];
+
   for (const [name, info] of Object.entries(
     accountDetails as Record<string, unknown>,
   )) {
@@ -1286,13 +1392,20 @@ function seonRegisteredAccounts(accountDetails: unknown): string[] {
   return registered.sort((a, b) => a.localeCompare(b));
 }
 
-function seonBreachSummary(breachDetails: unknown): Record<string, unknown> | null {
-  if (!breachDetails || typeof breachDetails !== "object" || Array.isArray(breachDetails)) {
+function seonBreachSummary(
+  breachDetails: unknown,
+): Record<string, unknown> | null {
+  if (
+    !breachDetails ||
+    typeof breachDetails !== "object" ||
+    Array.isArray(breachDetails)
+  ) {
     return null;
   }
 
   const breach = breachDetails as Record<string, unknown>;
   const out: Record<string, unknown> = { category: "Breach history" };
+
   pushScalarFields(out, breach, [
     "haveibeenpwned_listed",
     "number_of_breaches",
@@ -1307,6 +1420,7 @@ function seonBreachSummary(breachDetails: unknown): Record<string, unknown> | nu
         const row = entry as Record<string, unknown>;
         const name = asString(row.name) || "Unknown";
         const date = asString(row.date);
+
         return date ? `${name} (${date})` : name;
       })
       .filter(Boolean)
@@ -1332,6 +1446,7 @@ function seonRiskRules(appliedRules: unknown): Record<string, unknown> | null {
           : "";
       const scoreBit = score ? ` (${op || "+"}${score})` : "";
       const label = [id, name].filter(Boolean).join(": ");
+
       return `${label}${scoreBit}`.trim();
     })
     .filter(Boolean);
@@ -1348,12 +1463,17 @@ function seonRiskRules(appliedRules: unknown): Record<string, unknown> | null {
 function seonDomainCard(
   domainDetails: unknown,
 ): Record<string, unknown> | null {
-  if (!domainDetails || typeof domainDetails !== "object" || Array.isArray(domainDetails)) {
+  if (
+    !domainDetails ||
+    typeof domainDetails !== "object" ||
+    Array.isArray(domainDetails)
+  ) {
     return null;
   }
 
   const domain = domainDetails as Record<string, unknown>;
   const out: Record<string, unknown> = { category: "Domain details" };
+
   pushScalarFields(out, domain, [
     "domain",
     "tld",
@@ -1386,6 +1506,7 @@ export function normalizeSeonFootprint(
   kind: "email" | "phone",
 ): { count: number; results: Record<string, unknown>[] } {
   const root = unwrapSeonPayload(payload);
+
   if (!root) {
     return { count: 0, results: [] };
   }
@@ -1402,7 +1523,16 @@ export function normalizeSeonFootprint(
     pushScalarFields(
       reputation,
       root,
-      ["number", "phone", "score", "valid", "disposable", "type", "country", "carrier"],
+      [
+        "number",
+        "phone",
+        "score",
+        "valid",
+        "disposable",
+        "type",
+        "country",
+        "carrier",
+      ],
       { number: "phone" },
     );
   }
@@ -1412,9 +1542,11 @@ export function normalizeSeonFootprint(
   }
 
   const domainCard = seonDomainCard(root.domain_details);
+
   if (domainCard) results.push(domainCard);
 
   const registered = seonRegisteredAccounts(root.account_details);
+
   if (registered.length > 0) {
     results.push({
       category: "Digital footprint",
@@ -1424,9 +1556,11 @@ export function normalizeSeonFootprint(
   }
 
   const breachCard = seonBreachSummary(root.breach_details);
+
   if (breachCard) results.push(breachCard);
 
   const rulesCard = seonRiskRules(root.applied_rules);
+
   if (rulesCard) results.push(rulesCard);
 
   // Fallback: flatten leftover scalars if nested sections were empty.
@@ -1434,6 +1568,7 @@ export function normalizeSeonFootprint(
     const flat: Record<string, unknown> = {
       category: kind === "email" ? "Email reputation" : "Phone reputation",
     };
+
     for (const [key, value] of Object.entries(root)) {
       if (
         SEON_META_KEYS.has(key) ||
@@ -1460,6 +1595,7 @@ export async function fetchCsintSeonEmail(
   email: string,
 ): Promise<Record<string, unknown>> {
   const payload = await csintPost("/seon/email", { email: email.trim() });
+
   return normalizeSeonFootprint(payload, "email");
 }
 
@@ -1467,6 +1603,7 @@ export async function fetchCsintSeonPhone(
   phone: string,
 ): Promise<Record<string, unknown>> {
   const payload = await csintPost("/seon/phone", { phone: phone.trim() });
+
   return normalizeSeonFootprint(payload, "phone");
 }
 
@@ -1483,10 +1620,10 @@ export async function fetchCsintAdditiveBreachSearch(
   if (!isCsintEnabled()) return null;
 
   const cleaned = query.trim();
+
   if (!cleaned) return null;
 
-  const resolvedType =
-    type === "auto" ? detectCsintSearchType(cleaned) : type;
+  const resolvedType = type === "auto" ? detectCsintSearchType(cleaned) : type;
   const snusTypes = snusbaseTypesForCsint(resolvedType);
 
   const [universal, breachBase, snusbase] = await Promise.all([
@@ -1510,10 +1647,10 @@ export async function fetchCsintAdditiveStealerSearch(
   if (!isCsintEnabled()) return null;
 
   const cleaned = query.trim();
+
   if (!cleaned) return null;
 
-  const resolvedType =
-    type === "auto" ? detectCsintSearchType(cleaned) : type;
+  const resolvedType = type === "auto" ? detectCsintSearchType(cleaned) : type;
 
   const [universal, breachBase] = await Promise.all([
     fetchCsintUniversalSearch(cleaned, resolvedType, timeoutMs),
@@ -1533,6 +1670,7 @@ export async function fetchCsintShodanHost(
     timeoutMs + 2_000,
     "Host exposure lookup timed out. Try again.",
   );
+
   return {
     query: cleaned,
     ...compactShodanHostPayload(raw),
@@ -1543,15 +1681,26 @@ export async function fetchCsintIntelx(
   storageId: string,
   bucket: IntelxBucket | string = DEFAULT_INTELX_BUCKET,
 ): Promise<{ content: string; error?: string; bucket: IntelxBucket }> {
-  const resolvedBucket = isIntelxBucket(bucket) ? bucket : DEFAULT_INTELX_BUCKET;
+  const resolvedBucket = isIntelxBucket(bucket)
+    ? bucket
+    : DEFAULT_INTELX_BUCKET;
 
   if (!isCsintEnabled()) {
-    return { content: "", error: publicServiceUnavailable(), bucket: resolvedBucket };
+    return {
+      content: "",
+      error: publicServiceUnavailable(),
+      bucket: resolvedBucket,
+    };
   }
 
   const apiKey = getCsintApiKey();
+
   if (!apiKey) {
-    return { content: "", error: publicServiceUnavailable(), bucket: resolvedBucket };
+    return {
+      content: "",
+      error: publicServiceUnavailable(),
+      bucket: resolvedBucket,
+    };
   }
 
   try {
@@ -1580,6 +1729,7 @@ export async function fetchCsintIntelx(
     }
 
     let data: Record<string, unknown> = {};
+
     try {
       data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
     } catch {
@@ -1604,12 +1754,18 @@ export async function fetchCsintIntelx(
         ? "Storage export rate limit reached. Try again later."
         : `Storage export failed (HTTP ${res.status})`);
 
-    return { content: "", error: sanitizeCsintError(msg), bucket: resolvedBucket };
+    return {
+      content: "",
+      error: sanitizeCsintError(msg),
+      bucket: resolvedBucket,
+    };
   } catch (err) {
     return {
       content: "",
       error:
-        err instanceof Error ? sanitizeCsintError(err.message) : publicSearchError(),
+        err instanceof Error
+          ? sanitizeCsintError(err.message)
+          : publicSearchError(),
       bucket: resolvedBucket,
     };
   }
@@ -1629,12 +1785,15 @@ export async function fetchCsintIntelxWithBuckets(
     "leaks.logs",
     "dumpster",
     "pastes",
-  ].filter((b, i, arr): b is IntelxBucket => Boolean(b) && arr.indexOf(b) === i);
+  ].filter(
+    (b, i, arr): b is IntelxBucket => Boolean(b) && arr.indexOf(b) === i,
+  );
 
   let lastError = "No export content returned.";
 
   for (const bucket of ordered) {
     const result = await fetchCsintIntelx(storageId, bucket);
+
     if (result.content.trim()) {
       return result;
     }
@@ -1658,6 +1817,7 @@ export async function probeCsint(): Promise<boolean> {
   if (!isCsintEnabled()) return false;
   try {
     await csintPost("/status", {}, 8_000);
+
     return true;
   } catch {
     return false;

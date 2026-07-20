@@ -51,7 +51,12 @@ export function TurnstileWidget({
   }, [onToken, onExpire]);
 
   useEffect(() => {
-    if (!SITE_KEY || !scriptReady || !containerRef.current || !window.turnstile) {
+    if (
+      !SITE_KEY ||
+      !scriptReady ||
+      !containerRef.current ||
+      !window.turnstile
+    ) {
       return;
     }
 

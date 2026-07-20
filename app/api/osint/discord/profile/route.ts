@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import { fetchDiscordProfile } from "@/lib/discord-profile";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
@@ -10,6 +9,7 @@ const MAX_PROFILES = 3;
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "discord/profile");
+
   if (access instanceof NextResponse) return access;
 
   const idsParam = req.nextUrl.searchParams.get("ids")?.trim();
@@ -23,7 +23,10 @@ export async function GET(req: NextRequest) {
     .slice(0, MAX_PROFILES);
 
   if (ids.length === 0) {
-    return NextResponse.json({ error: "Missing valid Discord ID(s)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing valid Discord ID(s)" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -37,8 +40,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ profiles });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : "Failed to resolve Discord profile(s)";
+      err instanceof Error
+        ? err.message
+        : "Failed to resolve Discord profile(s)";
 
-    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
+    return osintFailureResponse(
+      err instanceof Error ? err : new Error(String(message)),
+    );
   }
 }

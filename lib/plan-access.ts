@@ -60,7 +60,8 @@ async function buildUserPlanContext(userId: number) {
   if (isAccountBlocked(user.accountStatus)) {
     return {
       blocked: true,
-      reason: getAccountStatusMessage(user.accountStatus) ?? "Account restricted.",
+      reason:
+        getAccountStatusMessage(user.accountStatus) ?? "Account restricted.",
       plan: resolveUserPlan(user),
       balance: user.balance ?? 0,
       quota: 0,
@@ -134,7 +135,10 @@ export async function authorizeSearch(
     return { allowed: false, reason: context.reason };
   }
 
-  const quotaCheck = checkDailySearchQuota(context.plan, context.searchesLast24h);
+  const quotaCheck = checkDailySearchQuota(
+    context.plan,
+    context.searchesLast24h,
+  );
 
   if (!quotaCheck.allowed) {
     return {

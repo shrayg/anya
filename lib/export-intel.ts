@@ -1,10 +1,11 @@
-import { siteConfig } from "@/config/site";
 import type { CombCredential } from "@/lib/proxynova-comb";
+import type { FormattedRecord } from "@/lib/search-utils";
+
+import { siteConfig } from "@/config/site";
 import {
   sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
-import type { FormattedRecord } from "@/lib/search-utils";
 
 const BRAND = siteConfig.name;
 
@@ -45,11 +46,13 @@ export function formatRecordAsText(record: FormattedRecord) {
 
   if (record.subtitle) {
     const subtitle = sanitizePublicText(record.subtitle);
+
     if (subtitle) lines.push(subtitle);
   }
 
   if (record.badge && record.badge !== record.title) {
     const badge = sanitizePublicText(record.badge);
+
     if (badge) lines.push(`Collection: ${badge}`);
   }
 
@@ -57,6 +60,7 @@ export function formatRecordAsText(record: FormattedRecord) {
 
   for (const field of record.fields) {
     const value = sanitizePublicText(field.value);
+
     if (!value) continue;
     lines.push(`${sanitizePublicText(field.label) || field.label}: ${value}`);
   }
@@ -65,10 +69,15 @@ export function formatRecordAsText(record: FormattedRecord) {
 }
 
 export function formatRecordsAsText(records: FormattedRecord[]) {
-  return records.map((record) => formatRecordAsText(record)).join("\n\n---\n\n");
+  return records
+    .map((record) => formatRecordAsText(record))
+    .join("\n\n---\n\n");
 }
 
-export function formatBreachCredentialAsText(row: CombCredential, index: number) {
+export function formatBreachCredentialAsText(
+  row: CombCredential,
+  index: number,
+) {
   const lines = [
     `#${index} · Leaked credential`,
     "",
@@ -81,6 +90,7 @@ export function formatBreachCredentialAsText(row: CombCredential, index: number)
 
   if (row.raw) {
     const raw = sanitizePublicText(row.raw);
+
     if (raw) lines.push(`Raw: ${raw}`);
   }
 
@@ -89,9 +99,11 @@ export function formatBreachCredentialAsText(row: CombCredential, index: number)
 
 export function escapeCsvCell(value: unknown): string {
   const str = value == null ? "" : String(value);
+
   if (/[",\n\r]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }
+
   return str;
 }
 
@@ -108,7 +120,9 @@ function recordToPlainObject(record: FormattedRecord) {
   return {
     index: record.index,
     title: sanitizePublicText(record.title),
-    subtitle: record.subtitle ? sanitizePublicText(record.subtitle) || null : null,
+    subtitle: record.subtitle
+      ? sanitizePublicText(record.subtitle) || null
+      : null,
     collection: record.badge ? sanitizePublicText(record.badge) || null : null,
     fields: Object.fromEntries(
       record.fields
@@ -136,7 +150,9 @@ export function formatRecordAsJson(record: FormattedRecord) {
 }
 
 export function formatRecordsAsJsonl(records: FormattedRecord[]) {
-  return records.map((record) => JSON.stringify(recordToPlainObject(record))).join("\n");
+  return records
+    .map((record) => JSON.stringify(recordToPlainObject(record)))
+    .join("\n");
 }
 
 export function formatRecordAsJsonl(record: FormattedRecord) {
@@ -164,8 +180,12 @@ export function formatRecordsAsCsv(records: FormattedRecord[]) {
   ];
   const rows = records.map((record) => {
     const byKey = Object.fromEntries(
-      record.fields.map((field) => [field.key, sanitizePublicText(field.value)]),
+      record.fields.map((field) => [
+        field.key,
+        sanitizePublicText(field.value),
+      ]),
     );
+
     return [
       record.index,
       sanitizePublicText(record.title),
@@ -186,6 +206,7 @@ export function formatRecordAsCsv(record: FormattedRecord) {
 
 function wrapHtmlDocument(title: string, body: string, label?: string) {
   const heading = escapeHtml(label?.trim() || title);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -222,13 +243,18 @@ function wrapHtmlDocument(title: string, body: string, label?: string) {
 </html>`;
 }
 
-export function formatRecordsAsHtml(records: FormattedRecord[], label?: string) {
+export function formatRecordsAsHtml(
+  records: FormattedRecord[],
+  label?: string,
+) {
   const body = records
     .map((record) => {
       const fields = record.fields
         .map((field) => {
           const value = sanitizePublicText(field.value);
+
           if (!value) return "";
+
           return `<div><dt>${escapeHtml(sanitizePublicText(field.label) || field.label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
         })
         .join("");
@@ -238,6 +264,7 @@ export function formatRecordsAsHtml(records: FormattedRecord[], label?: string) 
       ]
         .filter(Boolean)
         .join(" · ");
+
       return `<article>
   <h2>#${escapeHtml(record.index)} · ${escapeHtml(sanitizePublicText(record.title))}</h2>
   ${sub ? `<p class="sub">${escapeHtml(sub)}</p>` : ""}
@@ -261,17 +288,25 @@ export function formatBreachCredentialsAsJson(rows: CombCredential[]) {
   );
 }
 
-export function formatBreachCredentialAsJson(row: CombCredential, index: number) {
+export function formatBreachCredentialAsJson(
+  row: CombCredential,
+  index: number,
+) {
   return JSON.stringify(credentialToPlainObject(row, index), null, 2);
 }
 
 export function formatBreachCredentialsAsJsonl(rows: CombCredential[]) {
   return rows
-    .map((row, index) => JSON.stringify(credentialToPlainObject(row, index + 1)))
+    .map((row, index) =>
+      JSON.stringify(credentialToPlainObject(row, index + 1)),
+    )
     .join("\n");
 }
 
-export function formatBreachCredentialAsJsonl(row: CombCredential, index: number) {
+export function formatBreachCredentialAsJsonl(
+  row: CombCredential,
+  index: number,
+) {
   return JSON.stringify(credentialToPlainObject(row, index));
 }
 
@@ -291,7 +326,10 @@ export function formatBreachCredentialsAsCsv(rows: CombCredential[]) {
   return ["\uFEFF" + headers.map(escapeCsvCell).join(","), ...body].join("\n");
 }
 
-export function formatBreachCredentialAsCsv(row: CombCredential, index: number) {
+export function formatBreachCredentialAsCsv(
+  row: CombCredential,
+  index: number,
+) {
   const headers = ["index", "identifier", "secret", "raw"];
   const line = [
     index,
@@ -305,7 +343,10 @@ export function formatBreachCredentialAsCsv(row: CombCredential, index: number) 
   return ["\uFEFF" + headers.map(escapeCsvCell).join(","), line].join("\n");
 }
 
-export function formatBreachCredentialsAsHtml(rows: CombCredential[], label?: string) {
+export function formatBreachCredentialsAsHtml(
+  rows: CombCredential[],
+  label?: string,
+) {
   const body = rows
     .map((row, index) => {
       const fields = [
@@ -362,17 +403,26 @@ function flattenObject(
 ): Record<string, string> {
   if (value == null || typeof value !== "object") {
     out[prefix || "value"] = value == null ? "" : String(value);
+
     return out;
   }
 
   if (Array.isArray(value)) {
     out[prefix || "value"] = JSON.stringify(value);
+
     return out;
   }
 
-  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+  for (const [key, nested] of Object.entries(
+    value as Record<string, unknown>,
+  )) {
     const nextKey = prefix ? `${prefix}.${key}` : key;
-    if (nested != null && typeof nested === "object" && !Array.isArray(nested)) {
+
+    if (
+      nested != null &&
+      typeof nested === "object" &&
+      !Array.isArray(nested)
+    ) {
       flattenObject(nested, nextKey, out);
     } else if (Array.isArray(nested)) {
       out[nextKey] = JSON.stringify(nested);
@@ -415,6 +465,7 @@ function normalizeToRowObjects(data: unknown): Record<string, string>[] {
 
 export function formatJsonValueAsCsv(data: unknown): string {
   const rows = normalizeToRowObjects(data);
+
   if (rows.length === 0) {
     return "\uFEFFvalue\n";
   }
@@ -434,9 +485,12 @@ export function formatJsonValueAsJsonl(data: unknown): string {
 
   if (data && typeof data === "object") {
     const obj = data as Record<string, unknown>;
+
     for (const key of ["results", "credentials", "findings", "records"]) {
       if (Array.isArray(obj[key])) {
-        return (obj[key] as unknown[]).map((item) => JSON.stringify(item)).join("\n");
+        return (obj[key] as unknown[])
+          .map((item) => JSON.stringify(item))
+          .join("\n");
       }
     }
   }
@@ -446,6 +500,7 @@ export function formatJsonValueAsJsonl(data: unknown): string {
 
 export function formatJsonValueAsHtml(data: unknown, label?: string): string {
   const rows = normalizeToRowObjects(data);
+
   if (rows.length === 0) {
     return wrapHtmlDocument(
       label || "Export",
@@ -470,12 +525,17 @@ export function formatJsonValueAsHtml(data: unknown, label?: string): string {
   );
 }
 
-export function formatRawAsExport(raw: string, format: ExportFormat, label?: string) {
+export function formatRawAsExport(
+  raw: string,
+  format: ExportFormat,
+  label?: string,
+) {
   if (format === "txt") {
     return wrapBrandedExport(raw, label);
   }
 
   let parsed: unknown = null;
+
   try {
     parsed = JSON.parse(raw);
   } catch {
@@ -486,6 +546,7 @@ export function formatRawAsExport(raw: string, format: ExportFormat, label?: str
     if (parsed !== null) {
       return JSON.stringify(parsed, null, 2);
     }
+
     return JSON.stringify({ content: raw }, null, 2);
   }
 
@@ -493,6 +554,7 @@ export function formatRawAsExport(raw: string, format: ExportFormat, label?: str
     if (parsed !== null) {
       return formatJsonValueAsJsonl(parsed);
     }
+
     return JSON.stringify({ content: raw });
   }
 
@@ -500,6 +562,7 @@ export function formatRawAsExport(raw: string, format: ExportFormat, label?: str
     if (parsed !== null) {
       return formatJsonValueAsCsv(parsed);
     }
+
     return ["\uFEFFcontent", escapeCsvCell(raw)].join("\n");
   }
 
@@ -521,6 +584,7 @@ export function formatRecordsAsExport(
   label?: string,
 ) {
   let body: string;
+
   switch (format) {
     case "txt":
       body = wrapBrandedExport(formatRecordsAsText(records), label);
@@ -538,6 +602,7 @@ export function formatRecordsAsExport(
       body = formatRecordsAsHtml(records, label);
       break;
   }
+
   return sanitizePublicContent(body);
 }
 
@@ -547,6 +612,7 @@ export function formatRecordAsExport(
   label?: string,
 ) {
   let body: string;
+
   switch (format) {
     case "txt":
       body = wrapBrandedExport(formatRecordAsText(record), label);
@@ -564,6 +630,7 @@ export function formatRecordAsExport(
       body = formatRecordAsHtml(record, label);
       break;
   }
+
   return sanitizePublicContent(body);
 }
 
@@ -573,6 +640,7 @@ export function formatBreachCredentialsAsExport(
   label?: string,
 ) {
   let body: string;
+
   switch (format) {
     case "txt":
       body = wrapBrandedExport(
@@ -595,6 +663,7 @@ export function formatBreachCredentialsAsExport(
       body = formatBreachCredentialsAsHtml(rows, label);
       break;
   }
+
   return sanitizePublicContent(body);
 }
 
@@ -605,6 +674,7 @@ export function formatBreachCredentialAsExport(
   label?: string,
 ) {
   let body: string;
+
   switch (format) {
     case "txt":
       body = wrapBrandedExport(formatBreachCredentialAsText(row, index), label);
@@ -622,10 +692,14 @@ export function formatBreachCredentialAsExport(
       body = formatBreachCredentialAsHtml(row, index, label);
       break;
   }
+
   return sanitizePublicContent(body);
 }
 
-export function safeExportFilename(label: string, format: ExportFormat = "txt") {
+export function safeExportFilename(
+  label: string,
+  format: ExportFormat = "txt",
+) {
   const slug = label
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -657,6 +731,7 @@ export function downloadExportFile(
   const blob = new Blob([content], { type: EXPORT_MIME[format] });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
+
   anchor.href = url;
   anchor.download = filename;
   anchor.rel = "noopener";

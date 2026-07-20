@@ -15,6 +15,7 @@ async function fulfillFromOrderId(orderId: string) {
   const client = getSquareClient();
   const orderRes = await client.orders.get({ orderId });
   const order = orderRes.order;
+
   if (!order) {
     return { ok: false as const, reason: "order_not_found" };
   }
@@ -58,13 +59,16 @@ async function fulfillFromOrderId(orderId: string) {
 
     // packId recovery for credits from description / pending row alone is enough
     if (byOrder.type === "balance_topup") {
-      const packMatch = byOrder.description.match(/^(Starter Pack|Investigator Pack|Ops Pack|Agency Pack)/);
+      const packMatch = byOrder.description.match(
+        /^(Starter Pack|Investigator Pack|Ops Pack|Agency Pack)/,
+      );
       const packIdMap: Record<string, string> = {
         "Starter Pack": "credits_10",
         "Investigator Pack": "credits_25",
         "Ops Pack": "credits_50",
         "Agency Pack": "credits_100",
       };
+
       if (packMatch?.[1]) {
         meta.packId = packIdMap[packMatch[1]];
       }
@@ -77,6 +81,7 @@ async function fulfillFromOrderId(orderId: string) {
       const payRes = await client.payments.get({
         paymentId: tenders[0].paymentId,
       });
+
       meta = decodeBillingMeta(payRes.payment?.note ?? undefined);
     } catch {
       // ignore
@@ -110,7 +115,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (!isSquareConfigured()) {
-    return NextResponse.redirect(`${baseUrl}/pricing?billing=payments_unavailable`);
+    return NextResponse.redirect(
+      `${baseUrl}/pricing?billing=payments_unavailable`,
+    );
   }
 
   try {
@@ -123,12 +130,15 @@ export async function GET(request: NextRequest) {
     }
 
     if ("type" in result && result.type === "api_access") {
-      return NextResponse.redirect(`${baseUrl}/dashboard/settings?billing=success`);
+      return NextResponse.redirect(
+        `${baseUrl}/dashboard/account?billing=success`,
+      );
     }
 
     return NextResponse.redirect(`${baseUrl}/pricing?billing=success`);
   } catch (err) {
     console.error("[square confirm] failed", err);
+
     return NextResponse.redirect(`${baseUrl}/pricing?billing=error`);
   }
 }

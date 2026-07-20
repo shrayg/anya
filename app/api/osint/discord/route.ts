@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import { fetchBreachVipSanitized } from "@/lib/breachvip";
 import { fetchCordCatQuery } from "@/lib/cordcat";
 import {
@@ -20,10 +19,7 @@ import {
   type DiscordSearchResult,
 } from "@/lib/discord-profile";
 import { fetchFivemIntel } from "@/lib/fivem-search";
-import {
-  fetchGodsEyeSearchSafe,
-  sanitizeGodsEyeSearch,
-} from "@/lib/godseye";
+import { fetchGodsEyeSearchSafe, sanitizeGodsEyeSearch } from "@/lib/godseye";
 import {
   OSINT_ROUTE_DEADLINE_MS,
   osintFailureResponse,
@@ -36,8 +32,11 @@ import {
   mergeSanitizedResponses,
 } from "@/lib/osintcat";
 
-function cordCatFivemRecords(query: Awaited<ReturnType<typeof fetchCordCatQuery>>) {
+function cordCatFivemRecords(
+  query: Awaited<ReturnType<typeof fetchCordCatQuery>>,
+) {
   const results = query?.fivem?.data?.results;
+
   return Array.isArray(results) ? results : [];
 }
 
@@ -45,15 +44,18 @@ function cordCatBreachLeaks(
   query: Awaited<ReturnType<typeof fetchCordCatQuery>>,
 ): { count: number; results: unknown[] } {
   const breach = query?.breach;
+
   if (!breach) return { count: 0, results: [] };
 
   const data = breach.data;
+
   if (Array.isArray(data) && data.length > 0) {
     return { count: data.length, results: data };
   }
 
   if (data && typeof data === "object" && !Array.isArray(data)) {
     const nested = (data as Record<string, unknown>).results;
+
     if (Array.isArray(nested) && nested.length > 0) {
       return { count: nested.length, results: nested };
     }
@@ -97,22 +99,28 @@ function normalizeRobloxLink(
 
 async function resolveDsa(discordId: string, cordStatements: unknown) {
   const fromCord = parseDiscordDsaFromStatements(cordStatements);
+
   if (fromCord.length > 0) {
     return { count: fromCord.length, sanctions: fromCord };
   }
 
   const fromPublic = await fetchPublicDsaSanctions(discordId);
+
   return { count: fromPublic.length, sanctions: fromPublic };
 }
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "discord");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
 
   if (!query) {
-    return NextResponse.json({ error: "Missing query parameter" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing query parameter" },
+      { status: 400 },
+    );
   }
 
   if (!isDiscordSnowflake(query)) {

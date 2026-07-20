@@ -1,11 +1,12 @@
 "use client";
 
+import type { CombSearchResult } from "@/lib/proxynova-comb";
+
 import clsx from "clsx";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { formatBreachCredentialAsText } from "@/lib/export-intel";
-import type { CombSearchResult } from "@/lib/proxynova-comb";
 
 export function BreachesSearchResults({
   result,
@@ -25,13 +26,17 @@ export function BreachesSearchResults({
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="anya-result-strip">
           <p className="anya-result-label">Total matches</p>
-          <p className="anya-result-value">{result.totalMatches.toLocaleString()}</p>
+          <p className="anya-result-value">
+            {result.totalMatches.toLocaleString()}
+          </p>
         </div>
         <div className="anya-result-strip">
           <p className="anya-result-label">Shown</p>
           <p className="anya-result-value">
             {result.returned.toLocaleString()}
-            {result.totalMatches > result.returned ? ` (offset ${result.start})` : ""}
+            {result.totalMatches > result.returned
+              ? ` (offset ${result.start})`
+              : ""}
           </p>
         </div>
       </div>
@@ -49,6 +54,8 @@ export function BreachesSearchResults({
                 selectable && "anya-result-card--selectable",
                 selected && "anya-result-card--selected",
               )}
+              role={selectable ? "button" : undefined}
+              tabIndex={selectable ? 0 : undefined}
               onClick={
                 selectable
                   ? () => onSelectExportIndex?.(selected ? -1 : cardIndex)
@@ -64,15 +71,15 @@ export function BreachesSearchResults({
                     }
                   : undefined
               }
-              role={selectable ? "button" : undefined}
-              tabIndex={selectable ? 0 : undefined}
             >
               <header className="anya-result-card-header">
                 <div className="min-w-0 flex-1">
                   <p className="anya-result-card-title">
                     {row.secret ? "Leaked credential" : "Match"}
                   </p>
-                  <p className="anya-result-card-subtitle truncate">{row.identifier}</p>
+                  <p className="anya-result-card-subtitle truncate">
+                    {row.identifier}
+                  </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <span className="anya-result-index">#{cardIndex}</span>
@@ -117,12 +124,14 @@ export function BreachesSearchResults({
 
       {blurResults ? (
         <p className="text-xs text-zinc-500">
-          Free plan results are partially blurred. Upgrade to see full credentials.
+          Free plan results are partially blurred. Upgrade to see full
+          credentials.
         </p>
       ) : null}
       {result.totalMatches > result.returned ? (
         <p className="text-xs text-zinc-500">
-          Up to 100 rows returned per request. Narrow the query for more precise hits.
+          Up to 100 rows returned per request. Narrow the query for more precise
+          hits.
         </p>
       ) : null}
     </div>

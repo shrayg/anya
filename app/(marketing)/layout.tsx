@@ -7,11 +7,9 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative flex flex-col min-h-screen">
+    <div className="marketing-canvas relative flex min-h-screen flex-col">
       <Navbar />
-      <main className="container mx-auto max-w-7xl pt-16 px-6 flex-grow">
-        {children}
-      </main>
+      <main className="relative flex-grow">{children}</main>
       <Footer />
     </div>
   );

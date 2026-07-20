@@ -5,11 +5,16 @@ const DISCORD_WEBHOOK_RE =
 
 function getWebhookUrl() {
   const url = process.env.DISCORD_SUPPORT_WEBHOOK_URL?.trim();
+
   if (!url) return null;
   if (!DISCORD_WEBHOOK_RE.test(url)) {
-    console.error("DISCORD_SUPPORT_WEBHOOK_URL is invalid or not a Discord webhook");
+    console.error(
+      "DISCORD_SUPPORT_WEBHOOK_URL is invalid or not a Discord webhook",
+    );
+
     return null;
   }
+
   return url;
 }
 
@@ -31,9 +36,11 @@ type TicketWebhookPayload = {
 
 export async function notifySupportDiscord(payload: TicketWebhookPayload) {
   const webhookUrl = getWebhookUrl();
+
   if (!webhookUrl) return { sent: false as const, reason: "not_configured" };
 
-  const appUrl = process.env.APP_URL?.replace(/\/$/, "") || "https://anyaint.com";
+  const appUrl =
+    process.env.APP_URL?.replace(/\/$/, "") || "https://anyaint.com";
   const ticketUrl = `${appUrl}/dashboard/support?ticket=${encodeURIComponent(payload.ticketPublicId)}`;
 
   const title =
@@ -46,10 +53,18 @@ export async function notifySupportDiscord(payload: TicketWebhookPayload) {
         : "Ticket status updated";
 
   const fields = [
-    { name: "Ticket", value: `\`${escapeDiscord(payload.ticketPublicId)}\``, inline: true },
+    {
+      name: "Ticket",
+      value: `\`${escapeDiscord(payload.ticketPublicId)}\``,
+      inline: true,
+    },
     { name: "User", value: escapeDiscord(payload.username), inline: true },
     { name: "Category", value: escapeDiscord(payload.category), inline: true },
-    { name: "Status", value: escapeDiscord(payload.newStatus || payload.status), inline: true },
+    {
+      name: "Status",
+      value: escapeDiscord(payload.newStatus || payload.status),
+      inline: true,
+    },
     { name: "Subject", value: escapeDiscord(payload.subject), inline: false },
   ];
 
@@ -67,7 +82,12 @@ export async function notifySupportDiscord(payload: TicketWebhookPayload) {
       {
         title,
         url: ticketUrl,
-        color: payload.event === "created" ? 0xf59e0b : payload.event === "status" ? 0x38bdf8 : 0x34d399,
+        color:
+          payload.event === "created"
+            ? 0xf59e0b
+            : payload.event === "status"
+              ? 0x38bdf8
+              : 0x34d399,
         fields,
         timestamp: new Date().toISOString(),
       },
@@ -84,12 +104,14 @@ export async function notifySupportDiscord(payload: TicketWebhookPayload) {
 
     if (!response.ok) {
       console.error("Discord webhook failed:", response.status);
+
       return { sent: false as const, reason: "webhook_error" };
     }
 
     return { sent: true as const };
   } catch (error) {
     console.error("Discord webhook error:", error);
+
     return { sent: false as const, reason: "webhook_error" };
   }
 }

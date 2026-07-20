@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import { fetchCsintMelissaLookup } from "@/lib/csint";
 import { publicSearchError } from "@/lib/public-branding";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
@@ -12,12 +11,14 @@ import { osintFailureResponse } from "@/lib/osint-search-guard";
  */
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "contact-enrich");
+
   if (access instanceof NextResponse) return access;
 
   const params = req.nextUrl.searchParams;
   const query = params.get("query")?.trim();
 
   const body: Record<string, string> = {};
+
   for (const key of [
     "first",
     "last",
@@ -31,13 +32,17 @@ export async function GET(req: NextRequest) {
     "comp",
   ]) {
     const value = params.get(key)?.trim();
+
     if (value) body[key] = value;
   }
 
   if (query && Object.keys(body).length === 0) {
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(query)) {
       body.email = query;
-    } else if (/^[\d\s+\-().]+$/.test(query) && query.replace(/\D/g, "").length >= 10) {
+    } else if (
+      /^[\d\s+\-().]+$/.test(query) &&
+      query.replace(/\D/g, "").length >= 10
+    ) {
       body.phone = query;
     } else {
       body.input = query;
@@ -47,8 +52,7 @@ export async function GET(req: NextRequest) {
   if (Object.keys(body).length === 0) {
     return NextResponse.json(
       {
-        error:
-          "Enter a name, email, phone, or address to enrich.",
+        error: "Enter a name, email, phone, or address to enrich.",
       },
       { status: 400 },
     );
@@ -56,10 +60,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const data = await fetchCsintMelissaLookup(body);
+
     return NextResponse.json(data);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : publicSearchError();
-    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
+    const message = err instanceof Error ? err.message : publicSearchError();
+
+    return osintFailureResponse(
+      err instanceof Error ? err : new Error(String(message)),
+    );
   }
 }

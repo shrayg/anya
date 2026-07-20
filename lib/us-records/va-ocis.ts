@@ -1,7 +1,8 @@
+import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import { paceSource, SOURCE_LIMITS } from "@/lib/us-records/robots-and-limits";
-import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
 
 const BASE = "https://eapps.courts.state.va.us";
 const API = `${BASE}/ocis-rest/api/public`;
@@ -177,39 +178,47 @@ const VA_FIPS_COUNTY: Record<string, string> = {
 
 function readSetCookies(headers: Headers): string[] {
   const withGetter = headers as Headers & { getSetCookie?: () => string[] };
+
   if (typeof withGetter.getSetCookie === "function") {
     return withGetter.getSetCookie();
   }
   const single = headers.get("set-cookie");
+
   return single ? [single] : [];
 }
 
 function mergeCookies(existing: string, setCookies: string[]): string {
   const map = new Map<string, string>();
+
   for (const part of existing
     .split(";")
     .map((value) => value.trim())
     .filter(Boolean)) {
     const idx = part.indexOf("=");
+
     if (idx > 0) map.set(part.slice(0, idx), part.slice(idx + 1));
   }
   for (const raw of setCookies) {
     const first = raw.split(";")[0] ?? "";
     const idx = first.indexOf("=");
+
     if (idx <= 0) continue;
     map.set(first.slice(0, idx), first.slice(idx + 1));
   }
+
   return [...map.entries()].map(([key, value]) => `${key}=${value}`).join("; ");
 }
 
 function unwrapOcisPayload<T>(body: OcisApiEnvelope<T>): OcisApiEntity<T> {
   const entity = body.context?.entity ?? body.entity;
+
   if (!entity) {
     throw new Error("Virginia OCIS returned an empty response envelope.");
   }
   if (entity.status !== "SUCCESS") {
     const code = entity.messages?.[0]?.messageCode;
     const message = entity.messages?.[0]?.message;
+
     if (code === "terms.notAccepted") {
       throw new Error("Virginia OCIS session terms were not accepted.");
     }
@@ -217,6 +226,7 @@ function unwrapOcisPayload<T>(body: OcisApiEnvelope<T>): OcisApiEntity<T> {
       message || code || entity.status || "Virginia OCIS request failed.",
     );
   }
+
   return entity;
 }
 
@@ -249,7 +259,9 @@ function courtLabel(row: OcisSearchRow): string {
         ? "Criminal"
         : undefined;
 
-  const place = county || (row.qualifiedFips ? `FIPS ${row.qualifiedFips}` : "Virginia");
+  const place =
+    county || (row.qualifiedFips ? `FIPS ${row.qualifiedFips}` : "Virginia");
+
   return [place, level, division].filter(Boolean).join(" · ");
 }
 
@@ -264,6 +276,7 @@ async function ensureOcisSession(cookie: string): Promise<string> {
       Cookie: cookie,
     },
   });
+
   cookie = mergeCookies(cookie, readSetCookies(landing.headers));
   await landing.text();
 
@@ -278,6 +291,7 @@ async function ensureOcisSession(cookie: string): Promise<string> {
       Referer: `${BASE}/ocis/landing`,
     },
   });
+
   cookie = mergeCookies(cookie, readSetCookies(config.headers));
   await config.text();
 
@@ -292,9 +306,12 @@ async function ensureOcisSession(cookie: string): Promise<string> {
       Referer: `${BASE}/ocis/landing`,
     },
   });
+
   cookie = mergeCookies(cookie, readSetCookies(terms.headers));
   const termsBody = (await terms.json()) as OcisApiEnvelope<unknown>;
+
   unwrapOcisPayload(termsBody);
+
   return cookie;
 }
 
@@ -302,6 +319,7 @@ export function shouldSearchVaOcis(parsed: ParsedUsQuery): boolean {
   if (parsed.mode === "case") return false;
   if (parsed.state === "VA") return true;
   if (parsed.county || parsed.city || parsed.zip) return true;
+
   return /\b(virginia|fairfax|henrico|norfolk|richmond|chesapeake|arlington|loudoun)\b/i.test(
     parsed.raw,
   );
@@ -314,6 +332,7 @@ export async function searchVaOcis(
   const name = buildOcisName(parsed);
   const key = cacheKey("va-ocis", `${name}:${limit}`);
   const cached = getCached<CourtCaseHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("va-ocis", 1500);
@@ -344,6 +363,7 @@ export async function searchVaOcis(
 
   cookie = mergeCookies(cookie, readSetCookies(res.headers));
   const raw = (await res.json()) as OcisApiEnvelope<OcisSearchPayload>;
+
   if (!res.ok) {
     throw new Error(`Virginia OCIS HTTP ${res.status}`);
   }
@@ -353,9 +373,11 @@ export async function searchVaOcis(
   const retrievedAt = new Date().toISOString();
 
   const hits: CourtCaseHit[] = rows.slice(0, limit).map((row, index) => {
-    const docket = row.formattedCaseNumber || row.caseNumber || `va-ocis-${index}`;
+    const docket =
+      row.formattedCaseNumber || row.caseNumber || `va-ocis-${index}`;
     const defendant = row.name || name;
     const charge = row.chargeDesc || "Virginia court matter";
+
     return {
       id: `va-ocis-${docket}`,
       caseName: `${charge} — ${defendant}`,
@@ -384,5 +406,6 @@ export async function searchVaOcis(
   });
 
   setCached(key, hits, SOURCE_LIMITS["va-ocis"].ttlMs);
+
   return hits;
 }

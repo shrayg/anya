@@ -20,6 +20,7 @@ async function findUserForLogin(rawUsername: string) {
   const byNormalized = await prisma.user.findUnique({
     where: { username: normalized },
   });
+
   if (byNormalized) return byNormalized;
 
   // Legacy accounts may have been stored with original casing.
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
     const ip = getClientIp(request);
 
     const turnstile = await verifyTurnstileToken(turnstileToken, ip);
+
     if (!turnstile.ok) {
       return NextResponse.json({ error: turnstile.error }, { status: 400 });
     }
@@ -106,6 +108,7 @@ export async function POST(request: Request) {
     return attachSessionCookie(response, user.id, user.isAdmin);
   } catch (error) {
     console.error("Login error:", error);
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -1,3 +1,5 @@
+import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
 
 const BASE = "https://courtconnect.courts.delaware.gov/cc/cconnect";
 
@@ -21,6 +22,7 @@ function requireName(parsed: ParsedUsQuery): { first: string; last: string } {
 export function shouldSearchDeCourtConnect(parsed: ParsedUsQuery): boolean {
   if (parsed.mode === "case") return false;
   if (parsed.state === "DE") return true;
+
   return /\b(delaware|wilmington|dover|newark)\b/i.test(parsed.raw);
 }
 
@@ -43,6 +45,7 @@ export async function searchDeCourtConnect(
   const { first, last } = requireName(parsed);
   const key = cacheKey("de-courtconnect", `${last}|${first}|${limit}`);
   const cached = getCached<CourtCaseHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("de-courtconnect", 1200);
@@ -86,6 +89,7 @@ export async function searchDeCourtConnect(
   for (const tr of html.matchAll(/<tr align="left">([\s\S]*?)<\/tr>/gi)) {
     const row = tr[1] ?? "";
     const caseId = row.match(/case_id=([^&"]+)/i)?.[1];
+
     if (!caseId || seen.has(caseId)) continue;
     seen.add(caseId);
 
@@ -122,5 +126,6 @@ export async function searchDeCourtConnect(
   }
 
   setCached(key, hits, SOURCE_LIMITS["de-courtconnect"].ttlMs);
+
   return hits;
 }

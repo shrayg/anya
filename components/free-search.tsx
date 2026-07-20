@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Input } from "@heroui/input";
-import { Button } from "@heroui/button";
 import { Card, CardBody } from "@heroui/card";
 import clsx from "clsx";
 import { Search } from "lucide-react";
@@ -13,13 +12,20 @@ import {
   unlockAutofillShield,
 } from "@/lib/search-autofill-shield";
 
-const BlurredText = ({ text, blurPercentage = 0.4 }: { text: string; blurPercentage?: number }) => {
+const BlurredText = ({
+  text,
+  blurPercentage = 0.4,
+}: {
+  text: string;
+  blurPercentage?: number;
+}) => {
   const chars = text.split("");
   const blurCount = Math.ceil(chars.length * blurPercentage);
   const blurIndices = new Set<number>();
-  
+
   for (let i = 0; i < blurCount; i++) {
     let randomIdx;
+
     do {
       randomIdx = Math.floor(Math.random() * chars.length);
     } while (blurIndices.has(randomIdx));
@@ -62,33 +68,70 @@ export const FreeSearch = () => {
       items: [
         { label: "Email", value: searchQuery || "user@example.com" },
         { label: "Password Hash", value: "$2b$12$############" },
-        { label: "Last Login", value: <BlurredText text="2024-03-10 14:32:15" blurPercentage={0.3} /> },
-        { label: "Phone", value: <BlurredText text="555-••••-7890" blurPercentage={0.5} /> },
+        {
+          label: "Last Login",
+          value: (
+            <BlurredText blurPercentage={0.3} text="2024-03-10 14:32:15" />
+          ),
+        },
+        {
+          label: "Phone",
+          value: <BlurredText blurPercentage={0.5} text="555-••••-7890" />,
+        },
       ],
     },
     {
       type: "Person Information",
       items: [
-        { label: "First Name", value: <BlurredText text="Jonathan" blurPercentage={0.4} /> },
-        { label: "Last Name", value: <BlurredText text="Smith" blurPercentage={0.3} /> },
-        { label: "Residence", value: <BlurredText text="123 Oak Street, Denver CO 80202" blurPercentage={0.35} /> },
-        { label: "Date of Birth", value: <BlurredText text="1992-05-15" blurPercentage={0.4} /> },
+        {
+          label: "First Name",
+          value: <BlurredText blurPercentage={0.4} text="Jonathan" />,
+        },
+        {
+          label: "Last Name",
+          value: <BlurredText blurPercentage={0.3} text="Smith" />,
+        },
+        {
+          label: "Residence",
+          value: (
+            <BlurredText
+              blurPercentage={0.35}
+              text="123 Oak Street, Denver CO 80202"
+            />
+          ),
+        },
+        {
+          label: "Date of Birth",
+          value: <BlurredText blurPercentage={0.4} text="1992-05-15" />,
+        },
       ],
     },
     {
       type: "Breach Data",
       items: [
-        { label: "Breach Source", value: <BlurredText text="DataLeakDatabase" blurPercentage={0.3} /> },
-        { label: "Date Exposed", value: <BlurredText text="2023-08-15" blurPercentage={0.2} /> },
+        {
+          label: "Breach Source",
+          value: <BlurredText blurPercentage={0.3} text="DataLeakDatabase" />,
+        },
+        {
+          label: "Date Exposed",
+          value: <BlurredText blurPercentage={0.2} text="2023-08-15" />,
+        },
         { label: "Fields Exposed", value: "Email, Password, Phone, Location" },
-        { label: "Record Count", value: <BlurredText text="1,542,830 records" blurPercentage={0.4} /> },
+        {
+          label: "Record Count",
+          value: <BlurredText blurPercentage={0.4} text="1,542,830 records" />,
+        },
       ],
     },
     {
       type: "Payment Info",
       items: [
         { label: "Card Last 4", value: "••••-9428" },
-        { label: "Card Type", value: <BlurredText text="Visa" blurPercentage={0.25} /> },
+        {
+          label: "Card Type",
+          value: <BlurredText blurPercentage={0.25} text="Visa" />,
+        },
         { label: "Expiry", value: "••/••" },
         { label: "CVV", value: "███" },
       ],
@@ -98,51 +141,72 @@ export const FreeSearch = () => {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <h2 className={clsx("text-2xl md:text-3xl font-bold text-center mb-2 text-white", "[font-family:var(--font-bruno-ace-sc)]")}>
+        <h2
+          className={clsx(
+            "text-2xl md:text-3xl font-bold text-center mb-2 text-white",
+            "[font-family:var(--font-bruno-ace-sc)]",
+          )}
+        >
           Try One Free Search
         </h2>
         <p className="text-center text-gray-400 text-sm md:text-base">
-          Experience the power of {siteConfig.name} with a free trial search. Sensitive data is blurred to protect privacy.
+          Experience the power of {siteConfig.name} with a free trial search.
+          Sensitive data is blurred to protect privacy.
         </p>
       </div>
 
-      <form autoComplete="off" onSubmit={handleSearch} className="relative mb-8 flex gap-0">
+      <form
+        autoComplete="off"
+        className="relative mb-8 flex gap-0"
+        onSubmit={handleSearch}
+      >
         <div className="relative flex-1">
           <Input
             isClearable
-            type="text"
-            name="free-osint-query"
-            placeholder="Enter email, username, phone number, IP, or domain..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={unlockAutofillShield}
-            disabled={hasSearched}
-            autoComplete={SEARCH_AUTOFILL_SHIELD.autoComplete}
             autoCapitalize="off"
+            autoComplete={SEARCH_AUTOFILL_SHIELD.autoComplete}
             autoCorrect="off"
-            spellCheck="false"
-            startContent={<Search className="text-gray-500" size={20} />}
-            endContent={
-              <button
-                type="submit"
-                disabled={!searchQuery.trim() || hasSearched}
-                className="text-gray-400 hover:text-gray-300 disabled:opacity-50 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7m0 0l-7 7m7-7H6" />
-                </svg>
-              </button>
-            }
             classNames={{
-              input: "bg-transparent text-white placeholder:text-gray-600 text-base py-6 pr-12",
+              input:
+                "bg-transparent text-white placeholder:text-gray-600 text-base py-6 pr-12",
               inputWrapper: clsx(
                 "bg-black/60 border-2 border-white/20 rounded-2xl",
                 "backdrop-blur-md transition-all duration-200",
                 "!ring-0 !ring-offset-0 focus:!ring-0",
                 "hover:bg-black/60 hover:border-white/20",
-                hasSearched && "opacity-50 cursor-not-allowed"
+                hasSearched && "opacity-50 cursor-not-allowed",
               ),
             }}
+            disabled={hasSearched}
+            endContent={
+              <button
+                className="text-gray-400 hover:text-gray-300 disabled:opacity-50 transition-colors"
+                disabled={!searchQuery.trim() || hasSearched}
+                type="submit"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M13 5l7 7m0 0l-7 7m7-7H6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                  />
+                </svg>
+              </button>
+            }
+            name="free-osint-query"
+            placeholder="Enter email, username, phone number, IP, or domain..."
+            spellCheck="false"
+            startContent={<Search className="text-gray-500" size={20} />}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={unlockAutofillShield}
           />
         </div>
       </form>
@@ -150,14 +214,21 @@ export const FreeSearch = () => {
       {hasSearched && (
         <div className="space-y-3">
           {sampleResults.map((result, idx) => (
-            <Card key={idx} className="bg-black/50 border border-white/10 rounded-2xl backdrop-blur-md hover:bg-black/60 transition-colors">
+            <Card
+              key={idx}
+              className="bg-black/50 border border-white/10 rounded-2xl backdrop-blur-md hover:bg-black/60 transition-colors"
+            >
               <CardBody className="p-4">
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">{result.type}</h3>
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">
+                  {result.type}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {result.items.map((item, itemIdx) => (
                     <div key={itemIdx} className="text-xs">
                       <p className="text-gray-500 font-medium">{item.label}</p>
-                      <p className="text-gray-200 font-mono mt-1 break-all">{item.value}</p>
+                      <p className="text-gray-200 font-mono mt-1 break-all">
+                        {item.value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -168,7 +239,8 @@ export const FreeSearch = () => {
           <Card className="bg-black/50 border border-white/10 rounded-2xl">
             <CardBody className="p-4">
               <p className="text-sm text-gray-300 text-center">
-                Sensitive data is partially blurred. Sign up to see complete, detailed results.
+                Sensitive data is partially blurred. Sign up to see complete,
+                detailed results.
               </p>
             </CardBody>
           </Card>

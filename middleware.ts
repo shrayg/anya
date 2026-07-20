@@ -37,6 +37,7 @@ function stripFingerprintHeaders(response: NextResponse) {
   ]) {
     response.headers.delete(key);
   }
+
   return response;
 }
 
@@ -45,6 +46,7 @@ function withCsrfCookie(
   response: NextResponse,
 ): NextResponse {
   const existing = request.cookies.get(CSRF_COOKIE_NAME)?.value;
+
   if (!existing) {
     response.cookies.set(
       CSRF_COOKIE_NAME,
@@ -52,6 +54,7 @@ function withCsrfCookie(
       csrfCookieOptions(),
     );
   }
+
   return stripFingerprintHeaders(response);
 }
 
@@ -95,6 +98,7 @@ export async function middleware(request: NextRequest) {
           NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
         );
       }
+
       // Prefer marketing home over login when session is missing/expired
       // (e.g. browser restores a /dashboard* tab after close).
       return stripFingerprintHeaders(
@@ -104,6 +108,7 @@ export async function middleware(request: NextRequest) {
 
     try {
       await jwtVerify(token, key, { algorithms: ["HS256"] });
+
       return passthrough;
     } catch {
       if (isOsintApi) {
@@ -111,6 +116,7 @@ export async function middleware(request: NextRequest) {
           NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
         );
       }
+
       return stripFingerprintHeaders(
         NextResponse.redirect(new URL("/", request.url)),
       );

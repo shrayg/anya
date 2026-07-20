@@ -1,7 +1,8 @@
 "use client";
 
-import clsx from "clsx";
 import type { LucideIcon } from "lucide-react";
+
+import clsx from "clsx";
 
 export function PageHeader({
   title,
@@ -28,7 +29,7 @@ export function DashPanel({
 }: {
   children: React.ReactNode;
   className?: string;
-  glow?: "teal" | "amber" | "violet";
+  glow?: "teal" | "amber" | "violet" | "pink";
 }) {
   return (
     <section
@@ -37,6 +38,7 @@ export function DashPanel({
         glow === "teal" && "dash-panel-glow-teal",
         glow === "amber" && "dash-panel-glow-amber",
         glow === "violet" && "dash-panel-glow-violet",
+        glow === "pink" && "dash-panel-glow-pink",
         className,
       )}
     >
@@ -79,7 +81,7 @@ export function DashButton({
   type = "button",
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "danger" | "coffee";
+  variant?: "primary" | "secondary" | "ghost" | "danger";
 }) {
   return (
     <button

@@ -14,6 +14,7 @@ export async function POST(
 ) {
   try {
     const auth = await requireWorkspaceHelper();
+
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -27,6 +28,7 @@ export async function POST(
 
     try {
       const body = await request.json();
+
       if (typeof body?.note === "string") {
         note = body.note.trim().slice(0, 500);
       }
@@ -85,6 +87,10 @@ export async function POST(
     });
   } catch (error) {
     console.error("Error flagging member for investigation:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

@@ -9,6 +9,7 @@ import { prisma } from "@/prisma/client";
 export async function GET() {
   try {
     const auth = await requireWorkspaceHelper();
+
     if (auth.error) return auth.error;
 
     const users = await prisma.user.findMany({
@@ -21,6 +22,10 @@ export async function GET() {
     return NextResponse.json({ users });
   } catch (error) {
     console.error("Error fetching helper members:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

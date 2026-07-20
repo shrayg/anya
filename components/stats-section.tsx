@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Database, Users } from "lucide-react";
+
 import ShinyText from "./shiny-text";
 
 export const StatsSection = () => {
@@ -41,34 +42,41 @@ export const StatsSection = () => {
   return (
     <section className="py-16 px-4 z-20">
       <div className="max-w-6xl mx-auto">
-        <ShinyText text="Our Metrics" className="text-4xl md:text-5xl z-20 font-bold text-center mb-12 transition-all ease-in-out" />
+        <ShinyText
+          className="text-4xl md:text-5xl z-20 font-bold text-center mb-12 transition-all ease-in-out"
+          text="Our Metrics"
+        />
 
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 gap-8"
-          variants={containerVariants}
           initial="hidden"
-          whileInView="visible"
+          variants={containerVariants}
           viewport={{ once: true, amount: 0.3 }}
+          whileInView="visible"
         >
           {stats.map((stat, index) => (
             <motion.div
               key={index}
-              variants={itemVariants}
               className="relative rounded-2xl p-8 backdrop-blur-xl border border-white/10 hover:border-white/20 transition-colors"
               style={{
-                background: "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
               }}
+              variants={itemVariants}
             >
               <div className="flex items-center justify-between mb-4">
                 <stat.icon className="w-10 h-10 text-white/80" />
               </div>
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
-                whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5 + index * 0.2 }}
                 viewport={{ once: true }}
+                whileInView={{ opacity: 1, scale: 1 }}
               >
-                <ShinyText text={stat.value} className="text-4xl md:text-5xl font-bold mb-2" />
+                <ShinyText
+                  className="text-4xl md:text-5xl font-bold mb-2"
+                  text={stat.value}
+                />
               </motion.div>
               <p className="text-white/60 text-lg">{stat.label}</p>
 

@@ -19,12 +19,15 @@ function useLiveCountdown(targetIso: string | null | undefined) {
   useEffect(() => {
     if (!targetIso) return;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
+
     return () => window.clearInterval(id);
   }, [targetIso]);
 
   if (!targetIso) return null;
   const target = new Date(targetIso).getTime();
+
   if (!Number.isFinite(target)) return null;
+
   return Math.max(0, target - now);
 }
 
@@ -41,6 +44,7 @@ function QuotaRefreshValue({ stats }: { stats: UserStats | null }) {
   if (remainingMs <= 0) {
     return <span className="anya-stat-row-value">Ready</span>;
   }
+
   return (
     <span className="anya-stat-row-value tabular-nums">
       {formatCountdown(remainingMs)}
@@ -68,7 +72,9 @@ function PlanEndsValue({ stats }: { stats: UserStats | null }) {
   }
 
   return (
-    <span className="anya-stat-row-value">{formatPlanEndDate(stats.planEndsAt)}</span>
+    <span className="anya-stat-row-value">
+      {formatPlanEndDate(stats.planEndsAt)}
+    </span>
   );
 }
 
@@ -168,8 +174,8 @@ export function AccountBillingNote({ stats }: { stats: UserStats | null }) {
 
   return (
     <p className="mt-3 text-xs leading-5 text-zinc-500">
-      Crypto invoices are one-time and must be renewed manually. Card (Square) is
-      the path for recurring-style renewals.
+      Crypto invoices are one-time and must be renewed manually. Card (Square)
+      is the path for recurring-style renewals.
     </p>
   );
 }

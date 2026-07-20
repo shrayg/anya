@@ -44,41 +44,50 @@ function utcDayKey(date = new Date()): string {
 
 function addUtcDays(dayKey: string, delta: number): string {
   const d = new Date(`${dayKey}T12:00:00.000Z`);
+
   d.setUTCDate(d.getUTCDate() + delta);
+
   return d.toISOString().slice(0, 10);
 }
 
 function dayKeysForWindow(endDay: string, windowDays: number): string[] {
   const keys: string[] = [];
+
   for (let i = windowDays - 1; i >= 0; i -= 1) {
     keys.push(addUtcDays(endDay, -i));
   }
+
   return keys;
 }
 
 function worstStatus(a: StatusLevel, b: StatusLevel): StatusLevel {
   if (a === "outage" || b === "outage") return "outage";
   if (a === "degraded" || b === "degraded") return "degraded";
+
   return "operational";
 }
 
 function uptimePercent(segments: StatusLevel[]): number {
   if (segments.length === 0) return 100;
   let score = 0;
+
   for (const s of segments) {
     if (s === "operational") score += 1;
     else if (s === "degraded") score += 0.5;
   }
+
   return Math.round((score / segments.length) * 10_000) / 100;
 }
 
 /** Durable path on the VPS (outside the git checkout). */
 export function resolveStatusHistoryPath(): string {
   const fromEnv = process.env.ANYA_STATUS_HISTORY_PATH?.trim();
+
   if (fromEnv) return fromEnv;
   if (process.env.NODE_ENV === "production") {
     return "/var/www/anya-secrets/status-history.json";
   }
+
   return join(process.cwd(), "data", "status-history.json");
 }
 
@@ -91,9 +100,11 @@ function readFile(path: string): HistoryFile {
     if (!existsSync(path)) return emptyFile();
     const raw = readFileSync(path, "utf8");
     const parsed = JSON.parse(raw) as HistoryFile;
+
     if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.days)) {
       return emptyFile();
     }
+
     return parsed;
   } catch {
     return emptyFile();
@@ -111,6 +122,7 @@ function seedOperationalWindow(
   seedServices: Record<string, StatusLevel>,
 ): DaySample[] {
   const keys = dayKeysForWindow(endDay, windowDays);
+
   return keys.map((day) => ({
     day,
     overall: "operational" as const,
@@ -122,12 +134,14 @@ function servicesMapFromList(
   services: Array<{ id: string; status: StatusLevel }>,
 ): Record<string, StatusLevel> {
   const out: Record<string, StatusLevel> = {};
+
   for (const id of SERVICE_IDS) {
     out[id] = "operational";
   }
   for (const service of services) {
     out[service.id] = service.status;
   }
+
   return out;
 }
 
@@ -151,7 +165,9 @@ export function recordStatusHistorySample(input: {
       days: seedOperationalWindow(
         today,
         STATUS_HISTORY_WINDOW_DAYS,
-        Object.fromEntries(SERVICE_IDS.map((id) => [id, "operational" as const])),
+        Object.fromEntries(
+          SERVICE_IDS.map((id) => [id, "operational" as const]),
+        ),
       ),
     };
   }
@@ -178,7 +194,9 @@ export function recordStatusHistorySample(input: {
   const windowKeys = dayKeysForWindow(today, STATUS_HISTORY_WINDOW_DAYS);
   const days: DaySample[] = windowKeys.map((day) => {
     const found = byDay.get(day);
+
     if (found) return found;
+
     return {
       day,
       overall: "operational" as const,
@@ -189,12 +207,15 @@ export function recordStatusHistorySample(input: {
   });
 
   const todayIdx = days.findIndex((d) => d.day === today);
+
   if (todayIdx >= 0) {
     const merged = byDay.get(today);
+
     if (merged) days[todayIdx] = merged;
   }
 
   writeHistoryFile(path, { version: 1, days });
+
   return buildHistoryPayload(days);
 }
 
@@ -209,6 +230,7 @@ export function readStatusHistory(): StatusHistoryPayload {
       STATUS_HISTORY_WINDOW_DAYS,
       Object.fromEntries(SERVICE_IDS.map((id) => [id, "operational" as const])),
     );
+
     return buildHistoryPayload(seeded);
   }
 
@@ -216,7 +238,9 @@ export function readStatusHistory(): StatusHistoryPayload {
   const windowKeys = dayKeysForWindow(today, STATUS_HISTORY_WINDOW_DAYS);
   const days: DaySample[] = windowKeys.map((day) => {
     const found = byDay.get(day);
+
     if (found) return found;
+
     return {
       day,
       overall: "operational" as const,
@@ -235,6 +259,7 @@ function buildHistoryPayload(days: DaySample[]): StatusHistoryPayload {
 
   for (const id of SERVICE_IDS) {
     const segments = days.map((d) => d.services[id] ?? "operational");
+
     services[id] = {
       segments,
       uptimePercent: uptimePercent(segments),

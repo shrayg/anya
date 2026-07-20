@@ -38,14 +38,19 @@ export function detectDatingAppFromQuery(query: string): DatingAppSlug | null {
   return null;
 }
 
-export function normalizeDatingQuery(query: string, slug?: DatingAppSlug | null): string {
+export function normalizeDatingQuery(
+  query: string,
+  slug?: DatingAppSlug | null,
+): string {
   const trimmed = query.trim();
   const resolvedSlug = slug ?? detectDatingAppFromQuery(trimmed);
 
   if (!resolvedSlug) return trimmed;
 
   try {
-    const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const withProtocol = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
     const url = new URL(withProtocol);
 
     const segments = url.pathname.split("/").filter(Boolean);
@@ -59,6 +64,7 @@ export function normalizeDatingQuery(query: string, slug?: DatingAppSlug | null)
   }
 
   const handleMatch = trimmed.match(/@([A-Za-z0-9._-]+)/);
+
   if (handleMatch?.[1]) return handleMatch[1];
 
   return trimmed;

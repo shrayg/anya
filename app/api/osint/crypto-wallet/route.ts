@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
-import {
-  detectCsintCryptoSymbol,
-  fetchCsintCrypto,
-} from "@/lib/csint";
+import { detectCsintCryptoSymbol, fetchCsintCrypto } from "@/lib/csint";
 import { PUBLIC_INTEL_SOURCE } from "@/lib/public-branding";
 import {
   CRYPTO_WALLET_INVALID_MESSAGE,
@@ -16,6 +12,7 @@ import { fetchGodsEyeSearchSafe } from "@/lib/godseye";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "crypto-wallet");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
@@ -25,6 +22,7 @@ export async function GET(req: NextRequest) {
   }
 
   const chain = detectCryptoChain(query);
+
   if (!chain) {
     return NextResponse.json(
       { error: CRYPTO_WALLET_INVALID_MESSAGE },
@@ -52,6 +50,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Wallet lookup failed";
+
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

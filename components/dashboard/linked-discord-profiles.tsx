@@ -10,7 +10,13 @@ import {
 } from "@/lib/discord-profile";
 import { resolveDiscordBadges } from "@/lib/discord-badges";
 
-function DiscordProfileCard({ id, profile }: { id: string; profile: DiscordProfile }) {
+function DiscordProfileCard({
+  id,
+  profile,
+}: {
+  id: string;
+  profile: DiscordProfile;
+}) {
   const accent = profileAccent(profile);
   const badges = resolveDiscordBadges(profile.badges);
   const handleTag =
@@ -52,8 +58,8 @@ function DiscordProfileCard({ id, profile }: { id: string; profile: DiscordProfi
               />
               {profile.avatarDecorationUrl ? (
                 <img
-                  alt=""
                   aria-hidden
+                  alt=""
                   className="discord-profile-avatar-decoration"
                   src={profile.avatarDecorationUrl}
                 />
@@ -65,7 +71,9 @@ function DiscordProfileCard({ id, profile }: { id: string; profile: DiscordProfi
             <h3 className="discord-profile-name">
               {profile.displayName}
               {profile.clanTag ? (
-                <span className="discord-profile-clan">[{profile.clanTag}]</span>
+                <span className="discord-profile-clan">
+                  [{profile.clanTag}]
+                </span>
               ) : null}
             </h3>
             <p className="discord-profile-handle">
@@ -76,7 +84,7 @@ function DiscordProfileCard({ id, profile }: { id: string; profile: DiscordProfi
           </div>
 
           {badges.length > 0 ? (
-            <div className="discord-profile-badges" aria-label="Badges">
+            <div aria-label="Badges" className="discord-profile-badges">
               {badges.map((badge) => (
                 <span
                   key={badge.key}

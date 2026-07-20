@@ -7,11 +7,14 @@ function getWebhookUrl() {
   const url =
     process.env.DISCORD_PAYMENTS_WEBHOOK_URL?.trim() ||
     process.env.DISCORD_SUPPORT_WEBHOOK_URL?.trim();
+
   if (!url) return null;
   if (!DISCORD_WEBHOOK_RE.test(url)) {
     console.error("Discord payments webhook URL is invalid");
+
     return null;
   }
+
   return url;
 }
 
@@ -33,9 +36,11 @@ export type PaymentWebhookPayload = {
 
 export async function notifyPaymentDiscord(payload: PaymentWebhookPayload) {
   const webhookUrl = getWebhookUrl();
+
   if (!webhookUrl) return { sent: false as const, reason: "not_configured" };
 
-  const appUrl = process.env.APP_URL?.replace(/\/$/, "") || "https://anyaint.com";
+  const appUrl =
+    process.env.APP_URL?.replace(/\/$/, "") || "https://anyaint.com";
   const money = `$${payload.amount.toFixed(2)} ${(payload.currency || "USD").toUpperCase()}`;
 
   const title =
@@ -54,7 +59,11 @@ export async function notifyPaymentDiscord(payload: PaymentWebhookPayload) {
   ];
 
   if (payload.plan) {
-    fields.push({ name: "Plan", value: escapeDiscord(payload.plan), inline: true });
+    fields.push({
+      name: "Plan",
+      value: escapeDiscord(payload.plan),
+      inline: true,
+    });
   }
   if (payload.interval) {
     fields.push({
@@ -109,12 +118,14 @@ export async function notifyPaymentDiscord(payload: PaymentWebhookPayload) {
 
     if (!response.ok) {
       console.error("Discord payments webhook failed:", response.status);
+
       return { sent: false as const, reason: "webhook_error" };
     }
 
     return { sent: true as const };
   } catch (error) {
     console.error("Discord payments webhook error:", error);
+
     return { sent: false as const, reason: "webhook_error" };
   }
 }

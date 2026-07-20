@@ -1,19 +1,20 @@
 "use client";
 
-import { ExternalLink, Heart, MapPin, Sparkles, Tag, Users } from "lucide-react";
-
-import { BlurredValue } from "@/components/dashboard/blurred-value";
 import type { InstagramPersona } from "@/lib/instagram-persona";
 
-function Avatar({
-  url,
-  fallback,
-}: {
-  url?: string;
-  fallback: string;
-}) {
+import {
+  ExternalLink,
+  Heart,
+  MapPin,
+  Sparkles,
+  Tag,
+  Users,
+} from "lucide-react";
+
+import { BlurredValue } from "@/components/dashboard/blurred-value";
+
+function Avatar({ url, fallback }: { url?: string; fallback: string }) {
   if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
         alt=""
@@ -22,6 +23,7 @@ function Avatar({
       />
     );
   }
+
   return (
     <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[10px] text-zinc-500">
       {fallback}
@@ -33,6 +35,7 @@ function formatCount(value?: number): string {
   if (!value || value <= 0) return "";
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+
   return String(value);
 }
 
@@ -145,7 +148,7 @@ export function InstagramPersonaPanel({
                 key={account.id}
                 className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2"
               >
-                <Avatar url={account.profilePicUrl} fallback="IG" />
+                <Avatar fallback="IG" url={account.profilePicUrl} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-zinc-100">
                     <BlurredValue
@@ -194,20 +197,22 @@ export function InstagramPersonaPanel({
                 <p className="text-xs text-zinc-500">None found.</p>
               ) : (
                 <ul className="space-y-1 text-sm text-zinc-200">
-                  {persona.tagRelationships.youTag.slice(0, 8).map((relation) => (
-                    <li
-                      key={relation.username}
-                      className="flex items-center justify-between"
-                    >
-                      <BlurredValue
-                        forceBlur={blurResults}
-                        text={`@${relation.username}`}
-                      />
-                      <span className="text-xs text-zinc-500">
-                        {relation.count}×
-                      </span>
-                    </li>
-                  ))}
+                  {persona.tagRelationships.youTag
+                    .slice(0, 8)
+                    .map((relation) => (
+                      <li
+                        key={relation.username}
+                        className="flex items-center justify-between"
+                      >
+                        <BlurredValue
+                          forceBlur={blurResults}
+                          text={`@${relation.username}`}
+                        />
+                        <span className="text-xs text-zinc-500">
+                          {relation.count}×
+                        </span>
+                      </li>
+                    ))}
                 </ul>
               )}
             </div>
@@ -219,20 +224,22 @@ export function InstagramPersonaPanel({
                 <p className="text-xs text-zinc-500">None found.</p>
               ) : (
                 <ul className="space-y-1 text-sm text-zinc-200">
-                  {persona.tagRelationships.tagYou.slice(0, 8).map((relation) => (
-                    <li
-                      key={relation.username}
-                      className="flex items-center justify-between"
-                    >
-                      <BlurredValue
-                        forceBlur={blurResults}
-                        text={`@${relation.username}`}
-                      />
-                      <span className="text-xs text-zinc-500">
-                        {relation.count}×
-                      </span>
-                    </li>
-                  ))}
+                  {persona.tagRelationships.tagYou
+                    .slice(0, 8)
+                    .map((relation) => (
+                      <li
+                        key={relation.username}
+                        className="flex items-center justify-between"
+                      >
+                        <BlurredValue
+                          forceBlur={blurResults}
+                          text={`@${relation.username}`}
+                        />
+                        <span className="text-xs text-zinc-500">
+                          {relation.count}×
+                        </span>
+                      </li>
+                    ))}
                 </ul>
               )}
             </div>
@@ -253,7 +260,7 @@ export function InstagramPersonaPanel({
                 key={friend.username}
                 className="flex items-center gap-3 rounded-xl border border-rose-400/15 bg-rose-500/5 px-3 py-2"
               >
-                <Avatar url={friend.profilePicUrl} fallback="IG" />
+                <Avatar fallback="IG" url={friend.profilePicUrl} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-zinc-100">
                     <BlurredValue
@@ -295,7 +302,7 @@ export function InstagramPersonaPanel({
                 rel="noreferrer"
                 target="_blank"
               >
-                <Avatar url={person.profilePicUrl} fallback="IG" />
+                <Avatar fallback="IG" url={person.profilePicUrl} />
                 <span className="text-xs text-zinc-200">
                   <BlurredValue
                     forceBlur={blurResults}

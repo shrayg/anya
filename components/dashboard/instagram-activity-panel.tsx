@@ -1,9 +1,10 @@
 "use client";
 
+import type { InstagramActivityGraph } from "@/lib/instagram-activity";
+
 import { ExternalLink, MapPin, MessageCircle, Users } from "lucide-react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
-import type { InstagramActivityGraph } from "@/lib/instagram-activity";
 
 export function InstagramActivityPanel({
   activity,
@@ -54,17 +55,23 @@ export function InstagramActivityPanel({
                 className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
               >
                 <p className="text-sm text-zinc-100">
-                  <BlurredValue forceBlur={blurResults} text={visit.location.name} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={visit.location.name}
+                  />
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">
                   First {visit.firstSeenIso.slice(0, 10) || "?"} · Last{" "}
-                  {visit.lastSeenIso.slice(0, 10) || "?"} · {visit.visitCount} post
-                  {visit.visitCount === 1 ? "" : "s"} · {visit.sources.join("/")}
+                  {visit.lastSeenIso.slice(0, 10) || "?"} · {visit.visitCount}{" "}
+                  post
+                  {visit.visitCount === 1 ? "" : "s"} ·{" "}
+                  {visit.sources.join("/")}
                 </p>
                 {typeof visit.location.lat === "number" &&
                 typeof visit.location.lng === "number" ? (
                   <p className="text-[11px] text-zinc-600">
-                    {visit.location.lat.toFixed(4)}, {visit.location.lng.toFixed(4)}
+                    {visit.location.lat.toFixed(4)},{" "}
+                    {visit.location.lng.toFixed(4)}
                   </p>
                 ) : null}
                 {visit.postUrls[0] ? (
@@ -108,8 +115,8 @@ export function InstagramActivityPanel({
                       />
                     </p>
                     <p className="text-xs text-zinc-500">
-                      {entry.postCount} posts · {entry.commentCount} comments · score{" "}
-                      {entry.consistencyScore}
+                      {entry.postCount} posts · {entry.commentCount} comments ·
+                      score {entry.consistencyScore}
                     </p>
                   </div>
                   <a
@@ -156,7 +163,9 @@ export function InstagramActivityPanel({
                     forceBlur={blurResults}
                     text={`@${entry.account.username}`}
                   />{" "}
-                  <span className="text-xs text-zinc-500">score {entry.score}</span>
+                  <span className="text-xs text-zinc-500">
+                    score {entry.score}
+                  </span>
                 </p>
                 <ul className="mt-1 space-y-0.5 text-[11px] text-zinc-500">
                   {entry.reasons.map((reason) => (

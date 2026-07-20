@@ -42,7 +42,9 @@ export async function searchBanks(query: string): Promise<BankSearchResult> {
   const trimmed = query.trim();
 
   if (trimmed.length < 2) {
-    throw new Error("Enter a bank name, US state code (e.g. NY), or FDIC cert number.");
+    throw new Error(
+      "Enter a bank name, US state code (e.g. NY), or FDIC cert number.",
+    );
   }
 
   const params = new URLSearchParams({
@@ -54,10 +56,13 @@ export async function searchBanks(query: string): Promise<BankSearchResult> {
     sort_order: "DESC",
   });
 
-  const res = await fetch(`https://banks.data.fdic.gov/api/institutions?${params}`, {
-    cache: "no-store",
-    headers: { Accept: "application/json" },
-  });
+  const res = await fetch(
+    `https://banks.data.fdic.gov/api/institutions?${params}`,
+    {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    },
+  );
 
   if (!res.ok) {
     throw new Error("Bank institution search failed");

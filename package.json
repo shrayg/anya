@@ -86,6 +86,7 @@
     "undici": "^6.27.0"
   },
   "devDependencies": {
+    "@eslint/compat": "^2.1.0",
     "@next/eslint-plugin-next": "15.5.9",
     "@react-types/shared": "3.33.1",
     "@tailwindcss/postcss": "4.1.11",

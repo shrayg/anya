@@ -52,8 +52,8 @@ export default function AcceptableUsePage() {
             Misrepresent your identity, share accounts, or evade suspension
           </li>
           <li>
-            Use the Service in any way that violates applicable law or third-party
-            rights
+            Use the Service in any way that violates applicable law or
+            third-party rights
           </li>
         </ul>
       </LegalSection>

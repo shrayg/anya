@@ -3,10 +3,7 @@
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
-import {
-  INTELX_BUCKET_LABELS,
-  isIntelxBucket,
-} from "@/lib/intelx-buckets";
+import { INTELX_BUCKET_LABELS, isIntelxBucket } from "@/lib/intelx-buckets";
 import { siteConfig } from "@/config/site";
 
 export type IntelxSearchPayload = {

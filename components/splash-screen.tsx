@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { usePathname } from "next/navigation";
 
@@ -56,6 +62,19 @@ export const SplashScreen = () => {
   useLayoutEffect(() => {
     if (!isHome) {
       setPhase("done");
+
+      return;
+    }
+
+    // The entrance veil is a first-load moment. Re-entering the home route in
+    // the same app session must never re-lock the document after it has run.
+    if (started.current) {
+      setPhase("done");
+      clearShift();
+      delete document.documentElement.dataset.splash;
+      delete document.documentElement.dataset.splashPhase;
+      document.body.style.overflow = "";
+
       return;
     }
 
@@ -82,20 +101,25 @@ export const SplashScreen = () => {
     const place = () => {
       if (cancelled) return;
       const el = getTarget();
+
       if (!el) {
         raf = requestAnimationFrame(place);
+
         return;
       }
 
       const rect = el.getBoundingClientRect();
+
       if (rect.height < 8) {
         raf = requestAnimationFrame(place);
+
         return;
       }
 
       const naturalCenterY = rect.top + rect.height / 2;
       const viewCenterY = window.innerHeight / 2;
       const shift = viewCenterY - naturalCenterY;
+
       shiftFromRef.current = shift;
       // Hold: snap to center with no transition
       document.documentElement.dataset.splashPhase = "hold";
@@ -103,6 +127,7 @@ export const SplashScreen = () => {
     };
 
     place();
+
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
@@ -114,27 +139,34 @@ export const SplashScreen = () => {
     if (started.current) return;
     started.current = true;
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     const wait = reduced ? 200 : HOLD_MS;
 
     const timer = window.setTimeout(() => setPhase("reveal"), wait);
+
     return () => window.clearTimeout(timer);
   }, [isHome, phase]);
 
   useEffect(() => {
     if (!isHome || phase === "done") return;
     const safety = window.setTimeout(finish, HOLD_MS + REVEAL_MS * 1000 + 1500);
+
     return () => window.clearTimeout(safety);
   }, [isHome, phase, finish]);
 
   useLayoutEffect(() => {
     if (phase !== "reveal") return;
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     if (reduced) {
       void animate(spinnerOpacity, 0, { duration: 0.15 });
       void animate(bgOpacity, 0, { duration: 0.2 }).then(finish);
+
       return;
     }
 
@@ -143,6 +175,7 @@ export const SplashScreen = () => {
 
     // Enable CSS transition, then set shift to 0 — browser does the sleek glide
     const el = getTarget();
+
     document.documentElement.dataset.splashPhase = "reveal";
 
     // Double rAF so the browser applies transition: before the value change
@@ -157,9 +190,11 @@ export const SplashScreen = () => {
       el?.removeEventListener("transitionend", onEnd);
       finish();
     };
+
     el?.addEventListener("transitionend", onEnd);
 
     const fallback = window.setTimeout(finish, REVEAL_MS * 1000 + 200);
+
     return () => {
       el?.removeEventListener("transitionend", onEnd);
       window.clearTimeout(fallback);
@@ -172,11 +207,14 @@ export const SplashScreen = () => {
 
   return (
     <div
+      aria-hidden
       className="fixed inset-0 z-[100]"
       style={{ pointerEvents: phase === "hold" ? "auto" : "none" }}
-      aria-hidden
     >
-      <motion.div className="absolute inset-0 bg-black" style={{ opacity: bgOpacity }} />
+      <motion.div
+        className="absolute inset-0 bg-black"
+        style={{ opacity: bgOpacity }}
+      />
 
       <motion.div
         className="pointer-events-none absolute inset-0"
@@ -190,9 +228,9 @@ export const SplashScreen = () => {
         style={{ opacity: spinnerOpacity }}
       >
         <div
+          aria-label="Loading"
           className="size-8 rounded-full border-2 border-white/20 border-t-white animate-spin"
           role="status"
-          aria-label="Loading"
         />
       </motion.div>
     </div>

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import { resolveAiMode, runAiIntel, type AiMode } from "@/lib/ai-intel";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "ai");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query");

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Copy, Maximize2 } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
 
@@ -55,47 +54,56 @@ export const TerminalMockup = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, delay: 0.2 }}
       className="w-full max-w-4xl mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.8, delay: 0.2 }}
     >
       <div className="backdrop-blur-md border border-white/10 bg-black/40 rounded-lg overflow-hidden shadow-2xl">
         {/* Terminal Header */}
         <div className="bg-black/60 border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-red-500/60"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500/60"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500/60"></div>
+            <div className="w-3 h-3 rounded-full bg-red-500/60" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
+            <div className="w-3 h-3 rounded-full bg-green-500/60" />
           </div>
-          <span className="text-gray-400 text-sm font-mono">{siteConfig.name}</span>
-
+          <span className="text-gray-400 text-sm font-mono">
+            {siteConfig.name}
+          </span>
         </div>
 
         {/* Terminal Content */}
-        <div className="px-6 py-4 min-h-80 font-mono text-sm cursor-text" onClick={() => document.getElementById('terminal-input')?.focus()}>
+        <div
+          className="px-6 py-4 min-h-80 font-mono text-sm cursor-text"
+          onClick={() => document.getElementById("terminal-input")?.focus()}
+        >
           {isComplete ? (
             <>
               <pre className="text-white/80 whitespace-pre-wrap break-words">
                 {displayedText}
               </pre>
               {!showResponse && (
-                <div className="text-white/80" onClick={() => document.getElementById('terminal-input')?.focus()}>
+                <div
+                  className="text-white/80"
+                  onClick={() =>
+                    document.getElementById("terminal-input")?.focus()
+                  }
+                >
                   $&nbsp;
                   <input
+                    className="bg-transparent text-white/80 outline-none border-none caret-transparent font-mono text-sm inline absolute opacity-0 pointer-events-none"
                     id="terminal-input"
                     type="text"
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="bg-transparent text-white/80 outline-none border-none caret-transparent font-mono text-sm inline absolute opacity-0 pointer-events-none"
                   />
                   <span className="relative">
                     {userInput}
                     <motion.span
                       animate={{ opacity: [1, 0.3] }}
-                      transition={{ duration: 0.6, repeat: Infinity }}
                       className="text-white/80 inline"
+                      transition={{ duration: 0.6, repeat: Infinity }}
                     >
                       _
                     </motion.span>
@@ -105,7 +113,8 @@ export const TerminalMockup = () => {
               {showResponse && (
                 <pre className="text-white/80 whitespace-pre-wrap break-words">
                   $ {userInput}
-                  {"\n"}{displayedResponse}
+                  {"\n"}
+                  {displayedResponse}
                 </pre>
               )}
             </>
@@ -114,9 +123,9 @@ export const TerminalMockup = () => {
               {displayedText}
               <motion.span
                 animate={{ opacity: [1, 0] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
                 className="inline-block w-2 h-5 ml-1 bg-cyan-400"
-              ></motion.span>
+                transition={{ duration: 0.8, repeat: Infinity }}
+              />
             </pre>
           )}
         </div>

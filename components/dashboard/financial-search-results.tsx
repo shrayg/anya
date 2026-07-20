@@ -1,14 +1,17 @@
-import { BlurredValue } from "@/components/dashboard/blurred-value";
-import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import type { BankSearchResult } from "@/lib/bank-search";
 import type { BinLookupResult } from "@/lib/bin-lookup";
 import type { IbanLookupResult } from "@/lib/iban-lookup";
 import type { UsProviderSearchResult } from "@/lib/us-provider-directory";
 import type { VinDecodeResult } from "@/lib/vin-decode";
 
+import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
+import { BlurredValue } from "@/components/dashboard/blurred-value";
+
 type ResultRow = { label: string; value: string };
 
-function compactRows(rows: Array<{ label: string; value: string | undefined }>): ResultRow[] {
+function compactRows(
+  rows: Array<{ label: string; value: string | undefined }>,
+): ResultRow[] {
   return rows.filter((row): row is ResultRow => Boolean(row.value));
 }
 
@@ -68,12 +71,18 @@ export function BankSearchResults({
       <div className="anya-result-strip">
         <p className="anya-result-label">Matches</p>
         <p className="anya-result-value">
-          <BlurredValue forceBlur={blurResults} text={`${result.count.toLocaleString()} institutions`} />
+          <BlurredValue
+            forceBlur={blurResults}
+            text={`${result.count.toLocaleString()} institutions`}
+          />
         </p>
       </div>
       <div className="grid gap-3">
         {result.banks.map((bank) => (
-          <div key={`${bank.id ?? bank.name}-${bank.city}`} className="anya-result-strip space-y-2">
+          <div
+            key={`${bank.id ?? bank.name}-${bank.city}`}
+            className="anya-result-strip space-y-2"
+          >
             <p className="anya-result-label">Institution</p>
             <p className="anya-result-value text-base">
               <BlurredValue forceBlur={blurResults} text={bank.name} />
@@ -89,17 +98,26 @@ export function BankSearchResults({
               )}
               {bank.assets && (
                 <span>
-                  <BlurredValue forceBlur={blurResults} text={`Assets: ${bank.assets}`} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={`Assets: ${bank.assets}`}
+                  />
                 </span>
               )}
               {bank.offices && (
                 <span>
-                  <BlurredValue forceBlur={blurResults} text={`Offices: ${bank.offices}`} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={`Offices: ${bank.offices}`}
+                  />
                 </span>
               )}
               {bank.charter && (
                 <span>
-                  <BlurredValue forceBlur={blurResults} text={`Charter: ${bank.charter}`} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={`Charter: ${bank.charter}`}
+                  />
                 </span>
               )}
               {bank.website && (
@@ -122,7 +140,10 @@ export function VinSearchResults({
   result: VinDecodeResult;
   blurResults?: boolean;
 }) {
-  const rows = Object.entries(result.fields).map(([label, value]) => ({ label, value }));
+  const rows = Object.entries(result.fields).map(([label, value]) => ({
+    label,
+    value,
+  }));
 
   return (
     <div className="space-y-4">
@@ -154,7 +175,10 @@ export function UsProviderSearchResults({
       <div className="anya-result-strip">
         <p className="anya-result-label">Matches</p>
         <p className="anya-result-value">
-          <BlurredValue forceBlur={blurResults} text={`${result.count.toLocaleString()} providers`} />
+          <BlurredValue
+            forceBlur={blurResults}
+            text={`${result.count.toLocaleString()} providers`}
+          />
         </p>
       </div>
       <div className="grid gap-3">
@@ -167,22 +191,34 @@ export function UsProviderSearchResults({
             <div className="grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
               {provider.coverage && (
                 <span>
-                  <BlurredValue forceBlur={blurResults} text={`Coverage: ${provider.coverage}`} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={`Coverage: ${provider.coverage}`}
+                  />
                 </span>
               )}
               {provider.headquarters && (
                 <span>
-                  <BlurredValue forceBlur={blurResults} text={`HQ: ${provider.headquarters}`} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={`HQ: ${provider.headquarters}`}
+                  />
                 </span>
               )}
               {provider.phone && (
                 <span>
-                  <BlurredValue forceBlur={blurResults} text={`Phone: ${provider.phone}`} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={`Phone: ${provider.phone}`}
+                  />
                 </span>
               )}
               {provider.website && (
                 <span className="break-all text-anya-accent">
-                  <BlurredValue forceBlur={blurResults} text={provider.website} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={provider.website}
+                  />
                 </span>
               )}
               {provider.notes && (

@@ -1,7 +1,4 @@
-import {
-  OsintTimeoutError,
-  withDeadline,
-} from "@/lib/osint-search-guard";
+import { OsintTimeoutError, withDeadline } from "@/lib/osint-search-guard";
 
 function isAbortError(error: unknown): boolean {
   return (
@@ -15,9 +12,7 @@ function isAbortError(error: unknown): boolean {
 
 function networkErrorMessage(error: unknown, input: RequestInfo | URL): string {
   const cause =
-    error instanceof Error &&
-    "cause" in error &&
-    error.cause instanceof Error
+    error instanceof Error && "cause" in error && error.cause instanceof Error
       ? error.cause.message
       : undefined;
   const base =
@@ -61,6 +56,7 @@ export async function fetchWithTimeout(
 
   const upstream = fetchInit.signal;
   const onUpstreamAbort = () => controller.abort();
+
   if (upstream) {
     if (upstream.aborted) controller.abort();
     else upstream.addEventListener("abort", onUpstreamAbort, { once: true });

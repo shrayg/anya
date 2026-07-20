@@ -1,12 +1,12 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import type {
+  BubbleEntity,
+  BubblePerson,
+  InstagramBubbleMap,
+} from "@/lib/instagram-bubble-map";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   forceCenter,
   forceCollide,
@@ -17,11 +17,6 @@ import {
   type Simulation,
 } from "d3-force";
 
-import type {
-  BubbleEntity,
-  BubblePerson,
-  InstagramBubbleMap,
-} from "@/lib/instagram-bubble-map";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 
 type ClusterKey =
@@ -137,6 +132,7 @@ function clusterForPerson(person: BubblePerson): ClusterKey {
   if (has("place")) return "place";
   if (person.isMutual || has("mutuals")) return "mutuals";
   if (person.relation === "following") return "following_cluster";
+
   return "other";
 }
 
@@ -146,7 +142,9 @@ function radiusForPerson(person: BubblePerson): number {
     return 18 + Math.round(person.confidence * 16);
   }
   if (person.isMutual) return 11 + Math.round(person.confidence * 6);
-  if (person.relation === "following") return 13 + Math.round(person.confidence * 6);
+  if (person.relation === "following")
+    return 13 + Math.round(person.confidence * 6);
+
   return 11 + Math.round(person.confidence * 5);
 }
 
@@ -179,7 +177,10 @@ function PersonDetails({
         )}
         <div className="min-w-0">
           <p className="truncate font-medium text-zinc-100">
-            <BlurredValue forceBlur={blurResults} text={`@${person.username}`} />
+            <BlurredValue
+              forceBlur={blurResults}
+              text={`@${person.username}`}
+            />
           </p>
           {person.fullName ? (
             <p className="truncate text-zinc-400">
@@ -274,8 +275,10 @@ export function InstagramBubbleMapView({
   // Which clusters are present, for filter buttons + anchor layout.
   const presentClusters = useMemo(() => {
     const set = new Set<ClusterKey>();
+
     for (const person of map.people) set.add(clusterForPerson(person));
     set.delete("subject");
+
     return CLUSTER_ORDER.filter((cluster) => set.has(cluster));
   }, [map.people]);
 
@@ -283,6 +286,7 @@ export function InstagramBubbleMapView({
     const anchors = new Map<ClusterKey, { x: number; y: number }>();
     const cx = WIDTH / 2;
     const cy = HEIGHT / 2;
+
     presentClusters.forEach((cluster, index) => {
       const angle =
         (index / Math.max(presentClusters.length, 1)) * Math.PI * 2 -
@@ -295,20 +299,24 @@ export function InstagramBubbleMapView({
             ? 0.44
             : 0.34;
       const ringRadius = Math.min(WIDTH, HEIGHT) * ringScale;
+
       anchors.set(cluster, {
         x: cx + Math.cos(angle) * ringRadius,
         y: cy + Math.sin(angle) * ringRadius,
       });
     });
     anchors.set("subject", { x: cx, y: cy });
+
     return anchors;
   }, [presentClusters]);
 
   const filteredPeople = useMemo(() => {
     if (filter === "all") return map.people;
+
     return map.people.filter((person) => {
       if (person.relation === "subject") return true;
       const cluster = clusterForPerson(person);
+
       // Map the filter (which uses BubbleEntity kinds) onto cluster keys.
       return cluster === filter;
     });
@@ -327,6 +335,7 @@ export function InstagramBubbleMapView({
       const cluster = clusterForPerson(person);
       const anchor = clusterAnchors.get(cluster) ?? { x: cx, y: cy };
       const isSubject = person.relation === "subject";
+
       return {
         id: person.id,
         person,
@@ -374,6 +383,7 @@ export function InstagramBubbleMapView({
         frameRef.current = requestAnimationFrame(render);
       }
     };
+
     frameRef.current = requestAnimationFrame(render);
 
     return () => {
@@ -387,6 +397,7 @@ export function InstagramBubbleMapView({
       ClusterKey,
       { x: number; y: number; count: number; maxR: number }
     >();
+
     for (const node of nodes) {
       if (node.cluster === "subject") continue;
       const group = groups.get(node.cluster) ?? {
@@ -395,12 +406,14 @@ export function InstagramBubbleMapView({
         count: 0,
         maxR: 0,
       };
+
       group.x += node.x;
       group.y += node.y;
       group.count += 1;
       group.maxR = Math.max(group.maxR, node.radius);
       groups.set(node.cluster, group);
     }
+
     return [...groups.entries()].map(([cluster, group]) => ({
       cluster,
       x: group.x / group.count,
@@ -425,17 +438,20 @@ export function InstagramBubbleMapView({
   const handleWheel = useCallback((event: React.WheelEvent<SVGSVGElement>) => {
     event.preventDefault();
     const svg = svgRef.current;
+
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     // Pointer position in SVG viewBox coordinates.
     const px = ((event.clientX - rect.left) / rect.width) * WIDTH;
     const py = ((event.clientY - rect.top) / rect.height) * HEIGHT;
+
     setTransform((prev) => {
       const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
       const k = clampScale(prev.k * factor);
       // Keep the point under the cursor stationary while zooming.
       const x = px - ((px - prev.x) / prev.k) * k;
       const y = py - ((py - prev.y) / prev.k) * k;
+
       return { k, x, y };
     });
   }, []);
@@ -459,14 +475,17 @@ export function InstagramBubbleMapView({
   const handlePointerMove = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
       const drag = dragState.current;
+
       if (!drag || drag.pointerId !== event.pointerId) return;
       const svg = svgRef.current;
+
       if (!svg) return;
       const rect = svg.getBoundingClientRect();
       const scaleX = WIDTH / rect.width;
       const scaleY = HEIGHT / rect.height;
       const dx = (event.clientX - drag.startX) * scaleX;
       const dy = (event.clientY - drag.startY) * scaleY;
+
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
       setTransform((prev) => ({
         ...prev,
@@ -480,6 +499,7 @@ export function InstagramBubbleMapView({
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
       const drag = dragState.current;
+
       dragState.current = null;
       if (drag) svgRef.current?.releasePointerCapture(event.pointerId);
     },
@@ -493,6 +513,7 @@ export function InstagramBubbleMapView({
       const cy = HEIGHT / 2;
       const x = cx - ((cx - prev.x) / prev.k) * k;
       const y = cy - ((cy - prev.y) / prev.k) * k;
+
       return { k, x, y };
     });
   };
@@ -502,9 +523,11 @@ export function InstagramBubbleMapView({
   const focusPerson = (id: string) => {
     setSelectedId(id);
     const node = nodes.find((entry) => entry.id === id);
+
     if (!node) return;
     setTransform(() => {
       const k = 1.8;
+
       return {
         k,
         x: WIDTH / 2 - node.x * k,
@@ -551,8 +574,8 @@ export function InstagramBubbleMapView({
                   ? "border-anya-accent/50 bg-anya-accent/15 text-zinc-100"
                   : "border-white/10 bg-white/5 text-zinc-400 hover:text-zinc-200"
               }`}
-              onClick={() => setFilter(kind as "all" | BubbleEntity["kind"])}
               type="button"
+              onClick={() => setFilter(kind as "all" | BubbleEntity["kind"])}
             >
               {kind === "all"
                 ? FILTER_LABELS.all
@@ -567,26 +590,26 @@ export function InstagramBubbleMapView({
           {/* Zoom controls */}
           <div className="absolute right-3 top-3 z-10 flex flex-col gap-1">
             <button
-              className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-lg text-zinc-200 hover:bg-zinc-800"
-              onClick={() => zoomBy(1.25)}
-              type="button"
               aria-label="Zoom in"
+              className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-lg text-zinc-200 hover:bg-zinc-800"
+              type="button"
+              onClick={() => zoomBy(1.25)}
             >
               +
             </button>
             <button
-              className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-lg text-zinc-200 hover:bg-zinc-800"
-              onClick={() => zoomBy(1 / 1.25)}
-              type="button"
               aria-label="Zoom out"
+              className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-lg text-zinc-200 hover:bg-zinc-800"
+              type="button"
+              onClick={() => zoomBy(1 / 1.25)}
             >
               −
             </button>
             <button
-              className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-[10px] text-zinc-300 hover:bg-zinc-800"
-              onClick={resetView}
-              type="button"
               aria-label="Reset view"
+              className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-[10px] text-zinc-300 hover:bg-zinc-800"
+              type="button"
+              onClick={resetView}
             >
               fit
             </button>
@@ -599,13 +622,13 @@ export function InstagramBubbleMapView({
           <svg
             ref={svgRef}
             className="h-[560px] w-full touch-none select-none"
+            style={{ cursor: dragState.current ? "grabbing" : "grab" }}
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-            onWheel={handleWheel}
             onPointerDown={handlePointerDown}
+            onPointerLeave={handlePointerUp}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-            style={{ cursor: dragState.current ? "grabbing" : "grab" }}
+            onWheel={handleWheel}
           >
             <g
               transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}
@@ -616,20 +639,20 @@ export function InstagramBubbleMapView({
                   <circle
                     cx={centroid.x}
                     cy={centroid.y}
-                    r={46 + Math.min(centroid.count, 40) * 6}
                     fill={CLUSTER_COLOR[centroid.cluster]}
                     fillOpacity={0.05}
+                    r={46 + Math.min(centroid.count, 40) * 6}
                     stroke={CLUSTER_COLOR[centroid.cluster]}
                     strokeOpacity={0.18}
                     strokeWidth={1}
                   />
                   <text
-                    x={centroid.x}
-                    y={centroid.y - (46 + Math.min(centroid.count, 40) * 6) - 6}
-                    textAnchor="middle"
                     fill={CLUSTER_COLOR[centroid.cluster]}
                     fillOpacity={0.8}
                     fontSize={13}
+                    textAnchor="middle"
+                    x={centroid.x}
+                    y={centroid.y - (46 + Math.min(centroid.count, 40) * 6) - 6}
                   >
                     {CLUSTER_LABEL[centroid.cluster]} · {centroid.count}
                   </text>
@@ -647,10 +670,6 @@ export function InstagramBubbleMapView({
                     .map((node) => (
                       <line
                         key={`link-${node.id}`}
-                        x1={subjectNode.x}
-                        y1={subjectNode.y}
-                        x2={node.x}
-                        y2={node.y}
                         stroke={node.color}
                         strokeOpacity={
                           hoverId === node.id || selectedId === node.id
@@ -658,15 +677,19 @@ export function InstagramBubbleMapView({
                             : 0.12
                         }
                         strokeWidth={0.8}
+                        x1={subjectNode.x}
+                        x2={node.x}
+                        y1={subjectNode.y}
+                        y2={node.y}
                       />
                     ))
                 : null}
 
               {/* Person bubbles */}
               {nodes.map((node) => {
-                const isActive =
-                  selectedId === node.id || hoverId === node.id;
+                const isActive = selectedId === node.id || hoverId === node.id;
                 const clipId = `bubble-clip-${node.id}`;
+
                 return (
                   <g
                     key={node.id}
@@ -683,15 +706,11 @@ export function InstagramBubbleMapView({
                     <circle
                       cx={node.x}
                       cy={node.y}
-                      r={node.radius}
                       fill={node.color}
                       fillOpacity={
-                        node.cluster === "subject"
-                          ? 1
-                          : isActive
-                            ? 0.95
-                            : 0.55
+                        node.cluster === "subject" ? 1 : isActive ? 0.95 : 0.55
                       }
+                      r={node.radius}
                       stroke={isActive ? "#ffffff" : "#0a0e1a"}
                       strokeWidth={isActive ? 2.5 : 1.5}
                     />
@@ -708,13 +727,13 @@ export function InstagramBubbleMapView({
                         </defs>
                         <image
                           clipPath={`url(#${clipId})`}
+                          height={node.radius * 2}
                           href={node.person.profilePicUrl}
+                          opacity={isActive ? 1 : 0.85}
+                          preserveAspectRatio="xMidYMid slice"
+                          width={node.radius * 2}
                           x={node.x - node.radius}
                           y={node.y - node.radius}
-                          width={node.radius * 2}
-                          height={node.radius * 2}
-                          preserveAspectRatio="xMidYMid slice"
-                          opacity={isActive ? 1 : 0.85}
                         />
                       </>
                     ) : null}
@@ -725,15 +744,17 @@ export function InstagramBubbleMapView({
                         node.cluster === "close_friends" ||
                         (transform.k >= 1.6 && node.cluster !== "mutuals") ||
                         (transform.k >= 2.2 && node.cluster === "mutuals");
+
                       if (!showLabel) return null;
+
                       return (
                         <text
-                          x={node.x}
-                          y={node.y + node.radius + 11}
-                          textAnchor="middle"
                           fill="#e2e8f0"
                           fontSize={Math.max(9, 11 / transform.k)}
                           opacity={isActive ? 1 : 0.75}
+                          textAnchor="middle"
+                          x={node.x}
+                          y={node.y + node.radius + 11}
                         >
                           @{node.person.username.slice(0, 16)}
                         </text>
@@ -755,7 +776,9 @@ export function InstagramBubbleMapView({
               person={selected}
             />
           ) : (
-            <p className="text-sm text-zinc-500">Select a bubble for details.</p>
+            <p className="text-sm text-zinc-500">
+              Select a bubble for details.
+            </p>
           )}
 
           <div className="space-y-2">
@@ -768,8 +791,8 @@ export function InstagramBubbleMapView({
                 <button
                   key={centroid.cluster}
                   className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left hover:bg-white/[0.06]"
-                  onClick={() => setFilter(centroid.cluster as never)}
                   type="button"
+                  onClick={() => setFilter(centroid.cluster as never)}
                 >
                   <span className="flex items-center gap-2 text-sm text-zinc-100">
                     <span

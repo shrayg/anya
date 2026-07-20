@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
-import { NextRequest, NextResponse } from "next/server";
 import { promisify } from "node:util";
+
+import { NextRequest, NextResponse } from "next/server";
 
 import { requireAuthenticatedSession } from "@/lib/osint-api-auth";
 import {
@@ -18,8 +19,10 @@ const execFileAsync = promisify(execFile);
 
 function pickBody(body: Record<string, unknown>): InstagramSessionInput {
   const input: InstagramSessionInput = {};
+
   for (const key of INSTAGRAM_ENV_KEYS) {
     const value = body[key];
+
     if (typeof value === "string" && value.trim()) {
       input[key] = value;
     }
@@ -50,6 +53,7 @@ function pickBody(body: Record<string, unknown>): InstagramSessionInput {
 
 export async function GET() {
   const session = await requireAuthenticatedSession();
+
   if (session instanceof NextResponse) return session;
   if (!session.isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -57,8 +61,12 @@ export async function GET() {
 
   const status = readInstagramSessionStatus();
   let probeOk: boolean | null = null;
+
   try {
-    const { probeInstagramSessionAlive } = await import("@/lib/instagram-reauth");
+    const { probeInstagramSessionAlive } = await import(
+      "@/lib/instagram-reauth"
+    );
+
     probeOk = await probeInstagramSessionAlive();
   } catch {
     try {
@@ -92,12 +100,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await requireAuthenticatedSession();
+
   if (session instanceof NextResponse) return session;
   if (!session.isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let body: Record<string, unknown>;
+
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
@@ -107,8 +117,14 @@ export async function POST(req: NextRequest) {
   // Trigger password re-login using stored (or provided) credentials
   if (body.action === "relogin" || body.relogin === true) {
     try {
-      if (typeof body.username === "string" && typeof body.password === "string") {
-        const { writeInstagramCredentials } = await import("@/lib/instagram-login");
+      if (
+        typeof body.username === "string" &&
+        typeof body.password === "string"
+      ) {
+        const { writeInstagramCredentials } = await import(
+          "@/lib/instagram-login"
+        );
+
         writeInstagramCredentials({
           username: body.username,
           password: body.password,
@@ -120,6 +136,7 @@ export async function POST(req: NextRequest) {
       }
       const { ensureInstagramSession } = await import("@/lib/instagram-reauth");
       const result = await ensureInstagramSession({ force: true });
+
       return NextResponse.json({
         ok: result.ok,
         refreshed: result.refreshed,
@@ -129,7 +146,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            error instanceof Error ? error.message : "Instagram re-login failed",
+            error instanceof Error
+              ? error.message
+              : "Instagram re-login failed",
         },
         { status: 502 },
       );
@@ -144,6 +163,7 @@ export async function POST(req: NextRequest) {
     !body.INSTAGRAM_SESSION_ID
   ) {
     const { writeInstagramCredentials } = await import("@/lib/instagram-login");
+
     writeInstagramCredentials({
       username: body.username,
       password: body.password,
@@ -152,9 +172,11 @@ export async function POST(req: NextRequest) {
       proxyUrl: typeof body.proxyUrl === "string" ? body.proxyUrl : undefined,
     });
     const shouldLogin = body.login !== false;
+
     if (shouldLogin) {
       const { ensureInstagramSession } = await import("@/lib/instagram-reauth");
       const result = await ensureInstagramSession({ force: true });
+
       return NextResponse.json({
         ok: result.ok,
         credentialsSaved: true,
@@ -162,6 +184,7 @@ export async function POST(req: NextRequest) {
         message: result.message,
       });
     }
+
     return NextResponse.json({
       ok: true,
       credentialsSaved: true,
@@ -170,6 +193,7 @@ export async function POST(req: NextRequest) {
   }
 
   const input = pickBody(body);
+
   if (!input.INSTAGRAM_SESSION_ID) {
     return NextResponse.json(
       {
@@ -186,6 +210,7 @@ export async function POST(req: NextRequest) {
 
     let restarted = false;
     let restartError: string | undefined;
+
     if (restart) {
       try {
         await execFileAsync("pm2", ["restart", "anya-int", "--update-env"], {

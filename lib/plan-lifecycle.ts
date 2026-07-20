@@ -1,4 +1,8 @@
-import { planUpdatesFromId, type BillingInterval, type PlanId } from "@/lib/plans";
+import {
+  planUpdatesFromId,
+  type BillingInterval,
+  type PlanId,
+} from "@/lib/plans";
 import { prisma } from "@/prisma/client";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -20,8 +24,10 @@ export function detectBillingChannel(
   description: string | null | undefined,
 ): "crypto" | "card" | "unknown" {
   const text = (description ?? "").toLowerCase();
+
   if (text.includes("oxapay") || text.includes("crypto")) return "crypto";
   if (text.includes("square") || text.includes("card")) return "card";
+
   return "unknown";
 }
 
@@ -91,16 +97,16 @@ export async function syncUserPlanLifecycle(userId: number) {
         planEndsAt: null,
       },
     });
+
     return downgraded;
   }
 
-  return planEndsAt !== user.planEndsAt
-    ? { ...user, planEndsAt }
-    : user;
+  return planEndsAt !== user.planEndsAt ? { ...user, planEndsAt } : user;
 }
 
 export async function schedulePlanCancel(userId: number) {
   const user = await syncUserPlanLifecycle(userId);
+
   if (!user || user.plan === "free") {
     return { ok: false as const, error: "No active paid plan to cancel" };
   }
@@ -127,6 +133,7 @@ export async function schedulePlanCancel(userId: number) {
 
 export async function resumePlan(userId: number) {
   const user = await syncUserPlanLifecycle(userId);
+
   if (!user || user.plan === "free") {
     return { ok: false as const, error: "No active paid plan" };
   }

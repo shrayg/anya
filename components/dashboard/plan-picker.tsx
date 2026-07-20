@@ -28,6 +28,7 @@ export function PlanPicker({ value, onChange, disabled }: PlanPickerProps) {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -41,8 +42,8 @@ export function PlanPicker({ value, onChange, disabled }: PlanPickerProps) {
           disabled && "cursor-not-allowed opacity-50",
         )}
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
         type="button"
+        onClick={() => setOpen((current) => !current)}
       >
         <span className="font-medium">{selected?.name ?? value}</span>
         <ChevronDown
@@ -67,11 +68,11 @@ export function PlanPicker({ value, onChange, disabled }: PlanPickerProps) {
                     ? "bg-white/10 text-white"
                     : "text-zinc-300 hover:bg-white/[0.06] hover:text-white",
                 )}
+                type="button"
                 onClick={() => {
                   onChange(plan.id);
                   setOpen(false);
                 }}
-                type="button"
               >
                 <span>{plan.name}</span>
                 {active && <Check className="size-4 text-emerald-300" />}

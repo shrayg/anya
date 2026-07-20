@@ -11,11 +11,17 @@ export default function TermsPage() {
           “Service”) operated by Anya.Int (“we,” “us,” or “our”). By creating an
           account, purchasing a plan, or using the Service, you agree to these
           Terms, our{" "}
-          <a className="text-zinc-100 underline-offset-4 hover:underline" href="/privacy">
+          <a
+            className="text-zinc-100 underline-offset-4 hover:underline"
+            href="/privacy"
+          >
             Privacy Policy
           </a>
           , and our{" "}
-          <a className="text-zinc-100 underline-offset-4 hover:underline" href="/acceptable-use">
+          <a
+            className="text-zinc-100 underline-offset-4 hover:underline"
+            href="/acceptable-use"
+          >
             Acceptable Use Policy
           </a>
           .
@@ -52,7 +58,10 @@ export default function TermsPage() {
           pages at checkout. Fees are charged through our payment processors.
           Subscriptions renew automatically for the selected interval unless you
           cancel before the renewal date. Taxes may apply. See our{" "}
-          <a className="text-zinc-100 underline-offset-4 hover:underline" href="/refund">
+          <a
+            className="text-zinc-100 underline-offset-4 hover:underline"
+            href="/refund"
+          >
             Refund Policy
           </a>
           .
@@ -64,8 +73,8 @@ export default function TermsPage() {
           You must use the Service only for lawful purposes and in compliance
           with our Acceptable Use Policy. Anya.Int is not a consumer reporting
           agency under the Fair Credit Reporting Act (FCRA). You may not use
-          Service results for employment, tenant screening, credit, insurance, or
-          any other FCRA-regulated decision.
+          Service results for employment, tenant screening, credit, insurance,
+          or any other FCRA-regulated decision.
         </p>
       </LegalSection>
 
@@ -90,11 +99,11 @@ export default function TermsPage() {
 
       <LegalSection title="Limitation of liability">
         <p>
-          TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY ARISING OUT
-          OF OR RELATING TO THE SERVICE WILL NOT EXCEED THE AMOUNTS YOU PAID TO
-          US FOR THE SERVICE IN THE TWELVE (12) MONTHS BEFORE THE CLAIM, OR ONE
-          HUNDRED U.S. DOLLARS (US$100), WHICHEVER IS GREATER. WE ARE NOT LIABLE
-          FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR
+          TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY ARISING
+          OUT OF OR RELATING TO THE SERVICE WILL NOT EXCEED THE AMOUNTS YOU PAID
+          TO US FOR THE SERVICE IN THE TWELVE (12) MONTHS BEFORE THE CLAIM, OR
+          ONE HUNDRED U.S. DOLLARS (US$100), WHICHEVER IS GREATER. WE ARE NOT
+          LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR
           PUNITIVE DAMAGES, OR LOSS OF PROFITS, DATA, OR GOODWILL.
         </p>
       </LegalSection>
@@ -102,9 +111,9 @@ export default function TermsPage() {
       <LegalSection title="Indemnity">
         <p>
           You will defend and indemnify Anya.Int and its operators from claims,
-          losses, and expenses (including reasonable attorneys’ fees) arising from
-          your use of the Service, your content or queries, or your violation of
-          these Terms or applicable law.
+          losses, and expenses (including reasonable attorneys’ fees) arising
+          from your use of the Service, your content or queries, or your
+          violation of these Terms or applicable law.
         </p>
       </LegalSection>
 
@@ -112,9 +121,9 @@ export default function TermsPage() {
         <p>
           We may modify the Service or these Terms. Material changes will be
           reflected by updating the “Last updated” date. Continued use after
-          changes means you accept the revised Terms. We may discontinue features
-          or terminate access where required for security, legal, or operational
-          reasons.
+          changes means you accept the revised Terms. We may discontinue
+          features or terminate access where required for security, legal, or
+          operational reasons.
         </p>
       </LegalSection>
 

@@ -20,7 +20,10 @@ export async function POST(request: Request) {
     const guestName = String(body.guestName || "").trim();
 
     if (!text) {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Message is required" },
+        { status: 400 },
+      );
     }
 
     if (text.length > 500) {
@@ -64,6 +67,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ message }, { status: 201 });
   } catch (error) {
     console.error("Waiting room message error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

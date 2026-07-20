@@ -12,6 +12,7 @@ function spanForColumns(
   columns: 2 | 3 | 4 | 6,
 ): 1 | 2 | 3 | 4 | 6 | undefined {
   const remainder = total % columns;
+
   if (remainder === 0 || index < total - remainder) return undefined;
 
   const posInLastRow = index - (total - remainder);
@@ -46,6 +47,7 @@ export function getCatalogItemSpan(
     const sm = spanForColumns(index, total, 2);
     const lg = spanForColumns(index, total, 4);
     const xl = spanForColumns(index, total, 6);
+
     if (sm) span.sm = sm as 1 | 2;
     if (lg) span.lg = lg as 1 | 2 | 3 | 4;
     if (xl !== undefined && xl > 1) {
@@ -54,10 +56,12 @@ export function getCatalogItemSpan(
   } else if (grid === "triple") {
     const sm = spanForColumns(index, total, 2);
     const lg = spanForColumns(index, total, 3);
+
     if (sm) span.sm = sm as 1 | 2;
     if (lg) span.lg = lg as 1 | 2 | 3;
   } else if (grid === "double") {
     const sm = spanForColumns(index, total, 2);
+
     if (sm) span.sm = sm as 1 | 2;
   }
 

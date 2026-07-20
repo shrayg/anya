@@ -1,17 +1,98 @@
-import type { ParsedPublicQuery, ParsedUsQuery } from "@/lib/us-records/types";
+import type { ParsedPublicQuery } from "@/lib/us-records/types";
 
 const US_STATES = new Set([
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC",
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+  "DC",
 ]);
 
 const COUNTRY_CODES = new Set([
-  "US", "GB", "UK", "CA", "AU", "DE", "FR", "IN", "MX", "BR", "JP", "SG", "NZ",
-  "IE", "NL", "SE", "CH", "ZA", "AE", "IL", "KR", "EU", "CN", "RU", "IT", "ES",
+  "US",
+  "GB",
+  "UK",
+  "CA",
+  "AU",
+  "DE",
+  "FR",
+  "IN",
+  "MX",
+  "BR",
+  "JP",
+  "SG",
+  "NZ",
+  "IE",
+  "NL",
+  "SE",
+  "CH",
+  "ZA",
+  "AE",
+  "IL",
+  "KR",
+  "EU",
+  "CN",
+  "RU",
+  "IT",
+  "ES",
+  "NO",
 ]);
+
+const COUNTRY_NAMES: Record<string, string> = {
+  CANADA: "CA",
+  AUSTRALIA: "AU",
+  ENGLAND: "GB",
+  BRITAIN: "GB",
+  "UNITED KINGDOM": "GB",
+  NORWAY: "NO",
+  SWITZERLAND: "CH",
+};
 
 const DOB_RE =
   /\b(0?[1-9]|1[0-2])[\/\-.](0?[1-9]|[12]\d|3[01])[\/\-.]((19|20)\d{2})\b/;
@@ -31,11 +112,13 @@ function titleCase(value: string): string {
 
 export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
   const raw = query.trim().replace(/\s+/g, " ");
+
   if (!raw) {
     return { raw: "", mode: "raw" };
   }
 
   const caseMatch = raw.match(CASE_RE);
+
   if (caseMatch && raw.length < 48) {
     return {
       raw,
@@ -47,15 +130,18 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
   let working = raw;
   let dob: string | undefined;
   const dobMatch = working.match(DOB_RE);
+
   if (dobMatch) {
     const month = dobMatch[1].padStart(2, "0");
     const day = dobMatch[2].padStart(2, "0");
+
     dob = `${month}/${day}/${dobMatch[3]}`;
     working = working.replace(dobMatch[0], " ").replace(/\s+/g, " ").trim();
   }
 
   let zip: string | undefined;
   const zipMatch = working.match(ZIP_RE);
+
   if (zipMatch) {
     zip = zipMatch[1];
     working = working.replace(zipMatch[0], " ").replace(/\s+/g, " ").trim();
@@ -63,6 +149,7 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
 
   let county: string | undefined;
   const countyMatch = working.match(COUNTY_RE);
+
   if (countyMatch) {
     county = `${titleCase(countyMatch[1])} County`;
     working = working.replace(countyMatch[0], " ").replace(/\s+/g, " ").trim();
@@ -70,6 +157,7 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
 
   let city: string | undefined;
   const cityMatch = working.match(CITY_SUFFIX_RE);
+
   if (cityMatch) {
     // VSP registry uses County/Independent City dropdown values like "RICHMOND CITY"
     county = county || `${titleCase(cityMatch[1])} City`;
@@ -79,19 +167,29 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
 
   let state: string | undefined;
   let country: string | undefined;
-  const commaParts = working.split(",").map((part) => part.trim()).filter(Boolean);
+  const commaParts = working
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
   if (commaParts.length >= 2) {
     const trailing = commaParts[commaParts.length - 1].toUpperCase();
-    if (US_STATES.has(trailing)) {
+    const trailingName = COUNTRY_NAMES[trailing];
+
+    if (trailingName) {
+      country = trailingName;
+      working = commaParts.slice(0, -1).join(" ").trim();
+    } else if (US_STATES.has(trailing)) {
       state = trailing;
       country = "US";
       const beforeState = commaParts.slice(0, -1);
+
       // "John Smith, Philadelphia, PA" → locality + state
       if (beforeState.length >= 2 && !county && !city) {
         const locality = beforeState[beforeState.length - 1]!;
+
         if (/county/i.test(locality)) {
-          county =
-            titleCase(locality.replace(/\s+county$/i, "")) + " County";
+          county = titleCase(locality.replace(/\s+county$/i, "")) + " County";
         } else if (/city/i.test(locality)) {
           city = titleCase(locality.replace(/\s+city$/i, ""));
           county = `${city} City`;
@@ -108,6 +206,7 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
     } else if (!county && !city && commaParts.length >= 2) {
       // "John Smith, Fairfax" → treat trailing token as county/city locality
       const locality = commaParts[commaParts.length - 1];
+
       if (/county/i.test(locality)) {
         county = titleCase(locality.replace(/\s+county$/i, "")) + " County";
       } else {
@@ -118,7 +217,11 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
   } else {
     const tokens = working.split(" ");
     const last = tokens[tokens.length - 1]?.toUpperCase();
-    if (last && US_STATES.has(last) && tokens.length >= 2) {
+
+    if (last && COUNTRY_NAMES[last] && tokens.length >= 2) {
+      country = COUNTRY_NAMES[last];
+      working = tokens.slice(0, -1).join(" ").trim();
+    } else if (last && US_STATES.has(last) && tokens.length >= 2) {
       state = last;
       country = "US";
       working = tokens.slice(0, -1).join(" ").trim();
@@ -131,13 +234,14 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
   if (!country && state) country = "US";
 
   // Default VA when locality looks like Virginia county search without ST code
-  if (!state && (county || city || zip)) {
+  if (!state && (!country || country === "US") && (county || city || zip)) {
     state = "VA";
   }
 
   working = working.replace(/,/g, " ").replace(/\s+/g, " ").trim();
 
   const nameTokens = working.split(/\s+/).filter(Boolean);
+
   if (nameTokens.length === 0) {
     return {
       raw,
@@ -152,7 +256,8 @@ export function parseUsRecordsQuery(query: string): ParsedPublicQuery {
   }
 
   const fullName = titleCase(nameTokens.join(" "));
-  const firstName = nameTokens.length > 1 ? titleCase(nameTokens[0]) : undefined;
+  const firstName =
+    nameTokens.length > 1 ? titleCase(nameTokens[0]) : undefined;
   const lastName =
     nameTokens.length > 1
       ? titleCase(nameTokens.slice(1).join(" "))
@@ -177,10 +282,12 @@ export const parsePublicRecordsQuery = parseUsRecordsQuery;
 
 export function assertUsQuery(query: string): string {
   const trimmed = query.trim();
+
   if (trimmed.length < 2) {
     throw new Error(
       "Enter a name (e.g. John Doe, VA or John Doe, GB), locality, DOB, or case number.",
     );
   }
+
   return trimmed;
 }

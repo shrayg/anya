@@ -1,7 +1,5 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -12,6 +10,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 
+import { apiFetch } from "@/lib/csrf-client";
 import {
   DashButton,
   DashInput,
@@ -78,17 +77,14 @@ const STATUS_META: Record<
 function parseRules(raw: string): string[] {
   try {
     const parsed = JSON.parse(raw);
+
     return Array.isArray(parsed) ? parsed.map(String) : [];
   } catch {
     return [];
   }
 }
 
-export function SafetyFlagsPanel({
-  mode,
-}: {
-  mode: "helper" | "admin";
-}) {
+export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
   const [flags, setFlags] = useState<SafetyFlagRow[]>([]);
   const [summary, setSummary] = useState<FlagsSummary>({
     open: 0,
@@ -112,6 +108,7 @@ export function SafetyFlagsPanel({
 
     try {
       const params = new URLSearchParams();
+
       if (
         statusFilter === "open" ||
         statusFilter === "reviewing" ||
@@ -128,6 +125,7 @@ export function SafetyFlagsPanel({
 
       if (!response.ok) {
         setError(data.error || "Could not load safety flags.");
+
         return;
       }
 
@@ -150,6 +148,7 @@ export function SafetyFlagsPanel({
         (flag) => flag.status === "open" || flag.status === "reviewing",
       );
     }
+
     return flags;
   }, [flags, statusFilter]);
 
@@ -166,10 +165,7 @@ export function SafetyFlagsPanel({
     [selected],
   );
 
-  const patchFlag = async (
-    flagId: number,
-    body: Record<string, unknown>,
-  ) => {
+  const patchFlag = async (flagId: number, body: Record<string, unknown>) => {
     setActionId(flagId);
     setError("");
     setDeliveryNote("");
@@ -184,6 +180,7 @@ export function SafetyFlagsPanel({
 
       if (!response.ok) {
         setError(data.error || "Could not update flag.");
+
         return;
       }
 
@@ -237,21 +234,19 @@ export function SafetyFlagsPanel({
       <DashPanel glow="amber">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">
-              Flags to check
-            </h2>
+            <h2 className="text-lg font-semibold text-white">Flags to check</h2>
             <p className="text-sm text-zinc-400">
-              Auto-detected underage-risk searches and helper Investigate
-              flags. Open a case, mark reviewing, send a message to the user,
-              then resolve with a note.
+              Auto-detected underage-risk searches and helper Investigate flags.
+              Open a case, mark reviewing, send a message to the user, then
+              resolve with a note.
             </p>
           </div>
 
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <select
               className="rounded-md border border-white/10 bg-zinc-950/80 px-3 py-2 text-sm text-zinc-200 outline-none transition focus:border-amber-400/40"
-              onChange={(event) => setStatusFilter(event.target.value)}
               value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
             >
               <option value="needs">Open + reviewing</option>
               <option value="open">Open only</option>
@@ -261,10 +256,12 @@ export function SafetyFlagsPanel({
             </select>
             <DashButton
               className="inline-flex items-center justify-center gap-2"
-              onClick={loadFlags}
               variant="secondary"
+              onClick={loadFlags}
             >
-              <RefreshCw className={clsx("size-4", loading && "animate-spin")} />
+              <RefreshCw
+                className={clsx("size-4", loading && "animate-spin")}
+              />
               Refresh
             </DashButton>
           </div>
@@ -303,6 +300,7 @@ export function SafetyFlagsPanel({
               ) : (
                 visibleFlags.map((flag) => {
                   const meta = STATUS_META[flag.status];
+
                   return (
                     <tr
                       key={flag.id}
@@ -337,7 +335,9 @@ export function SafetyFlagsPanel({
                         </span>
                       </td>
                       <td className="px-3 py-3 text-zinc-400">
-                        <p className="max-w-sm truncate">{flag.reason || "—"}</p>
+                        <p className="max-w-sm truncate">
+                          {flag.reason || "—"}
+                        </p>
                       </td>
                       <td className="px-3 py-3 text-zinc-500">
                         {formatDate(flag.createdAt)}{" "}
@@ -366,7 +366,7 @@ export function SafetyFlagsPanel({
                 {selected.user.username}
               </p>
             </div>
-            <DashButton onClick={() => setSelectedId(null)} variant="secondary">
+            <DashButton variant="secondary" onClick={() => setSelectedId(null)}>
               Close
             </DashButton>
           </div>
@@ -419,8 +419,8 @@ export function SafetyFlagsPanel({
                   <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto text-xs text-zinc-400">
                     {messageHistory.map((entry, index) => (
                       <li
-                        className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2"
                         key={`${entry.at}-${index}`}
+                        className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2"
                       >
                         <p className="text-zinc-300 whitespace-pre-wrap">
                           {entry.message}
@@ -453,59 +453,63 @@ export function SafetyFlagsPanel({
                   Message to flagged user (@{selected.user.username})
                 </p>
                 <DashInput
-                  disabled={actionId === selected.id || selected.status === "resolved"}
+                  disabled={
+                    actionId === selected.id || selected.status === "resolved"
+                  }
+                  placeholder="Shown as their on-screen dashboard notice until they acknowledge"
+                  value={messages[selected.id] ?? ""}
                   onChange={(event) =>
                     setMessages((current) => ({
                       ...current,
                       [selected.id]: event.target.value,
                     }))
                   }
-                  placeholder="Shown as their on-screen dashboard notice until they acknowledge"
-                  value={messages[selected.id] ?? ""}
                 />
                 <button
                   className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-violet-400/30 bg-violet-500/10 px-2.5 py-1.5 text-xs font-semibold text-violet-100 transition hover:bg-violet-500/20 disabled:opacity-50"
                   disabled={
                     actionId === selected.id ||
                     selected.status === "resolved" ||
-                    !(messages[selected.id]?.trim())
+                    !messages[selected.id]?.trim()
                   }
+                  type="button"
                   onClick={() =>
                     patchFlag(selected.id, {
                       action: "message",
                       helperMessage: messages[selected.id]?.trim(),
                     })
                   }
-                  type="button"
                 >
                   <Send className="size-3.5" />
                   Send to @{selected.user.username}
                 </button>
                 {deliveryNote && (
-                  <p className="mt-2 text-xs text-emerald-300/90">{deliveryNote}</p>
+                  <p className="mt-2 text-xs text-emerald-300/90">
+                    {deliveryNote}
+                  </p>
                 )}
               </div>
 
               <DashInput
                 disabled={actionId === selected.id}
+                placeholder="Internal review note (required when resolving)"
+                value={notes[selected.id] ?? selected.reviewNote ?? ""}
                 onChange={(event) =>
                   setNotes((current) => ({
                     ...current,
                     [selected.id]: event.target.value,
                   }))
                 }
-                placeholder="Internal review note (required when resolving)"
-                value={notes[selected.id] ?? selected.reviewNote ?? ""}
               />
               <div className="flex flex-wrap gap-2">
                 {selected.status === "open" && (
                   <button
                     className="rounded-md border border-sky-400/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/20"
                     disabled={actionId === selected.id}
+                    type="button"
                     onClick={() =>
                       patchFlag(selected.id, { status: "reviewing" })
                     }
-                    type="button"
                   >
                     Mark reviewing
                   </button>
@@ -517,13 +521,13 @@ export function SafetyFlagsPanel({
                       actionId === selected.id ||
                       !(notes[selected.id]?.trim() || selected.reviewNote)
                     }
+                    type="button"
                     onClick={() =>
                       patchFlag(selected.id, {
                         status: "resolved",
                         reviewNote: notes[selected.id]?.trim(),
                       })
                     }
-                    type="button"
                   >
                     Mark checked / resolved
                   </button>
@@ -532,6 +536,7 @@ export function SafetyFlagsPanel({
                   <button
                     className="rounded-md border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/20"
                     disabled={actionId === selected.id}
+                    type="button"
                     onClick={() =>
                       patchFlag(selected.id, {
                         status: "reviewing",
@@ -539,7 +544,6 @@ export function SafetyFlagsPanel({
                         reviewNote: notes[selected.id]?.trim(),
                       })
                     }
-                    type="button"
                   >
                     Escalate account
                   </button>

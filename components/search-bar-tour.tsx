@@ -95,6 +95,7 @@ export function SearchBarTour({
     if (isCentered) {
       setSpotlight(null);
       setTooltip(measureTooltip(null, true));
+
       return;
     }
 
@@ -103,11 +104,13 @@ export function SearchBarTour({
     if (!target) {
       setSpotlight(null);
       setTooltip(measureTooltip(null, true));
+
       return;
     }
 
     target.scrollIntoView({ block: "nearest", behavior: "smooth" });
     const nextSpotlight = measureSpotlight(target);
+
     setSpotlight(nextSpotlight);
     setTooltip(measureTooltip(nextSpotlight, false));
   }, [active, isCentered, step]);
@@ -124,6 +127,7 @@ export function SearchBarTour({
     }
 
     const timer = window.setTimeout(() => setActive(true), 400);
+
     return () => window.clearTimeout(timer);
   }, [enabled, storageKey]);
 
@@ -135,6 +139,7 @@ export function SearchBarTour({
     if (!active) return;
 
     const onChange = () => updateLayout();
+
     window.addEventListener("resize", onChange);
     window.addEventListener("scroll", onChange, true);
 
@@ -147,6 +152,7 @@ export function SearchBarTour({
   const goNext = () => {
     if (stepIndex >= steps.length - 1) {
       finishTour();
+
       return;
     }
     setStepIndex((current) => current + 1);
@@ -156,13 +162,17 @@ export function SearchBarTour({
 
   return (
     <div
+      aria-label={ariaLabel}
+      aria-modal="true"
       className="dashboard-tour search-bar-tour"
       role="dialog"
-      aria-modal="true"
-      aria-label={ariaLabel}
     >
       {!spotlight ? (
-        <div className="dashboard-tour-backdrop" onClick={finishTour} aria-hidden />
+        <div
+          aria-hidden
+          className="dashboard-tour-backdrop"
+          onClick={finishTour}
+        />
       ) : null}
 
       {spotlight ? (
@@ -178,12 +188,12 @@ export function SearchBarTour({
       ) : null}
 
       <TourCard
-        onFinish={finishTour}
-        onNext={goNext}
         step={step}
         stepIndex={stepIndex}
-        totalSteps={steps.length}
         style={{ top: tooltip.top, left: tooltip.left }}
+        totalSteps={steps.length}
+        onFinish={finishTour}
+        onNext={goNext}
       />
     </div>
   );
@@ -211,7 +221,7 @@ function TourCard({
       className="dashboard-tour-card search-bar-tour-card"
       style={{ ...style, width: `min(${TOOLTIP_WIDTH}px, calc(100vw - 2rem))` }}
     >
-      <div className="dashboard-tour-progress" aria-hidden>
+      <div aria-hidden className="dashboard-tour-progress">
         {Array.from({ length: totalSteps }).map((_, index) => (
           <span
             key={index}
@@ -229,14 +239,24 @@ function TourCard({
       <p className="search-bar-tour-step-label">
         Step {stepIndex + 1} of {totalSteps}
       </p>
-      <h2 className="dashboard-tour-title search-bar-tour-title">{step.title}</h2>
+      <h2 className="dashboard-tour-title search-bar-tour-title">
+        {step.title}
+      </h2>
       <p className="dashboard-tour-body search-bar-tour-body">{step.body}</p>
 
       <div className="dashboard-tour-actions">
-        <button className="dashboard-tour-skip" onClick={onFinish} type="button">
+        <button
+          className="dashboard-tour-skip"
+          type="button"
+          onClick={onFinish}
+        >
           Skip
         </button>
-        <button className="dashboard-tour-next search-bar-tour-next" onClick={onNext} type="button">
+        <button
+          className="dashboard-tour-next search-bar-tour-next"
+          type="button"
+          onClick={onNext}
+        >
           {isLast ? "Done" : "Next"}
         </button>
       </div>

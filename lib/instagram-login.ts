@@ -48,24 +48,31 @@ function browserLoginHeaders(csrf?: string, cookie?: string): HeadersInit {
     Referer: "https://www.instagram.com/accounts/login/",
     "Content-Type": "application/x-www-form-urlencoded",
   };
+
   if (csrf) {
     headers["X-CSRFToken"] = csrf;
     headers["X-Instagram-AJAX"] = "1";
   }
   if (cookie) headers.Cookie = cookie;
+
   return headers;
 }
 
 function parseSetCookie(header: string | null): Record<string, string> {
   const out: Record<string, string> = {};
+
   if (!header) return out;
   const parts = header.split(/,(?=\s*[^;=]+=[^;]+)/);
+
   for (const part of parts) {
     const first = part.split(";")[0]?.trim();
+
     if (!first || !first.includes("=")) continue;
     const eq = first.indexOf("=");
+
     out[first.slice(0, eq)] = first.slice(eq + 1);
   }
+
   return out;
 }
 
@@ -73,10 +80,12 @@ function collectCookies(response: Response, jar: Record<string, string>) {
   const anyHeaders = response.headers as Headers & {
     getSetCookie?: () => string[];
   };
+
   if (typeof anyHeaders.getSetCookie === "function") {
     for (const line of anyHeaders.getSetCookie()) {
       Object.assign(jar, parseSetCookie(line));
     }
+
     return;
   }
   Object.assign(jar, parseSetCookie(response.headers.get("set-cookie")));
@@ -107,6 +116,7 @@ export async function encryptInstagramBrowserPassword(
     aesKey as unknown as import("node:crypto").CipherKey,
     iv as unknown as import("node:crypto").BinaryLike,
   );
+
   cipher.setAAD(new Uint8Array(Buffer.from(String(timestamp), "utf8")));
   const encrypted = new Uint8Array(
     Buffer.concat([
@@ -128,15 +138,21 @@ export async function encryptInstagramBrowserPassword(
     header.length + encryptedKey.length + tag.length + encrypted.length,
   );
   let offset = 0;
-  payload.set(header, offset); offset += header.length;
-  payload.set(encryptedKey, offset); offset += encryptedKey.length;
-  payload.set(tag, offset); offset += tag.length;
+
+  payload.set(header, offset);
+  offset += header.length;
+  payload.set(encryptedKey, offset);
+  offset += encryptedKey.length;
+  payload.set(tag, offset);
+  offset += tag.length;
   payload.set(encrypted, offset);
 
   return `#PWD_INSTAGRAM_BROWSER:${version}:${timestamp}:${Buffer.from(payload).toString("base64")}`;
 }
 
-async function fetchLoginEncryptionParams(jar: Record<string, string>): Promise<{
+async function fetchLoginEncryptionParams(
+  jar: Record<string, string>,
+): Promise<{
   keyId: number;
   publicKey: string;
   version: number;
@@ -150,6 +166,7 @@ async function fetchLoginEncryptionParams(jar: Record<string, string>): Promise<
       timeoutMs: LOGIN_TIMEOUT_MS,
     },
   );
+
   collectCookies(response, jar);
 
   let keyId = 0;
@@ -166,6 +183,7 @@ async function fetchLoginEncryptionParams(jar: Record<string, string>): Promise<
         };
         config?: { csrf_token?: string };
       };
+
       keyId = Number(data.encryption?.key_id ?? 0);
       publicKey = String(data.encryption?.public_key ?? "");
       version = Number(data.encryption?.version ?? 10);
@@ -184,15 +202,18 @@ async function fetchLoginEncryptionParams(jar: Record<string, string>): Promise<
         timeoutMs: LOGIN_TIMEOUT_MS,
       },
     );
+
     collectCookies(page, jar);
     const html = await page.text();
     const keyIdMatch = html.match(/"key_id"\s*:\s*"?(\d+)"?/);
     const pubMatch = html.match(/"public_key"\s*:\s*"([a-f0-9]+)"/i);
     const verMatch = html.match(/"version"\s*:\s*"?(\d+)"?/);
+
     if (keyIdMatch) keyId = Number(keyIdMatch[1]);
     if (pubMatch) publicKey = pubMatch[1];
     if (verMatch) version = Number(verMatch[1]);
     const csrfMatch = html.match(/"csrf_token"\s*:\s*"([^"]+)"/);
+
     if (csrfMatch) jar.csrftoken = csrfMatch[1];
   }
 
@@ -210,7 +231,6 @@ async function fetchLoginEncryptionParams(jar: Record<string, string>): Promise<
 }
 
 function generateTotp(secret: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { TOTP } = require("otpauth") as typeof import("otpauth");
   const totp = new TOTP({
     secret: secret.replace(/\s+/g, ""),
@@ -218,6 +238,7 @@ function generateTotp(secret: string): string {
     period: 30,
     algorithm: "SHA1",
   });
+
   return totp.generate();
 }
 
@@ -235,6 +256,7 @@ export function loadInstagramCredentials(): InstagramCredentials | null {
     process.env.INSTAGRAM_PASSWORD?.trim() ||
     fromFile.INSTAGRAM_PASSWORD?.trim() ||
     "";
+
   if (!username || !password) return null;
 
   return {
@@ -265,6 +287,7 @@ export function writeInstagramCredentials(input: {
     INSTAGRAM_USERNAME: input.username,
     INSTAGRAM_PASSWORD: input.password,
   };
+
   if (input.totpSecret) updates.INSTAGRAM_TOTP_SECRET = input.totpSecret;
   if (input.proxyUrl) updates.INSTAGRAM_PROXY_URL = input.proxyUrl;
 
@@ -287,6 +310,7 @@ export async function loginInstagramWeb(
   credentials?: InstagramCredentials,
 ): Promise<InstagramLoginResult> {
   const creds = credentials ?? loadInstagramCredentials();
+
   if (!creds) {
     throw new Error(
       "Instagram username/password are not configured. Set INSTAGRAM_USERNAME and INSTAGRAM_PASSWORD in /var/www/anya-secrets/instagram.env",
@@ -308,6 +332,7 @@ export async function loginInstagramWeb(
     redirect: "manual",
     dispatcher,
   });
+
   collectCookies(warm, jar);
 
   const enc = await fetchLoginEncryptionParams(jar);
@@ -336,6 +361,7 @@ export async function loginInstagramWeb(
       dispatcher,
     },
   );
+
   collectCookies(loginResponse, jar);
 
   const payload = (await loginResponse.json().catch(() => ({}))) as {
@@ -382,6 +408,7 @@ export async function loginInstagramWeb(
         dispatcher,
       },
     );
+
     collectCookies(tfResponse, jar);
     const tfPayload = (await tfResponse.json().catch(() => ({}))) as {
       authenticated?: boolean;

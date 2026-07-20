@@ -1,5 +1,7 @@
 "use client";
 
+import type { DashboardUser } from "@/lib/dashboard-user";
+
 import { Suspense } from "react";
 import {
   createContext,
@@ -15,7 +17,6 @@ import { DashboardModuleProvider } from "@/components/dashboard/dashboard-module
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ModuleHealthProvider } from "@/components/dashboard/module-status-provider";
 import { HomeBackground } from "@/components/home-background";
-import type { DashboardUser } from "@/lib/dashboard-user";
 import {
   hasHelperDashboardAccess,
   hasWorkspaceAdminAccess,
@@ -90,9 +91,13 @@ const DashboardAuthContext = createContext<DashboardAuthContextValue | null>(
 
 export function useDashboardAuth() {
   const context = useContext(DashboardAuthContext);
+
   if (!context) {
-    throw new Error("useDashboardAuth must be used within DashboardAuthProvider");
+    throw new Error(
+      "useDashboardAuth must be used within DashboardAuthProvider",
+    );
   }
+
   return context;
 }
 
@@ -116,16 +121,22 @@ export function DashboardAuthProvider({
 
       if (response.status === 403 && data?.blocked) {
         router.replace("/");
+
         return;
       }
 
       if (!response.ok || !data?.authenticated || !data.user?.username) {
         router.replace("/");
+
         return;
       }
 
       setUser(
-        mapMeUser(data.user, data.canManageWorkspace, data.canAccessHelperDashboard),
+        mapMeUser(
+          data.user,
+          data.canManageWorkspace,
+          data.canAccessHelperDashboard,
+        ),
       );
     } catch {
       router.replace("/");
@@ -146,6 +157,7 @@ export function DashboardAuthProvider({
     };
 
     const interval = window.setInterval(refreshStatus, 20_000);
+
     window.addEventListener("focus", refreshStatus);
 
     return () => {
@@ -154,10 +166,7 @@ export function DashboardAuthProvider({
     };
   }, [loadUser, user]);
 
-  const value = useMemo(
-    () => (user ? { user } : null),
-    [user],
-  );
+  const value = useMemo(() => (user ? { user } : null), [user]);
 
   if (!checked) {
     return (

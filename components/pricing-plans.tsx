@@ -12,10 +12,5 @@ export function PricingPlansGrid({
 }) {
   void onGetStarted;
 
-  return (
-    <PricingPageContent
-      className={className}
-      authenticated={false}
-    />
-  );
+  return <PricingPageContent authenticated={false} className={className} />;
 }

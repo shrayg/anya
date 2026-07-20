@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -7,17 +8,24 @@ export const maxDuration = 60;
 function secretsMatch(provided: string, expected: string): boolean {
   const a = new Uint8Array(Buffer.from(provided));
   const b = new Uint8Array(Buffer.from(expected));
+
   if (a.length === 0 || a.length !== b.length) return false;
+
   return timingSafeEqual(a, b);
 }
 
 function authorize(req: NextRequest): boolean {
   const expected = process.env.INSTAGRAM_CRON_SECRET?.trim();
+
   if (!expected) return false;
   const header =
     req.headers.get("x-anya-cron-secret")?.trim() ||
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() ||
+    req.headers
+      .get("authorization")
+      ?.replace(/^Bearer\s+/i, "")
+      .trim() ||
     "";
+
   return secretsMatch(header, expected);
 }
 
@@ -38,6 +46,7 @@ export async function POST(req: NextRequest) {
     const force = req.nextUrl.searchParams.get("force") === "1";
 
     const aliveBefore = await probeInstagramSessionAlive();
+
     if (aliveBefore && !force) {
       return NextResponse.json({
         ok: true,
@@ -85,6 +94,7 @@ export async function GET(req: NextRequest) {
       "@/lib/instagram-reauth"
     );
     const alive = await probeInstagramSessionAlive();
+
     return NextResponse.json({ ok: true, alive });
   } catch (error) {
     return NextResponse.json(

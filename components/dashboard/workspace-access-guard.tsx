@@ -12,10 +12,7 @@ export function WorkspaceAccessGuard() {
   const user = useDashboardUser();
 
   useEffect(() => {
-    const isSearchRoute =
-      pathname === "/dashboard/search" || pathname.startsWith("/dashboard/search/");
-
-    if (!isSearchRoute) return;
+    if (!pathname.startsWith("/dashboard")) return;
 
     if (
       !hasWorkspaceDashboardAccess({
@@ -23,7 +20,7 @@ export function WorkspaceAccessGuard() {
         canManageWorkspace: user.canManageWorkspace,
       })
     ) {
-      router.replace("/#search");
+      router.replace("/pricing");
     }
   }, [pathname, router, user]);
 

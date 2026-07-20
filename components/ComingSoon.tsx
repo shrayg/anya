@@ -1,7 +1,13 @@
-import { Construction } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export function ComingSoon({ title, description, icon: Icon, color }: {
+import { Construction } from "lucide-react";
+
+export function ComingSoon({
+  title,
+  description,
+  icon: Icon,
+  color,
+}: {
   title: string;
   description: string;
   icon: LucideIcon;
@@ -10,7 +16,10 @@ export function ComingSoon({ title, description, icon: Icon, color }: {
   return (
     <div className="flex flex-col px-6 py-10 min-h-full">
       <div className="flex items-center gap-3 mb-12">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}18`, border: `1px solid ${color}40` }}>
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ background: `${color}18`, border: `1px solid ${color}40` }}
+        >
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
         <div>
@@ -23,7 +32,10 @@ export function ComingSoon({ title, description, icon: Icon, color }: {
           <Construction className="w-8 h-8 text-gray-600" />
         </div>
         <h2 className="text-white font-bold text-2xl mb-2">Coming Soon</h2>
-        <p className="text-gray-500 text-sm max-w-xs">This module is under construction and will be available in a future update.</p>
+        <p className="text-gray-500 text-sm max-w-xs">
+          This module is under construction and will be available in a future
+          update.
+        </p>
       </div>
     </div>
   );

@@ -1,26 +1,25 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
-  Coffee,
   CreditCard,
   IdCard,
+  LifeBuoy,
   Lock,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  Settings,
   Shield,
+  UserRound,
 } from "lucide-react";
 import clsx from "clsx";
 import { useMemo, useState } from "react";
 
+import { apiFetch } from "@/lib/csrf-client";
 import {
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
@@ -71,25 +70,33 @@ const mainNav: NavItem[] = [
 ];
 
 const footerNav: NavItem[] = [
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { name: "Account", href: "/dashboard/account", icon: UserRound },
+  { name: "Support", href: "/dashboard/support", icon: LifeBuoy },
   { name: "Pricing", href: "/pricing", icon: CreditCard },
   { name: "Status", href: "/status", icon: Activity },
-  { name: "Coffee Support", href: "/dashboard/support", icon: Coffee },
 ];
 
 function isNavActive(item: NavItem, pathname: string) {
   if (item.name === "Case ID") {
     return pathname.startsWith("/dashboard/cases");
   }
-  if (item.name === "Settings") {
+  if (item.name === "Account") {
+    return pathname.startsWith("/dashboard/account");
+  }
+  if (
+    item.name === "Settings" ||
+    item.name === "Admin" ||
+    item.name === "Helper"
+  ) {
     return pathname.startsWith("/dashboard/settings");
   }
   if (item.name === "Admin Dashboard" || item.name === "Helper Dashboard") {
     return pathname.startsWith("/dashboard/settings");
   }
-  if (item.name === "Coffee Support") {
+  if (item.name === "Support") {
     return pathname.startsWith("/dashboard/support");
   }
+
   return pathname === item.href;
 }
 
@@ -100,13 +107,11 @@ function isModuleActive(pathname: string, slug: string) {
 function SidebarLink({
   item,
   pathname,
-  coffee,
   collapsed,
   dataTour,
 }: {
   item: NavItem;
   pathname: string;
-  coffee?: boolean;
   collapsed?: boolean;
   dataTour?: string;
 }) {
@@ -114,15 +119,14 @@ function SidebarLink({
 
   return (
     <Link
+      prefetch
       className={clsx(
         "dash-nav-link",
         collapsed && "dash-nav-link--icon-only",
         isActive && "dash-nav-link-active",
-        coffee && "dash-nav-link-coffee",
       )}
       data-tour={dataTour}
       href={item.href}
-      prefetch
       title={item.name}
     >
       {collapsed ? (
@@ -176,6 +180,7 @@ function ModuleLink({
 
   return (
     <Link
+      prefetch
       className={clsx(
         "dash-nav-link w-full",
         collapsed && "dash-nav-link--icon-only",
@@ -183,7 +188,6 @@ function ModuleLink({
         locked && "opacity-45",
       )}
       href={`/dashboard/search/${slug}`}
-      prefetch
       title={title}
     >
       {collapsed ? (
@@ -226,20 +230,18 @@ export function DashboardSidebar({ username }: { username: string }) {
   const [moduleQuery, setModuleQuery] = useState("");
 
   const footerItems = useMemo<NavItem[]>(() => {
-    const items = profile.canManageWorkspace || profile.canAccessHelperDashboard
-      ? footerNav.filter((item) => item.name !== "Settings")
-      : [...footerNav];
+    const items = [...footerNav];
 
     if (profile.canManageWorkspace) {
       items.unshift({
-        name: "Admin Dashboard",
+        name: "Admin",
         href: "/dashboard/settings#admin",
         icon: Shield,
         badge: "ADMIN",
       });
     } else if (profile.canAccessHelperDashboard) {
       items.unshift({
-        name: "Helper Dashboard",
+        name: "Helper",
         href: "/dashboard/settings#helper",
         icon: Shield,
         badge: "HELPER",
@@ -249,11 +251,7 @@ export function DashboardSidebar({ username }: { username: string }) {
     return items;
   }, [profile.canAccessHelperDashboard, profile.canManageWorkspace]);
 
-  const accountHref = profile.canManageWorkspace
-    ? "/dashboard/settings#admin"
-    : profile.canAccessHelperDashboard
-      ? "/dashboard/settings#helper"
-      : "/dashboard/settings";
+  const accountHref = "/dashboard/account";
 
   const isModuleLocked = (slug: string) =>
     !checkModuleAccess(plan, slug, { balance }).allowed;
@@ -292,20 +290,22 @@ export function DashboardSidebar({ username }: { username: string }) {
   };
 
   return (
-    <aside className={clsx("dash-sidebar", collapsed && "dash-sidebar--collapsed")}>
+    <aside
+      className={clsx("dash-sidebar", collapsed && "dash-sidebar--collapsed")}
+    >
       <div className="dash-sidebar-header">
         <Link
+          prefetch
           className="dash-sidebar-brand min-w-0 flex-1"
           href={siteConfig.defaultWorkspacePath}
-          prefetch
           title={`${siteConfig.name} dashboard`}
         >
           <Image
+            unoptimized
             alt={siteConfig.name}
             className={siteLogoClassName}
             height={36}
             src={siteLogoSrc}
-            unoptimized
             width={36}
           />
           {!collapsed && (
@@ -317,8 +317,8 @@ export function DashboardSidebar({ username }: { username: string }) {
         <button
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="dash-sidebar-toggle shrink-0"
-          onClick={toggleCollapsed}
           type="button"
+          onClick={toggleCollapsed}
         >
           {collapsed ? (
             <PanelLeftOpen className="size-4" />
@@ -334,21 +334,24 @@ export function DashboardSidebar({ username }: { username: string }) {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
             <input
               {...SEARCH_AUTOFILL_SHIELD}
+              readOnly
               className="dash-input dash-input--icon py-2 pr-3"
               data-tour="sidebar-filter"
               name="module-filter"
-              onChange={(event) => setModuleQuery(event.target.value)}
-              onFocus={unlockAutofillShield}
               placeholder="Filter modules..."
-              readOnly
               type="text"
               value={moduleQuery}
+              onChange={(event) => setModuleQuery(event.target.value)}
+              onFocus={unlockAutofillShield}
             />
           </div>
         </div>
       )}
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-3 py-4" data-tour="sidebar-scroll">
+      <div
+        className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
+        data-tour="sidebar-scroll"
+      >
         <div className="space-y-1">
           {mainNav.map((item) => (
             <SidebarLink
@@ -368,8 +371,8 @@ export function DashboardSidebar({ username }: { username: string }) {
               {collapsedModules.map((item) => (
                 <ModuleLink
                   key={item.slug}
-                  badge={item.badge}
                   collapsed
+                  badge={item.badge}
                   hint={item.hint}
                   locked={isModuleLocked(item.slug)}
                   name={item.name}
@@ -404,8 +407,8 @@ export function DashboardSidebar({ username }: { username: string }) {
 
             {filteredSections.map((section) => (
               <div
-                data-tour={SECTION_TOUR_ATTR[section.title]}
                 key={section.title}
+                data-tour={SECTION_TOUR_ATTR[section.title]}
               >
                 <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   {section.title}
@@ -432,12 +435,11 @@ export function DashboardSidebar({ username }: { username: string }) {
         {footerItems.map((item) => (
           <SidebarLink
             key={item.name}
-            coffee={item.name === "Coffee Support"}
             collapsed={collapsed}
             dataTour={
-              item.name === "Settings"
+              item.name === "Account"
                 ? "footer-settings"
-                : item.name === "Admin Dashboard"
+                : item.name === "Admin"
                   ? "footer-admin"
                   : undefined
             }
@@ -460,8 +462,8 @@ export function DashboardSidebar({ username }: { username: string }) {
             <button
               aria-label="Log out"
               className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-              onClick={handleLogout}
               type="button"
+              onClick={handleLogout}
             >
               <LogOut className="size-4" />
             </button>
@@ -490,8 +492,8 @@ export function DashboardSidebar({ username }: { username: string }) {
             <button
               aria-label="Log out"
               className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-              onClick={handleLogout}
               type="button"
+              onClick={handleLogout}
             >
               <LogOut className="size-4" />
             </button>

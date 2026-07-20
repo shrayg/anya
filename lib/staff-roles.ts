@@ -51,7 +51,9 @@ export const STAFF_ROLE_META: Record<StaffRole, StaffRoleMeta> = {
   },
 };
 
-export function parseStaffRole(value: string | null | undefined): StaffRole | null {
+export function parseStaffRole(
+  value: string | null | undefined,
+): StaffRole | null {
   if (!value) return null;
 
   return STAFF_ROLES.includes(value as StaffRole) ? (value as StaffRole) : null;

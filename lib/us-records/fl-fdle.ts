@@ -1,3 +1,5 @@
+import type { ParsedUsQuery, PersonHit } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { ParsedUsQuery, PersonHit } from "@/lib/us-records/types";
 
 /**
  * Florida FDLE Sex Offender / Predator Search (SOPS).
@@ -26,6 +27,7 @@ export function shouldSearchFlFdle(parsed: ParsedUsQuery): boolean {
   if (parsed.mode === "case") return false;
   if (parsed.country && parsed.country !== "US") return false;
   if (parsed.state === "FL") return true;
+
   return /\b(florida|miami|tampa|orlando|jacksonville|fdle)\b/i.test(
     parsed.raw,
   );
@@ -37,18 +39,22 @@ function cookieHeader(res: Response): string {
     typeof headers.getSetCookie === "function"
       ? headers.getSetCookie()
       : [res.headers.get("set-cookie") ?? ""].filter(Boolean);
+
   return parts.map((part) => part.split(";")[0]!).join("; ");
 }
 
 function mergeCookies(a: string, b: string): string {
   const map = new Map<string, string>();
+
   for (const part of `${a};${b}`
     .split(";")
     .map((x) => x.trim())
     .filter(Boolean)) {
     const i = part.indexOf("=");
+
     if (i > 0) map.set(part.slice(0, i), part.slice(i + 1));
   }
+
   return [...map.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
 }
 
@@ -66,9 +72,7 @@ function decodeEntities(value: string): string {
 
 function extractViewState(html: string): string {
   return (
-    html.match(
-      /name="jakarta\.faces\.ViewState"[^>]*value="([^"]*)"/,
-    )?.[1] ||
+    html.match(/name="jakarta\.faces\.ViewState"[^>]*value="([^"]*)"/)?.[1] ||
     html.match(/ViewState[^>]*><!\[CDATA\[([^\]]+)/)?.[1] ||
     ""
   );
@@ -81,6 +85,7 @@ export async function searchFlFdle(
   const { first, last } = requireName(parsed);
   const key = cacheKey("fl-fdle", `${last}|${first}|${limit}`);
   const cached = getCached<PersonHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("fl-fdle", 1500);
@@ -94,6 +99,7 @@ export async function searchFlFdle(
       "User-Agent": BROWSER_UA,
     },
   });
+
   if (!home.ok) {
     throw new Error(`FDLE SOR landing HTTP ${home.status}`);
   }
@@ -124,8 +130,10 @@ export async function searchFlFdle(
         "jakarta.faces.ViewState": viewState,
       }),
     });
+
     cookie = mergeCookies(cookie, cookieHeader(acc));
     const accText = await acc.text();
+
     viewState = extractViewState(accText) || viewState;
 
     const refreshed = await fetchWithTimeout(`${BASE}/home.jsf`, {
@@ -138,6 +146,7 @@ export async function searchFlFdle(
         Cookie: cookie,
       },
     });
+
     cookie = mergeCookies(cookie, cookieHeader(refreshed));
     html = await refreshed.text();
     viewState = extractViewState(html) || viewState;
@@ -169,6 +178,7 @@ export async function searchFlFdle(
       "jakarta.faces.ViewState": viewState,
     }),
   });
+
   cookie = mergeCookies(cookie, cookieHeader(ajax));
   const ajaxText = await ajax.text();
   const redirect =
@@ -216,6 +226,7 @@ export async function searchFlFdle(
         },
       },
     );
+
     if (!fallback.ok) {
       throw new Error(`FDLE SOR HTTP ${search.status}`);
     }
@@ -234,6 +245,7 @@ export async function searchFlFdle(
   )) {
     const href = (match[1] ?? "").replace(/&amp;/g, "&");
     const label = decodeEntities((match[2] ?? "").replace(/<[^>]+>/g, " "));
+
     if (!label || seen.has(href)) continue;
     seen.add(href);
     hits.push({
@@ -263,6 +275,7 @@ export async function searchFlFdle(
       /class="[^"]*(?:offenderName|offender-name)[^"]*"[^>]*>([^<]+)/gi,
     )) {
       const name = decodeEntities(match[1] ?? "");
+
       if (!name || seen.has(name)) continue;
       seen.add(name);
       hits.push({
@@ -286,5 +299,6 @@ export async function searchFlFdle(
   }
 
   setCached(key, hits, SOURCE_LIMITS["fl-fdle"].ttlMs);
+
   return hits;
 }

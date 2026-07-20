@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { requireAuthenticatedSession } from "@/lib/osint-api-auth";
-import { PUBLIC_INTEL_SOURCE, publicServiceUnavailable } from "@/lib/public-branding";
+import {
+  PUBLIC_INTEL_SOURCE,
+  publicServiceUnavailable,
+} from "@/lib/public-branding";
 import {
   fetchGodsEyeIngressCheck,
   fetchGodsEyeSearch,
@@ -11,6 +14,7 @@ import {
 
 export async function GET() {
   const session = await requireAuthenticatedSession();
+
   if (session instanceof NextResponse) return session;
   if (!session.isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -29,21 +33,27 @@ export async function GET() {
     fetchGodsEyeIngressCheck(),
     fetchGodsEyeSearch("roblox", "healthcheck", 12_000).catch(
       (error: unknown) => ({
-        probeError: error instanceof Error ? error.message : "Search probe failed",
+        probeError:
+          error instanceof Error ? error.message : "Search probe failed",
       }),
     ),
     fetchGodsEyeSearch("fivem", "1213987478122536992", 12_000).catch(
       (error: unknown) => ({
-        probeError: error instanceof Error ? error.message : "FiveM probe failed",
+        probeError:
+          error instanceof Error ? error.message : "FiveM probe failed",
       }),
     ),
   ]);
 
   const ingressOk = ingress?.success === true;
   const searchOk =
-    searchProbe && typeof searchProbe === "object" && !("probeError" in searchProbe);
+    searchProbe &&
+    typeof searchProbe === "object" &&
+    !("probeError" in searchProbe);
   const fivemOk =
-    fivemProbe && typeof fivemProbe === "object" && !("probeError" in fivemProbe);
+    fivemProbe &&
+    typeof fivemProbe === "object" &&
+    !("probeError" in fivemProbe);
   const ok = ingressOk || searchOk || fivemOk;
 
   return NextResponse.json(
@@ -56,7 +66,9 @@ export async function GET() {
           : {
               ok: false,
               error:
-                searchProbe && typeof searchProbe === "object" && "probeError" in searchProbe
+                searchProbe &&
+                typeof searchProbe === "object" &&
+                "probeError" in searchProbe
                   ? searchProbe.probeError
                   : undefined,
             },
@@ -65,7 +77,9 @@ export async function GET() {
           : {
               ok: false,
               error:
-                fivemProbe && typeof fivemProbe === "object" && "probeError" in fivemProbe
+                fivemProbe &&
+                typeof fivemProbe === "object" &&
+                "probeError" in fivemProbe
                   ? fivemProbe.probeError
                   : undefined,
             },

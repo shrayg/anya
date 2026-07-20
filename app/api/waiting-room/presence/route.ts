@@ -12,7 +12,10 @@ export async function POST(request: Request) {
     const sessionKey = String(body.sessionKey || "").trim();
 
     if (!sessionKey) {
-      return NextResponse.json({ error: "Session key is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Session key is required" },
+        { status: 400 },
+      );
     }
 
     touchPresence(sessionKey);
@@ -20,6 +23,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ online: getOnlineCount() });
   } catch (error) {
     console.error("Waiting room presence error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

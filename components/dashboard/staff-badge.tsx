@@ -50,12 +50,12 @@ export function StaffRolePicker({
     <select
       className="dash-select w-full min-w-[8.5rem] text-xs"
       disabled={disabled}
+      value={value ?? ""}
       onChange={(event) => {
         const next = event.target.value;
 
         onChange(next ? (next as StaffRole) : null);
       }}
-      value={value ?? ""}
     >
       <option value="">No staff badge</option>
       {Object.values(STAFF_ROLE_META).map((role) => (

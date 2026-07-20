@@ -37,6 +37,7 @@ export function hasSupportStaffAccess(user: {
   staffRole?: string | null;
 }) {
   if (user.isAdmin) return true;
+
   return parseStaffRole(user.staffRole) !== null;
 }
 

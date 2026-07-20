@@ -50,6 +50,7 @@ export async function computeSecondDegreeMutuals(
   },
 ): Promise<SecondDegreeGraph> {
   const warnings: string[] = [];
+
   if (!getInstagramSessionId()) {
     return {
       analyzedMutuals: 0,
@@ -90,14 +91,17 @@ export async function computeSecondDegreeMutuals(
       const following = await withInstagramRateLimitRetry(() =>
         fetchFriendshipListForSecondDegree(mutual.id, followingCap),
       );
+
       analyzed += 1;
 
       const linked = new Set<string>();
+
       for (const account of following) {
         if (account.id === mutual.id) continue;
         if (mutualIds.has(account.id)) {
           linked.add(account.id);
           const key = [mutual.id, account.id].sort().join("|");
+
           if (!edgeSeen.has(key)) {
             edgeSeen.add(key);
             edges.push({ source: mutual.id, target: account.id });
@@ -120,9 +124,11 @@ export async function computeSecondDegreeMutuals(
   const degree = new Map<string, Set<string>>();
   const bump = (a: string, b: string) => {
     const set = degree.get(a) ?? new Set<string>();
+
     set.add(b);
     degree.set(a, set);
   };
+
   for (const [mutualId, linkedSet] of connections) {
     for (const linkedId of linkedSet) {
       bump(mutualId, linkedId);
@@ -137,6 +143,7 @@ export async function computeSecondDegreeMutuals(
         .map((linkedId) => idToUsername.get(linkedId))
         .filter((value): value is string => Boolean(value))
         .slice(0, 8);
+
       return {
         id,
         username: user?.username ?? id,
@@ -154,8 +161,10 @@ export async function computeSecondDegreeMutuals(
   // Lightweight clustering: seed from the highest-degree node, group its direct
   // connections into a "core friend group".
   const clusters: SecondDegreeGraph["clusters"] = [];
+
   if (nodes.length > 0) {
     const core = nodes.slice(0, Math.min(12, nodes.length));
+
     clusters.push({
       label: "Core friend group (densely interconnected mutuals)",
       memberUsernames: core.map((node) => `@${node.username}`),

@@ -96,14 +96,19 @@ export type InstagramActivityGraph = {
 
 function toIso(unixSeconds: number): string {
   if (!Number.isFinite(unixSeconds) || unixSeconds <= 0) return "";
+
   return new Date(unixSeconds * 1000).toISOString();
 }
 
-function mapAccount(raw: Record<string, unknown> | undefined): InstagramActivityAccount | null {
+function mapAccount(
+  raw: Record<string, unknown> | undefined,
+): InstagramActivityAccount | null {
   if (!raw) return null;
   const id = String(raw.pk ?? raw.id ?? "").trim();
   const username = String(raw.username ?? "").trim();
+
   if (!id || !username) return null;
+
   return {
     id,
     username,
@@ -111,8 +116,7 @@ function mapAccount(raw: Record<string, unknown> | undefined): InstagramActivity
     profilePicUrl:
       typeof raw.profile_pic_url === "string" ? raw.profile_pic_url : undefined,
     isVerified: Boolean(raw.is_verified),
-    isPrivate:
-      typeof raw.is_private === "boolean" ? raw.is_private : undefined,
+    isPrivate: typeof raw.is_private === "boolean" ? raw.is_private : undefined,
   };
 }
 
@@ -120,11 +124,14 @@ function mapLocation(raw: unknown): InstagramPostLocation | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const location = raw as Record<string, unknown>;
   const name = String(location.name ?? "").trim();
+
   if (!name) return undefined;
+
   return {
-    id: location.pk != null || location.id != null
-      ? String(location.pk ?? location.id)
-      : undefined,
+    id:
+      location.pk != null || location.id != null
+        ? String(location.pk ?? location.id)
+        : undefined,
     name,
     city: typeof location.city === "string" ? location.city : undefined,
     lat: typeof location.lat === "number" ? location.lat : undefined,
@@ -133,8 +140,8 @@ function mapLocation(raw: unknown): InstagramPostLocation | undefined {
 }
 
 function extractMentions(caption: string): string[] {
-  return Array.from(caption.matchAll(/@([A-Za-z0-9._]{2,30})/g)).map(
-    (match) => match[1].toLowerCase(),
+  return Array.from(caption.matchAll(/@([A-Za-z0-9._]{2,30})/g)).map((match) =>
+    match[1].toLowerCase(),
   );
 }
 
@@ -143,6 +150,7 @@ function mapPost(
   source: "own" | "tagged",
 ): InstagramPostSummary | null {
   const id = String(raw.pk ?? raw.id ?? "").trim();
+
   if (!id) return null;
   const code = typeof raw.code === "string" ? raw.code : undefined;
   const takenAt = Number(raw.taken_at ?? 0);
@@ -173,18 +181,19 @@ function mapPost(
     takenAtIso: toIso(takenAt),
     caption,
     commentCount: Number(raw.comment_count ?? 0),
-    likeCount:
-      typeof raw.like_count === "number" ? raw.like_count : undefined,
+    likeCount: typeof raw.like_count === "number" ? raw.like_count : undefined,
     location: mapLocation(raw.location),
     taggedUsers,
     coauthors,
-    owner: mapAccount(raw.user as Record<string, unknown> | undefined) ?? undefined,
+    owner:
+      mapAccount(raw.user as Record<string, unknown> | undefined) ?? undefined,
     source,
   };
 }
 
 async function igGetJson(url: string, usernameHint?: string): Promise<unknown> {
   let lastError: unknown;
+
   for (let attempt = 0; attempt <= MEDIA_CHALLENGE_RETRIES; attempt += 1) {
     try {
       const response = await instagramFetch(url, {
@@ -193,6 +202,7 @@ async function igGetJson(url: string, usernameHint?: string): Promise<unknown> {
         forceRotate: attempt > 0,
       });
       const text = await response.text();
+
       if (!text.trim()) {
         throw new Error(
           response.status === 429
@@ -207,6 +217,7 @@ async function igGetJson(url: string, usernameHint?: string): Promise<unknown> {
       }
       try {
         const payload = JSON.parse(text) as unknown;
+
         if (!response.ok) {
           const message =
             typeof payload === "object" &&
@@ -215,8 +226,10 @@ async function igGetJson(url: string, usernameHint?: string): Promise<unknown> {
             typeof (payload as { message?: unknown }).message === "string"
               ? (payload as { message: string }).message
               : `Instagram media request failed (${response.status}).`;
+
           throw new Error(message);
         }
+
         return payload;
       } catch (error) {
         if (error instanceof Error && error.message.startsWith("Instagram")) {
@@ -227,9 +240,9 @@ async function igGetJson(url: string, usernameHint?: string): Promise<unknown> {
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
-      const retryable = /rate.?limit|429|challenge|html challenge|network/i.test(
-        message,
-      );
+      const retryable =
+        /rate.?limit|429|challenge|html challenge|network/i.test(message);
+
       if (!retryable || attempt === MEDIA_CHALLENGE_RETRIES) break;
       acquirePoolAccount({ forceRotate: true });
       await sleep(1_200 * (attempt + 1) + Math.random() * 400);
@@ -260,13 +273,18 @@ async function fetchPaginatedFeed(
 
     for (const raw of payload.items ?? []) {
       const mapped = mapPost(raw, source);
+
       if (!mapped || seen.has(mapped.id)) continue;
       seen.add(mapped.id);
       posts.push(mapped);
       if (posts.length >= maxItems) break;
     }
 
-    if (!payload.more_available || !payload.next_max_id || posts.length >= maxItems) {
+    if (
+      !payload.more_available ||
+      !payload.next_max_id ||
+      posts.length >= maxItems
+    ) {
       truncated = Boolean(payload.more_available && posts.length >= maxItems);
       break;
     }
@@ -282,7 +300,9 @@ async function fetchCommentsForPost(
   mediaId: string,
   maxComments: number,
   usernameHint?: string,
-): Promise<Array<{ account: InstagramActivityAccount; text: string; createdAt: number }>> {
+): Promise<
+  Array<{ account: InstagramActivityAccount; text: string; createdAt: number }>
+> {
   const comments: Array<{
     account: InstagramActivityAccount;
     text: string;
@@ -297,6 +317,7 @@ async function fetchCommentsForPost(
       can_support_threading: "true",
       permalink_enabled: "false",
     });
+
     if (minId) params.set("min_id", minId);
 
     const payload = (await igGetJson(
@@ -309,7 +330,10 @@ async function fetchCommentsForPost(
     };
 
     for (const raw of payload.comments ?? []) {
-      const account = mapAccount(raw.user as Record<string, unknown> | undefined);
+      const account = mapAccount(
+        raw.user as Record<string, unknown> | undefined,
+      );
+
       if (!account) continue;
       comments.push({
         account,
@@ -327,13 +351,16 @@ async function fetchCommentsForPost(
   return comments;
 }
 
-function buildLocationVisits(posts: InstagramPostSummary[]): InstagramLocationVisit[] {
+function buildLocationVisits(
+  posts: InstagramPostSummary[],
+): InstagramLocationVisit[] {
   const byKey = new Map<string, InstagramLocationVisit>();
 
   for (const post of posts) {
     if (!post.location) continue;
     const key = `${post.location.id ?? post.location.name.toLowerCase()}|${post.location.lat ?? ""}|${post.location.lng ?? ""}`;
     const existing = byKey.get(key);
+
     if (!existing) {
       byKey.set(key, {
         location: post.location,
@@ -350,7 +377,10 @@ function buildLocationVisits(posts: InstagramPostSummary[]): InstagramLocationVi
     }
 
     existing.visitCount += 1;
-    if (post.takenAt && (existing.firstSeenAt === 0 || post.takenAt < existing.firstSeenAt)) {
+    if (
+      post.takenAt &&
+      (existing.firstSeenAt === 0 || post.takenAt < existing.firstSeenAt)
+    ) {
       existing.firstSeenAt = post.takenAt;
       existing.firstSeenIso = post.takenAtIso;
     }
@@ -362,7 +392,8 @@ function buildLocationVisits(posts: InstagramPostSummary[]): InstagramLocationVi
       existing.postCodes.push(post.code);
     }
     if (!existing.postUrls.includes(post.url)) existing.postUrls.push(post.url);
-    if (!existing.sources.includes(post.source)) existing.sources.push(post.source);
+    if (!existing.sources.includes(post.source))
+      existing.sources.push(post.source);
   }
 
   return [...byKey.values()].sort((a, b) => b.lastSeenAt - a.lastSeenAt);
@@ -373,7 +404,10 @@ function bumpAccount(
   account: InstagramActivityAccount,
   field: keyof Pick<
     InstagramTagSignal,
-    "taggedInOwnPosts" | "taggedSubjectInTheirPosts" | "coauthorCount" | "mentionCount"
+    | "taggedInOwnPosts"
+    | "taggedSubjectInTheirPosts"
+    | "coauthorCount"
+    | "mentionCount"
   >,
 ) {
   const existing = map.get(account.id) ?? {
@@ -384,6 +418,7 @@ function bumpAccount(
     mentionCount: 0,
     score: 0,
   };
+
   existing.account = {
     ...existing.account,
     ...account,
@@ -415,14 +450,18 @@ export async function fetchInstagramActivityGraph(
       consistentCommenters: [],
       taggedAccounts: [],
       closeFriendCandidates: [],
-      warnings: [
-        "Post/tag/comment activity requires INSTAGRAM_SESSION_ID.",
-      ],
+      warnings: ["Post/tag/comment activity requires INSTAGRAM_SESSION_ID."],
     };
   }
 
-  const maxPosts = Math.min(Math.max(options?.maxPosts ?? DEFAULT_MAX_POSTS, 1), 100);
-  const maxTagged = Math.min(Math.max(options?.maxTagged ?? DEFAULT_MAX_TAGGED, 1), 100);
+  const maxPosts = Math.min(
+    Math.max(options?.maxPosts ?? DEFAULT_MAX_POSTS, 1),
+    100,
+  );
+  const maxTagged = Math.min(
+    Math.max(options?.maxTagged ?? DEFAULT_MAX_TAGGED, 1),
+    100,
+  );
   const commentPosts = Math.min(
     Math.max(options?.commentPosts ?? DEFAULT_COMMENT_POSTS, 0),
     maxPosts,
@@ -437,7 +476,9 @@ export async function fetchInstagramActivityGraph(
     fetchPaginatedFeed(
       (maxId) => {
         const params = new URLSearchParams({ count: "12" });
+
         if (maxId) params.set("max_id", maxId);
+
         return `https://www.instagram.com/api/v1/feed/user/${userId}/?${params}`;
       },
       "own",
@@ -447,12 +488,15 @@ export async function fetchInstagramActivityGraph(
       warnings.push(
         error instanceof Error ? error.message : "Failed to load own posts.",
       );
+
       return { posts: [] as InstagramPostSummary[], truncated: false };
     }),
     fetchPaginatedFeed(
       (maxId) => {
         const params = new URLSearchParams({ count: "12" });
+
         if (maxId) params.set("max_id", maxId);
+
         return `https://www.instagram.com/api/v1/usertags/${userId}/feed/?${params}`;
       },
       "tagged",
@@ -462,6 +506,7 @@ export async function fetchInstagramActivityGraph(
       warnings.push(
         error instanceof Error ? error.message : "Failed to load tagged posts.",
       );
+
       return { posts: [] as InstagramPostSummary[], truncated: false };
     }),
   ]);
@@ -478,6 +523,7 @@ export async function fetchInstagramActivityGraph(
   const allPosts = [...posts, ...taggedPosts];
 
   const tagSignals = new Map<string, InstagramTagSignal>();
+
   for (const post of posts) {
     for (const account of post.taggedUsers) {
       bumpAccount(tagSignals, account, "taggedInOwnPosts");
@@ -489,6 +535,7 @@ export async function fetchInstagramActivityGraph(
       const existing = [...tagSignals.values()].find(
         (signal) => signal.account.username.toLowerCase() === mention,
       );
+
       if (existing) {
         existing.mentionCount += 1;
       } else {
@@ -543,6 +590,7 @@ export async function fetchInstagramActivityGraph(
         commentsPerPost,
         username,
       );
+
       commentsScanned += comments.length;
       for (const comment of comments) {
         if (comment.account.id === userId) continue;
@@ -553,6 +601,7 @@ export async function fetchInstagramActivityGraph(
           sampleComments: [],
           postCodes: [],
         };
+
         existing.commentCount += 1;
         existing.posts.add(post.id);
         if (post.code && !existing.postCodes.includes(post.code)) {
@@ -578,7 +627,9 @@ export async function fetchInstagramActivityGraph(
     }
   }
 
-  const consistentCommenters: InstagramCommenterSignal[] = [...commenterMap.values()]
+  const consistentCommenters: InstagramCommenterSignal[] = [
+    ...commenterMap.values(),
+  ]
     .map((entry) => ({
       account: entry.account,
       commentCount: entry.commentCount,
@@ -616,6 +667,7 @@ export async function fetchInstagramActivityGraph(
       score: 0,
       reasons: [],
     };
+
     existing.account = {
       ...existing.account,
       ...account,
@@ -652,11 +704,7 @@ export async function fetchInstagramActivityGraph(
       );
     }
     if (signal.taggedInOwnPosts > 0 && signal.taggedSubjectInTheirPosts > 0) {
-      addCandidate(
-        signal.account,
-        5,
-        "reciprocal tagging",
-      );
+      addCandidate(signal.account, 5, "reciprocal tagging");
     }
   }
 
@@ -703,8 +751,10 @@ export function activityAccountsAsSummaries(
     });
   };
 
-  for (const candidate of activity.closeFriendCandidates) push(candidate.account);
-  for (const commenter of activity.consistentCommenters) push(commenter.account);
+  for (const candidate of activity.closeFriendCandidates)
+    push(candidate.account);
+  for (const commenter of activity.consistentCommenters)
+    push(commenter.account);
   for (const tagged of activity.taggedAccounts) push(tagged.account);
   for (const post of activity.taggedPosts) {
     if (post.owner) push(post.owner);

@@ -20,10 +20,7 @@ type DashboardShellProps = {
   username: string;
 };
 
-function DashboardShellInner({
-  children,
-  username,
-}: DashboardShellProps) {
+function DashboardShellInner({ children, username }: DashboardShellProps) {
   const { collapsed } = useDashboardSidebar();
   const profile = useDashboardUser();
   const isFrozen = profile.accountStatus === "frozen";
@@ -38,10 +35,13 @@ function DashboardShellInner({
     >
       {!TEST_MAC_DASHBOARD_THEME ? <HomeBackground /> : null}
       <DashboardSidebar username={username} />
-      <main className={clsx("dash-main", isFrozen && "dash-main--frozen")} data-tour="main-content">
+      <main
+        className={clsx("dash-main", isFrozen && "dash-main--frozen")}
+        data-tour="main-content"
+      >
         {TEST_MAC_DASHBOARD_THEME ? (
           <div className="dash-mac-window">
-            <div className="dash-mac-window-chrome" aria-hidden>
+            <div aria-hidden className="dash-mac-window-chrome">
               <span />
               <span />
               <span />

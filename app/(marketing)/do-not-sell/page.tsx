@@ -10,7 +10,10 @@ export default function DoNotSellPage() {
   const [email, setEmail] = useState("");
 
   return (
-    <LegalPage title="Do Not Sell or Share My Personal Information" updated="July 15, 2026">
+    <LegalPage
+      title="Do Not Sell or Share My Personal Information"
+      updated="July 15, 2026"
+    >
       <LegalSection title="Our practice">
         <p>
           We do not sell personal information for money. We also do not share
@@ -36,10 +39,13 @@ export default function DoNotSellPage() {
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
-              const subject = encodeURIComponent("Do Not Sell or Share request");
+              const subject = encodeURIComponent(
+                "Do Not Sell or Share request",
+              );
               const body = encodeURIComponent(
                 `Please process a Do Not Sell or Share opt-out for:\nEmail/username: ${email}\n`,
               );
+
               window.location.href = `mailto:${siteConfig.privacyContactEmail}?subject=${subject}&body=${body}`;
               setSubmitted(true);
             }}
@@ -49,9 +55,9 @@ export default function DoNotSellPage() {
               <input
                 required
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[color:var(--anya-blush)]"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
               />
             </label>
             <button

@@ -45,19 +45,25 @@ function flattenResults(
     if (data.length > 0) {
       rows.push({
         label: prefix || "results",
-        value: data.slice(0, 3).map((item) => JSON.stringify(item)).join(" · "),
+        value: data
+          .slice(0, 3)
+          .map((item) => JSON.stringify(item))
+          .join(" · "),
       });
     }
+
     return rows;
   }
 
   if (typeof data !== "object") {
     rows.push({ label: prefix || "value", value: String(data) });
+
     return rows;
   }
 
   for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
     const label = prefix ? `${prefix}.${key}` : key;
+
     if (value && typeof value === "object") {
       flattenResults(value, label, rows, depth + 1);
     } else if (value !== null && value !== undefined && String(value).trim()) {
@@ -70,9 +76,11 @@ function flattenResults(
 
 function parseSearchQuery(raw: string) {
   const match = raw.match(/^\[([^\]]+)\]\s*(.*)$/);
+
   if (!match) {
     return { type: "search", query: raw };
   }
+
   return { type: match[1], query: match[2] || raw };
 }
 
@@ -83,10 +91,15 @@ export function buildCaseMindMap(caseRecord: CaseWithSearches) {
     position: { x: number; y: number };
     data: MindMapNodeData;
   }> = [];
-  const edges: Array<{ id: string; source: string; target: string; animated?: boolean }> =
-    [];
+  const edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    animated?: boolean;
+  }> = [];
 
   const centerId = "center";
+
   nodes.push({
     id: centerId,
     type: "intelNode",
@@ -108,8 +121,10 @@ export function buildCaseMindMap(caseRecord: CaseWithSearches) {
 
   profileFields.forEach((field, index) => {
     const fieldId = `profile-${field.key}`;
-    const angle = (index / Math.max(profileFields.length, 1)) * Math.PI * 2 - Math.PI / 2;
+    const angle =
+      (index / Math.max(profileFields.length, 1)) * Math.PI * 2 - Math.PI / 2;
     const radius = 220;
+
     nodes.push({
       id: fieldId,
       type: "intelNode",
@@ -124,7 +139,11 @@ export function buildCaseMindMap(caseRecord: CaseWithSearches) {
         accent: "#2dd4bf",
       },
     });
-    edges.push({ id: `e-${centerId}-${fieldId}`, source: centerId, target: fieldId });
+    edges.push({
+      id: `e-${centerId}-${fieldId}`,
+      source: centerId,
+      target: fieldId,
+    });
   });
 
   const searches = caseRecord.searches.map((link) => link.searchHistory);
@@ -148,7 +167,7 @@ export function buildCaseMindMap(caseRecord: CaseWithSearches) {
         kind: "search",
         label: type.toUpperCase(),
         sublabel: parsed.query,
-        accent: "#818cf8",
+        accent: "#ff78ba",
       },
     });
     edges.push({
@@ -159,6 +178,7 @@ export function buildCaseMindMap(caseRecord: CaseWithSearches) {
     });
 
     let resultRows: Array<{ label: string; value: string }> = [];
+
     if (search.resultData) {
       try {
         resultRows = flattenResults(JSON.parse(search.resultData));
@@ -169,10 +189,12 @@ export function buildCaseMindMap(caseRecord: CaseWithSearches) {
 
     const childRadius = 150;
     const visibleRows = resultRows.slice(0, 6);
+
     visibleRows.forEach((row, rowIndex) => {
       const childId = `${searchId}-field-${rowIndex}`;
       const childAngle =
         angle + ((rowIndex - (visibleRows.length - 1) / 2) * Math.PI) / 8;
+
       nodes.push({
         id: childId,
         type: "intelNode",

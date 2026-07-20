@@ -1,9 +1,9 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
-
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
+
+import { apiFetch } from "@/lib/csrf-client";
 
 type ChatMessage = {
   id: number;
@@ -114,7 +114,9 @@ export function LiveIntelChat() {
             messages.map((message) => (
               <div key={message.id} className="anya-comms-msg">
                 <div className="anya-comms-msg-meta">
-                  <span className="anya-comms-msg-user">{message.username}</span>
+                  <span className="anya-comms-msg-user">
+                    {message.username}
+                  </span>
                   <span className="anya-comms-msg-time">
                     {formatTime(message.createdAt)}
                   </span>
@@ -125,22 +127,23 @@ export function LiveIntelChat() {
           )}
         </div>
 
-        <form autoComplete="off" className="relative flex items-center gap-2" onSubmit={handleSend}>
+        <form
+          autoComplete="off"
+          className="relative flex items-center gap-2"
+          onSubmit={handleSend}
+        >
           <input
             {...SEARCH_AUTOFILL_SHIELD}
+            readOnly
             className="dash-input min-w-0 flex-1 py-2.5 font-mono text-sm"
             name="live-intel-message"
-            onChange={(event) => setInput(event.target.value)}
-            onFocus={unlockAutofillShield}
             placeholder="transmit message…"
-            readOnly
             type="text"
             value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onFocus={unlockAutofillShield}
           />
-          <button
-            className="anya-run-btn !min-w-0 px-3 py-2.5"
-            type="submit"
-          >
+          <button className="anya-run-btn !min-w-0 px-3 py-2.5" type="submit">
             <Send className="size-4" />
           </button>
         </form>

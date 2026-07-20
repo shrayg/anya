@@ -1,8 +1,5 @@
 import { fetchCordCatQuery } from "@/lib/cordcat";
-import {
-  formatDsaDate,
-  type DiscordDsaSanction,
-} from "@/lib/discord-profile";
+import { formatDsaDate, type DiscordDsaSanction } from "@/lib/discord-profile";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 export { formatDsaDate };
@@ -21,14 +18,17 @@ function firstString(
 ): string | null {
   for (const key of keys) {
     const value = record[key];
+
     if (typeof value === "string" && value.trim()) return value.trim();
     if (Array.isArray(value)) {
       const hit = value.find(
         (entry) => typeof entry === "string" && entry.trim(),
       );
+
       if (typeof hit === "string") return hit.trim();
     }
   }
+
   return null;
 }
 
@@ -41,12 +41,17 @@ function humanizeToken(value: string): string {
 
 function formatDecisionStatus(raw: string | null): string {
   if (!raw) return "Action taken";
-  const cleaned = raw.replace(/^DECISION_/i, "").replace(/_/g, " ").trim();
+  const cleaned = raw
+    .replace(/^DECISION_/i, "")
+    .replace(/_/g, " ")
+    .trim();
+
   return humanizeToken(cleaned);
 }
 
 function formatSeverity(raw: string | null): string {
   if (!raw) return "Moderation";
+
   return humanizeToken(raw.replace(/^CATEGORY_/i, ""));
 }
 
@@ -55,11 +60,17 @@ function parseSanction(
   index: number,
 ): DiscordDsaSanction | null {
   const record = asRecord(entry);
+
   if (!record) return null;
 
   const id =
-    firstString(record, ["uuid", "id", "puid", "platformUid", "platform_uid"]) ??
-    `dsa-${index}`;
+    firstString(record, [
+      "uuid",
+      "id",
+      "puid",
+      "platformUid",
+      "platform_uid",
+    ]) ?? `dsa-${index}`;
 
   const severity = formatSeverity(
     firstString(record, [
@@ -132,6 +143,7 @@ function parseStatementList(value: unknown): DiscordDsaSanction[] {
 
   for (let i = 0; i < list.length; i += 1) {
     const sanction = parseSanction(list[i], i);
+
     if (!sanction) continue;
     if (seen.has(sanction.id)) continue;
     seen.add(sanction.id);
@@ -152,6 +164,7 @@ export async function fetchPublicDsaSanctions(
 ): Promise<DiscordDsaSanction[]> {
   try {
     const url = new URL(`${DSA_LOOKUP_BASE}/search`);
+
     url.searchParams.set("parsedId", discordId);
     url.searchParams.set("limit", "20");
     url.searchParams.set("includeTotalCount", "true");
@@ -168,6 +181,7 @@ export async function fetchPublicDsaSanctions(
     if (!res.ok) return [];
 
     const payload = (await res.json()) as unknown;
+
     return parseStatementList(payload);
   } catch {
     return [];
@@ -186,5 +200,6 @@ export async function fetchDiscordDsaSanctions(
   }
 
   const fromPublic = await fetchPublicDsaSanctions(discordId);
+
   return { count: fromPublic.length, sanctions: fromPublic };
 }

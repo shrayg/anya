@@ -1,9 +1,9 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
-
 import { useCallback, useEffect, useState } from "react";
 import { ShieldAlert } from "lucide-react";
+
+import { apiFetch } from "@/lib/csrf-client";
 
 type SafetyNotice = {
   id: number;
@@ -31,6 +31,7 @@ export function SafetyNoticeOverlay() {
         cache: "no-store",
       });
       const data = await response.json();
+
       if (!response.ok) return;
       setNotices(Array.isArray(data.notices) ? data.notices : []);
     } catch {
@@ -41,10 +42,12 @@ export function SafetyNoticeOverlay() {
   useEffect(() => {
     loadNotices();
     const interval = window.setInterval(loadNotices, 60_000);
+
     return () => window.clearInterval(interval);
   }, [loadNotices]);
 
   const active = notices[0];
+
   if (!active?.helperMessage) return null;
 
   const from =
@@ -62,8 +65,10 @@ export function SafetyNoticeOverlay() {
         body: JSON.stringify({ flagId: active.id }),
       });
       const data = await response.json();
+
       if (!response.ok) {
         setError(data.error || "Could not acknowledge notice.");
+
         return;
       }
       setNotices((current) => current.filter((n) => n.id !== active.id));
@@ -99,15 +104,13 @@ export function SafetyNoticeOverlay() {
           {active.helperMessage}
         </p>
 
-        {error && (
-          <p className="mb-3 text-sm text-rose-300">{error}</p>
-        )}
+        {error && <p className="mb-3 text-sm text-rose-300">{error}</p>}
 
         <button
           className="w-full rounded-md border border-amber-400/40 bg-amber-500/20 px-4 py-2.5 text-sm font-semibold text-amber-50 transition hover:bg-amber-500/30 disabled:opacity-50"
           disabled={busy}
-          onClick={acknowledge}
           type="button"
+          onClick={acknowledge}
         >
           {busy ? "Saving..." : "I understand"}
         </button>

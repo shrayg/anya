@@ -26,11 +26,13 @@ export async function POST(request: Request) {
       typeof body?.turnstileToken === "string" ? body.turnstileToken : "";
 
     const usernameError = validateUsernameForRegistration(username);
+
     if (usernameError) {
       return NextResponse.json({ error: usernameError }, { status: 400 });
     }
 
     const passwordError = validatePassword(password);
+
     if (passwordError) {
       return NextResponse.json({ error: passwordError }, { status: 400 });
     }
@@ -39,6 +41,7 @@ export async function POST(request: Request) {
     const ip = getClientIp(request);
 
     const turnstile = await verifyTurnstileToken(turnstileToken, ip);
+
     if (!turnstile.ok) {
       return NextResponse.json({ error: turnstile.error }, { status: 400 });
     }
@@ -54,10 +57,7 @@ export async function POST(request: Request) {
 
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [
-          { username: normalizedUsername },
-          { username: username.trim() },
-        ],
+        OR: [{ username: normalizedUsername }, { username: username.trim() }],
       },
       select: { id: true },
     });

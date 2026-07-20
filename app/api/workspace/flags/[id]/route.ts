@@ -14,6 +14,7 @@ export async function PATCH(
 ) {
   try {
     const auth = await requireWorkspaceStaff();
+
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -101,8 +102,7 @@ export async function PATCH(
         status,
         reviewedById: auth.staffId,
         reviewedByUsername: auth.username,
-        reviewNote:
-          reviewNote !== undefined ? reviewNote || null : undefined,
+        reviewNote: reviewNote !== undefined ? reviewNote || null : undefined,
         assignedHelperId: auth.isHelper ? auth.staffId : undefined,
         assignedHelperUsername: auth.isHelper ? auth.username : undefined,
         resolvedAt: status === "resolved" ? new Date() : null,
@@ -129,6 +129,10 @@ export async function PATCH(
     return NextResponse.json({ success: true, flag });
   } catch (error) {
     console.error("Error updating safety flag:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

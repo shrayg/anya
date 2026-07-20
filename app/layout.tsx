@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import "@/styles/anya-pro.css";
+import "@/styles/landing.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
 import { Bruno_Ace_SC } from "next/font/google";
@@ -28,10 +29,7 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: siteIconSrc, type: "image/png" },
-    ],
+    icon: [{ url: "/favicon.ico" }, { url: siteIconSrc, type: "image/png" }],
     apple: siteLogoSrc,
   },
   other: {
@@ -42,7 +40,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: TEST_LIME_ICON_THEME ? "#b8f042" : "white" },
+    {
+      media: "(prefers-color-scheme: light)",
+      color: TEST_LIME_ICON_THEME ? "#b8f042" : "white",
+    },
     { media: "(prefers-color-scheme: dark)", color: "black" },
   ],
 };
@@ -55,7 +56,6 @@ export default function RootLayout({
   return (
     <html
       suppressHydrationWarning
-      lang="en"
       className={clsx(
         "dark",
         fontSans.variable,
@@ -64,6 +64,8 @@ export default function RootLayout({
         TEST_LIME_ICON_THEME && "theme-lime-test",
         TEST_MAC_DASHBOARD_THEME && "theme-mac-dashboard",
       )}
+      data-scroll-behavior="smooth"
+      lang="en"
     >
       <body
         suppressHydrationWarning

@@ -1,4 +1,7 @@
-import { publicSearchError, publicServiceUnavailable } from "@/lib/public-branding";
+import {
+  publicSearchError,
+  publicServiceUnavailable,
+} from "@/lib/public-branding";
 import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
 import { OSINT_PROVIDER_TIMEOUT_MS } from "@/lib/osint-search-guard";
 import { normalizeDomain } from "@/lib/domain-search";
@@ -66,7 +69,9 @@ export function detectStealerQueryType(
   return "generic";
 }
 
-export function extractOsintCatResults(data: OsintCatResponse | null): unknown[] {
+export function extractOsintCatResults(
+  data: OsintCatResponse | null,
+): unknown[] {
   if (!data) return [];
 
   if (Array.isArray(data.breach_data)) return data.breach_data;
@@ -106,6 +111,7 @@ export function sanitizeBreachResponse(
   data: OsintCatResponse,
 ): SanitizedBreachResponse {
   const results = scrubIntelResults(extractOsintCatResults(data));
+
   return { count: results.length, results };
 }
 
@@ -167,7 +173,9 @@ export async function fetchOsintCat(
         })
       : ({} as OsintCatResponse);
   } catch {
-    throw new Error(publicSearchError("Invalid response from intelligence index."));
+    throw new Error(
+      publicSearchError("Invalid response from intelligence index."),
+    );
   }
 
   if (!res.ok) {
@@ -226,7 +234,9 @@ export async function fetchOsintCatStealerLogs(
               ? breach.reason
               : new Error("Stealer log lookup failed");
 
-        throw reason instanceof Error ? reason : new Error("Stealer log lookup failed");
+        throw reason instanceof Error
+          ? reason
+          : new Error("Stealer log lookup failed");
       }
 
       return mergeSanitizedResponses(...parts);

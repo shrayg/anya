@@ -27,6 +27,7 @@ export type DomainSearchResult = {
 
 export function normalizeDomain(input: string): string | null {
   let value = input.trim().toLowerCase();
+
   value = value.replace(/^https?:\/\//, "");
   value = value.replace(/^www\./, "");
   value = value.split("/")[0]?.split("?")[0]?.split("#")[0] ?? "";
@@ -38,7 +39,9 @@ export function normalizeDomain(input: string): string | null {
   return value;
 }
 
-export function countStealerLogRows(data: Record<string, unknown> | null): number {
+export function countStealerLogRows(
+  data: Record<string, unknown> | null,
+): number {
   if (!data) return 0;
 
   const breachData = data.breach_data ?? data.results ?? data.data;

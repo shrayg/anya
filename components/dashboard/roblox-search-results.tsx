@@ -1,5 +1,8 @@
 "use client";
 
+import type { DiscordProfile } from "@/lib/discord-profile";
+import type { RobloxSearchResult } from "@/lib/roblox-search";
+
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -7,8 +10,6 @@ import {
   LinkedDiscordProfileSkeleton,
 } from "@/components/dashboard/linked-discord-profiles";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
-import type { DiscordProfile } from "@/lib/discord-profile";
-import type { RobloxSearchResult } from "@/lib/roblox-search";
 import { formatSearchRecords } from "@/lib/search-utils";
 
 type LinkedProfile = { id: string; profile: DiscordProfile };
@@ -42,16 +43,19 @@ export function RobloxSearchResults({
     if (result.linkedDiscord?.length) {
       setLinkedDiscord(result.linkedDiscord);
       setLoadingProfiles(false);
+
       return;
     }
 
     if (ids.length === 0) {
       setLinkedDiscord([]);
       setLoadingProfiles(false);
+
       return;
     }
 
     let cancelled = false;
+
     setLoadingProfiles(true);
 
     fetch(`/api/osint/discord/profile?ids=${encodeURIComponent(ids.join(","))}`)
@@ -95,10 +99,10 @@ export function RobloxSearchResults({
       )}
       <SearchResultCards
         blurResults={blurResults}
-        onSelectExportIndex={onSelectExportIndex}
         records={records}
         selectedExportIndex={selectedExportIndex}
         totalCount={result.count}
+        onSelectExportIndex={onSelectExportIndex}
       />
     </div>
   );

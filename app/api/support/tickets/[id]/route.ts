@@ -18,6 +18,7 @@ type Params = { params: Promise<{ id: string }> };
 
 async function getAuthedUser() {
   const session = await getSessionCookie();
+
   if (!session?.userId) return null;
 
   return prisma.user.findUnique({
@@ -32,7 +33,11 @@ async function getAuthedUser() {
   });
 }
 
-async function loadTicketForUser(publicId: string, userId: number, staff: boolean) {
+async function loadTicketForUser(
+  publicId: string,
+  userId: number,
+  staff: boolean,
+) {
   return prisma.supportTicket.findFirst({
     where: staff ? { publicId } : { publicId, userId },
     include: {
@@ -51,6 +56,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const user = await getAuthedUser();
+
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -83,7 +89,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
     });
   } catch (error) {
     console.error("Get ticket error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -91,6 +101,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const user = await getAuthedUser();
+
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -107,11 +118,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     if (ticket.status === "closed") {
-      return NextResponse.json({ error: "This ticket is closed." }, { status: 400 });
+      return NextResponse.json(
+        { error: "This ticket is closed." },
+        { status: 400 },
+      );
     }
 
     const ip = getClientIp(req);
-    const limit = consumeRateLimit(`ticket:reply:${user.id}:${ip}`, 20, 60 * 60 * 1000);
+    const limit = consumeRateLimit(
+      `ticket:reply:${user.id}:${ip}`,
+      20,
+      60 * 60 * 1000,
+    );
+
     if (!limit.allowed) {
       return NextResponse.json(
         { error: "Too many replies. Try again later." },
@@ -123,10 +142,16 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     const body = await req.json().catch(() => null);
-    const message = sanitizeTicketText(String(body?.message ?? ""), MAX_TICKET_BODY);
+    const message = sanitizeTicketText(
+      String(body?.message ?? ""),
+      MAX_TICKET_BODY,
+    );
 
     if (message.length < 2) {
-      return NextResponse.json({ error: "Message is too short." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Message is too short." },
+        { status: 400 },
+      );
     }
 
     const nextStatus = staff ? "awaiting_user" : "awaiting_staff";
@@ -169,7 +194,11 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
   } catch (error) {
     console.error("Reply ticket error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -177,6 +206,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const user = await getAuthedUser();
+
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -225,6 +255,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     });
   } catch (error) {
     console.error("Patch ticket error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

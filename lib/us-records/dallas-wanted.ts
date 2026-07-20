@@ -1,3 +1,5 @@
+import type { ParsedUsQuery, PersonHit } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { ParsedUsQuery, PersonHit } from "@/lib/us-records/types";
 
 const BASE = "https://www.dallascounty.org/dcwantedsearch";
 
@@ -21,6 +22,7 @@ function requireName(parsed: ParsedUsQuery): { first: string; last: string } {
 export function shouldSearchDallasWanted(parsed: ParsedUsQuery): boolean {
   if (parsed.country && parsed.country !== "US") return false;
   if (parsed.state === "TX") return true;
+
   return /\b(dallas|texas|tx)\b/i.test(parsed.raw);
 }
 
@@ -43,6 +45,7 @@ export async function searchDallasWanted(
   const { first, last } = requireName(parsed);
   const key = cacheKey("dallas-wanted", `${last}|${first}|${limit}`);
   const cached = getCached<PersonHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("dallas-wanted", 1000);
@@ -84,10 +87,12 @@ export async function searchDallasWanted(
     const dob = decodeEntities(match[5] ?? "");
     const race = decodeEntities(match[6] ?? "");
     const sex = decodeEntities(match[7] ?? "");
+
     if (!dc || seen.has(dc)) continue;
     seen.add(dc);
 
     const address = [street, city].filter(Boolean).join(", ");
+
     hits.push({
       id: `dallas-wanted-${dc}`,
       name,
@@ -121,6 +126,7 @@ export async function searchDallasWanted(
     )) {
       const dc = match[1] ?? "";
       const name = decodeEntities(match[2] ?? "");
+
       if (!dc || seen.has(dc)) continue;
       seen.add(dc);
       hits.push({
@@ -145,5 +151,6 @@ export async function searchDallasWanted(
   }
 
   setCached(key, hits, SOURCE_LIMITS["dallas-wanted"].ttlMs);
+
   return hits;
 }

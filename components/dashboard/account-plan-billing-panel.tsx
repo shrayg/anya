@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
-import {
-  CreditCard,
-  RefreshCw,
-  RotateCcw,
-  XCircle,
-} from "lucide-react";
+import { CreditCard, RefreshCw, RotateCcw, XCircle } from "lucide-react";
 
 import { apiFetch } from "@/lib/csrf-client";
 import {
@@ -46,9 +41,7 @@ export function AccountPlanBillingPanel({
   const isPaid = profile.plan !== "free" && profile.plan !== undefined;
   const planLabel = getPlanDisplayLabel(profile);
 
-  async function runAction(
-    action: "cancel" | "resume",
-  ) {
+  async function runAction(action: "cancel" | "resume") {
     setBusy(action);
     setMessage(null);
     setError(null);
@@ -59,6 +52,7 @@ export function AccountPlanBillingPanel({
         body: JSON.stringify({ action }),
       });
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) throw new Error(data.error ?? "Request failed");
       setCancelAtPeriodEnd(Boolean(data.cancelAtPeriodEnd));
       if (typeof data.planEndsAt === "string" || data.planEndsAt === null) {
@@ -85,13 +79,16 @@ export function AccountPlanBillingPanel({
           action: "renew",
           provider,
           planId: profile.plan,
-          interval: stats?.billingInterval ?? profile.billingInterval ?? "monthly",
+          interval:
+            stats?.billingInterval ?? profile.billingInterval ?? "monthly",
         }),
       });
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) throw new Error(data.error ?? "Renewal failed");
       if (typeof data.url === "string" && data.url) {
         window.location.assign(data.url);
+
         return;
       }
       throw new Error("Checkout URL missing");
@@ -127,26 +124,21 @@ export function AccountPlanBillingPanel({
         {stats?.billingInterval || profile.billingInterval
           ? ` · billed ${stats?.billingInterval ?? profile.billingInterval}`
           : null}
-        {planEndsAt
-          ? ` · period ends ${formatPlanEndDate(planEndsAt)}`
-          : null}
-        .
+        {planEndsAt ? ` · period ends ${formatPlanEndDate(planEndsAt)}` : null}.
       </p>
 
       {cancelAtPeriodEnd ? (
         <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-100">
           Cancellation scheduled. You keep access until{" "}
-          {planEndsAt ? formatPlanEndDate(planEndsAt) : "the end of this period"}
+          {planEndsAt
+            ? formatPlanEndDate(planEndsAt)
+            : "the end of this period"}
           , then the account returns to Free. Renew anytime before then.
         </p>
       ) : null}
 
       <AccountBillingNote
-        stats={
-          stats
-            ? { ...stats, cancelAtPeriodEnd, planEndsAt }
-            : stats
-        }
+        stats={stats ? { ...stats, cancelAtPeriodEnd, planEndsAt } : stats}
       />
 
       {message ? (
@@ -156,11 +148,11 @@ export function AccountPlanBillingPanel({
 
       <div className="mt-4 flex flex-wrap gap-3">
         <Button
-          className="h-10 border border-indigo-300/35 bg-indigo-500 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20"
+          className="h-10 border border-pink-300/35 bg-pink-500 text-sm font-semibold text-white shadow-lg shadow-pink-500/20"
           isDisabled={Boolean(busy)}
           isLoading={busy === "renew-square" || busy === "renew-oxapay"}
-          onPress={() => setShowRenewPicker(true)}
           startContent={<RefreshCw className="size-3.5" />}
+          onPress={() => setShowRenewPicker(true)}
         >
           Renew plan
         </Button>
@@ -170,8 +162,8 @@ export function AccountPlanBillingPanel({
             className="h-10 border border-white/15 bg-white/10 text-sm font-semibold text-white"
             isDisabled={Boolean(busy)}
             isLoading={busy === "resume"}
-            onPress={() => void runAction("resume")}
             startContent={<RotateCcw className="size-3.5" />}
+            onPress={() => void runAction("resume")}
           >
             Undo cancel
           </Button>
@@ -180,6 +172,7 @@ export function AccountPlanBillingPanel({
             className="h-10 border border-rose-400/30 bg-rose-500/10 text-sm font-semibold text-rose-100"
             isDisabled={Boolean(busy) || !isPaid}
             isLoading={busy === "cancel"}
+            startContent={<XCircle className="size-3.5" />}
             onPress={() => {
               if (
                 window.confirm(
@@ -189,7 +182,6 @@ export function AccountPlanBillingPanel({
                 void runAction("cancel");
               }
             }}
-            startContent={<XCircle className="size-3.5" />}
           >
             Cancel plan
           </Button>
@@ -202,10 +194,10 @@ export function AccountPlanBillingPanel({
 
       {showRenewPicker ? (
         <div
+          aria-labelledby="renew-method-title"
+          aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
           role="dialog"
-          aria-modal="true"
-          aria-labelledby="renew-method-title"
         >
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl">
             <h3
@@ -215,16 +207,16 @@ export function AccountPlanBillingPanel({
               Renew {planLabel}
             </h3>
             <p className="mt-2 text-sm text-zinc-400">
-              Card (Square) is required for recurring billing. Crypto (OxaPay) is
-              a one-time payment — you will need to renew again next period.
+              Card (Square) is required for recurring billing. Crypto (OxaPay)
+              is a one-time payment — you will need to renew again next period.
             </p>
             <div className="mt-5 grid gap-3">
               <Button
-                className="h-11 w-full border border-indigo-300/40 bg-indigo-500 text-sm font-semibold text-white"
+                className="h-11 w-full border border-pink-300/40 bg-pink-500 text-sm font-semibold text-white"
                 isDisabled={Boolean(busy)}
                 isLoading={busy === "renew-square"}
-                onPress={() => void renew("square")}
                 startContent={<CreditCard className="size-4" />}
+                onPress={() => void renew("square")}
               >
                 Renew with card
               </Button>

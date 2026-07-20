@@ -21,11 +21,30 @@ export const SOURCE_LIMITS = {
   "wi-ccap": { timeoutMs: 25_000, ttlMs: 6 * 60 * 60 * 1000 },
   "pa-ujs": { timeoutMs: 35_000, ttlMs: 6 * 60 * 60 * 1000 },
   "fl-fdle": { timeoutMs: 30_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "eu-sanctions": { timeoutMs: 45_000, ttlMs: 24 * 60 * 60 * 1000 },
+  "uk-sanctions": { timeoutMs: 45_000, ttlMs: 24 * 60 * 60 * 1000 },
+  "ca-sanctions": { timeoutMs: 30_000, ttlMs: 24 * 60 * 60 * 1000 },
+  "au-dfat": { timeoutMs: 45_000, ttlMs: 24 * 60 * 60 * 1000 },
+  "ch-seco": { timeoutMs: 45_000, ttlMs: 24 * 60 * 60 * 1000 },
+  "no-brreg": { timeoutMs: 12_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "sec-edgar": { timeoutMs: 15_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "eu-most-wanted": { timeoutMs: 20_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "worldbank-debarred": { timeoutMs: 25_000, ttlMs: 24 * 60 * 60 * 1000 },
+  "tx-tdcj": { timeoutMs: 25_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "fl-sunbiz": { timeoutMs: 30_000, ttlMs: 12 * 60 * 60 * 1000 },
+  "nyc-pluto": { timeoutMs: 20_000, ttlMs: 12 * 60 * 60 * 1000 },
+  "nyc-acris": { timeoutMs: 30_000, ttlMs: 12 * 60 * 60 * 1000 },
+  "philly-opa": { timeoutMs: 20_000, ttlMs: 12 * 60 * 60 * 1000 },
+  "kane-il-property": { timeoutMs: 20_000, ttlMs: 12 * 60 * 60 * 1000 },
+  "nys-dos": { timeoutMs: 20_000, ttlMs: 12 * 60 * 60 * 1000 },
+  "irs-eo": { timeoutMs: 15_000, ttlMs: 12 * 60 * 60 * 1000 },
+  usaspending: { timeoutMs: 15_000, ttlMs: 12 * 60 * 60 * 1000 },
   "fbi-wanted": { timeoutMs: 12_000, ttlMs: 2 * 60 * 60 * 1000 },
   interpol: { timeoutMs: 15_000, ttlMs: 6 * 60 * 60 * 1000 },
   opensanctions: { timeoutMs: 15_000, ttlMs: 6 * 60 * 60 * 1000 },
   "un-sanctions": { timeoutMs: 30_000, ttlMs: 24 * 60 * 60 * 1000 },
   nsopw: { timeoutMs: 25_000, ttlMs: 6 * 60 * 60 * 1000 },
+  "ca-rcmp-sor": { timeoutMs: 25_000, ttlMs: 6 * 60 * 60 * 1000 },
   "sam-gov": { timeoutMs: 15_000, ttlMs: 12 * 60 * 60 * 1000 },
   "bop-inmate": { timeoutMs: 20_000, ttlMs: 6 * 60 * 60 * 1000 },
   "state-portal": { timeoutMs: 5_000, ttlMs: 24 * 60 * 60 * 1000 },
@@ -34,9 +53,13 @@ export const SOURCE_LIMITS = {
 
 const lastCallAt = new Map<string, number>();
 
-export async function paceSource(source: string, minIntervalMs: number): Promise<void> {
+export async function paceSource(
+  source: string,
+  minIntervalMs: number,
+): Promise<void> {
   const previous = lastCallAt.get(source) ?? 0;
   const wait = minIntervalMs - (Date.now() - previous);
+
   if (wait > 0) {
     await new Promise((resolve) => setTimeout(resolve, wait));
   }
@@ -58,6 +81,7 @@ async function fetchPublicRecords(
   accept: string,
 ): Promise<Response> {
   const limits = SOURCE_LIMITS[options.source];
+
   await paceSource(options.source, options.minIntervalMs ?? 250);
 
   return fetchWithTimeout(url, {
@@ -76,12 +100,17 @@ async function fetchPublicRecords(
 
 export async function fetchUsRecordsJson<T>(
   url: string,
-  options: Omit<FetchOpts, "method" | "body"> & { method?: "GET" | "POST"; body?: string },
+  options: Omit<FetchOpts, "method" | "body"> & {
+    method?: "GET" | "POST";
+    body?: string;
+  },
 ): Promise<T> {
   const res = await fetchPublicRecords(url, options, "application/json");
+
   if (!res.ok) {
     throw new Error(`${options.source} HTTP ${res.status}`);
   }
+
   return (await res.json()) as T;
 }
 
@@ -89,10 +118,16 @@ export async function fetchUsRecordsText(
   url: string,
   options: Omit<FetchOpts, "method" | "body">,
 ): Promise<string> {
-  const res = await fetchPublicRecords(url, options, "text/csv,text/plain,application/xml,*/*");
+  const res = await fetchPublicRecords(
+    url,
+    options,
+    "text/html,text/csv,text/plain,application/xml,*/*",
+  );
+
   if (!res.ok) {
     throw new Error(`${options.source} HTTP ${res.status}`);
   }
+
   return res.text();
 }
 
@@ -118,10 +153,15 @@ export async function fetchUsRecordsPostJson<T>(
     },
     "application/json",
   );
+
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`${options.source} HTTP ${res.status}: ${text.slice(0, 120)}`);
+
+    throw new Error(
+      `${options.source} HTTP ${res.status}: ${text.slice(0, 120)}`,
+    );
   }
+
   return (await res.json()) as T;
 }
 

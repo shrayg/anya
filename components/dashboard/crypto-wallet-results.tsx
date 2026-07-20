@@ -1,10 +1,12 @@
-import { BlurredValue } from "@/components/dashboard/blurred-value";
 import type { CryptoWalletResult } from "@/lib/crypto-wallet";
+
+import { BlurredValue } from "@/components/dashboard/blurred-value";
 
 function chainLabel(chain: CryptoWalletResult["chain"]) {
   if (chain === "bitcoin") return "Bitcoin";
   if (chain === "ethereum") return "Ethereum";
   if (chain === "litecoin") return "Litecoin";
+
   return "Solana";
 }
 
@@ -19,7 +21,9 @@ export function CryptoWalletResults({
     { label: "Chain", value: chainLabel(result.chain) },
     { label: "Address", value: result.address },
     { label: "Balance", value: result.balance },
-    ...(result.balanceUsd ? [{ label: "Balance (USD)", value: result.balanceUsd }] : []),
+    ...(result.balanceUsd
+      ? [{ label: "Balance (USD)", value: result.balanceUsd }]
+      : []),
     ...(result.ensName ? [{ label: "ENS", value: result.ensName }] : []),
     { label: "Transactions", value: String(result.txCount) },
     ...(result.tokenCount !== undefined
@@ -29,7 +33,12 @@ export function CryptoWalletResults({
       ? [{ label: "Contract", value: result.isContract ? "Yes" : "No" }]
       : []),
     ...(result.exchangeRateUsd
-      ? [{ label: "Native/USD rate", value: `$${result.exchangeRateUsd.toLocaleString()}` }]
+      ? [
+          {
+            label: "Native/USD rate",
+            value: `$${result.exchangeRateUsd.toLocaleString()}`,
+          },
+        ]
       : []),
     ...Object.entries(result.stats).map(([label, value]) => ({ label, value })),
   ];
@@ -53,7 +62,9 @@ export function CryptoWalletResults({
             <h3 className="font-[family-name:var(--font-bruno-ace-sc)] text-sm tracking-wide text-white">
               Token balances
             </h3>
-            <p className="text-xs text-zinc-500">Top ERC-20 holdings on this wallet</p>
+            <p className="text-xs text-zinc-500">
+              Top ERC-20 holdings on this wallet
+            </p>
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             {result.tokens.map((token) => (
@@ -70,7 +81,10 @@ export function CryptoWalletResults({
                 </p>
                 {token.balanceUsd && (
                   <p className="mt-1 text-xs text-zinc-400">
-                    <BlurredValue forceBlur={blurResults} text={token.balanceUsd} />
+                    <BlurredValue
+                      forceBlur={blurResults}
+                      text={token.balanceUsd}
+                    />
                   </p>
                 )}
               </div>
@@ -85,7 +99,9 @@ export function CryptoWalletResults({
             <h3 className="font-[family-name:var(--font-bruno-ace-sc)] text-sm tracking-wide text-white">
               Recent activity
             </h3>
-            <p className="text-xs text-zinc-500">Latest on-chain transactions</p>
+            <p className="text-xs text-zinc-500">
+              Latest on-chain transactions
+            </p>
           </div>
           <div className="grid gap-2">
             {result.recentTransactions.map((tx) => (

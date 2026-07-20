@@ -25,6 +25,7 @@ export function ResultCopyButton({
     event.stopPropagation();
 
     const payload = text.trim();
+
     if (!payload) return;
 
     try {
@@ -45,8 +46,8 @@ export function ResultCopyButton({
         copied && "anya-result-copy--done",
         className,
       )}
-      onClick={handleCopy}
       type="button"
+      onClick={handleCopy}
     >
       {copied ? (
         <>

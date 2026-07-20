@@ -15,17 +15,23 @@ export function encodeBillingMeta(meta: BillingMeta): string {
   return Buffer.from(JSON.stringify(meta), "utf8").toString("base64url");
 }
 
-export function decodeBillingMeta(raw: string | null | undefined): BillingMeta | null {
+export function decodeBillingMeta(
+  raw: string | null | undefined,
+): BillingMeta | null {
   if (!raw) return null;
   try {
     const text = Buffer.from(raw, "base64url").toString("utf8");
     const parsed = JSON.parse(text) as BillingMeta;
+
     if (!parsed?.userId || !parsed?.type) return null;
+
     return parsed;
   } catch {
     try {
       const parsed = JSON.parse(raw) as BillingMeta;
+
       if (!parsed?.userId || !parsed?.type) return null;
+
       return parsed;
     } catch {
       return null;
@@ -43,5 +49,6 @@ export function resolveBillingProvider(
   if (provider === "square" || provider === "oxapay") return provider;
   if (method === "card") return "square";
   if (method === "crypto") return "oxapay";
+
   return null;
 }

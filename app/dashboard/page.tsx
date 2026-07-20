@@ -14,6 +14,7 @@ export default function DashboardPage() {
       .then((data) => {
         if (!data?.authenticated || !data.user) {
           router.replace("/");
+
           return;
         }
 

@@ -1,7 +1,8 @@
+import type { DomainSearchResult } from "@/lib/domain-search";
+
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
-import type { DomainSearchResult } from "@/lib/domain-search";
 import {
   countStealerLogRows,
   extractStealerLogEntries,
@@ -36,13 +37,19 @@ export function DomainSearchResults({
         <div className="anya-result-strip">
           <p className="anya-result-label">Stealer log hits</p>
           <p className="anya-result-value">
-            <BlurredValue forceBlur={blurResults} text={stealerHits.toLocaleString()} />
+            <BlurredValue
+              forceBlur={blurResults}
+              text={stealerHits.toLocaleString()}
+            />
           </p>
         </div>
         <div className="anya-result-strip">
           <p className="anya-result-label">Breached data hits</p>
           <p className="anya-result-value">
-            <BlurredValue forceBlur={blurResults} text={breachHits.toLocaleString()} />
+            <BlurredValue
+              forceBlur={blurResults}
+              text={breachHits.toLocaleString()}
+            />
           </p>
         </div>
       </div>
@@ -63,13 +70,15 @@ export function DomainSearchResults({
         ) : stealerRecords.length > 0 ? (
           <SearchResultCards
             blurResults={blurResults}
-            onSelectExportIndex={onSelectExportIndex}
             records={stealerRecords}
             selectedExportIndex={selectedExportIndex}
             totalCount={stealerHits}
+            onSelectExportIndex={onSelectExportIndex}
           />
         ) : (
-          <p className="text-sm text-zinc-500">No stealer log rows for this domain.</p>
+          <p className="text-sm text-zinc-500">
+            No stealer log rows for this domain.
+          </p>
         )}
       </section>
 
@@ -78,7 +87,9 @@ export function DomainSearchResults({
           <h3 className="font-[family-name:var(--font-bruno-ace-sc)] text-sm tracking-wide text-white">
             Breached Data
           </h3>
-          <p className="text-xs text-zinc-500">COMB credential index for {result.domain}</p>
+          <p className="text-xs text-zinc-500">
+            COMB credential index for {result.domain}
+          </p>
         </div>
         {result.breachedDataError ? (
           <p className="border-l-2 border-amber-400/60 bg-amber-400/8 px-4 py-3 text-sm text-amber-100">
@@ -87,12 +98,14 @@ export function DomainSearchResults({
         ) : result.breachedData ? (
           <BreachesSearchResults
             blurResults={blurResults}
-            onSelectExportIndex={onSelectExportIndex}
             result={result.breachedData}
             selectedExportIndex={selectedExportIndex}
+            onSelectExportIndex={onSelectExportIndex}
           />
         ) : (
-          <p className="text-sm text-zinc-500">No breached credentials for this domain.</p>
+          <p className="text-sm text-zinc-500">
+            No breached credentials for this domain.
+          </p>
         )}
       </section>
     </div>

@@ -49,23 +49,24 @@ const HARD_RISK_PATTERNS: Array<{ id: string; label: string; re: RegExp }> = [
   },
 ];
 
-const AGE_UNDER_18_PATTERNS: Array<{ id: string; label: string; re: RegExp }> = [
-  {
-    id: "age_years_old",
-    label: "Age stated under 18 (years old)",
-    re: /\b(?:aged?\s*)?(?:1[0-7]|[1-9])\s*(?:yo|y\/o|yrs?\.?|years?\s*old)\b/i,
-  },
-  {
-    id: "age_equals",
-    label: "Age field under 18",
-    re: /\bage\s*[:=]?\s*(?:1[0-7]|[1-9])\b/i,
-  },
-  {
-    id: "age_of",
-    label: "Age of under 18",
-    re: /\bage\s+of\s+(?:1[0-7]|[1-9])\b/i,
-  },
-];
+const AGE_UNDER_18_PATTERNS: Array<{ id: string; label: string; re: RegExp }> =
+  [
+    {
+      id: "age_years_old",
+      label: "Age stated under 18 (years old)",
+      re: /\b(?:aged?\s*)?(?:1[0-7]|[1-9])\s*(?:yo|y\/o|yrs?\.?|years?\s*old)\b/i,
+    },
+    {
+      id: "age_equals",
+      label: "Age field under 18",
+      re: /\bage\s*[:=]?\s*(?:1[0-7]|[1-9])\b/i,
+    },
+    {
+      id: "age_of",
+      label: "Age of under 18",
+      re: /\bage\s+of\s+(?:1[0-7]|[1-9])\b/i,
+    },
+  ];
 
 const TEEN_WITH_CONTEXT = /\bteens?(?:ager)?s?\b/i;
 const CONCERNING_CONTEXT =
@@ -73,6 +74,7 @@ const CONCERNING_CONTEXT =
 
 function looksLikeIdentifierOnly(query: string): boolean {
   const q = query.trim();
+
   if (!q) return true;
   if (DISCORD_SNOWFLAKE.test(q)) return true;
   if (EMAIL_ONLY.test(q)) return true;
@@ -80,6 +82,7 @@ function looksLikeIdentifierOnly(query: string): boolean {
   if (UUID_ONLY.test(q)) return true;
   if (IP_ONLY.test(q)) return true;
   if (HANDLE_LIKE.test(q) && !/\s/.test(q)) return true;
+
   return false;
 }
 
@@ -148,7 +151,9 @@ export function assessSearchQueryForSafety(
 /** Truncate query for staff queues — enough to review, avoid huge payloads. */
 export function buildQueryPreview(rawQuery: string, maxLen = 240): string {
   const query = stripModulePrefix(String(rawQuery ?? "")).replace(/\s+/g, " ");
+
   if (query.length <= maxLen) return query;
+
   return `${query.slice(0, maxLen)}…`;
 }
 
@@ -175,7 +180,9 @@ export function parseHelperMessageHistory(
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
+
     if (!Array.isArray(parsed)) return [];
+
     return parsed
       .filter(
         (entry): entry is HelperMessageHistoryEntry =>

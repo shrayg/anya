@@ -4,12 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  Coffee,
   CreditCard,
   Download,
   FolderPlus,
   Home,
   IdCard,
+  LifeBuoy,
   Search,
   Settings,
   Users,
@@ -30,6 +30,7 @@ function PreviewModuleIcon({ name }: { name: string }) {
   if (hasPlatformBrandIcon(name)) {
     return <PlatformBrandIcon className="size-4 shrink-0" name={name} />;
   }
+
   return <Search className="size-4 shrink-0 text-zinc-400" />;
 }
 
@@ -81,13 +82,16 @@ export default function DesignPreviewPage() {
                   ? "bg-[var(--anya-blush)] text-[#14110f]"
                   : "bg-white/8 text-zinc-300 hover:bg-white/12",
               )}
-              onClick={() => setView(id)}
               type="button"
+              onClick={() => setView(id)}
             >
               {label}
             </button>
           ))}
-          <Link className="ui-btn ui-btn-ghost !px-2 !py-1 !text-[11px]" href="/">
+          <Link
+            className="ui-btn ui-btn-ghost !px-2 !py-1 !text-[11px]"
+            href="/"
+          >
             Real site
           </Link>
         </div>
@@ -99,15 +103,15 @@ export default function DesignPreviewPage() {
         <>
           <aside className="dash-sidebar" data-tour="sidebar">
             <div className="dash-sidebar-brand">
-          <Image
-            alt=""
-            className={siteLogoClassName}
-            height={36}
-            src={siteLogoSrc}
-            unoptimized
-            width={36}
-          />
-          <span>{siteConfig.name}</span>
+              <Image
+                unoptimized
+                alt=""
+                className={siteLogoClassName}
+                height={36}
+                src={siteLogoSrc}
+                width={36}
+              />
+              <span>{siteConfig.name}</span>
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-4 pt-1">
@@ -136,6 +140,7 @@ export default function DesignPreviewPage() {
                   {section.items.map((item) => {
                     const active =
                       view === "instagram" && item.slug === "instagram";
+
                     return (
                       <button
                         key={item.slug}
@@ -143,11 +148,11 @@ export default function DesignPreviewPage() {
                           "dash-nav-link w-full text-left",
                           active && "dash-nav-link-active",
                         )}
+                        type="button"
                         onClick={() => {
                           setView("instagram");
                           setScanning(true);
                         }}
-                        type="button"
                       >
                         <span className="flex min-w-0 items-center gap-2">
                           <PreviewModuleIcon name={item.name} />
@@ -178,10 +183,10 @@ export default function DesignPreviewPage() {
                   Pricing
                 </span>
               </Link>
-              <Link className="dash-nav-link dash-nav-link-coffee" href="/dashboard/support">
+              <Link className="dash-nav-link" href="/dashboard/support">
                 <span className="flex items-center gap-2">
-                  <Coffee className="size-4 opacity-70" />
-                  Coffee Support
+                  <LifeBuoy className="size-4 opacity-70" />
+                  Support
                 </span>
               </Link>
             </div>
@@ -195,12 +200,15 @@ export default function DesignPreviewPage() {
                 <div className="mb-6 flex items-center justify-between gap-3">
                   <button
                     className="module-search-back inline-flex items-center gap-1.5"
-                    onClick={() => setView("hub")}
                     type="button"
+                    onClick={() => setView("hub")}
                   >
                     ← Search Hub
                   </button>
-                  <Link className="module-search-back inline-flex items-center gap-1.5" href="/">
+                  <Link
+                    className="module-search-back inline-flex items-center gap-1.5"
+                    href="/"
+                  >
                     <Home className="size-3.5" />
                     Home
                   </Link>
@@ -231,8 +239,8 @@ export default function DesignPreviewPage() {
                     >
                       <input
                         className="ui-input flex-1 font-mono text-sm"
-                        onChange={(e) => setQuery(e.target.value)}
                         value={query}
+                        onChange={(e) => setQuery(e.target.value)}
                       />
                       <button
                         className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
@@ -249,76 +257,80 @@ export default function DesignPreviewPage() {
 
                 {!scanning ? (
                   <div className="mt-5">
-                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-sm text-zinc-400">
-                            Instagram · keeganhoyne
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <button className="ui-btn ui-btn-ghost" type="button">
-                              <Download className="size-3.5" />
-                              Export all data
-                            </button>
-                            <button className="ui-btn ui-btn-primary" type="button">
-                              <FolderPlus className="size-3.5" />
-                              File intel
-                            </button>
-                          </div>
-                        </div>
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-zinc-400">
+                        Instagram · keeganhoyne
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button className="ui-btn ui-btn-ghost" type="button">
+                          <Download className="size-3.5" />
+                          Export all data
+                        </button>
+                        <button className="ui-btn ui-btn-primary" type="button">
+                          <FolderPlus className="size-3.5" />
+                          File intel
+                        </button>
+                      </div>
+                    </div>
 
-                        <div className="mb-4 flex flex-wrap gap-2">
-                          {["Profile", "Bubble map", "Mutuals", "Followers", "Leaks"].map(
-                            (tab, i) => (
-                              <button
-                                key={tab}
-                                className={clsx(
-                                  "ui-tab",
-                                  i === 0 && "ui-tab--active",
-                                )}
-                                type="button"
-                              >
-                                {tab}
-                              </button>
-                            ),
-                          )}
-                        </div>
-
-                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                          {[
-                            ["Username", "@keeganhoyne"],
-                            ["Followers", "12,480"],
-                            ["Following", "891"],
-                            ["Posts", "342"],
-                            ["Private", "No"],
-                            ["Verified", "No"],
-                          ].map(([label, value]) => (
-                            <div
-                              key={label}
-                              className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"
-                            >
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                                {label}
-                              </p>
-                              <p className="mt-1 font-mono text-sm text-zinc-100">
-                                {value}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {[
+                        "Profile",
+                        "Bubble map",
+                        "Mutuals",
+                        "Followers",
+                        "Leaks",
+                      ].map((tab, i) => (
                         <button
-                          className="ui-btn ui-btn-ghost mt-5"
-                          onClick={() => setScanning(true)}
+                          key={tab}
+                          className={clsx(
+                            "ui-tab",
+                            i === 0 && "ui-tab--active",
+                          )}
                           type="button"
                         >
-                          Replay scan animation
+                          {tab}
                         </button>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {[
+                        ["Username", "@keeganhoyne"],
+                        ["Followers", "12,480"],
+                        ["Following", "891"],
+                        ["Posts", "342"],
+                        ["Private", "No"],
+                        ["Verified", "No"],
+                      ].map(([label, value]) => (
+                        <div
+                          key={label}
+                          className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"
+                        >
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                            {label}
+                          </p>
+                          <p className="mt-1 font-mono text-sm text-zinc-100">
+                            {value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      className="ui-btn ui-btn-ghost mt-5"
+                      type="button"
+                      onClick={() => setScanning(true)}
+                    >
+                      Replay scan animation
+                    </button>
                   </div>
                 ) : (
                   <div className="mt-4 flex justify-end">
                     <button
                       className="ui-btn ui-btn-ghost"
-                      onClick={() => setScanning(false)}
                       type="button"
+                      onClick={() => setScanning(false)}
                     >
                       Simulate results ready
                     </button>
@@ -351,11 +363,11 @@ function HubMock({ onOpenInstagram }: { onOpenInstagram: () => void }) {
             <button
               key={item.slug}
               className="module-search-card text-left"
+              type="button"
               onClick={() => {
                 if (item.slug === "instagram") onOpenInstagram();
                 else onOpenInstagram();
               }}
-              type="button"
             >
               <p className="module-search-card-section">{section.title}</p>
               <p className="module-search-card-title">{item.name}</p>
@@ -398,13 +410,13 @@ function MarketingMock() {
       <section className="relative z-20 flex flex-1 flex-col items-center justify-center gap-8 px-6 pb-24 pt-10 text-center">
         <div className="flex max-w-4xl flex-col items-center gap-5">
           <Image
-              alt=""
-              className={siteLogoClassName}
-              height={64}
-              src={siteLogoSrc}
-              unoptimized
-              width={64}
-            />
+            unoptimized
+            alt=""
+            className={siteLogoClassName}
+            height={64}
+            src={siteLogoSrc}
+            width={64}
+          />
           <h1 className="font-[family-name:var(--font-bruno-ace-sc)] text-5xl tracking-normal md:text-8xl">
             {siteConfig.name}
           </h1>
@@ -416,11 +428,14 @@ function MarketingMock() {
 
         <div className="flex w-full max-w-xl flex-col gap-3 sm:flex-row">
           <input
+            readOnly
             className="ui-input flex-1 text-left"
             placeholder="Email, username, domain…"
-            readOnly
           />
-          <button className="ui-btn ui-btn-primary sm:min-w-[7rem]" type="button">
+          <button
+            className="ui-btn ui-btn-primary sm:min-w-[7rem]"
+            type="button"
+          >
             Search
           </button>
         </div>

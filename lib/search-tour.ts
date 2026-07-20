@@ -7,7 +7,8 @@ export type SearchTourStep = {
 };
 
 export const HOME_SEARCH_TOUR_STORAGE_KEY = "anya-home-search-tour-v2";
-export const WORKSPACE_SEARCH_TOUR_STORAGE_KEY = "anya-workspace-search-tour-v1";
+export const WORKSPACE_SEARCH_TOUR_STORAGE_KEY =
+  "anya-workspace-search-tour-v1";
 
 export const HOME_SEARCH_TOUR_STEPS: SearchTourStep[] = [
   {
@@ -20,7 +21,10 @@ export const HOME_SEARCH_TOUR_STEPS: SearchTourStep[] = [
     title: "Starter? Pick a search type",
     body: "On Starter, choose Email, Phone, Username, or Discord above the search bar. Free and higher plans detect the type automatically.",
     target: "[data-tour='home-search-modes']",
-    fallbackTargets: ["[data-tour='home-search-input']", "[data-tour='home-search']"],
+    fallbackTargets: [
+      "[data-tour='home-search-input']",
+      "[data-tour='home-search']",
+    ],
   },
   {
     id: "type-here",
@@ -48,7 +52,10 @@ export const HOME_SEARCH_TOUR_STEPS: SearchTourStep[] = [
     title: "Step 3 — Read your results",
     body: "Matches appear below the search bar. Each card is a record we found — emails, passwords, profile links, and more. Click a card to see details.",
     target: "[data-tour='home-search-results']",
-    fallbackTargets: ["[data-tour='home-search']", "[data-tour='home-search-input']"],
+    fallbackTargets: [
+      "[data-tour='home-search']",
+      "[data-tour='home-search-input']",
+    ],
   },
   {
     id: "free-plan",
@@ -87,7 +94,10 @@ export const WORKSPACE_SEARCH_TOUR_STEPS: SearchTourStep[] = [
     title: "Step 3 — Review and export",
     body: "Results appear below. You can export data, save findings to a case, or open another module from the sidebar for more pivots.",
     target: "[data-tour='search-results']",
-    fallbackTargets: ["[data-tour='search-input']", "[data-tour='main-content']"],
+    fallbackTargets: [
+      "[data-tour='search-input']",
+      "[data-tour='main-content']",
+    ],
   },
   {
     id: "done",
@@ -103,8 +113,10 @@ export function resolveSearchTourTarget(step: SearchTourStep): Element | null {
 
   for (const selector of selectors) {
     const element = document.querySelector(selector);
+
     if (element instanceof HTMLElement) {
       const rect = element.getBoundingClientRect();
+
       if (rect.width > 0 && rect.height > 0) {
         return element;
       }

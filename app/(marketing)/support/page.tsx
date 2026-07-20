@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 import NextLink from "next/link";
 import {
   Headphones,
@@ -8,6 +9,7 @@ import {
   Ticket,
 } from "lucide-react";
 
+import { Reveal } from "@/components/craft/reveal";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -34,7 +36,7 @@ const CHANNELS = [
   },
   {
     title: "Ticket desk",
-    body: "Logged-in members can open a ticket from the dashboard for tracked support.",
+    body: "Professional and Ultimate members open tracked tickets from the panel.",
     href: "/dashboard/support",
     cta: "Open ticket desk",
     icon: Ticket,
@@ -44,29 +46,27 @@ const CHANNELS = [
 
 export default function SupportPage() {
   return (
-    <div className="relative z-20 mx-auto w-full max-w-4xl px-2 pb-20 pt-6 md:pt-10">
-      <header className="mb-12 space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--anya-blush)]">
-          Help center
-        </p>
-        <h1
-          className="text-3xl font-semibold tracking-tight text-white md:text-5xl"
-          style={{ fontFamily: "var(--font-bruno-ace-sc)" }}
-        >
-          Support
-        </h1>
-        <p className="max-w-2xl text-base leading-7 text-zinc-400">
-          Billing, access, and product help for {siteConfig.name}. This page is a
-          starting point — more guides and self-serve tools will land here over
-          time.
-        </p>
-      </header>
+    <div className="brutal-page brutal-support-page relative z-20 mx-auto w-full max-w-4xl px-2 pb-24 pt-6 md:pt-10">
+      <Reveal>
+        <header className="brutal-page-header mb-14 space-y-5">
+          <p className="craft-kicker">
+            <LifeBuoy className="size-3.5" />
+            Help center
+          </p>
+          <h1 className="craft-display text-4xl md:text-6xl">Support</h1>
+          <p className="craft-lede">
+            Billing, access, and product help for {siteConfig.name}. Start here
+            — then escalate to email, Telegram, or an in-panel ticket when you
+            need a tracked thread.
+          </p>
+        </header>
+      </Reveal>
 
-      <section className="mb-10 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/15 via-white/[0.03] to-transparent p-px shadow-lg shadow-indigo-500/10">
-        <div className="rounded-[23px] bg-zinc-950/80 px-6 py-6 backdrop-blur-xl sm:px-8 sm:py-8">
+      <Reveal delay={0.06}>
+        <section className="craft-surface mb-12 p-6 sm:p-8">
           <div className="flex items-start gap-4">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-indigo-300/30 bg-indigo-500/15">
-              <LifeBuoy className="size-5 text-indigo-200" />
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-pink-300/30 bg-pink-500/15">
+              <LifeBuoy className="size-5 text-pink-200" />
             </div>
             <div className="space-y-2">
               <h2 className="text-lg font-semibold text-white">
@@ -80,57 +80,66 @@ export default function SupportPage() {
               </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Reveal>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        {CHANNELS.map((channel) => {
+        {CHANNELS.map((channel, index) => {
           const Icon = channel.icon;
+
           return (
-            <a
-              key={channel.title}
-              className="group flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-indigo-300/30 hover:bg-white/[0.06]"
-              href={channel.href}
-              {...(channel.external
-                ? { rel: "noreferrer", target: "_blank" }
-                : {})}
-            >
-              <div className="mb-4 flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] transition group-hover:border-indigo-300/30 group-hover:bg-indigo-500/15">
-                <Icon className="size-4 text-zinc-300 group-hover:text-indigo-200" />
-              </div>
-              <h3 className="text-base font-semibold text-white">{channel.title}</h3>
-              <p className="mt-2 flex-1 text-sm leading-6 text-zinc-500">
-                {channel.body}
-              </p>
-              <span className="mt-4 text-sm font-medium text-indigo-300 group-hover:text-indigo-200">
-                {channel.cta}
-              </span>
-            </a>
+            <Reveal key={channel.title} delay={0.08 + index * 0.05}>
+              <a
+                className="support-channel group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-pink-300/35 hover:bg-pink-500/[0.07]"
+                href={channel.href}
+                {...(channel.external
+                  ? { rel: "noreferrer", target: "_blank" }
+                  : {})}
+              >
+                <div className="mb-4 flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] transition group-hover:border-pink-300/30 group-hover:bg-pink-500/15">
+                  <Icon className="size-4 text-zinc-300 group-hover:text-pink-200" />
+                </div>
+                <h3 className="text-base font-semibold text-white">
+                  {channel.title}
+                </h3>
+                <p className="mt-2 flex-1 text-sm leading-6 text-zinc-500">
+                  {channel.body}
+                </p>
+                <span className="mt-4 text-sm font-medium text-pink-300 group-hover:text-pink-200">
+                  {channel.cta}
+                </span>
+              </a>
+            </Reveal>
           );
         })}
       </section>
 
-      <section className="mt-10 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-8 text-center">
-        <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
-          <Headphones className="size-4 text-zinc-400" />
-        </div>
-        <h2 className="text-base font-semibold text-white">More coming soon</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
-          Docs, troubleshooting playbooks, and self-serve billing tools will be
-          added here. Until then, use email or Telegram — or check the{" "}
-          <NextLink className="text-zinc-300 underline-offset-4 hover:underline" href="/faq">
-            FAQ
-          </NextLink>{" "}
-          and{" "}
-          <NextLink
-            className="text-zinc-300 underline-offset-4 hover:underline"
-            href="/status"
-          >
-            status page
-          </NextLink>
-          .
-        </p>
-      </section>
+      <Reveal delay={0.2}>
+        <section className="mt-14 border border-dashed border-white/15 bg-white/[0.02] px-6 py-10 text-center">
+          <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
+            <Headphones className="size-4 text-zinc-400" />
+          </div>
+          <h2 className="text-base font-semibold text-white">Also useful</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
+            Check the{" "}
+            <NextLink
+              className="text-zinc-300 underline-offset-4 hover:underline"
+              href="/faq"
+            >
+              FAQ
+            </NextLink>{" "}
+            and{" "}
+            <NextLink
+              className="text-zinc-300 underline-offset-4 hover:underline"
+              href="/status"
+            >
+              status page
+            </NextLink>{" "}
+            before opening a ticket. Panel access requires Professional or
+            Ultimate.
+          </p>
+        </section>
+      </Reveal>
     </div>
   );
 }

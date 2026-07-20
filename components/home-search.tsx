@@ -1,17 +1,24 @@
 "use client";
 
+import type { UserProfile } from "@/lib/account-plan";
+import type { DiscordSearchResult } from "@/lib/discord-profile";
+
 import Link from "next/link";
 import clsx from "clsx";
-import { ArrowUp, AtSign, Hash, Phone, Search, User } from "lucide-react";
+import {
+  ArrowRight,
+  AtSign,
+  Hash,
+  LockKeyhole,
+  Phone,
+  Search,
+  User,
+} from "lucide-react";
 import { useEffect, useState, type ElementType } from "react";
 
-import { SearchBarTour, resetSearchBarTour } from "@/components/search-bar-tour";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
-import type { UserProfile } from "@/lib/account-plan";
-import { getUserPlan } from "@/lib/account-plan";
-import { resolveHomeSearchRoute } from "@/lib/home-search-route";
-import { HOME_SEARCH_TOUR_STEPS, HOME_SEARCH_TOUR_STORAGE_KEY } from "@/lib/search-tour";
+import { getHubSections } from "@/lib/search-modules";
 import {
   STARTER_SEARCH_MODES,
   resolveStarterSearchRoute,
@@ -26,17 +33,16 @@ import {
 import {
   checkDailySearchQuota,
   checkModuleAccess,
-  getPlanDefinition,
   hasWorkspaceDashboardAccess,
   resolveUserPlan,
   shouldBlurResults,
+  STARTER_MODULE_SLUGS,
 } from "@/lib/plans";
 import {
   formatSearchRecords,
   formatStructuredSearchData,
   type FormattedRecord,
 } from "@/lib/search-utils";
-import type { DiscordSearchResult } from "@/lib/discord-profile";
 
 type AuthState =
   | { status: "loading" }
@@ -56,6 +62,12 @@ const MODE_ICONS: Record<StarterSearchMode, ElementType> = {
   discord: Hash,
 };
 
+const LOCKED_MODULES = getHubSections().flatMap((section) =>
+  section.items.filter((module) => !STARTER_MODULE_SLUGS.has(module.slug)),
+);
+
+const LOCKED_MODULE_COUNT = LOCKED_MODULES.length;
+
 export function HomeSearch() {
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
   const [query, setQuery] = useState("");
@@ -64,14 +76,9 @@ export function HomeSearch() {
   const [error, setError] = useState("");
   const [records, setRecords] = useState<FormattedRecord[]>([]);
   const [resultCount, setResultCount] = useState(0);
-  const [discordResult, setDiscordResult] = useState<DiscordSearchResult | null>(null);
+  const [discordResult, setDiscordResult] =
+    useState<DiscordSearchResult | null>(null);
   const [blurResults, setBlurResults] = useState(false);
-  const [tourSession, setTourSession] = useState(0);
-
-  const startSearchGuide = () => {
-    resetSearchBarTour(HOME_SEARCH_TOUR_STORAGE_KEY);
-    setTourSession((current) => current + 1);
-  };
 
   useEffect(() => {
     if (window.location.hash === "#search") {
@@ -84,7 +91,9 @@ export function HomeSearch() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/auth/me", { cache: "no-store" }).then((response) => response.json()),
+      fetch("/api/auth/me", { cache: "no-store" }).then((response) =>
+        response.json(),
+      ),
       fetch("/api/user/stats", { cache: "no-store" })
         .then((response) => response.json())
         .catch(() => null),
@@ -92,6 +101,7 @@ export function HomeSearch() {
       .then(([meData, statsData]) => {
         if (!meData?.authenticated || !meData.user?.username) {
           setAuth({ status: "guest" });
+
           return;
         }
 
@@ -106,9 +116,6 @@ export function HomeSearch() {
       .catch(() => setAuth({ status: "guest" }));
   }, []);
 
-  const plan =
-    auth.status === "authenticated" ? resolveUserPlan(auth.user) : null;
-  const useStarterSearch = plan === "starter";
   const activeStarterMode =
     STARTER_SEARCH_MODES.find((mode) => mode.id === starterMode) ??
     STARTER_SEARCH_MODES[0];
@@ -117,20 +124,19 @@ export function HomeSearch() {
     event.preventDefault();
 
     const trimmed = query.trim();
+
     if (!trimmed) return;
 
     if (auth.status === "guest") {
       window.location.href = "/auth?action=login";
+
       return;
     }
 
     if (auth.status === "loading") return;
 
     const userPlan = resolveUserPlan(auth.user);
-    const route =
-      userPlan === "starter"
-        ? resolveStarterSearchRoute(starterMode, trimmed)
-        : resolveHomeSearchRoute(trimmed);
+    const route = resolveStarterSearchRoute(starterMode, trimmed);
     const searchQuery = route.searchQuery ?? trimmed;
     const quotaCheck = checkDailySearchQuota(userPlan, auth.searchesLast24h);
     const accessCheck = checkModuleAccess(userPlan, route.moduleSlug, {
@@ -146,16 +152,22 @@ export function HomeSearch() {
 
     if (!quotaCheck.allowed) {
       setError(quotaCheck.reason ?? "Daily search limit reached.");
+
       return;
     }
 
     if (!accessCheck.allowed) {
-      setError(accessCheck.reason ?? "This lookup is not available on your plan.");
+      setError(
+        accessCheck.reason ?? "This lookup is not available on your plan.",
+      );
+
       return;
     }
 
     setIsSearching(true);
-    setBlurResults(Boolean(accessCheck.blurResults) || shouldBlurResults(userPlan));
+    setBlurResults(
+      Boolean(accessCheck.blurResults) || shouldBlurResults(userPlan),
+    );
 
     const scopeParam = route.scope
       ? `&scope=${encodeURIComponent(route.scope)}`
@@ -171,6 +183,7 @@ export function HomeSearch() {
 
       if (!response.ok) {
         setError(sanitizePublicText(data.error || "Search failed."));
+
         return;
       }
 
@@ -179,10 +192,12 @@ export function HomeSearch() {
 
         if (!discordData.profile) {
           setError(discordData.error || "Could not load Discord profile.");
+
           return;
         }
 
         setDiscordResult(discordData);
+
         return;
       }
 
@@ -194,14 +209,20 @@ export function HomeSearch() {
           message?: string;
           error?: string;
         };
-        const results = Array.isArray(breachData.results) ? breachData.results : [];
+        const results = Array.isArray(breachData.results)
+          ? breachData.results
+          : [];
 
         if (results.length === 0) {
-          setError(breachData.message || breachData.error || "No results were found.");
+          setError(
+            breachData.message || breachData.error || "No results were found.",
+          );
+
           return;
         }
 
         const formatted = formatSearchRecords(results);
+
         setRecords(formatted);
         setResultCount(
           typeof breachData.count === "number"
@@ -210,6 +231,7 @@ export function HomeSearch() {
               ? breachData.returned
               : results.length,
         );
+
         return;
       }
 
@@ -218,12 +240,17 @@ export function HomeSearch() {
 
         if (results.length === 0) {
           setError("No results were found.");
+
           return;
         }
 
         const formatted = formatSearchRecords(results);
+
         setRecords(formatted);
-        setResultCount(typeof data.count === "number" ? data.count : results.length);
+        setResultCount(
+          typeof data.count === "number" ? data.count : results.length,
+        );
+
         return;
       }
 
@@ -231,6 +258,7 @@ export function HomeSearch() {
 
       if (formatted.length === 0) {
         setError("No results were found.");
+
         return;
       }
 
@@ -247,11 +275,6 @@ export function HomeSearch() {
     }
   };
 
-  const planLabel =
-    auth.status === "authenticated"
-      ? getPlanDefinition(getUserPlan(auth.user)).name
-      : null;
-
   const hasWorkspace =
     auth.status === "authenticated" &&
     hasWorkspaceDashboardAccess({
@@ -260,23 +283,22 @@ export function HomeSearch() {
     });
 
   const searchBar = (
-    <div className="home-search-input-wrap relative" data-tour="home-search-input">
+    <div
+      className="home-search-input-wrap relative"
+      data-tour="home-search-input"
+    >
       <AutofillDecoyFields />
       <Search className="home-search-icon" />
       <input
         {...SEARCH_AUTOFILL_SHIELD}
+        readOnly
         className="home-search-input"
         name="home-osint-query"
-        onChange={(event) => setQuery(event.target.value)}
-        onFocus={unlockAutofillShield}
-        placeholder={
-          useStarterSearch
-            ? activeStarterMode.placeholder
-            : "Email, username, phone, Discord ID, or dating profile link…"
-        }
-        readOnly
+        placeholder={activeStarterMode.placeholder}
         type="text"
         value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onFocus={unlockAutofillShield}
       />
       <button
         className="home-search-submit"
@@ -288,8 +310,8 @@ export function HomeSearch() {
           "Running…"
         ) : (
           <>
-            <span className="hidden sm:inline">Search</span>
-            <ArrowUp className="size-4" />
+            <span>Search</span>
+            <ArrowRight className="size-4" />
           </>
         )}
       </button>
@@ -297,19 +319,38 @@ export function HomeSearch() {
   );
 
   return (
-    <div className="home-search w-full max-w-5xl px-2" data-tour="home-search" id="search">
-      <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
-        <button
-          className="home-search-guide-btn"
-          onClick={startSearchGuide}
-          type="button"
-        >
-          Step-by-step guide
-        </button>
-      </div>
+    <div className="home-search" data-tour="home-search" id="search">
+      <form
+        autoComplete="off"
+        className="home-search-form"
+        onSubmit={handleSearch}
+      >
+        <div className="home-search-module-row">
+          <div className="home-search-locked-module">
+            <button
+              aria-label={`${LOCKED_MODULE_COUNT} premium modules locked`}
+              className="home-search-locked-trigger"
+              type="button"
+            >
+              <LockKeyhole className="size-3.5" />
+              <strong>{LOCKED_MODULE_COUNT}</strong>
+              <span>Premium locked</span>
+            </button>
 
-      <form autoComplete="off" className="home-search-form" onSubmit={handleSearch}>
-        {useStarterSearch ? (
+            <div className="home-search-locked-popover" role="tooltip">
+              <div className="home-search-locked-heading">
+                <span>Premium module directory</span>
+                <strong>{LOCKED_MODULE_COUNT} locked</strong>
+              </div>
+              <ul className="home-search-locked-grid">
+                {LOCKED_MODULES.map((module) => (
+                  <li key={module.slug}>{module.name}</li>
+                ))}
+              </ul>
+              <Link href="/pricing">Compare plans and unlock the panel</Link>
+            </div>
+          </div>
+
           <div
             aria-label="Search type"
             className="starter-search-modes"
@@ -327,12 +368,12 @@ export function HomeSearch() {
                     "starter-search-mode",
                     starterMode === mode.id && "starter-search-mode--active",
                   )}
+                  role="tab"
+                  type="button"
                   onClick={() => {
                     setStarterMode(mode.id);
                     setError("");
                   }}
-                  role="tab"
-                  type="button"
                 >
                   <Icon className="size-3.5" />
                   {mode.label}
@@ -340,60 +381,38 @@ export function HomeSearch() {
               );
             })}
           </div>
-        ) : null}
+        </div>
 
         {searchBar}
       </form>
 
-      <p className="mt-3 text-center text-[11px] leading-4 text-zinc-600">
-        By searching you confirm lawful purpose and accept our{" "}
-        <Link className="text-zinc-400 underline-offset-2 hover:underline" href="/terms">
-          Terms
-        </Link>{" "}
-        and{" "}
-        <Link className="text-zinc-400 underline-offset-2 hover:underline" href="/acceptable-use">
-          Acceptable Use
-        </Link>
-        . Not for FCRA-regulated decisions.
-      </p>
+      <div className="home-search-foot">
+        <span>ENTRY MODULES / EMAIL / USERNAME / PHONE / DISCORD</span>
+        <span>
+          {auth.status === "guest" ? (
+            <Link href="/auth?action=login">SIGN IN TO SEARCH</Link>
+          ) : null}
+          {auth.status === "authenticated" && !hasWorkspace ? (
+            <Link href="/pricing">EXPAND ACCESS</Link>
+          ) : null}
+          {auth.status === "authenticated" && hasWorkspace ? (
+            <Link href="/dashboard/search/ai-search">OPEN WORKSPACE</Link>
+          ) : null}
+          {auth.status === "loading" ? "CHECKING ACCESS" : null}
+        </span>
+        <span>
+          <Link href="/acceptable-use">LAWFUL USE ONLY</Link>
+        </span>
+      </div>
 
-      {auth.status === "guest" && (
-        <p className="mt-3 text-xs text-zinc-500">
-          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/auth?action=login">
-            Sign in
-          </Link>{" "}
-          to run lookups. Free and Starter search from the homepage — Professional unlocks the full panel.
-        </p>
-      )}
-
-      {auth.status === "authenticated" && planLabel && !hasWorkspace && (
-        <p className="mt-3 text-xs text-zinc-500">
-          {planLabel} plan · homepage search
-          {useStarterSearch ? " · Email, Phone, Username, Discord." : "."}{" "}
-          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/pricing">
-            Upgrade to Professional
-          </Link>{" "}
-          for more modules.
-        </p>
-      )}
-
-      {auth.status === "authenticated" && hasWorkspace && (
-        <p className="mt-3 text-xs text-zinc-500">
-          Quick lookup here, or open your{" "}
-          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/dashboard/search/ai-search">
-            full workspace
-          </Link>{" "}
-          for every module.
-        </p>
-      )}
-
-      {error ? (
-        <p className="home-search-error">{error}</p>
-      ) : null}
+      {error ? <p className="home-search-error">{error}</p> : null}
 
       {discordResult ? (
         <div className="home-search-results" data-tour="home-search-results">
-          <DiscordSearchResults blurResults={blurResults} result={discordResult} />
+          <DiscordSearchResults
+            blurResults={blurResults}
+            result={discordResult}
+          />
         </div>
       ) : null}
 
@@ -406,13 +425,6 @@ export function HomeSearch() {
           />
         </div>
       ) : null}
-
-      <SearchBarTour
-        key={tourSession}
-        ariaLabel="Homepage search guide"
-        steps={HOME_SEARCH_TOUR_STEPS}
-        storageKey={HOME_SEARCH_TOUR_STORAGE_KEY}
-      />
     </div>
   );
 }

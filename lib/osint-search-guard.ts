@@ -48,6 +48,7 @@ export function isTimeoutLike(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   if (err.name === "AbortError" || err.name === "TimeoutError") return true;
   const lower = err.message.toLowerCase();
+
   return (
     lower.includes("timed out") ||
     lower.includes("timeout") ||
@@ -59,6 +60,7 @@ export function isTimeoutLike(err: unknown): boolean {
 export function isSoftProviderFailure(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const lower = err.message.toLowerCase();
+
   return (
     isTimeoutLike(err) ||
     lower.includes("too many searches") ||
@@ -75,6 +77,7 @@ export function isSoftProviderFailure(err: unknown): boolean {
 
 export function osintErrorMessage(err: unknown, fallback?: string): string {
   if (err instanceof Error && err.message.trim()) return err.message.trim();
+
   return fallback ?? publicSearchError();
 }
 
@@ -122,6 +125,7 @@ export async function runOsintSearch(
       Promise.resolve().then(work),
       opts?.deadlineMs ?? OSINT_ROUTE_DEADLINE_MS,
     );
+
     return NextResponse.json(data);
   } catch (err) {
     return osintFailureResponse(err, {

@@ -13,11 +13,13 @@ export const runtime = "nodejs";
  */
 export async function GET() {
   const session = await getSessionCookie();
+
   if (!session?.userId) {
     return NextResponse.json({ authenticated: false, confirmed: false });
   }
 
   const userId = session.userId as number;
+
   await syncUserPlanLifecycle(userId);
 
   const user = await prisma.user.findUnique({
@@ -71,7 +73,8 @@ export async function GET() {
   const completedBeatsPending =
     Boolean(latestCompleted) &&
     (!latestPending ||
-      latestCompleted!.createdAt.getTime() >= latestPending.createdAt.getTime());
+      latestCompleted!.createdAt.getTime() >=
+        latestPending.createdAt.getTime());
   const confirmed = hasPaidPlan || completedBeatsPending;
 
   return NextResponse.json({

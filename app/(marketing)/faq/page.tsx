@@ -36,7 +36,10 @@ export default function FaqPage() {
           Plans and credits are billed through our checkout providers. After
           payment confirms, entitlements are applied to your account. Crypto
           payments, when available, depend on network confirmation. See{" "}
-          <a className="text-zinc-100 underline-offset-4 hover:underline" href="/refund">
+          <a
+            className="text-zinc-100 underline-offset-4 hover:underline"
+            href="/refund"
+          >
             Refund Policy
           </a>
           .
@@ -60,7 +63,10 @@ export default function FaqPage() {
       <LegalSection title="How do I get help?">
         <p>
           Visit the{" "}
-          <a className="text-zinc-100 underline-offset-4 hover:underline" href="/support">
+          <a
+            className="text-zinc-100 underline-offset-4 hover:underline"
+            href="/support"
+          >
             Support
           </a>{" "}
           page for email, Telegram, and ticket options. Logged-in users can also

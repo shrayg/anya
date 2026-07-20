@@ -2,9 +2,7 @@
 
 import { useMemo } from "react";
 
-import {
-  type DiscordNameplate,
-} from "@/lib/discord-profile";
+import { type DiscordNameplate } from "@/lib/discord-profile";
 
 /**
  * Local QA page for Discord nameplate animation.
@@ -52,10 +50,10 @@ function PreviewPlate({ nameplate }: { nameplate: DiscordNameplate }) {
         <video
           aria-hidden
           autoPlay
-          className="discord-id-nameplate-media"
           loop
           muted
           playsInline
+          className="discord-id-nameplate-media"
           poster={nameplate.url}
           preload="auto"
         >
@@ -75,8 +73,8 @@ function PreviewApng({ nameplate }: { nameplate: DiscordNameplate }) {
       <span className="discord-id-nameplate-tag">APNG</span>
       <div className="discord-id-nameplate-art">
         <img
-          alt=""
           aria-hidden
+          alt=""
           className="discord-id-nameplate-media"
           src={nameplate.animatedImageUrl ?? nameplate.url}
         />

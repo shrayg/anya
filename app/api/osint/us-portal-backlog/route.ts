@@ -5,9 +5,11 @@ import { searchPortalBacklogDirectory } from "@/lib/us-records";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "us-portal-backlog");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
+
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
   }
@@ -17,6 +19,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Portal backlog directory failed";
+
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

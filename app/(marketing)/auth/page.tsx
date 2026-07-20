@@ -5,7 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import NextLink from "next/link";
 import Image from "next/image";
 import clsx from "clsx";
-import { ArrowLeft, Check, Clock, Copy, LogIn, RefreshCw, UserPlus } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Check,
+  Clock,
+  Copy,
+  LogIn,
+  RefreshCw,
+  UserPlus,
+} from "lucide-react";
 
 import { HomeBackground } from "@/components/home-background";
 import {
@@ -31,6 +40,7 @@ async function startPlanCheckout(
   method: string | null = null,
 ) {
   const planId = normalizePlanId(plan);
+
   if (!planId || planId === "free") {
     return { ok: false as const, reason: "invalid_plan" };
   }
@@ -54,10 +64,14 @@ async function startPlanCheckout(
   }
 
   const checkoutData = await checkoutRes.json().catch(() => ({}));
+
   if (!checkoutRes.ok) {
     return {
       ok: false as const,
-      reason: typeof checkoutData.error === "string" ? checkoutData.error : "checkout_failed",
+      reason:
+        typeof checkoutData.error === "string"
+          ? checkoutData.error
+          : "checkout_failed",
     };
   }
 
@@ -71,7 +85,8 @@ async function startPlanCheckout(
 function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialAction = searchParams.get("action") === "register" ? "register" : "login";
+  const initialAction =
+    searchParams.get("action") === "register" ? "register" : "login";
   const [mode, setMode] = useState<"login" | "register">(initialAction);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -101,12 +116,14 @@ function AuthForm() {
     setInfo("");
     setTurnstileToken("");
     const params = new URLSearchParams(searchParams.toString());
+
     params.set("action", next);
     router.replace(`/auth?${params.toString()}`, { scroll: false });
   };
 
   const handleGeneratePassword = async () => {
     const next = generateStrongPassword(16);
+
     setPassword(next);
     setShowPassword(true);
     setCopied(false);
@@ -142,27 +159,36 @@ function AuthForm() {
     try {
       if (mode === "register") {
         if (!acceptedLegal) {
-          setError("Please agree to the Terms, Privacy Policy, and Acceptable Use Policy.");
+          setError(
+            "Please agree to the Terms, Privacy Policy, and Acceptable Use Policy.",
+          );
+
           return;
         }
         const usernameError = validateUsernameForRegistration(username);
+
         if (usernameError) {
           setError(usernameError);
+
           return;
         }
         const passwordError = validatePassword(password);
+
         if (passwordError) {
           setError(passwordError);
+
           return;
         }
       }
 
       if (turnstileRequired && !turnstileToken) {
         setError("Complete the security check and try again.");
+
         return;
       }
 
-      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      const endpoint =
+        mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const response = await apiFetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,6 +203,7 @@ function AuthForm() {
       if (!response.ok) {
         setError(data.error || "Something went wrong.");
         setTurnstileToken("");
+
         return;
       }
 
@@ -199,6 +226,7 @@ function AuthForm() {
             "Signed in, but your session cookie was not saved. Check that third-party cookies aren’t blocked, then refresh and try again.",
           );
         }
+
         return;
       }
 
@@ -214,8 +242,10 @@ function AuthForm() {
       if (plan && plan !== "free") {
         setInfo("Account ready — opening secure checkout…");
         const checkout = await startPlanCheckout(plan, interval, method);
+
         if (checkout.ok) {
           window.location.assign(checkout.url);
+
           return;
         }
 
@@ -227,218 +257,290 @@ function AuthForm() {
         window.setTimeout(() => {
           window.location.assign("/pricing");
         }, 1400);
+
         return;
       }
 
       window.location.assign(landingPath);
     } catch {
-      setError("Could not reach the server. Check your connection and try again.");
+      setError(
+        "Could not reach the server. Check your connection and try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <section className="relative z-20 flex min-h-[calc(100vh-12rem)] items-center justify-center px-4 py-12">
-      <div className="ui-panel ui-panel--auth">
-        <div className="mb-8 flex items-center gap-4">
+    <motion.section
+      animate={{ opacity: 1 }}
+      className="brutal-page brutal-auth-page relative z-20 flex min-h-[calc(100vh-12rem)] items-center justify-center px-4 py-12"
+      initial={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        layout
+        animate={{
+          clipPath: "inset(0 0 0% 0)",
+          opacity: 1,
+          scale: 1,
+          y: 0,
+        }}
+        className="ui-panel ui-panel--auth"
+        initial={{
+          clipPath: "inset(0 0 100% 0)",
+          opacity: 0,
+          scale: 0.985,
+          y: 28,
+        }}
+        transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <motion.div
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-8 flex items-center gap-4"
+          initial={{ opacity: 0, x: -18 }}
+          transition={{ delay: 0.24, duration: 0.4 }}
+        >
           <Image
+            unoptimized
             alt={`${siteConfig.name} logo`}
             className={clsx(siteLogoClassName, "size-14 md:size-16")}
             height={64}
             src={siteLogoSrc}
-            unoptimized
             width={64}
           />
           <div>
-            <p className="text-xl font-semibold text-white md:text-2xl">{siteConfig.name}</p>
+            <p className="text-xl font-semibold text-white md:text-2xl">
+              {siteConfig.name}
+            </p>
             <p className="text-sm text-zinc-500 md:text-base">
               {mode === "login" ? "Welcome back" : "Create your account"}
             </p>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="ui-tabs mb-8">
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="ui-tabs mb-8"
+          initial={{ opacity: 0, y: 10 }}
+          transition={{ delay: 0.32, duration: 0.38 }}
+        >
           <button
-            className={clsx("ui-tab ui-tab--lg", mode === "login" && "ui-tab--active")}
-            onClick={() => switchMode("login")}
+            className={clsx(
+              "ui-tab ui-tab--lg",
+              mode === "login" && "ui-tab--active",
+            )}
             type="button"
+            onClick={() => switchMode("login")}
           >
             Login
           </button>
           <button
-            className={clsx("ui-tab ui-tab--lg", mode === "register" && "ui-tab--active")}
-            onClick={() => switchMode("register")}
+            className={clsx(
+              "ui-tab ui-tab--lg",
+              mode === "register" && "ui-tab--active",
+            )}
             type="button"
+            onClick={() => switchMode("register")}
           >
             Register
           </button>
-        </div>
+        </motion.div>
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <div>
-            <label className="ui-label" htmlFor="username">
-              Username
-            </label>
-            <input
-              id="username"
-              autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="ui-input ui-input--lg"
-              minLength={mode === "register" ? MIN_USERNAME_LENGTH : 1}
-              maxLength={32}
-              pattern="[A-Za-z0-9_]+"
-              title="Letters, numbers, and underscores only"
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder="JohnDoe"
-              required
-              spellCheck={false}
-              value={username}
-            />
-            {mode === "register" && (
-              <p className="mt-2 text-xs text-zinc-500">
-                At least {MIN_USERNAME_LENGTH} characters. Letters, numbers, and underscores
-                only. Usernames are case-insensitive.
+        <AnimatePresence initial mode="wait">
+          <motion.form
+            key={mode}
+            animate={{ clipPath: "inset(0 0 0 0)", opacity: 1, x: 0 }}
+            className="space-y-5"
+            exit={{ clipPath: "inset(0 100% 0 0)", opacity: 0, x: -12 }}
+            initial={{ clipPath: "inset(0 0 0 100%)", opacity: 0, x: 12 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            onSubmit={handleSubmit}
+          >
+            <div>
+              <label className="ui-label" htmlFor="username">
+                Username
+              </label>
+              <input
+                required
+                autoCapitalize="none"
+                autoComplete="username"
+                autoCorrect="off"
+                className="ui-input ui-input--lg"
+                id="username"
+                maxLength={32}
+                minLength={mode === "register" ? MIN_USERNAME_LENGTH : 1}
+                pattern="[A-Za-z0-9_]+"
+                placeholder="JohnDoe"
+                spellCheck={false}
+                title="Letters, numbers, and underscores only"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+              />
+              {mode === "register" && (
+                <p className="mt-2 text-xs text-zinc-500">
+                  At least {MIN_USERNAME_LENGTH} characters. Letters, numbers,
+                  and underscores only. Usernames are case-insensitive.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <label className="ui-label mb-0" htmlFor="password">
+                  Password
+                </label>
+                {mode === "register" && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                      type="button"
+                      onClick={handleGeneratePassword}
+                    >
+                      <RefreshCw className="size-3.5" />
+                      Generate
+                    </button>
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white disabled:opacity-40"
+                      disabled={!password}
+                      type="button"
+                      onClick={handleCopyPassword}
+                    >
+                      {copied ? (
+                        <Check className="size-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="size-3.5" />
+                      )}
+                      {copied ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <input
+                required
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
+                className="ui-input ui-input--lg font-mono"
+                id="password"
+                minLength={mode === "register" ? MIN_PASSWORD_LENGTH : 1}
+                placeholder="••••••••••••"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <div className="mt-2 flex items-center justify-between gap-3">
+                {mode === "register" ? (
+                  <p className="text-xs text-zinc-500">
+                    {passwordRequirementsHint()}
+                  </p>
+                ) : (
+                  <span />
+                )}
+                <button
+                  className="shrink-0 text-xs text-zinc-400 underline-offset-2 hover:text-white hover:underline"
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+
+            {turnstileRequired && (
+              <TurnstileWidget
+                key={mode}
+                className="flex justify-center"
+                onExpire={() => setTurnstileToken("")}
+                onToken={setTurnstileToken}
+              />
+            )}
+
+            {info && (
+              <p className="rounded-lg border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-sm text-emerald-100 md:text-base">
+                {info}
               </p>
             )}
-          </div>
 
-          <div>
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <label className="ui-label mb-0" htmlFor="password">
-                Password
+            {error && (
+              <p className="rounded-lg border border-red-400/20 bg-red-400/8 px-4 py-3 text-sm text-red-200 md:text-base">
+                {error}
+              </p>
+            )}
+
+            {mode === "register" && (
+              <label className="flex items-start gap-3 text-left text-xs leading-5 text-zinc-400">
+                <input
+                  required
+                  checked={acceptedLegal}
+                  className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-black accent-[var(--anya-blush)]"
+                  type="checkbox"
+                  onChange={(event) => setAcceptedLegal(event.target.checked)}
+                />
+                <span>
+                  I agree to the{" "}
+                  <NextLink
+                    className="text-zinc-200 underline-offset-2 hover:underline"
+                    href="/terms"
+                  >
+                    Terms of Service
+                  </NextLink>
+                  ,{" "}
+                  <NextLink
+                    className="text-zinc-200 underline-offset-2 hover:underline"
+                    href="/privacy"
+                  >
+                    Privacy Policy
+                  </NextLink>
+                  , and{" "}
+                  <NextLink
+                    className="text-zinc-200 underline-offset-2 hover:underline"
+                    href="/acceptable-use"
+                  >
+                    Acceptable Use Policy
+                  </NextLink>
+                  . I confirm I am 18+ and will use Anya.Int only for lawful
+                  purposes.
+                </span>
               </label>
-              {mode === "register" && (
-                <div className="flex items-center gap-2">
-                  <button
-                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
-                    onClick={handleGeneratePassword}
-                    type="button"
-                  >
-                    <RefreshCw className="size-3.5" />
-                    Generate
-                  </button>
-                  <button
-                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white disabled:opacity-40"
-                    disabled={!password}
-                    onClick={handleCopyPassword}
-                    type="button"
-                  >
-                    {copied ? (
-                      <Check className="size-3.5 text-emerald-400" />
-                    ) : (
-                      <Copy className="size-3.5" />
-                    )}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-              )}
-            </div>
-            <input
-              id="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              className="ui-input ui-input--lg font-mono"
-              minLength={mode === "register" ? MIN_PASSWORD_LENGTH : 1}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••••••"
-              required
-              type={showPassword ? "text" : "password"}
-              value={password}
-            />
-            <div className="mt-2 flex items-center justify-between gap-3">
-              {mode === "register" ? (
-                <p className="text-xs text-zinc-500">{passwordRequirementsHint()}</p>
+            )}
+
+            <button
+              className="ui-btn ui-btn-primary ui-btn-primary--lg w-full"
+              disabled={
+                isSubmitting ||
+                (mode === "register" && !acceptedLegal) ||
+                (turnstileRequired && !turnstileToken)
+              }
+              type="submit"
+            >
+              {mode === "login" ? (
+                <LogIn className="size-5" />
               ) : (
-                <span />
+                <UserPlus className="size-5" />
               )}
-              <button
-                className="shrink-0 text-xs text-zinc-400 underline-offset-2 hover:text-white hover:underline"
-                onClick={() => setShowPassword((value) => !value)}
-                type="button"
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-          </div>
+              {isSubmitting
+                ? "Please wait…"
+                : mode === "login"
+                  ? "Log in"
+                  : "Create account"}
+            </button>
+          </motion.form>
+        </AnimatePresence>
 
-          {turnstileRequired && (
-            <TurnstileWidget
-              key={mode}
-              className="flex justify-center"
-              onExpire={() => setTurnstileToken("")}
-              onToken={setTurnstileToken}
-            />
-          )}
-
-          {info && (
-            <p className="rounded-lg border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-sm text-emerald-100 md:text-base">
-              {info}
-            </p>
-          )}
-
-          {error && (
-            <p className="rounded-lg border border-red-400/20 bg-red-400/8 px-4 py-3 text-sm text-red-200 md:text-base">
-              {error}
-            </p>
-          )}
-
-          {mode === "register" && (
-            <label className="flex items-start gap-3 text-left text-xs leading-5 text-zinc-400">
-              <input
-                checked={acceptedLegal}
-                className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-black accent-[var(--anya-blush)]"
-                onChange={(event) => setAcceptedLegal(event.target.checked)}
-                required
-                type="checkbox"
-              />
-              <span>
-                I agree to the{" "}
-                <NextLink className="text-zinc-200 underline-offset-2 hover:underline" href="/terms">
-                  Terms of Service
-                </NextLink>
-                ,{" "}
-                <NextLink className="text-zinc-200 underline-offset-2 hover:underline" href="/privacy">
-                  Privacy Policy
-                </NextLink>
-                , and{" "}
-                <NextLink
-                  className="text-zinc-200 underline-offset-2 hover:underline"
-                  href="/acceptable-use"
-                >
-                  Acceptable Use Policy
-                </NextLink>
-                . I confirm I am 18+ and will use Anya.Int only for lawful purposes.
-              </span>
-            </label>
-          )}
-
-          <button
-            className="ui-btn ui-btn-primary ui-btn-primary--lg w-full"
-            disabled={
-              isSubmitting ||
-              (mode === "register" && !acceptedLegal) ||
-              (turnstileRequired && !turnstileToken)
-            }
-            type="submit"
-          >
-            {mode === "login" ? <LogIn className="size-5" /> : <UserPlus className="size-5" />}
-            {isSubmitting
-              ? "Please wait…"
-              : mode === "login"
-                ? "Log in"
-                : "Create account"}
-          </button>
-        </form>
-
-        <div className="mt-8 text-center">
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 text-center"
+          initial={{ opacity: 0, y: 8 }}
+          transition={{ delay: 0.48, duration: 0.34 }}
+        >
           <NextLink className="ui-link inline-flex items-center gap-2" href="/">
             <ArrowLeft className="size-4" />
             Back to home
           </NextLink>
-        </div>
-      </div>
-    </section>
+        </motion.div>
+      </motion.div>
+    </motion.section>
   );
 }
 

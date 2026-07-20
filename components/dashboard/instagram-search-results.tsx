@@ -1,5 +1,12 @@
 "use client";
 
+import type {
+  InstagramBubbleMap,
+  RankedCloseFriend,
+} from "@/lib/instagram-bubble-map";
+import type { InstagramPersona } from "@/lib/instagram-persona";
+import type { InstagramSearchResult } from "@/lib/instagram-search";
+
 import { useMemo, useState } from "react";
 import { ExternalLink, ShieldCheck } from "lucide-react";
 import { SiInstagram as InstagramBrand } from "react-icons/si";
@@ -11,9 +18,6 @@ import { InstagramBubbleMapView } from "@/components/dashboard/instagram-bubble-
 import { InstagramPersonaPanel } from "@/components/dashboard/instagram-persona-panel";
 import { IntelSignalLoader } from "@/components/dashboard/intel-signal-loader";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
-import type { InstagramBubbleMap, RankedCloseFriend } from "@/lib/instagram-bubble-map";
-import type { InstagramPersona } from "@/lib/instagram-persona";
-import type { InstagramSearchResult } from "@/lib/instagram-search";
 import { formatSearchRecords } from "@/lib/search-utils";
 
 type InstagramTab =
@@ -93,11 +97,7 @@ function UserRow({
     <article className="anya-ig-row">
       {user.profilePicUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          alt=""
-          className="anya-ig-row-avatar"
-          src={user.profilePicUrl}
-        />
+        <img alt="" className="anya-ig-row-avatar" src={user.profilePicUrl} />
       ) : (
         <div className="anya-ig-row-avatar anya-ig-row-avatar--empty">IG</div>
       )}
@@ -184,8 +184,8 @@ function UserList({
       {hidden > 0 ? (
         <button
           className="anya-result-load-more"
-          onClick={() => setVisibleCount((count) => count + LIST_PAGE_SIZE)}
           type="button"
+          onClick={() => setVisibleCount((count) => count + LIST_PAGE_SIZE)}
         >
           Show {Math.min(hidden, LIST_PAGE_SIZE)} more
         </button>
@@ -233,13 +233,18 @@ function RankedCloseFriendList({
           />
         ))}
       </div>
-      {friends.slice(0, visibleCount).some((f) => f.confidenceReasons.length > 0) ? (
+      {friends
+        .slice(0, visibleCount)
+        .some((f) => f.confidenceReasons.length > 0) ? (
         <div className="space-y-2">
           {visible
             .filter((f) => f.confidenceReasons.length > 0)
             .slice(0, 8)
             .map((friend) => (
-              <div className="anya-ai-signal anya-ai-signal--info" key={`sig-${friend.id}`}>
+              <div
+                key={`sig-${friend.id}`}
+                className="anya-ai-signal anya-ai-signal--info"
+              >
                 <p className="anya-ai-signal-title">
                   <BlurredValue
                     forceBlur={blurResults}
@@ -256,8 +261,8 @@ function RankedCloseFriendList({
       {hidden > 0 ? (
         <button
           className="anya-result-load-more"
-          onClick={() => setVisibleCount((count) => count + LIST_PAGE_SIZE)}
           type="button"
+          onClick={() => setVisibleCount((count) => count + LIST_PAGE_SIZE)}
         >
           Show {Math.min(hidden, LIST_PAGE_SIZE)} more
         </button>
@@ -364,7 +369,9 @@ export function InstagramSearchResults({
           </span>
           <div className="flex flex-wrap items-center gap-2">
             <span className="anya-ai-confidence">
-              {(profile?.followersCount ?? result.totals.followers).toLocaleString()}{" "}
+              {(
+                profile?.followersCount ?? result.totals.followers
+              ).toLocaleString()}{" "}
               followers
             </span>
             <span className="anya-result-badge">
@@ -388,8 +395,7 @@ export function InstagramSearchResults({
           {profile?.fullName ? (
             <>
               {" "}
-              ·{" "}
-              <BlurredValue forceBlur={blurResults} text={profile.fullName} />
+              · <BlurredValue forceBlur={blurResults} text={profile.fullName} />
             </>
           ) : null}
           . Lists sorted for large scans; close friends stay confidence-ranked.
@@ -421,9 +427,9 @@ export function InstagramSearchResults({
           <button
             key={entry.id}
             className={clsx("ui-tab", tab === entry.id && "ui-tab--active")}
-            onClick={() => setTab(entry.id)}
             role="tab"
             type="button"
+            onClick={() => setTab(entry.id)}
           >
             {entry.label}
             {typeof entry.count === "number" && entry.count > 0
@@ -555,8 +561,8 @@ export function InstagramSearchResults({
               <button
                 className="ui-btn ui-btn-ghost"
                 disabled={enriching}
-                onClick={onEnrichBios}
                 type="button"
+                onClick={onEnrichBios}
               >
                 {enriching ? "Loading bios…" : "Load bios & rebuild map"}
               </button>
@@ -622,10 +628,10 @@ export function InstagramSearchResults({
         leakRecords.length > 0 ? (
           <SearchResultCards
             blurResults={blurResults}
-            onSelectExportIndex={onSelectExportIndex}
             records={leakRecords}
             selectedExportIndex={selectedExportIndex}
             totalCount={result.leaks.count}
+            onSelectExportIndex={onSelectExportIndex}
           />
         ) : (
           <p className="text-sm text-zinc-400">

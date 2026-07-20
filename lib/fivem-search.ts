@@ -1,9 +1,7 @@
 import type { GodsEyeResponse } from "@/lib/godseye";
-import {
-  extractGodsEyeResults,
-  fetchGodsEyeSearchSafe,
-} from "@/lib/godseye";
 import type { DiscordProfile } from "@/lib/discord-profile";
+
+import { extractGodsEyeResults, fetchGodsEyeSearchSafe } from "@/lib/godseye";
 import { sanitizePublicText } from "@/lib/public-branding";
 
 export type FivemSection = {
@@ -52,9 +50,7 @@ function splitFivemRecords(records: unknown[]) {
   return { accounts, bans };
 }
 
-export async function fetchFivemIntel(
-  discordId: string,
-): Promise<{
+export async function fetchFivemIntel(discordId: string): Promise<{
   searchData: GodsEyeResponse | null;
   records: unknown[];
   warning?: string;

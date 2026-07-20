@@ -1,13 +1,17 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
+import type { SearchHistoryItem } from "@/lib/case-mind-map";
 
 import { useEffect, useState } from "react";
 import { Check, Plus, Search, X } from "lucide-react";
 
-import { DashButton, DashInput, DashPanel } from "@/components/dashboard/dashboard-ui";
+import { apiFetch } from "@/lib/csrf-client";
+import {
+  DashButton,
+  DashInput,
+  DashPanel,
+} from "@/components/dashboard/dashboard-ui";
 import { formatDate, formatTime } from "@/lib/format-datetime";
-import type { SearchHistoryItem } from "@/lib/case-mind-map";
 
 type AddCaseModalProps = {
   open: boolean;
@@ -17,9 +21,11 @@ type AddCaseModalProps = {
 
 function parseSearchLabel(query: string, searchType: string) {
   const match = query.match(/^\[([^\]]+)\]\s*(.*)$/);
+
   if (match) {
     return { type: match[1], label: match[2] || query };
   }
+
   return { type: searchType, label: query };
 }
 
@@ -59,19 +65,24 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
   const filtered = searches.filter((search) => {
     const { type, label } = parseSearchLabel(search.query, search.searchType);
     const haystack = `${type} ${label}`.toLowerCase();
+
     return haystack.includes(filter.toLowerCase());
   });
 
   const toggleSearch = (id: number) => {
     setSelectedIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
     );
   };
 
   const handleCreate = async () => {
     const title = caseName.trim();
+
     if (!title) {
       setError("Give your case a name.");
+
       return;
     }
 
@@ -92,6 +103,7 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
 
       if (!response.ok) {
         setError(data.error || "Failed to create case.");
+
         return;
       }
 
@@ -109,10 +121,13 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
       <button
         aria-label="Close"
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
         type="button"
+        onClick={onClose}
       />
-      <DashPanel className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto" glow="violet">
+      <DashPanel
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        glow="violet"
+      >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Add case</h2>
@@ -122,8 +137,8 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
           </div>
           <button
             className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-            onClick={onClose}
             type="button"
+            onClick={onClose}
           >
             <X className="size-5" />
           </button>
@@ -137,9 +152,9 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
             <DashInput
               autoFocus
               id="add-case-name"
-              onChange={(event) => setCaseName(event.target.value)}
               placeholder="e.g. Operation Nightfall"
               value={caseName}
+              onChange={(event) => setCaseName(event.target.value)}
             />
           </div>
 
@@ -149,37 +164,44 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
             </label>
             <DashInput
               id="add-case-subject"
-              onChange={(event) => setSubjectName(event.target.value)}
               placeholder="Person or target alias"
               value={subjectName}
+              onChange={(event) => setSubjectName(event.target.value)}
             />
           </div>
 
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="dash-field-label mb-0">Past searches</label>
-              <span className="text-xs text-violet-300">{selectedIds.length} selected</span>
+              <span className="text-xs text-violet-300">
+                {selectedIds.length} selected
+              </span>
             </div>
             <div className="relative mb-3">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
               <DashInput
                 className="dash-input--icon"
-                onChange={(event) => setFilter(event.target.value)}
                 placeholder="Filter searches..."
                 value={filter}
+                onChange={(event) => setFilter(event.target.value)}
               />
             </div>
 
             <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-white/8 bg-black/30 p-2">
               {loading ? (
-                <p className="px-2 py-6 text-center text-sm text-zinc-500">Loading searches...</p>
+                <p className="px-2 py-6 text-center text-sm text-zinc-500">
+                  Loading searches...
+                </p>
               ) : filtered.length === 0 ? (
                 <p className="px-2 py-6 text-center text-sm text-zinc-500">
                   No searches yet. Run lookups from the dashboard first.
                 </p>
               ) : (
                 filtered.map((search) => {
-                  const { type, label } = parseSearchLabel(search.query, search.searchType);
+                  const { type, label } = parseSearchLabel(
+                    search.query,
+                    search.searchType,
+                  );
                   const selected = selectedIds.includes(search.id);
 
                   return (
@@ -190,8 +212,8 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
                           ? "border-violet-500/40 bg-violet-500/10"
                           : "border-transparent bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
                       }`}
-                      onClick={() => toggleSearch(search.id)}
                       type="button"
+                      onClick={() => toggleSearch(search.id)}
                     >
                       <div
                         className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border ${
@@ -204,16 +226,21 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-300">
+                          <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pink-300">
                             {type}
                           </span>
                           <span className="text-[10px] text-zinc-600">
-                            {formatDate(search.createdAt)} · {formatTime(search.createdAt)}
+                            {formatDate(search.createdAt)} ·{" "}
+                            {formatTime(search.createdAt)}
                           </span>
                         </div>
-                        <p className="mt-1 break-all text-sm text-white">{label}</p>
+                        <p className="mt-1 break-all text-sm text-white">
+                          {label}
+                        </p>
                         {search.resultData && (
-                          <p className="mt-1 text-xs text-zinc-500">Has saved results</p>
+                          <p className="mt-1 text-xs text-zinc-500">
+                            Has saved results
+                          </p>
                         )}
                       </div>
                     </button>
@@ -230,10 +257,14 @@ export function AddCaseModal({ open, onClose, onCreated }: AddCaseModalProps) {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <DashButton onClick={onClose} variant="ghost">
+            <DashButton variant="ghost" onClick={onClose}>
               Cancel
             </DashButton>
-            <DashButton disabled={saving || !caseName.trim()} onClick={handleCreate} variant="primary">
+            <DashButton
+              disabled={saving || !caseName.trim()}
+              variant="primary"
+              onClick={handleCreate}
+            >
               <Plus className="size-4" />
               {saving ? "Creating..." : "Create case"}
             </DashButton>

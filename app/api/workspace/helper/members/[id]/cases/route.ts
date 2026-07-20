@@ -11,6 +11,7 @@ type RouteContext = {
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const auth = await requireWorkspaceHelper();
+
     if (auth.error) return auth.error;
 
     const { id } = await context.params;
@@ -54,6 +55,10 @@ export async function GET(_request: Request, context: RouteContext) {
     });
   } catch (error) {
     console.error("Helper list user cases error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

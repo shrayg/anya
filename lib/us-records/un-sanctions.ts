@@ -1,9 +1,10 @@
+import type { ParsedPublicQuery, PersonHit } from "@/lib/us-records/types";
+
 import { getCached, setCached } from "@/lib/us-records/cache";
 import {
   fetchUsRecordsText,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { ParsedPublicQuery, PersonHit } from "@/lib/us-records/types";
 
 const UN_XML_URL =
   "https://scsanctions.un.org/resources/xml/en/consolidated.xml";
@@ -28,11 +29,16 @@ function decodeXml(value: string): string {
 
 async function loadUnIndex(): Promise<UnEntry[]> {
   const cached = getCached<UnEntry[]>(INDEX_CACHE_KEY);
+
   if (cached) return cached;
 
   let xml: string;
+
   try {
-    xml = await fetchUsRecordsText(UN_XML_URL, { source: "un-sanctions", minIntervalMs: 0 });
+    xml = await fetchUsRecordsText(UN_XML_URL, {
+      source: "un-sanctions",
+      minIntervalMs: 0,
+    });
   } catch {
     // Fallback mirror used by many compliance stacks.
     xml = await fetchUsRecordsText(
@@ -42,7 +48,11 @@ async function loadUnIndex(): Promise<UnEntry[]> {
   }
 
   const entries: UnEntry[] = [];
-  const blocks = xml.match(/<INDIVIDUAL>[\s\S]*?<\/INDIVIDUAL>|<ENTITY>[\s\S]*?<\/ENTITY>/gi) || [];
+  const blocks =
+    xml.match(
+      /<INDIVIDUAL>[\s\S]*?<\/INDIVIDUAL>|<ENTITY>[\s\S]*?<\/ENTITY>/gi,
+    ) || [];
+
   for (const block of blocks) {
     const id =
       block.match(/<DATAID>([^<]+)<\/DATAID>/i)?.[1] ||
@@ -62,25 +72,37 @@ async function loadUnIndex(): Promise<UnEntry[]> {
           block.match(/<NAME>([^<]+)<\/NAME>/i)?.[1] ||
           "";
     const cleanName = decodeXml(name).replace(/\s+/g, " ").trim();
+
     if (!cleanName) continue;
     const type = block.startsWith("<ENTITY") ? "Entity" : "Individual";
-    const program = decodeXml(block.match(/<UN_LIST_TYPE>([^<]+)<\/UN_LIST_TYPE>/i)?.[1] || "UN SC");
+    const program = decodeXml(
+      block.match(/<UN_LIST_TYPE>([^<]+)<\/UN_LIST_TYPE>/i)?.[1] || "UN SC",
+    );
+
     entries.push({ id: id || cleanName, name: cleanName, type, program });
   }
 
   setCached(INDEX_CACHE_KEY, entries, SOURCE_LIMITS["un-sanctions"].ttlMs);
+
   return entries;
 }
 
 function scoreNameMatch(haystack: string, needle: string): number {
   const h = haystack.toUpperCase();
-  const n = needle.toUpperCase().replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const n = needle
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
   if (!n) return 0;
   if (h === n) return 100;
   if (h.includes(n)) return 80;
   const tokens = n.split(" ").filter(Boolean);
+
   if (!tokens.length) return 0;
   const matched = tokens.filter((token) => h.includes(token)).length;
+
   return Math.round((matched / tokens.length) * 60);
 }
 
@@ -89,6 +111,7 @@ export async function searchUnSanctions(
   limit = 8,
 ): Promise<PersonHit[]> {
   const needle = parsed.fullName || parsed.lastName || parsed.raw;
+
   if (!needle || needle.length < 2) return [];
 
   const index = await loadUnIndex();

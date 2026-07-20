@@ -42,8 +42,10 @@ function usePrefersReducedMotion(): boolean {
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const sync = () => setReduced(mq.matches);
+
     sync();
     mq.addEventListener("change", sync);
+
     return () => mq.removeEventListener("change", sync);
   }, []);
 
@@ -52,6 +54,7 @@ function usePrefersReducedMotion(): boolean {
 
 function classifyNameplateMedia(url: string): "video" | "image" {
   if (/\.(webm|mp4|ogg)(\?|$)/i.test(url)) return "video";
+
   return "image";
 }
 
@@ -71,20 +74,16 @@ function DiscordNameplateArt({
     setTier(0);
   }, [nameplate.animatedUrl, nameplate.animatedImageUrl, nameplate.url]);
 
-  const videoSrc =
-    !reducedMotion && tier === 0 ? nameplate.animatedUrl : null;
+  const videoSrc = !reducedMotion && tier === 0 ? nameplate.animatedUrl : null;
   const apngSrc =
-    !reducedMotion && tier <= 1
-      ? nameplate.animatedImageUrl
-      : null;
+    !reducedMotion && tier <= 1 ? nameplate.animatedImageUrl : null;
   const mediaSrc = videoSrc ?? apngSrc ?? nameplate.url;
-  const mediaKind = videoSrc
-    ? "video"
-    : classifyNameplateMedia(mediaSrc);
+  const mediaKind = videoSrc ? "video" : classifyNameplateMedia(mediaSrc);
 
   useEffect(() => {
     if (mediaKind !== "video" || !videoRef.current || !videoSrc) return;
     const el = videoRef.current;
+
     el.muted = true;
     el.playsInline = true;
     void el.play().catch(() => {
@@ -107,36 +106,33 @@ function DiscordNameplateArt({
           ref={videoRef}
           aria-hidden
           autoPlay
-          className="discord-id-nameplate-media"
           disablePictureInPicture
           disableRemotePlayback
           loop
           muted
-          onError={() => setTier(1)}
           playsInline
+          className="discord-id-nameplate-media"
           poster={nameplate.url}
           preload="auto"
+          onError={() => setTier(1)}
         >
           <source src={videoSrc} type="video/webm" />
         </video>
       ) : (
         <img
           key={mediaSrc}
-          alt=""
           aria-hidden
+          alt=""
           className="discord-id-nameplate-media"
+          src={mediaSrc}
           onError={() => {
             if (tier < 2) setTier(2);
           }}
-          src={mediaSrc}
         />
       )}
       {nameplate.description ? (
         <p className="discord-id-nameplate-desc">
-          <BlurredValue
-            forceBlur={blurResults}
-            text={nameplate.description}
-          />
+          <BlurredValue forceBlur={blurResults} text={nameplate.description} />
         </p>
       ) : null}
     </div>
@@ -180,7 +176,9 @@ function DiscordLeakRecords({
     setExpanded((current) => {
       if (current === null) {
         const next = new Set(visibleRecords.map((record) => record.index));
+
         next.delete(index);
+
         return next;
       }
 
@@ -214,16 +212,16 @@ function DiscordLeakRecords({
         {anyExpanded ? (
           <button
             className="discord-leak-action"
-            onClick={() => setExpanded(new Set())}
             type="button"
+            onClick={() => setExpanded(new Set())}
           >
             Collapse all
           </button>
         ) : (
           <button
             className="discord-leak-action"
-            onClick={() => setExpanded(null)}
             type="button"
+            onClick={() => setExpanded(null)}
           >
             Expand all
           </button>
@@ -251,13 +249,15 @@ function DiscordLeakRecords({
                   <span className="discord-leak-index">#{record.index}</span>
                   <button
                     aria-expanded={isExpanded}
-                    aria-label={isExpanded ? "Collapse record" : "Expand record"}
+                    aria-label={
+                      isExpanded ? "Collapse record" : "Expand record"
+                    }
                     className={clsx(
                       "discord-leak-expand",
                       isExpanded && "discord-leak-expand--open",
                     )}
-                    onClick={() => toggleExpanded(record.index)}
                     type="button"
+                    onClick={() => toggleExpanded(record.index)}
                   >
                     <ChevronDown className="size-3.5" />
                   </button>
@@ -286,7 +286,10 @@ function DiscordLeakRecords({
                             : undefined
                         }
                       >
-                        <BlurredValue forceBlur={blurResults} text={field.value} />
+                        <BlurredValue
+                          forceBlur={blurResults}
+                          text={field.value}
+                        />
                       </span>
                     </div>
                   ))}
@@ -300,8 +303,8 @@ function DiscordLeakRecords({
       {hiddenCount > 0 ? (
         <button
           className="discord-leak-action discord-leak-action--center"
-          onClick={() => setVisibleCount((count) => count + LEAK_PAGE_SIZE)}
           type="button"
+          onClick={() => setVisibleCount((count) => count + LEAK_PAGE_SIZE)}
         >
           Show {Math.min(LEAK_PAGE_SIZE, hiddenCount)} more record
           {Math.min(LEAK_PAGE_SIZE, hiddenCount) === 1 ? "" : "s"}
@@ -332,7 +335,7 @@ function SummaryCard({
         active && "discord-id-stat--active",
       )}
     >
-      <span className="discord-id-stat-icon" aria-hidden>
+      <span aria-hidden className="discord-id-stat-icon">
         {icon}
       </span>
       <div className="discord-id-stat-copy">
@@ -350,6 +353,7 @@ function CopyButton({ value }: { value: string }) {
     <button
       aria-label={copied ? "Copied" : "Copy Discord ID"}
       className="discord-id-copy"
+      type="button"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value);
@@ -359,7 +363,6 @@ function CopyButton({ value }: { value: string }) {
           /* ignore */
         }
       }}
-      type="button"
     >
       <Copy className="size-3.5" />
     </button>
@@ -377,7 +380,7 @@ function DownloadButton({
 }) {
   if (!href || disabled) {
     return (
-      <span className="discord-id-dl discord-id-dl--disabled" aria-disabled>
+      <span aria-disabled className="discord-id-dl discord-id-dl--disabled">
         <Download className="size-3.5" />
         {label}
       </span>
@@ -386,8 +389,8 @@ function DownloadButton({
 
   return (
     <a
-      className="discord-id-dl"
       download
+      className="discord-id-dl"
       href={href}
       rel="noreferrer"
       target="_blank"
@@ -408,14 +411,16 @@ function DsaSanctionRow({
   const [open, setOpen] = useState(true);
 
   return (
-    <article className={clsx("discord-id-dsa-row", open && "discord-id-dsa-row--open")}>
+    <article
+      className={clsx("discord-id-dsa-row", open && "discord-id-dsa-row--open")}
+    >
       <button
         aria-expanded={open}
         className="discord-id-dsa-row-toggle"
-        onClick={() => setOpen((value) => !value)}
         type="button"
+        onClick={() => setOpen((value) => !value)}
       >
-        <span className="discord-id-dsa-warn" aria-hidden>
+        <span aria-hidden className="discord-id-dsa-warn">
           <TriangleAlert className="size-4" />
         </span>
         <span className="discord-id-dsa-row-main">
@@ -426,9 +431,14 @@ function DsaSanctionRow({
           {open ? (
             <>
               <span className="discord-id-dsa-desc">
-                <BlurredValue forceBlur={blurResults} text={sanction.description} />
+                <BlurredValue
+                  forceBlur={blurResults}
+                  text={sanction.description}
+                />
               </span>
-              <span className="discord-id-dsa-date">{formatDsaDate(sanction.date)}</span>
+              <span className="discord-id-dsa-date">
+                {formatDsaDate(sanction.date)}
+              </span>
             </>
           ) : null}
         </span>
@@ -456,7 +466,9 @@ function RobloxBlock({
 
   if (!hasLink || !link) {
     return (
-      <p className="discord-id-dsa-empty">No Roblox account linked to this Discord ID.</p>
+      <p className="discord-id-dsa-empty">
+        No Roblox account linked to this Discord ID.
+      </p>
     );
   }
 
@@ -575,8 +587,8 @@ export function DiscordSearchResults({
         <button
           aria-pressed={dataTab === "breaches"}
           className="discord-id-stat-btn"
-          onClick={() => setDataTab("breaches")}
           type="button"
+          onClick={() => setDataTab("breaches")}
         >
           <SummaryCard
             active={dataTab === "breaches"}
@@ -589,8 +601,8 @@ export function DiscordSearchResults({
         <button
           aria-pressed={dataTab === "roblox"}
           className="discord-id-stat-btn"
-          onClick={() => setDataTab("roblox")}
           type="button"
+          onClick={() => setDataTab("roblox")}
         >
           <SummaryCard
             active={dataTab === "roblox"}
@@ -603,8 +615,8 @@ export function DiscordSearchResults({
         <button
           aria-pressed={dataTab === "dsa"}
           className="discord-id-stat-btn"
-          onClick={() => setDataTab("dsa")}
           type="button"
+          onClick={() => setDataTab("dsa")}
         >
           <SummaryCard
             active={dataTab === "dsa"}
@@ -617,8 +629,8 @@ export function DiscordSearchResults({
         <button
           aria-pressed={dataTab === "fivem"}
           className="discord-id-stat-btn"
-          onClick={() => setDataTab("fivem")}
           type="button"
+          onClick={() => setDataTab("fivem")}
         >
           <SummaryCard
             active={dataTab === "fivem"}
@@ -637,9 +649,7 @@ export function DiscordSearchResults({
             style={
               {
                 "--discord-accent": accent,
-                ...(themeColor
-                  ? { "--discord-theme": themeColor }
-                  : {}),
+                ...(themeColor ? { "--discord-theme": themeColor } : {}),
               } as React.CSSProperties
             }
           >
@@ -659,9 +669,9 @@ export function DiscordSearchResults({
               <div className="discord-id-banner-actions">
                 {profile.bannerUrl ? (
                   <a
+                    download
                     aria-label="Download banner"
                     className="discord-id-banner-btn"
-                    download
                     href={profile.bannerUrl}
                     rel="noreferrer"
                     target="_blank"
@@ -690,8 +700,8 @@ export function DiscordSearchResults({
                 />
                 {profile.avatarDecorationUrl ? (
                   <img
-                    alt=""
                     aria-hidden
+                    alt=""
                     className="discord-id-avatar-decoration"
                     src={profile.avatarDecorationUrl}
                   />
@@ -702,7 +712,10 @@ export function DiscordSearchResults({
             <div className="discord-id-popout-body">
               <div className="discord-id-popout-card">
                 <h3 className="discord-id-name">
-                  <BlurredValue forceBlur={blurResults} text={profile.displayName} />
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={profile.displayName}
+                  />
                 </h3>
 
                 <div className="discord-id-handle-row">
@@ -711,17 +724,22 @@ export function DiscordSearchResults({
                   </p>
                   {profile.clanBadgeUrl ? (
                     <img
-                      alt=""
                       aria-hidden
+                      alt=""
                       className="discord-id-clan-inline"
                       src={profile.clanBadgeUrl}
                     />
                   ) : null}
                   {profile.clanTag ? (
-                    <span className="discord-id-clan-tag">{profile.clanTag}</span>
+                    <span className="discord-id-clan-tag">
+                      {profile.clanTag}
+                    </span>
                   ) : null}
                   {badges.length > 0 ? (
-                    <div className="discord-id-badges discord-id-badges--inline" aria-label="Badges">
+                    <div
+                      aria-label="Badges"
+                      className="discord-id-badges discord-id-badges--inline"
+                    >
                       {badges.map((badge) => (
                         <span
                           key={badge.key}
@@ -754,7 +772,10 @@ export function DiscordSearchResults({
                   <div className="discord-id-section">
                     <p className="discord-id-meta-label">About Me</p>
                     <p className="discord-id-bio">
-                      <BlurredValue forceBlur={blurResults} text={profile.bio} />
+                      <BlurredValue
+                        forceBlur={blurResults}
+                        text={profile.bio}
+                      />
                     </p>
                   </div>
                 ) : null}
@@ -763,7 +784,10 @@ export function DiscordSearchResults({
                   <div className="discord-id-meta-block">
                     <p className="discord-id-meta-label">Member Since</p>
                     <p className="discord-id-meta-value">
-                      <BlurredValue forceBlur={blurResults} text={memberSince} />
+                      <BlurredValue
+                        forceBlur={blurResults}
+                        text={memberSince}
+                      />
                     </p>
                   </div>
                   <div className="discord-id-meta-block">
@@ -780,8 +804,8 @@ export function DiscordSearchResults({
                 <button
                   aria-expanded={assetsOpen}
                   className="discord-id-assets-toggle"
-                  onClick={() => setAssetsOpen((value) => !value)}
                   type="button"
+                  onClick={() => setAssetsOpen((value) => !value)}
                 >
                   Media downloads
                   <ChevronDown
@@ -825,10 +849,18 @@ export function DiscordSearchResults({
               </div>
             </header>
 
-            <div className="discord-id-data-tabs" role="tablist" aria-label="Linked data">
+            <div
+              aria-label="Linked data"
+              className="discord-id-data-tabs"
+              role="tablist"
+            >
               {(
                 [
-                  { id: "breaches" as const, label: "Breaches", count: leaks.count },
+                  {
+                    id: "breaches" as const,
+                    label: "Breaches",
+                    count: leaks.count,
+                  },
                   {
                     id: "roblox" as const,
                     label: "Roblox",
@@ -845,9 +877,9 @@ export function DiscordSearchResults({
                     "discord-id-data-tab",
                     dataTab === tab.id && "discord-id-data-tab--active",
                   )}
-                  onClick={() => setDataTab(tab.id)}
                   role="tab"
                   type="button"
+                  onClick={() => setDataTab(tab.id)}
                 >
                   {tab.label}
                   <span className="discord-id-data-tab-count">{tab.count}</span>

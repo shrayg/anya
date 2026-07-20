@@ -16,6 +16,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export async function GET() {
   try {
     const session = await getSessionCookie();
+
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -115,13 +116,18 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching user stats:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionCookie();
+
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -137,7 +143,10 @@ export async function POST(req: NextRequest) {
     const access = await authorizeSearch({ userId, moduleSlug: slug });
 
     if (!access.allowed) {
-      return NextResponse.json({ error: access.reason ?? "Search not allowed." }, { status: 403 });
+      return NextResponse.json(
+        { error: access.reason ?? "Search not allowed." },
+        { status: 403 },
+      );
     }
 
     const searchType = String(type ?? slug);
@@ -166,9 +175,17 @@ export async function POST(req: NextRequest) {
 
     invalidateUserPlanContext(userId);
 
-    return NextResponse.json({ success: true, search: record, blurResults: access.blurResults });
+    return NextResponse.json({
+      success: true,
+      search: record,
+      blurResults: access.blurResults,
+    });
   } catch (error) {
     console.error("Error saving search history:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

@@ -1,10 +1,6 @@
-import {
-  PUBLIC_AI_LABEL,
-  PUBLIC_INTEL_SOURCE,
-} from "@/lib/public-branding";
+import { PUBLIC_AI_LABEL, PUBLIC_INTEL_SOURCE } from "@/lib/public-branding";
 import {
   fetchOsintCatEndpoint,
-  fetchOsintCatStealerLogs,
   filterDiscordResultsForId,
 } from "@/lib/osintcat";
 import {
@@ -129,6 +125,7 @@ export function resolveAiMode(mode: string | null, query: string): AiMode {
   }
 
   if (detectCryptoChain(query)) return "crypto";
+
   return "search";
 }
 
@@ -155,6 +152,7 @@ function riskLabel(score: number): AiIntelResult["riskLabel"] {
   if (score >= 75) return "High";
   if (score >= 50) return "Elevated";
   if (score >= 25) return "Moderate";
+
   return "Low";
 }
 
@@ -163,10 +161,7 @@ function baseResult(
   query: string,
   queryType: string,
   start: number,
-): Pick<
-  AiIntelResult,
-  "mode" | "query" | "queryType" | "elapsedMs"
-> & {
+): Pick<AiIntelResult, "mode" | "query" | "queryType" | "elapsedMs"> & {
   signals: AiSignal[];
   recommendations: string[];
   entities: { label: string; value: string }[];
@@ -346,22 +341,27 @@ async function gatherOsint(
   const email = normalizeEmail(trimmed);
   const domain =
     normalizeDomain(trimmed) ??
-    (queryType === "domain" || queryType === "url" ? extractDomain(trimmed) : null);
+    (queryType === "domain" || queryType === "url"
+      ? extractDomain(trimmed)
+      : null);
 
   if (email) {
-    add("Breached Data (COMB)", searchProxynovaCombForEmail(email, { limit: 100 }));
+    add(
+      "Breached Data (COMB)",
+      searchProxynovaCombForEmail(email, { limit: 100 }),
+    );
     add("Stealer Logs", fetchCombinedStealerLogs(email));
     add(
       `${PUBLIC_INTEL_SOURCE} · Email`,
       fetchGodsEyeEmailReport(email).then((report) => report ?? {}),
     );
   } else if (domain) {
-    add("Breached Data (COMB)", searchProxynovaCombForDomain(domain, { limit: 100 }));
-    add("Stealer Logs", fetchCombinedStealerLogs(domain));
     add(
-      "DNS",
-      fetchCombinedOsintCatEndpoint("dns-resolver", domain, "domain"),
+      "Breached Data (COMB)",
+      searchProxynovaCombForDomain(domain, { limit: 100 }),
     );
+    add("Stealer Logs", fetchCombinedStealerLogs(domain));
+    add("DNS", fetchCombinedOsintCatEndpoint("dns-resolver", domain, "domain"));
     add(
       `${PUBLIC_INTEL_SOURCE} · Domain`,
       fetchGodsEyeSearchSafe("domain", domain).then((data) => data ?? {}),
@@ -373,7 +373,10 @@ async function gatherOsint(
       fetchGodsEyeSearchSafe("ip", trimmed).then((data) => data ?? {}),
     );
     if (apiKey) {
-      add(`${PUBLIC_INTEL_SOURCE} · Breach`, fetchOsintCatEndpoint("breach", trimmed));
+      add(
+        `${PUBLIC_INTEL_SOURCE} · Breach`,
+        fetchOsintCatEndpoint("breach", trimmed),
+      );
     }
   } else if (queryType === "discord") {
     add(
@@ -401,13 +404,19 @@ async function gatherOsint(
       ]).then(([accounts, bans]) => ({ accounts, bans })),
     );
     if (apiKey) {
-      add(`${PUBLIC_INTEL_SOURCE} · Breach`, fetchOsintCatEndpoint("breach", trimmed));
+      add(
+        `${PUBLIC_INTEL_SOURCE} · Breach`,
+        fetchOsintCatEndpoint("breach", trimmed),
+      );
     }
   } else {
     const searchType = resolveGodsEyeSearchType(trimmed, null, queryType);
 
     if (apiKey) {
-      add(`${PUBLIC_INTEL_SOURCE} · Breach`, fetchOsintCatEndpoint("breach", trimmed));
+      add(
+        `${PUBLIC_INTEL_SOURCE} · Breach`,
+        fetchOsintCatEndpoint("breach", trimmed),
+      );
     }
 
     add(
@@ -456,7 +465,8 @@ function finalizeResult(
     ...partial,
     riskScore: score,
     riskLabel: riskLabel(score),
-    confidence: partial.confidence ?? Math.min(95, 55 + partial.sources.length * 8),
+    confidence:
+      partial.confidence ?? Math.min(95, 55 + partial.sources.length * 8),
   };
 }
 
@@ -464,6 +474,7 @@ function chainDisplay(chain: CryptoWalletResult["chain"]): string {
   if (chain === "bitcoin") return "Bitcoin";
   if (chain === "ethereum") return "Ethereum";
   if (chain === "litecoin") return "Litecoin";
+
   return "Solana";
 }
 
@@ -483,7 +494,10 @@ function buildCryptoAnalysis(
   if (wallet.balanceUsd) {
     partial.entities.push({ label: "Balance (USD)", value: wallet.balanceUsd });
   }
-  partial.entities.push({ label: "Transactions", value: String(wallet.txCount) });
+  partial.entities.push({
+    label: "Transactions",
+    value: String(wallet.txCount),
+  });
   if (wallet.ensName) {
     partial.entities.push({ label: "ENS", value: wallet.ensName });
   }
@@ -507,7 +521,8 @@ function buildCryptoAnalysis(
     partial.signals.push({
       level: "info",
       title: "Smart contract",
-      detail: "Address is a contract — flows may be automated routing or token contracts.",
+      detail:
+        "Address is a contract — flows may be automated routing or token contracts.",
     });
     riskScore += 10;
   }
@@ -535,22 +550,35 @@ function buildCryptoAnalysis(
   const stealerHits = countIntelHits(stealerData);
 
   if (breachHits > 0) {
-    addBreachSignals(partial.signals, "Breach index", breachHits, { value: riskScore });
+    addBreachSignals(partial.signals, "Breach index", breachHits, {
+      value: riskScore,
+    });
     partial.entities.push({ label: "Breach rows", value: String(breachHits) });
-    partial.insights.push(`${breachHits} breach record(s) mention this address.`);
+    partial.insights.push(
+      `${breachHits} breach record(s) mention this address.`,
+    );
     partial.sources.push(`${PUBLIC_INTEL_SOURCE} · Breach`);
   }
 
   if (stealerHits > 0) {
-    addBreachSignals(partial.signals, "Stealer Logs", stealerHits, { value: riskScore });
-    partial.entities.push({ label: "Stealer log rows", value: String(stealerHits) });
-    partial.insights.push(`${stealerHits} stealer log row(s) tied to this wallet.`);
+    addBreachSignals(partial.signals, "Stealer Logs", stealerHits, {
+      value: riskScore,
+    });
+    partial.entities.push({
+      label: "Stealer log rows",
+      value: String(stealerHits),
+    });
+    partial.insights.push(
+      `${stealerHits} stealer log row(s) tied to this wallet.`,
+    );
     partial.sources.push("Stealer Logs");
   }
 
   partial.sources.push(PUBLIC_AI_LABEL, "On-chain index");
   partial.recommendations.push("Trace flows on a block explorer.");
-  partial.recommendations.push("Run Stealer Logs if linked to infostealer data.");
+  partial.recommendations.push(
+    "Run Stealer Logs if linked to infostealer data.",
+  );
   partial.pivots.push({
     label: "Stealer Logs",
     slug: "stealer-logs",
@@ -589,6 +617,7 @@ function buildEmailProfiler(
 
   const risk = { value: riskScore };
   const totalHits = applyPayloadHits(partial, payloads, risk);
+
   riskScore = risk.value;
 
   if (totalHits > 0) {
@@ -599,17 +628,32 @@ function buildEmailProfiler(
     partial.signals.push({
       level: "info",
       title: "No indexed exposure",
-      detail: "Email not found in COMB, stealer logs, or breach indexes this pass.",
+      detail:
+        "Email not found in COMB, stealer logs, or breach indexes this pass.",
     });
   }
 
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Email`);
-  partial.recommendations.push("Review stealer log rows for recovered passwords and cookies.");
+  partial.recommendations.push(
+    "Review stealer log rows for recovered passwords and cookies.",
+  );
   partial.recommendations.push("Pivot to username variants on social modules.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Raw stealer + breach rows." },
-    { label: "Breaches", slug: "breaches", reason: "COMB credential dump pass." },
-    { label: "AI Deep Scan", slug: "ai-deep-scan", reason: "Fuse with other identifiers." },
+    {
+      label: "Stealer Logs",
+      slug: "stealer-logs",
+      reason: "Raw stealer + breach rows.",
+    },
+    {
+      label: "Breaches",
+      slug: "breaches",
+      reason: "COMB credential dump pass.",
+    },
+    {
+      label: "AI Deep Scan",
+      slug: "ai-deep-scan",
+      reason: "Fuse with other identifiers.",
+    },
   );
 
   return finalizeResult({
@@ -635,19 +679,41 @@ function buildUsernameGraph(
   const totalHits = applyPayloadHits(partial, payloads, risk);
 
   if (totalHits > 0) {
-    partial.insights.push(`${totalHits} breach or stealer row(s) mention this handle.`);
+    partial.insights.push(
+      `${totalHits} breach or stealer row(s) mention this handle.`,
+    );
   }
 
-  partial.insights.push(`Generated ${variants.length} handle variants for pivoting.`);
-  partial.insights.push("Try variants on Instagram, GitHub, and Reddit modules.");
+  partial.insights.push(
+    `Generated ${variants.length} handle variants for pivoting.`,
+  );
+  partial.insights.push(
+    "Try variants on Instagram, GitHub, and Reddit modules.",
+  );
 
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Username`);
   partial.recommendations.push("Try platform modules for handle expansion.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Stealer log mentions." },
-    { label: "Instagram", slug: "instagram", reason: "Expand social footprint." },
-    { label: "Reddit", slug: "reddit", reason: "Check Reddit profile history." },
-    { label: "GitHub", slug: "github", reason: "Find repos and commit emails." },
+    {
+      label: "Stealer Logs",
+      slug: "stealer-logs",
+      reason: "Stealer log mentions.",
+    },
+    {
+      label: "Instagram",
+      slug: "instagram",
+      reason: "Expand social footprint.",
+    },
+    {
+      label: "Reddit",
+      slug: "reddit",
+      reason: "Check Reddit profile history.",
+    },
+    {
+      label: "GitHub",
+      slug: "github",
+      reason: "Find repos and commit emails.",
+    },
   );
 
   return finalizeResult({
@@ -703,8 +769,16 @@ function buildDomainIntel(
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Domain`);
   partial.recommendations.push("Run Threat Brief on suspicious URLs.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Stealer logs and breached data for this site." },
-    { label: "Threat Brief", slug: "threat-brief", reason: "Score exposure risk." },
+    {
+      label: "Stealer Logs",
+      slug: "stealer-logs",
+      reason: "Stealer logs and breached data for this site.",
+    },
+    {
+      label: "Threat Brief",
+      slug: "threat-brief",
+      reason: "Score exposure risk.",
+    },
   );
 
   return finalizeResult({
@@ -755,7 +829,11 @@ function buildPhishingCheck(query: string, queryType: string): AiIntelResult {
   partial.insights.push("Heuristic pass — no live sandbox execution.");
   partial.sources.push(`${PUBLIC_AI_LABEL} · Phishing`);
   partial.recommendations.push("Compare against known brand domains.");
-  partial.pivots.push({ label: "Stealer Logs", slug: "stealer-logs", reason: "Stealer logs and breached data pass." });
+  partial.pivots.push({
+    label: "Stealer Logs",
+    slug: "stealer-logs",
+    reason: "Stealer logs and breached data pass.",
+  });
 
   return finalizeResult({
     ...partial,
@@ -792,17 +870,31 @@ function buildSocialPivot(
   const totalHits = applyPayloadHits(partial, payloads, risk);
 
   if (totalHits > 0) {
-    partial.insights.push(`${totalHits} breach or stealer row(s) mention this handle.`);
+    partial.insights.push(
+      `${totalHits} breach or stealer row(s) mention this handle.`,
+    );
   }
 
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Social`);
   partial.recommendations.push("Open each platform module with this handle.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Stealer log cross-check." },
-    { label: "Instagram", slug: "instagram", reason: "Profile and link search." },
+    {
+      label: "Stealer Logs",
+      slug: "stealer-logs",
+      reason: "Stealer log cross-check.",
+    },
+    {
+      label: "Instagram",
+      slug: "instagram",
+      reason: "Profile and link search.",
+    },
     { label: "Tinder", slug: "tinder", reason: "Dating profile pivot." },
     { label: "Twitter", slug: "twitter", reason: "X / Twitter footprint." },
-    { label: "Username", slug: "username", reason: "Generate handle variants." },
+    {
+      label: "Username",
+      slug: "username",
+      reason: "Generate handle variants.",
+    },
   );
 
   return finalizeResult({
@@ -852,11 +944,23 @@ function buildStealerCorrelator(
     partial.insights.push(`${totalHits} total correlated rows across indexes.`);
   }
 
-  partial.sources.push(`${PUBLIC_AI_LABEL} · Stealer`, ...Object.keys(payloads));
+  partial.sources.push(
+    `${PUBLIC_AI_LABEL} · Stealer`,
+    ...Object.keys(payloads),
+  );
   partial.recommendations.push("File results into Case ID mind map.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Raw stealer module." },
-    { label: "Leak Storage", slug: "intelx", reason: "Open by Storage ID (long hex). Paste URL when it includes storageid — not ?did= share links." },
+    {
+      label: "Stealer Logs",
+      slug: "stealer-logs",
+      reason: "Raw stealer module.",
+    },
+    {
+      label: "Leak Storage",
+      slug: "intelx",
+      reason:
+        "Open by Storage ID (long hex). Paste URL when it includes storageid — not ?did= share links.",
+    },
   );
 
   return finalizeResult({
@@ -882,7 +986,11 @@ function buildPatternMatch(query: string, queryType: string): AiIntelResult {
       detail: `Input matches ${queryType.replace("hash:", "").toUpperCase()} pattern.`,
     });
     partial.insights.push("Pivot hash to breach and stealer modules.");
-    partial.pivots.push({ label: "Hash", slug: "username", reason: "Run as breach query." });
+    partial.pivots.push({
+      label: "Hash",
+      slug: "username",
+      reason: "Run as breach query.",
+    });
   } else if (query.length < 8) {
     partial.signals.push({
       level: "warn",
@@ -906,20 +1014,32 @@ function buildPatternMatch(query: string, queryType: string): AiIntelResult {
 
 function buildCaseSummary(query: string): AiIntelResult {
   const start = Date.now();
-  const partial = baseResult("summary", query.slice(0, 200), "intel-blob", start);
+  const partial = baseResult(
+    "summary",
+    query.slice(0, 200),
+    "intel-blob",
+    start,
+  );
   let riskScore = 10;
 
   const emails = query.match(/[^\s@]+@[^\s@]+\.[^\s@]+/g) ?? [];
   const ips = query.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) ?? [];
   const domains = query.match(/\b[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g) ?? [];
 
-  partial.entities.push({ label: "Emails found", value: String(emails.length) });
+  partial.entities.push({
+    label: "Emails found",
+    value: String(emails.length),
+  });
   partial.entities.push({ label: "IPs found", value: String(ips.length) });
-  partial.entities.push({ label: "Domains found", value: String(domains.length) });
+  partial.entities.push({
+    label: "Domains found",
+    value: String(domains.length),
+  });
   partial.entities.push({ label: "Char count", value: String(query.length) });
 
   if (emails.length > 0) {
     const email = emails[0]!;
+
     partial.insights.push(`Primary email candidate: ${email}`);
     partial.pivots.push({ label: "Email", slug: "email", reason: email });
     riskScore += 10;
@@ -967,14 +1087,24 @@ function buildDeepScan(
 
   const totalHits = applyPayloadHits(partial, payloads, risk);
 
-  partial.insights.push(`Deep scan queried ${Object.keys(payloads).length} indexes.`);
+  partial.insights.push(
+    `Deep scan queried ${Object.keys(payloads).length} indexes.`,
+  );
   partial.insights.push(`Aggregate exposure rows: ${totalHits}.`);
 
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Deep scan`);
   partial.recommendations.push("Run Threat Brief for a tighter risk read.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Raw stealer module." },
-    { label: "Threat Brief", slug: "threat-brief", reason: "Focused risk pass." },
+    {
+      label: "Stealer Logs",
+      slug: "stealer-logs",
+      reason: "Raw stealer module.",
+    },
+    {
+      label: "Threat Brief",
+      slug: "threat-brief",
+      reason: "Focused risk pass.",
+    },
     { label: "AI Search", slug: "ai-search", reason: "Synthesize findings." },
   );
 
@@ -1005,7 +1135,9 @@ function buildThreatBrief(
       detail: "No exposures in COMB, stealer logs, or breach indexes.",
     });
   } else {
-    partial.insights.push(`${totalHits} total exposure row(s) across queried sources.`);
+    partial.insights.push(
+      `${totalHits} total exposure row(s) across queried sources.`,
+    );
   }
 
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Threat brief`);
@@ -1046,7 +1178,11 @@ function buildAiSearch(
 
   partial.sources.unshift(PUBLIC_AI_LABEL);
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "View raw stealer rows." },
+    {
+      label: "Stealer Logs",
+      slug: "stealer-logs",
+      reason: "View raw stealer rows.",
+    },
     { label: "AI Deep Scan", slug: "ai-deep-scan", reason: "Go deeper." },
   );
 
@@ -1089,8 +1225,16 @@ function buildIdentityMerge(
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Identity`);
   partial.recommendations.push("Link merged intel into a Case ID file.");
   partial.pivots.push(
-    { label: "Stealer Logs", slug: "stealer-logs", reason: "Cross-check infostealer data." },
-    { label: "AI Deep Scan", slug: "ai-deep-scan", reason: "Expand index coverage." },
+    {
+      label: "Stealer Logs",
+      slug: "stealer-logs",
+      reason: "Cross-check infostealer data.",
+    },
+    {
+      label: "AI Deep Scan",
+      slug: "ai-deep-scan",
+      reason: "Expand index coverage.",
+    },
     { label: "Breaches", slug: "breaches", reason: "COMB credential pass." },
   );
 
@@ -1111,7 +1255,10 @@ export async function runAiIntel(
   const queryType = classifyQuery(trimmed);
   const resolvedMode = mode === "auto" ? resolveAiMode(null, trimmed) : mode;
 
-  if (resolvedMode === "crypto" || (resolvedMode !== "phishing" && queryType.startsWith("crypto:"))) {
+  if (
+    resolvedMode === "crypto" ||
+    (resolvedMode !== "phishing" && queryType.startsWith("crypto:"))
+  ) {
     const chain = detectCryptoChain(trimmed);
 
     if (!chain) {
@@ -1124,7 +1271,8 @@ export async function runAiIntel(
           {
             level: "warn",
             title: "Format mismatch",
-            detail: "Input does not match a plausible BTC, LTC, ETH, or Solana wallet address.",
+            detail:
+              "Input does not match a plausible BTC, LTC, ETH, or Solana wallet address.",
           },
         ],
         recommendations: ["Verify address and chain."],
@@ -1205,36 +1353,43 @@ export async function runAiIntel(
 
   if (resolvedMode === "email") {
     const payloads = await gatherOsint(apiKey, trimmed, "email", "normal");
+
     return buildEmailProfiler(trimmed, payloads);
   }
 
   if (resolvedMode === "username") {
     const payloads = await gatherOsint(apiKey, trimmed, "username", "normal");
+
     return buildUsernameGraph(trimmed, payloads);
   }
 
   if (resolvedMode === "domain") {
     const payloads = await gatherOsint(apiKey, trimmed, "domain", "normal");
+
     return buildDomainIntel(trimmed, extractDomain(trimmed), payloads);
   }
 
   if (resolvedMode === "social") {
     const payloads = await gatherOsint(apiKey, trimmed, "username", "normal");
+
     return buildSocialPivot(trimmed, payloads);
   }
 
   if (resolvedMode === "stealer") {
     const payloads = await gatherOsint(apiKey, trimmed, queryType, "stealer");
+
     return buildStealerCorrelator(trimmed, queryType, payloads);
   }
 
   if (resolvedMode === "deep") {
     const payloads = await gatherOsint(apiKey, trimmed, queryType, "deep");
+
     return buildDeepScan(trimmed, queryType, payloads);
   }
 
   if (resolvedMode === "identity") {
     const payloads = await gatherOsint(apiKey, trimmed, queryType, "deep");
+
     return buildIdentityMerge(trimmed, queryType, payloads);
   }
 
@@ -1256,5 +1411,6 @@ export function aiModeFromSidebarItem(itemName: string | null): AiMode {
   };
 
   if (itemName && map[itemName]) return map[itemName];
+
   return "auto";
 }

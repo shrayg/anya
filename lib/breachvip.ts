@@ -1,3 +1,6 @@
+import type { SanitizedBreachResponse } from "@/lib/osintcat";
+import type { CombCredential } from "@/lib/proxynova-comb";
+
 import {
   PUBLIC_INTEL_SOURCE,
   publicSearchError,
@@ -6,8 +9,6 @@ import {
 } from "@/lib/public-branding";
 import { extractDatabank, isInternalSourceLabel } from "@/lib/intel-record";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
-import type { SanitizedBreachResponse } from "@/lib/osintcat";
-import type { CombCredential } from "@/lib/proxynova-comb";
 
 const BREACHVIP_SEARCH_URL = "https://breach.vip/api/search";
 const DEFAULT_TIMEOUT_MS = 25_000;
@@ -64,6 +65,7 @@ export function sanitizeBreachVipUserError(message: string): string {
   }
 
   const cleaned = sanitizePublicText(message).trim();
+
   return cleaned || publicSearchError();
 }
 
@@ -72,14 +74,17 @@ function asString(value: unknown): string {
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
   }
+
   return "";
 }
 
 function firstString(record: BreachVipRecord, keys: string[]): string {
   for (const key of keys) {
     const value = asString(record[key]);
+
     if (value) return value;
   }
+
   return "";
 }
 
@@ -121,9 +126,11 @@ export function breachVipResultsToCredentials(
 
   for (const record of results) {
     const cred = breachVipRecordToCredential(record);
+
     if (!cred) continue;
 
     const key = `${cred.identifier.toLowerCase()}\0${cred.secret}`;
+
     if (seen.has(key)) continue;
     seen.add(key);
     credentials.push(cred);
@@ -151,11 +158,15 @@ export function sanitizeBreachVipRecord(entry: unknown): unknown {
     }
   }
 
-  if (typeof record._source === "string" && isInternalSourceLabel(record._source)) {
+  if (
+    typeof record._source === "string" &&
+    isInternalSourceLabel(record._source)
+  ) {
     delete record._source;
   }
 
   const databank = extractDatabank(record);
+
   if (databank && !record.database && !record.breach && !record.breach_name) {
     record.database = databank;
   }
@@ -213,6 +224,7 @@ export async function searchBreachVip(
   }
 
   const trimmed = term.trim();
+
   if (!trimmed) {
     throw new Error("Missing search term");
   }
@@ -264,8 +276,10 @@ export async function searchBreachVip(
 
   if (!res.ok) {
     let detail = `Search returned ${res.status}`;
+
     try {
       const errJson = (await res.json()) as Record<string, unknown>;
+
       detail = String(errJson.error || errJson.message || detail);
     } catch {
       // ignore parse errors
@@ -274,6 +288,7 @@ export async function searchBreachVip(
   }
 
   let payload: unknown;
+
   try {
     payload = await res.json();
   } catch {
@@ -303,6 +318,7 @@ export async function searchBreachVipSafe(
   if (!isBreachVipEnabled()) return null;
 
   const fieldList = Array.isArray(fields) ? fields : [fields];
+
   if (fieldList.length === 0) return null;
 
   try {
@@ -362,6 +378,7 @@ export async function fetchBreachVipSanitized(
   options?: Omit<BreachVipSearchOptions, "fields">,
 ): Promise<SanitizedBreachResponse> {
   const result = await searchBreachVipSafe(term, fields, options);
+
   return breachVipToSanitizedResponse(result);
 }
 

@@ -13,10 +13,14 @@ export function NoInfoFound() {
           <Info className="w-4 h-4 text-purple-400" />
         </div>
       </div>
-      
-      <h3 className="text-white text-2xl font-black mb-3 text-center">No Records Detected</h3>
+
+      <h3 className="text-white text-2xl font-black mb-3 text-center">
+        No Records Detected
+      </h3>
       <p className="text-gray-500 text-center max-w-sm mb-10 leading-relaxed font-medium">
-        We couldn't find any information about your search in our databases. This doesn't mean anything is wrong - many searches don't return results.
+        We couldn't find any information about your search in our databases.
+        This doesn't mean anything is wrong - many searches don't return
+        results.
       </p>
 
       <div className="flex flex-col gap-2 w-full max-w-[300px]">

@@ -1,7 +1,4 @@
-import {
-  fetchCordCatUserInfo,
-  type CordCatUserInfo,
-} from "@/lib/cordcat";
+import { fetchCordCatUserInfo, type CordCatUserInfo } from "@/lib/cordcat";
 import { badgesFromPublicFlags } from "@/lib/discord-badges";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
@@ -130,6 +127,7 @@ export const NAMEPLATE_PALETTE_COLORS: Record<string, string> = {
 function formatAccentColor(value: unknown): string | null {
   if (typeof value === "string") {
     const trimmed = value.trim();
+
     if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
       return trimmed.toLowerCase();
     }
@@ -138,6 +136,7 @@ function formatAccentColor(value: unknown): string | null {
     }
     if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
       const [, r, g, b] = trimmed;
+
       return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
     }
   }
@@ -152,8 +151,10 @@ function formatAccentColor(value: unknown): string | null {
 /** Discord Nitro profile theme primary from `theme_colors: [primary, secondary]`. */
 function extractThemePrimary(data: Record<string, unknown>): string | null {
   const direct = data.theme_colors ?? data.themeColors;
+
   if (Array.isArray(direct) && direct.length > 0) {
     const primary = formatAccentColor(direct[0]);
+
     if (primary) return primary;
   }
 
@@ -161,10 +162,13 @@ function extractThemePrimary(data: Record<string, unknown>): string | null {
     asRecord(data.user_profile) ??
     asRecord(data.userProfile) ??
     asRecord(data.profile);
+
   if (nested) {
     const colors = nested.theme_colors ?? nested.themeColors;
+
     if (Array.isArray(colors) && colors.length > 0) {
       const primary = formatAccentColor(colors[0]);
+
       if (primary) return primary;
     }
   }
@@ -172,8 +176,11 @@ function extractThemePrimary(data: Record<string, unknown>): string | null {
   return null;
 }
 
-function accentFromNameplatePalette(palette: string | null | undefined): string | null {
+function accentFromNameplatePalette(
+  palette: string | null | undefined,
+): string | null {
   if (!palette) return null;
+
   return NAMEPLATE_PALETTE_COLORS[palette] ?? null;
 }
 
@@ -187,6 +194,7 @@ function extractMediaHash(value: unknown): string | null {
 
   const raw = value.trim();
   const bare = raw.replace(/\.(gif|png|webp|jpe?g)(\?.*)?$/i, "");
+
   if (/^(a_[a-zA-Z0-9]+|[a-f0-9]{16,})$/i.test(bare) && !bare.includes("/")) {
     return bare;
   }
@@ -194,6 +202,7 @@ function extractMediaHash(value: unknown): string | null {
   const fromUrl = raw.match(
     /\/(?:avatars|banners)\/\d+\/(a_[a-zA-Z0-9]+|[a-f0-9]{16,})\./i,
   );
+
   return fromUrl?.[1] ?? null;
 }
 
@@ -212,11 +221,13 @@ function isLikelyAnimatedUrl(url: string): boolean {
   if (/\.(gif|webm|mp4)(\?|$)/i.test(url)) return true;
   if (/[?&]passthrough=true\b/i.test(url)) return true;
   if (/\/a_[a-zA-Z0-9]+\.gif/i.test(url)) return true;
+
   return false;
 }
 
 function buildAvatarUrl(id: string, avatar: unknown): string {
   const hash = extractMediaHash(avatar);
+
   if (!hash) {
     return defaultAvatarUrl(id);
   }
@@ -228,6 +239,7 @@ function buildAvatarUrl(id: string, avatar: unknown): string {
 
 function buildBannerUrl(id: string, banner: unknown): string | null {
   const hash = extractMediaHash(banner);
+
   if (!hash) {
     return null;
   }
@@ -243,6 +255,7 @@ function buildAvatarDecorationUrl(asset: unknown): string | null {
   if (/^https?:\/\//i.test(asset)) {
     try {
       const parsed = new URL(asset);
+
       if (
         parsed.hostname.includes("discord") &&
         parsed.pathname.includes("avatar-decoration")
@@ -253,6 +266,7 @@ function buildAvatarDecorationUrl(asset: unknown): string | null {
           parsed.searchParams.set("size", "256");
         }
       }
+
       return parsed.toString();
     } catch {
       return asset;
@@ -260,6 +274,7 @@ function buildAvatarDecorationUrl(asset: unknown): string | null {
   }
 
   const hash = asset.replace(/\.(png|webp|gif)$/i, "");
+
   return `https://cdn.discordapp.com/avatar-decoration-presets/${hash}.png?size=256&passthrough=true`;
 }
 
@@ -302,16 +317,20 @@ function extractClanTag(data: Record<string, unknown>): string | null {
   if (direct) return direct.replace(/^\[|\]$/g, "");
 
   const clan = asRecord(data.clan);
+
   if (clan) {
     const tag = clan.tag;
+
     if (typeof tag === "string" && tag.trim()) {
       return tag.trim().replace(/^\[|\]$/g, "");
     }
   }
 
   const primaryGuild = asRecord(data.primary_guild ?? data.primaryGuild);
+
   if (primaryGuild) {
     const tag = primaryGuild.tag;
+
     if (typeof tag === "string" && tag.trim()) {
       return tag.trim().replace(/^\[|\]$/g, "");
     }
@@ -324,10 +343,12 @@ function extractClanBadgeUrl(data: Record<string, unknown>): string | null {
   const clan = asRecord(data.clan);
   const primaryGuild = asRecord(data.primary_guild ?? data.primaryGuild);
   const source = primaryGuild ?? clan;
+
   if (!source) return null;
 
   const guildId =
-    (typeof source.identity_guild_id === "string" && source.identity_guild_id) ||
+    (typeof source.identity_guild_id === "string" &&
+      source.identity_guild_id) ||
     (typeof source.identityGuildId === "string" && source.identityGuildId) ||
     (typeof source.id === "string" && source.id) ||
     null;
@@ -341,8 +362,16 @@ function extractClanBadgeUrl(data: Record<string, unknown>): string | null {
   return `https://cdn.discordapp.com/clan-badges/${guildId}/${badge}.png?size=64`;
 }
 
-function humanizeNameplateLabel(raw: string | null, asset: string): string | null {
-  if (raw && raw.trim() && !/^COLLECTIBLES_/i.test(raw) && raw.trim().length > 2) {
+function humanizeNameplateLabel(
+  raw: string | null,
+  asset: string,
+): string | null {
+  if (
+    raw &&
+    raw.trim() &&
+    !/^COLLECTIBLES_/i.test(raw) &&
+    raw.trim().length > 2
+  ) {
     return raw.trim();
   }
 
@@ -366,6 +395,7 @@ function pickFirstString(...values: unknown[]): string | null {
       return value.trim();
     }
   }
+
   return null;
 }
 
@@ -380,6 +410,7 @@ function isNameplateVideoUrl(url: string): boolean {
  */
 function normalizeNameplateAssetPath(raw: string): string | null {
   let value = raw.trim();
+
   if (!value) return null;
 
   try {
@@ -387,6 +418,7 @@ function normalizeNameplateAssetPath(raw: string): string | null {
       const parsed = new URL(value);
       const marker = "/assets/collectibles/";
       const idx = parsed.pathname.indexOf(marker);
+
       if (idx >= 0) {
         value = parsed.pathname.slice(idx + marker.length);
       }
@@ -413,7 +445,9 @@ function nameplateCdnUrl(
   return `https://cdn.discordapp.com/assets/collectibles/${assetPath}${file}`;
 }
 
-function extractNameplate(data: Record<string, unknown>): DiscordNameplate | null {
+function extractNameplate(
+  data: Record<string, unknown>,
+): DiscordNameplate | null {
   const collectibles = asRecord(data.collectibles);
   const nameplate =
     asRecord(collectibles?.nameplate) ??
@@ -429,6 +463,7 @@ function extractNameplate(data: Record<string, unknown>): DiscordNameplate | nul
   if (!assetRaw) return null;
 
   const normalized = normalizeNameplateAssetPath(assetRaw);
+
   if (!normalized) return null;
 
   const label = pickFirstString(nameplate.label, nameplate.description);
@@ -477,6 +512,7 @@ function detectNitro(
   }
 
   const premiumType = data.premium_type ?? data.premiumType;
+
   if (typeof premiumType === "number" && premiumType > 0) {
     return true;
   }
@@ -484,6 +520,7 @@ function detectNitro(
   if (
     badges.some((badge) => {
       const key = badge.toUpperCase();
+
       return key === "NITRO" || key === "PREMIUM";
     })
   ) {
@@ -514,8 +551,10 @@ function collectBadges(data: Record<string, unknown>): string[] {
 
   for (const badge of merged) {
     const key = badge.trim();
+
     if (!key) continue;
     const norm = key.toUpperCase().replace(/\s+/g, "_");
+
     if (seen.has(norm)) continue;
     seen.add(norm);
     out.push(norm);
@@ -557,9 +596,7 @@ function parseProfileFromRaw(
 
   const decorationData = asRecord(data.avatar_decoration_data);
   const decorationAsset =
-    decorationData?.asset ??
-    data.avatar_decoration ??
-    data.avatarDecoration;
+    decorationData?.asset ?? data.avatar_decoration ?? data.avatarDecoration;
   const decorationProvidedUrl =
     data.avatar_decoration_url ??
     data.avatarDecorationUrl ??
@@ -571,6 +608,7 @@ function parseProfileFromRaw(
 
   const badges = collectBadges(data);
   const nitro = detectNitro(data, avatarHash, bannerHash, badges);
+
   if (nitro && !badges.some((b) => b === "NITRO" || b === "PREMIUM")) {
     badges.push("NITRO");
   }
@@ -646,7 +684,9 @@ function isUsableProfile(profile: DiscordProfile): boolean {
   );
 }
 
-async function fetchJapiProfile(userId: string): Promise<DiscordProfile | null> {
+async function fetchJapiProfile(
+  userId: string,
+): Promise<DiscordProfile | null> {
   try {
     const res = await fetchWithTimeout(
       `https://japi.rest/discord/v1/user/${encodeURIComponent(userId)}`,
@@ -683,19 +723,27 @@ async function fetchCordCatProfile(
   userId: string,
 ): Promise<DiscordProfile | null> {
   const userInfo = await fetchCordCatUserInfo(userId);
+
   if (!userInfo) return null;
 
-  return parseProfileFromRaw(userId, userInfo as CordCatUserInfo & Record<string, unknown>);
+  return parseProfileFromRaw(
+    userId,
+    userInfo as CordCatUserInfo & Record<string, unknown>,
+  );
 }
 
-export async function fetchDiscordProfile(userId: string): Promise<DiscordProfile> {
+export async function fetchDiscordProfile(
+  userId: string,
+): Promise<DiscordProfile> {
   // Prefer CordCat when configured — richer Discord-native profile media.
   const cordProfile = await fetchCordCatProfile(userId);
+
   if (cordProfile && isUsableProfile(cordProfile)) {
     return cordProfile;
   }
 
   const japiProfile = await fetchJapiProfile(userId);
+
   if (japiProfile && isUsableProfile(japiProfile)) {
     // Merge any CordCat media extras onto japi when CordCat only returned partial data.
     if (cordProfile) {
@@ -715,7 +763,9 @@ export async function fetchDiscordProfile(userId: string): Promise<DiscordProfil
         accentColor: cordProfile.accentColor ?? japiProfile.accentColor,
         clanBadgeUrl: cordProfile.clanBadgeUrl ?? japiProfile.clanBadgeUrl,
         badges:
-          cordProfile.badges.length > 0 ? cordProfile.badges : japiProfile.badges,
+          cordProfile.badges.length > 0
+            ? cordProfile.badges
+            : japiProfile.badges,
         createdAt: snowflakeCreatedAt(userId),
         profilePreviewUrl: discordProfileUrl(userId),
       };

@@ -1,6 +1,7 @@
-import { PUBLIC_AI_LABEL } from "@/lib/public-branding";
 import type { AiIntelResult } from "@/lib/ai-intel";
 import type { CryptoWalletResult } from "@/lib/crypto-wallet";
+
+import { PUBLIC_AI_LABEL } from "@/lib/public-branding";
 
 export type CryptoChatMessage = {
   id: string;
@@ -14,6 +15,7 @@ function chainLabel(chain: CryptoWalletResult["chain"]): string {
   if (chain === "bitcoin") return "Bitcoin";
   if (chain === "ethereum") return "Ethereum";
   if (chain === "litecoin") return "Litecoin";
+
   return "Solana";
 }
 
@@ -45,6 +47,7 @@ export function buildCryptoAiChatMessages(
       meta: "analysis failed",
       tone: "warn",
     });
+
     return messages;
   }
 
@@ -100,7 +103,10 @@ export function buildCryptoAiChatMessages(
   if (wallet.tokens.length > 0) {
     const top = wallet.tokens
       .slice(0, 5)
-      .map((token) => `• **${token.symbol}** — ${token.balance}${token.balanceUsd ? ` (${token.balanceUsd})` : ""}`)
+      .map(
+        (token) =>
+          `• **${token.symbol}** — ${token.balance}${token.balanceUsd ? ` (${token.balanceUsd})` : ""}`,
+      )
       .join("\n");
 
     messages.push({
@@ -117,7 +123,10 @@ export function buildCryptoAiChatMessages(
       .map((tx) => {
         const dir = tx.direction ? tx.direction.toUpperCase() : "TX";
         const amount = tx.amount ? ` ${tx.amount}` : "";
-        const hash = tx.hash.length > 20 ? `${tx.hash.slice(0, 10)}…${tx.hash.slice(-8)}` : tx.hash;
+        const hash =
+          tx.hash.length > 20
+            ? `${tx.hash.slice(0, 10)}…${tx.hash.slice(-8)}`
+            : tx.hash;
 
         return `• ${dir}${amount} · \`${hash}\``;
       })

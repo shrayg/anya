@@ -1,8 +1,6 @@
 import "server-only";
 
-export type TurnstileVerifyResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type TurnstileVerifyResult = { ok: true } | { ok: false; error: string };
 
 function siteKey(): string {
   return (
@@ -38,6 +36,7 @@ export async function verifyTurnstileToken(
       console.error(
         "[turnstile] Partial Turnstile env — set both NEXT_PUBLIC_TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY",
       );
+
       return { ok: false, error: "Bot protection is misconfigured." };
     }
 
@@ -46,6 +45,7 @@ export async function verifyTurnstileToken(
         "[turnstile] Keys unset — skipping verification in non-production",
       );
     }
+
     return { ok: true };
   }
 
@@ -55,6 +55,7 @@ export async function verifyTurnstileToken(
 
   try {
     const body = new URLSearchParams();
+
     body.set("secret", secret);
     body.set("response", token.trim());
     if (remoteIp) body.set("remoteip", remoteIp);
@@ -79,12 +80,14 @@ export async function verifyTurnstileToken(
         "[turnstile] siteverify failed",
         data?.["error-codes"] ?? response.status,
       );
+
       return { ok: false, error: "Security check failed. Please try again." };
     }
 
     return { ok: true };
   } catch (error) {
     console.error("[turnstile] siteverify error:", error);
+
     return {
       ok: false,
       error: "Could not verify security check. Please try again.",
@@ -94,5 +97,6 @@ export async function verifyTurnstileToken(
 
 export function getTurnstileSiteKeyForClient(): string | null {
   const key = siteKey();
+
   return key || null;
 }

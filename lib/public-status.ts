@@ -13,7 +13,10 @@ import {
 } from "@/lib/status-history";
 import "server-only";
 
-export type { StatusHistoryPayload, StatusHistorySeries } from "@/lib/status-history";
+export type {
+  StatusHistoryPayload,
+  StatusHistorySeries,
+} from "@/lib/status-history";
 
 export type PublicStatusLevel = "operational" | "degraded" | "outage";
 
@@ -45,6 +48,7 @@ type TimedResult = {
 async function timed(fn: () => Promise<boolean>): Promise<TimedResult> {
   try {
     const ok = await fn();
+
     return { ok };
   } catch {
     return { ok: false };
@@ -53,17 +57,21 @@ async function timed(fn: () => Promise<boolean>): Promise<TimedResult> {
 
 function isJwtReady(): boolean {
   const secret = process.env.JWT_SECRET?.trim();
+
   if (!secret || secret === "change-me" || secret === "super-secret-jwt-key") {
     return process.env.NODE_ENV !== "production";
   }
+
   return true;
 }
 
 function ratioToStatus(up: number, total: number): PublicStatusLevel {
   if (total <= 0) return "outage";
   const ratio = up / total;
+
   if (ratio >= 0.85) return "operational";
   if (ratio >= 0.4) return "degraded";
+
   return "outage";
 }
 
@@ -73,25 +81,32 @@ function aggregateModuleStatus(
 ): PublicStatusLevel {
   const active = slugs.filter((slug) => {
     const rule = MODULE_HEALTH_RULES[slug];
+
     return rule && rule.kind !== "off";
   });
   const up = active.filter((slug) => modules[slug]).length;
+
   return ratioToStatus(up, active.length);
 }
 
 function worstStatus(levels: PublicStatusLevel[]): PublicStatusLevel {
   if (levels.includes("outage")) return "outage";
   if (levels.includes("degraded")) return "degraded";
+
   return "operational";
 }
 
-function overallFromServices(services: PublicStatusService[]): PublicStatusLevel {
+function overallFromServices(
+  services: PublicStatusService[],
+): PublicStatusLevel {
   const criticalIds = new Set(["website", "database", "auth", "api"]);
   const critical = services.filter((s) => criticalIds.has(s.id));
   const criticalWorst = worstStatus(critical.map((s) => s.status));
+
   if (criticalWorst === "outage") return "outage";
 
   const anyOutage = services.some((s) => s.status === "outage");
+
   if (anyOutage || criticalWorst === "degraded") return "degraded";
 
   return worstStatus(services.map((s) => s.status));
@@ -101,17 +116,20 @@ function overallFromServices(services: PublicStatusService[]): PublicStatusLevel
  * Build a public-safe platform status snapshot.
  * Never returns provider names, API keys, latency, or internal error details.
  */
-export async function getPublicStatus(
-  options?: { cached?: boolean; recordHistory?: boolean },
-): Promise<PublicStatusPayload> {
+export async function getPublicStatus(options?: {
+  cached?: boolean;
+  recordHistory?: boolean;
+}): Promise<PublicStatusPayload> {
   const [db, providersTimed] = await Promise.all([
     timed(async () => {
       await prisma.$queryRaw`SELECT 1`;
+
       return true;
     }),
     (async () => {
       try {
         const providers = await probeProviders();
+
         return {
           providers,
           ok: true as const,
@@ -202,6 +220,7 @@ export async function getPublicStatus(
   const overall = overallFromServices(services);
 
   let history: StatusHistoryPayload;
+
   if (options?.recordHistory !== false) {
     try {
       history = recordStatusHistorySample({ overall, services });

@@ -55,7 +55,11 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ case: record });
   } catch (error) {
     console.error("Get case error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -76,7 +80,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const body = await request.json();
     const searchIds = Array.isArray(body.searchIds)
-      ? body.searchIds.map((value: unknown) => Number(value)).filter(Number.isFinite)
+      ? body.searchIds
+          .map((value: unknown) => Number(value))
+          .filter(Number.isFinite)
       : null;
 
     if (searchIds) {
@@ -104,15 +110,28 @@ export async function PATCH(request: Request, context: RouteContext) {
       data: {
         title: body.title !== undefined ? String(body.title).trim() : undefined,
         subjectName:
-          body.subjectName !== undefined ? String(body.subjectName).trim() : undefined,
-        email: body.email !== undefined ? String(body.email).trim() || null : undefined,
-        phone: body.phone !== undefined ? String(body.phone).trim() || null : undefined,
+          body.subjectName !== undefined
+            ? String(body.subjectName).trim()
+            : undefined,
+        email:
+          body.email !== undefined
+            ? String(body.email).trim() || null
+            : undefined,
+        phone:
+          body.phone !== undefined
+            ? String(body.phone).trim() || null
+            : undefined,
         username:
-          body.username !== undefined ? String(body.username).trim() || null : undefined,
+          body.username !== undefined
+            ? String(body.username).trim() || null
+            : undefined,
         location:
-          body.location !== undefined ? String(body.location).trim() || null : undefined,
+          body.location !== undefined
+            ? String(body.location).trim() || null
+            : undefined,
         notes: body.notes !== undefined ? String(body.notes) : undefined,
-        intelData: body.intelData !== undefined ? String(body.intelData) : undefined,
+        intelData:
+          body.intelData !== undefined ? String(body.intelData) : undefined,
         status: body.status !== undefined ? String(body.status) : undefined,
       },
       include: caseInclude,
@@ -121,7 +140,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ case: updated });
   } catch (error) {
     console.error("Update case error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -145,6 +168,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete case error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

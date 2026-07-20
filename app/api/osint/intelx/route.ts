@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import {
   fetchCsintIntelx,
   fetchCsintIntelxWithBuckets,
   isCsintEnabled,
 } from "@/lib/csint";
-import {
-  DEFAULT_INTELX_BUCKET,
-  isIntelxBucket,
-} from "@/lib/intelx-buckets";
+import { DEFAULT_INTELX_BUCKET, isIntelxBucket } from "@/lib/intelx-buckets";
 import {
   PUBLIC_BRAND,
   publicSearchError,
@@ -53,6 +49,7 @@ function normalizeStorageId(raw: string): {
     ]
       .join("-")
       .toLowerCase();
+
     return { storageId: uuid, idKind: "uuid" };
   }
 
@@ -93,6 +90,7 @@ function parseIntelxQuery(raw: string): {
 
       if (storageParam) {
         const normalized = normalizeStorageId(storageParam);
+
         return { ...normalized, fromWebsiteDid: false };
       }
 
@@ -109,11 +107,13 @@ function parseIntelxQuery(raw: string): {
   }
 
   const normalized = normalizeStorageId(trimmed);
+
   return { ...normalized, fromWebsiteDid: false };
 }
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "intelx");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
@@ -179,6 +179,7 @@ export async function GET(req: NextRequest) {
       idKind === "uuid"
         ? await fetchCsintIntelx(storageId, preferredBucket)
         : await fetchCsintIntelxWithBuckets(storageId, preferredBucket);
+
     if (csint.content.trim()) {
       content = csint.content;
       bucket = isIntelxBucket(csint.bucket) ? csint.bucket : preferredBucket;
@@ -191,6 +192,7 @@ export async function GET(req: NextRequest) {
     // GodsEye already tries known leak buckets internally; avoid hammering capacity.
     // No second-bucket retry for UUIDs (same hopeless-did problem).
     const godseye = await fetchGodsEyeRawExport(storageId, preferredBucket);
+
     if (godseye.content.trim()) {
       content = godseye.content;
       bucket = preferredBucket;
@@ -203,6 +205,7 @@ export async function GET(req: NextRequest) {
         preferredBucket !== "leaks.private"
       ) {
         const retry = await fetchGodsEyeRawExport(storageId, "leaks.private");
+
         if (retry.content.trim()) {
           content = retry.content;
           bucket = "leaks.private";

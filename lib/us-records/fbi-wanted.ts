@@ -1,10 +1,11 @@
+import type { ParsedPublicQuery, PersonHit } from "@/lib/us-records/types";
+
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
   BROWSER_UA,
   fetchUsRecordsJson,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { ParsedPublicQuery, PersonHit } from "@/lib/us-records/types";
 
 type FbiItem = {
   uid?: string;
@@ -29,10 +30,12 @@ export async function searchFbiWanted(
   limit = 8,
 ): Promise<PersonHit[]> {
   const name = parsed.fullName || parsed.lastName || parsed.raw;
+
   if (!name || name.length < 2) return [];
 
   const key = cacheKey("fbi-wanted", `${name}:${limit}`);
   const cached = getCached<PersonHit[]>(key);
+
   if (cached) return cached;
 
   const params = new URLSearchParams({
@@ -59,20 +62,33 @@ export async function searchFbiWanted(
     id: `fbi-${item.uid || item.title}`,
     name: item.title || name,
     kind: "wanted",
-    subtitle: (item.subjects || []).join(" · ") || "FBI wanted / seeking information",
+    subtitle:
+      (item.subjects || []).join(" · ") || "FBI wanted / seeking information",
     state: item.possible_states?.[0] || parsed.state,
     country: item.nationality || parsed.country || "US",
     details: [
       ...(item.description
-        ? [{ label: "Description", value: item.description.replace(/\s+/g, " ").slice(0, 280) }]
+        ? [
+            {
+              label: "Description",
+              value: item.description.replace(/\s+/g, " ").slice(0, 280),
+            },
+          ]
         : []),
       ...(item.field_offices?.length
         ? [{ label: "Field office", value: item.field_offices.join(", ") }]
         : []),
       ...(item.reward_text
-        ? [{ label: "Reward", value: item.reward_text.replace(/<[^>]+>/g, "").slice(0, 200) }]
+        ? [
+            {
+              label: "Reward",
+              value: item.reward_text.replace(/<[^>]+>/g, "").slice(0, 200),
+            },
+          ]
         : []),
-      ...(item.publication ? [{ label: "Published", value: item.publication }] : []),
+      ...(item.publication
+        ? [{ label: "Published", value: item.publication }]
+        : []),
     ],
     source: {
       id: "fbi-wanted",
@@ -85,5 +101,6 @@ export async function searchFbiWanted(
   }));
 
   setCached(key, hits, SOURCE_LIMITS["fbi-wanted"].ttlMs);
+
   return hits;
 }

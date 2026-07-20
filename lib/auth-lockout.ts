@@ -13,10 +13,11 @@ function keyFor(ip: string, username: string) {
 }
 
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("cf-connecting-ip")
-    || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || request.headers.get("x-real-ip")
-    || "unknown";
+  const forwarded =
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
 
   return forwarded || "unknown";
 }
@@ -40,6 +41,7 @@ export function getAuthLockoutStatus(ip: string, username: string) {
 
   if (entry.lockedUntil > 0 && entry.lockedUntil <= now) {
     STORE.delete(key);
+
     return { locked: false as const, retryAfterSeconds: 0, failures: 0 };
   }
 
@@ -61,6 +63,7 @@ export function recordAuthFailure(ip: string, username: string) {
       failures,
       lockedUntil: now + AUTH_LOCKOUT_MS,
     });
+
     return {
       locked: true as const,
       retryAfterSeconds: Math.ceil(AUTH_LOCKOUT_MS / 1000),
@@ -69,6 +72,7 @@ export function recordAuthFailure(ip: string, username: string) {
   }
 
   STORE.set(key, { failures, lockedUntil: 0 });
+
   return {
     locked: false as const,
     retryAfterSeconds: 0,

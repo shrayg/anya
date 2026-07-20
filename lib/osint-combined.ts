@@ -1,7 +1,4 @@
-import {
-  fetchBreachVipSanitized,
-  type BreachVipField,
-} from "@/lib/breachvip";
+import { fetchBreachVipSanitized, type BreachVipField } from "@/lib/breachvip";
 import {
   fetchCsintAdditiveBreachSearch,
   fetchCsintAdditiveStealerSearch,
@@ -22,7 +19,6 @@ import {
   resolveGodsEyeSearchType,
   type GodsEyeSearchType,
 } from "@/lib/godseye";
-
 import {
   fetchOsintCatEndpoint,
   fetchOsintCatStealerLogs,
@@ -84,6 +80,7 @@ async function fetchOptionalOsintCatPlatformSearch(
   }
 
   const data = await fetchOsintCatEndpoint(endpoint, query);
+
   return sanitizeBreachResponse(data);
 }
 
@@ -104,11 +101,7 @@ function pushSettledSanitized(
   parts: SanitizedBreachResponse[],
   result: PromiseSettledResult<SanitizedBreachResponse | null>,
 ) {
-  if (
-    result.status === "fulfilled" &&
-    result.value &&
-    result.value.count > 0
-  ) {
+  if (result.status === "fulfilled" && result.value && result.value.count > 0) {
     parts.push(result.value);
   }
 }
@@ -117,6 +110,7 @@ function pushSettledSanitized(
 function isSoftProviderFailure(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const lower = error.message.toLowerCase();
+
   return (
     lower.includes("too many searches") ||
     lower.includes("daily search limit") ||
@@ -136,11 +130,7 @@ export async function fetchCombinedStealerLogs(
 
   const [stealerResult, godseyeResult, csintResult] = await Promise.allSettled([
     fetchOsintCatStealerLogs(query),
-    fetchGodsEyeSearchResult(
-      searchType,
-      query,
-      COMBINED_GODSEYE_TIMEOUT_MS,
-    ),
+    fetchGodsEyeSearchResult(searchType, query, COMBINED_GODSEYE_TIMEOUT_MS),
     fetchOptionalCsintStealer(query, searchType),
   ]);
 
@@ -148,10 +138,7 @@ export async function fetchCombinedStealerLogs(
     parts.push(stealerResult.value);
   }
 
-  if (
-    godseyeResult.status === "fulfilled" &&
-    godseyeResult.value.count > 0
-  ) {
+  if (godseyeResult.status === "fulfilled" && godseyeResult.value.count > 0) {
     parts.push(godseyeResult.value);
   }
 
@@ -162,8 +149,7 @@ export async function fetchCombinedStealerLogs(
   }
 
   const stealerError =
-    stealerResult.status === "rejected" &&
-    stealerResult.reason instanceof Error
+    stealerResult.status === "rejected" && stealerResult.reason instanceof Error
       ? stealerResult.reason
       : null;
 
@@ -191,11 +177,7 @@ export async function fetchCombinedPlatformSearch(
   const [osintcatResult, godseyeResult, breachVipResult, csintResult] =
     await Promise.allSettled([
       fetchOptionalOsintCatPlatformSearch(osintCatEndpoint, query),
-      fetchGodsEyeSearchResult(
-        godseyeType,
-        query,
-        COMBINED_GODSEYE_TIMEOUT_MS,
-      ),
+      fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS),
       fetchOptionalBreachVip(query, breachVipField),
       fetchOptionalCsintUniversal(query, godseyeType),
     ]);
@@ -229,17 +211,18 @@ export async function fetchGodsEyeOnlySearch(
   const hasCsint = isCsintEnabled();
   const parts: SanitizedBreachResponse[] = [];
 
-  const [godseyeResult, breachVipResult, csintResult] = await Promise.allSettled([
-    hasGodsEye
-      ? fetchGodsEyeSearchResult(
-          godseyeType,
-          query,
-          COMBINED_GODSEYE_TIMEOUT_MS,
-        )
-      : Promise.resolve(null),
-    fetchOptionalBreachVip(query, breachVipField),
-    fetchOptionalCsintUniversal(query, godseyeType),
-  ]);
+  const [godseyeResult, breachVipResult, csintResult] =
+    await Promise.allSettled([
+      hasGodsEye
+        ? fetchGodsEyeSearchResult(
+            godseyeType,
+            query,
+            COMBINED_GODSEYE_TIMEOUT_MS,
+          )
+        : Promise.resolve(null),
+      fetchOptionalBreachVip(query, breachVipField),
+      fetchOptionalCsintUniversal(query, godseyeType),
+    ]);
 
   pushSettledSanitized(parts, godseyeResult);
   pushSettledSanitized(parts, breachVipResult);
@@ -280,9 +263,11 @@ export async function fetchCombinedOsintCatEndpoint(
   if (endpoint && isOsintCatEndpointSupported(endpoint)) {
     try {
       const indexPayload = await fetchOsintCatEndpoint(endpoint, query);
+
       // Flatten provider blob into neutral top-level fields.
       if (indexPayload && typeof indexPayload === "object") {
         const blob = indexPayload as Record<string, unknown>;
+
         if (blob.ipleaks && typeof blob.ipleaks === "object") {
           payload.ipleaks = blob.ipleaks;
         }
@@ -295,27 +280,20 @@ export async function fetchCombinedOsintCatEndpoint(
       }
       (payload.sources as string[]).push("index");
     } catch (err) {
-      lookupError =
-        err instanceof Error ? err.message : "Index lookup failed";
+      lookupError = err instanceof Error ? err.message : "Index lookup failed";
     }
   }
 
-  const [godseyeResult, breachVipResult, csintResult] = await Promise.allSettled([
-    fetchGodsEyeSearchResult(
-      godseyeType,
-      query,
-      COMBINED_GODSEYE_TIMEOUT_MS,
-    ),
-    fetchOptionalBreachVip(query, breachVipField),
-    fetchOptionalCsintUniversal(query, godseyeType),
-  ]);
+  const [godseyeResult, breachVipResult, csintResult] =
+    await Promise.allSettled([
+      fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS),
+      fetchOptionalBreachVip(query, breachVipField),
+      fetchOptionalCsintUniversal(query, godseyeType),
+    ]);
 
   const mergedParts: SanitizedBreachResponse[] = [];
 
-  if (
-    godseyeResult.status === "fulfilled" &&
-    godseyeResult.value.count > 0
-  ) {
+  if (godseyeResult.status === "fulfilled" && godseyeResult.value.count > 0) {
     mergedParts.push(godseyeResult.value);
   } else if (
     godseyeResult.status === "rejected" &&
@@ -346,13 +324,12 @@ export async function fetchCombinedOsintCatEndpoint(
   }
 
   if ((payload.sources as string[]).length === 0) {
-    throw new Error(
-      sanitizePublicText(lookupError) || publicSearchError(),
-    );
+    throw new Error(sanitizePublicText(lookupError) || publicSearchError());
   }
 
   if (lookupError) {
     const cleaned = sanitizePublicText(lookupError);
+
     if (cleaned) payload.error = cleaned;
   }
 
@@ -373,9 +350,7 @@ export async function fetchCombinedBreachEndpoint(
   );
 }
 
-export async function fetchCombinedDomainOsint(
-  domain: string,
-): Promise<{
+export async function fetchCombinedDomainOsint(domain: string): Promise<{
   osintcat: OsintCatResponse | null;
   godseye: SanitizedBreachResponse | null;
 }> {
@@ -387,13 +362,13 @@ export async function fetchCombinedDomainOsint(
       fetchOsintCatEndpoint("database-search", domain, {
         type: "domain",
       }),
-      fetchGodsEyeSearchResult(
-        "domain",
-        domain,
-        COMBINED_GODSEYE_TIMEOUT_MS,
-      ),
+      fetchGodsEyeSearchResult("domain", domain, COMBINED_GODSEYE_TIMEOUT_MS),
       fetchOptionalBreachVip(domain, "domain"),
-      fetchCsintAdditiveBreachSearch(domain, "username", COMBINED_CSINT_TIMEOUT_MS),
+      fetchCsintAdditiveBreachSearch(
+        domain,
+        "username",
+        COMBINED_CSINT_TIMEOUT_MS,
+      ),
     ]);
 
   if (osintcatResult.status === "fulfilled") {
@@ -402,10 +377,7 @@ export async function fetchCombinedDomainOsint(
 
   const mergedParts: SanitizedBreachResponse[] = [];
 
-  if (
-    godseyeResult.status === "fulfilled" &&
-    godseyeResult.value.count > 0
-  ) {
+  if (godseyeResult.status === "fulfilled" && godseyeResult.value.count > 0) {
     mergedParts.push(godseyeResult.value);
   }
 

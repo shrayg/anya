@@ -6,32 +6,45 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 interface AnimatedPriceProps {
   value: number;
   duration?: number;
+  className?: string;
 }
 
-export default function AnimatedPrice({ value, duration = 1.5 }: AnimatedPriceProps) {
+export default function AnimatedPrice({
+  value,
+  duration = 1.5,
+  className,
+}: AnimatedPriceProps) {
   return (
-    <span className="text-4xl font-bold text-white tabular-nums">
-      $<AnimatedNumber value={value} duration={duration} />
+    <span className={className ?? "text-4xl font-bold text-white tabular-nums"}>
+      $<AnimatedNumber decimals={2} duration={duration} value={value} />
     </span>
   );
 }
 
-function AnimatedNumber({
+export function AnimatedNumber({
   value,
-  duration,
+  duration = 1.1,
+  decimals = 0,
+  className,
 }: {
   value: number;
-  duration: number;
+  duration?: number;
+  decimals?: number;
+  className?: string;
 }) {
-  const motionValue = useMotionValue(0);
-  const rounded = useTransform(motionValue, (latest) => Math.round(latest));
+  const motionValue = useMotionValue(value);
+  const formatted = useTransform(motionValue, (latest) =>
+    latest.toFixed(decimals),
+  );
 
   useEffect(() => {
-    animate(motionValue, value, {
+    const controls = animate(motionValue, value, {
       duration,
-      ease: [0.25, 0.1, 0.25, 1], // slower easeOut
+      ease: [0.25, 0.1, 0.25, 1],
     });
+
+    return () => controls.stop();
   }, [value, motionValue, duration]);
 
-  return <motion.span>{rounded}</motion.span>;
+  return <motion.span className={className}>{formatted}</motion.span>;
 }

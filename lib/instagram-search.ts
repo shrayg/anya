@@ -18,12 +18,13 @@ import {
   acquirePoolAccount,
   msUntilPoolReady,
 } from "@/lib/instagram-session-pool";
+
 import type { SecondDegreeGraph } from "@/lib/instagram-second-degree";
-import {
-  fetchGodsEyeSearchSafe,
-  sanitizeGodsEyeSearch,
-} from "@/lib/godseye";
+
+import { fetchGodsEyeSearchSafe, sanitizeGodsEyeSearch } from "@/lib/godseye";
+
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
+
 import {
   fetchInstagramActivityGraph,
   type InstagramActivityGraph,
@@ -115,11 +116,13 @@ type ListFetchResult = {
 
 export function getInstagramSessionId(): string | undefined {
   const account = getActiveInstagramAccount();
+
   return account?.sessionId;
 }
 
 export function getInstagramCsrfToken(): string | undefined {
   const account = getActiveInstagramAccount();
+
   return account?.csrfToken;
 }
 
@@ -147,6 +150,7 @@ export async function withInstagramRateLimitRetry<T>(
   const retries = options?.retries ?? 2;
   const baseDelay = options?.baseDelayMs ?? 1_500;
   let lastError: unknown;
+
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
       return await operation();
@@ -157,6 +161,7 @@ export async function withInstagramRateLimitRetry<T>(
         /rate.?limit|429|challenge|checkpoint|require_login|please wait|html challenge|network error|cooling/i.test(
           message,
         );
+
       if (!retryable || attempt === retries) break;
       acquirePoolAccount({ forceRotate: true });
       rotateInstagramAccount();
@@ -165,6 +170,7 @@ export async function withInstagramRateLimitRetry<T>(
         poolWait > 0
           ? Math.min(poolWait, 15_000)
           : baseDelay * (attempt + 1) + Math.random() * 400;
+
       await sleep(waitMs);
     }
   }
@@ -189,12 +195,16 @@ export function browserHeaders(
     datr: account?.datr,
     proxyUrl: account?.proxyUrl,
   };
+
   return browserHeadersForAccount(effective, username);
 }
 
-function mapUserSummary(raw: Record<string, unknown>): InstagramUserSummary | null {
+function mapUserSummary(
+  raw: Record<string, unknown>,
+): InstagramUserSummary | null {
   const id = String(raw.pk ?? raw.id ?? "").trim();
   const username = String(raw.username ?? "").trim();
+
   if (!id || !username) return null;
 
   return {
@@ -204,10 +214,8 @@ function mapUserSummary(raw: Record<string, unknown>): InstagramUserSummary | nu
     profilePicUrl:
       typeof raw.profile_pic_url === "string" ? raw.profile_pic_url : undefined,
     isVerified: Boolean(raw.is_verified),
-    isPrivate:
-      typeof raw.is_private === "boolean" ? raw.is_private : undefined,
-    biography:
-      typeof raw.biography === "string" ? raw.biography : undefined,
+    isPrivate: typeof raw.is_private === "boolean" ? raw.is_private : undefined,
+    biography: typeof raw.biography === "string" ? raw.biography : undefined,
     externalUrl:
       typeof raw.external_url === "string" ? raw.external_url : undefined,
     category:
@@ -296,6 +304,7 @@ async function parseJsonResponse(
   response: InstagramHttpResponse | Response,
 ): Promise<unknown> {
   const text = await response.text();
+
   if (!text.trim()) {
     throw new Error(
       response.status === 429
@@ -305,6 +314,7 @@ async function parseJsonResponse(
   }
 
   const trimmed = text.trimStart();
+
   if (trimmed.startsWith("<")) {
     // HTML instead of JSON == login wall / captcha / "verify it's you" page.
     throw new Error(
@@ -314,11 +324,13 @@ async function parseJsonResponse(
 
   try {
     const payload = JSON.parse(text) as unknown;
+
     if (isInstagramChallengeText(text)) {
       throw new Error(
         "Instagram flagged this session (challenge_required). It needs re-verification or a residential proxy.",
       );
     }
+
     return payload;
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("Instagram")) {
@@ -334,6 +346,7 @@ export function sleep(ms: number) {
 
 export function requireSession(): { sessionId: string; csrfToken: string } {
   const sessionId = getInstagramSessionId();
+
   if (!sessionId) {
     throw new Error(
       "INSTAGRAM_SESSION_ID is not configured. Add the Instagram session cookie on the server.",
@@ -354,7 +367,7 @@ async function resolveUserIdByUsername(username: string): Promise<{
   isVerified: boolean;
   socialContext?: string;
 }> {
-requireSession();
+  requireSession();
   const url = `https://www.instagram.com/web/search/topsearch/?context=blended&query=${encodeURIComponent(username)}&include_reel=true`;
   const response = await instagramFetch(url, {
     username,
@@ -381,8 +394,7 @@ requireSession();
   }
 
   const hit = payload.users?.find(
-    (entry) =>
-      entry.user?.username?.toLowerCase() === username.toLowerCase(),
+    (entry) => entry.user?.username?.toLowerCase() === username.toLowerCase(),
   )?.user;
 
   if (!hit?.pk) {
@@ -405,7 +417,7 @@ export async function fetchInstagramUserInfoById(
   userId: string,
   usernameHint?: string,
 ): Promise<InstagramProfile> {
-requireSession();
+  requireSession();
   const url = `https://www.instagram.com/api/v1/users/${userId}/info/`;
   const response = await instagramFetch(url, {
     username: usernameHint,
@@ -419,7 +431,9 @@ requireSession();
   };
 
   if (!response.ok || payload.status === "fail" || !payload.user) {
-    throw new Error(payload.message ?? `Could not load Instagram user ${userId}.`);
+    throw new Error(
+      payload.message ?? `Could not load Instagram user ${userId}.`,
+    );
   }
 
   return mapProfileFromInfo(payload.user);
@@ -445,7 +459,9 @@ async function fetchWebProfileInfo(
       data?: { user?: Record<string, unknown> };
     };
     const user = payload.data?.user;
+
     if (!user?.id) return null;
+
     return mapProfileFromWeb(user);
   } catch {
     return null;
@@ -455,13 +471,17 @@ async function fetchWebProfileInfo(
 function parseFollowerCountHint(socialContext?: string): number | undefined {
   if (!socialContext) return undefined;
   const match = socialContext.match(/([\d,.]+)\s*([KkMmBb])?\s*followers?/i);
+
   if (!match) return undefined;
   const base = Number(match[1].replace(/,/g, ""));
+
   if (!Number.isFinite(base)) return undefined;
   const suffix = (match[2] ?? "").toUpperCase();
+
   if (suffix === "K") return Math.round(base * 1_000);
   if (suffix === "M") return Math.round(base * 1_000_000);
   if (suffix === "B") return Math.round(base * 1_000_000_000);
+
   return Math.round(base);
 }
 
@@ -469,6 +489,7 @@ export async function fetchInstagramProfile(
   username: string,
 ): Promise<InstagramProfile> {
   const webProfile = await fetchWebProfileInfo(username);
+
   if (webProfile) return webProfile;
 
   if (!getInstagramSessionId()) {
@@ -478,6 +499,7 @@ export async function fetchInstagramProfile(
   }
 
   const resolved = await resolveUserIdByUsername(username);
+
   try {
     return await fetchInstagramUserInfoById(resolved.id, username);
   } catch {
@@ -522,13 +544,16 @@ async function fetchPublicGraphqlList(
       fetch_mutual: false,
       first: Math.min(PAGE_SIZE, maxUsers - users.length),
     };
+
     if (endCursor) variables.after = endCursor;
 
     const url = `https://www.instagram.com/graphql/query/?query_hash=${queryHash}&variables=${encodeURIComponent(JSON.stringify(variables))}`;
+
     pagesScanned += 1;
 
     let response: InstagramHttpResponse | null = null;
     let pageError: unknown;
+
     for (let attempt = 0; attempt <= PAGE_CHALLENGE_RETRIES; attempt += 1) {
       try {
         response = await instagramFetch(url, {
@@ -542,9 +567,9 @@ async function fetchPublicGraphqlList(
       } catch (error) {
         pageError = error;
         const message = error instanceof Error ? error.message : String(error);
-        const retryable = /rate.?limit|429|challenge|html challenge|network/i.test(
-          message,
-        );
+        const retryable =
+          /rate.?limit|429|challenge|html challenge|network/i.test(message);
+
         if (!retryable || attempt === PAGE_CHALLENGE_RETRIES) break;
         await sleep(1_000 * (attempt + 1) + Math.random() * 400);
       }
@@ -588,6 +613,7 @@ async function fetchPublicGraphqlList(
       };
       message?: string;
     };
+
     try {
       payload = (await parseJsonResponse(response)) as typeof payload;
     } catch (error) {
@@ -619,6 +645,7 @@ async function fetchPublicGraphqlList(
     for (const edge of edges) {
       if (!edge.node) continue;
       const mapped = mapUserSummary(edge.node);
+
       if (!mapped || seen.has(mapped.id)) continue;
       seen.add(mapped.id);
       users.push(mapped);
@@ -630,11 +657,13 @@ async function fetchPublicGraphqlList(
     }
 
     const pageInfo = connection?.page_info;
+
     if (
       options?.stopWhenFoundAllIds &&
       foundStopIds.size >= options.stopWhenFoundAllIds.size
     ) {
       truncated = Boolean(pageInfo?.has_next_page);
+
       return { users, truncated, pagesScanned, stoppedAfterFindingIds: true };
     }
 
@@ -687,13 +716,16 @@ async function fetchSessionRestList(
       search_surface: "follow_list_page",
       rank_token: rankToken,
     });
+
     if (maxId) params.set("max_id", maxId);
 
     const url = `https://www.instagram.com/api/v1/friendships/${userId}/${kind}/?${params.toString()}`;
+
     pagesScanned += 1;
 
     let response: InstagramHttpResponse | null = null;
     let pageError: unknown;
+
     for (let attempt = 0; attempt <= PAGE_CHALLENGE_RETRIES; attempt += 1) {
       try {
         response = await instagramFetch(url, {
@@ -706,9 +738,9 @@ async function fetchSessionRestList(
       } catch (error) {
         pageError = error;
         const message = error instanceof Error ? error.message : String(error);
-        const retryable = /rate.?limit|429|challenge|html challenge|network/i.test(
-          message,
-        );
+        const retryable =
+          /rate.?limit|429|challenge|html challenge|network/i.test(message);
+
         if (!retryable || attempt === PAGE_CHALLENGE_RETRIES) break;
         await sleep(1_000 * (attempt + 1) + Math.random() * 400);
       }
@@ -746,6 +778,7 @@ async function fetchSessionRestList(
       message?: string;
       status?: string;
     };
+
     try {
       payload = (await parseJsonResponse(response)) as typeof payload;
     } catch (error) {
@@ -772,8 +805,10 @@ async function fetchSessionRestList(
 
     const chunk = payload.users ?? [];
     let added = 0;
+
     for (const raw of chunk) {
       const mapped = mapUserSummary(raw);
+
       if (!mapped || seen.has(mapped.id)) continue;
       seen.add(mapped.id);
       users.push(mapped);
@@ -794,6 +829,7 @@ async function fetchSessionRestList(
       foundStopIds.size >= options.stopWhenFoundAllIds.size
     ) {
       truncated = Boolean(nextMaxId);
+
       return { users, truncated, pagesScanned, stoppedAfterFindingIds: true };
     }
 
@@ -829,7 +865,10 @@ async function fetchFriendshipList(
   profileIsPrivate: boolean,
   reportedTotal?: number,
   options?: { stopWhenFoundAllIds?: Set<string> },
-): Promise<{ result: ListFetchResult; authMode: InstagramSearchResult["authMode"] }> {
+): Promise<{
+  result: ListFetchResult;
+  authMode: InstagramSearchResult["authMode"];
+}> {
   const target = Math.min(
     maxUsers,
     reportedTotal && reportedTotal > 0 ? reportedTotal : maxUsers,
@@ -838,7 +877,12 @@ async function fetchFriendshipList(
   // GraphQL paginates large follower lists; REST often stops after ~40 with no cursor.
   if (getInstagramSessionId() || !profileIsPrivate) {
     try {
-      const graphql = await fetchPublicGraphqlList(userId, kind, target, options);
+      const graphql = await fetchPublicGraphqlList(
+        userId,
+        kind,
+        target,
+        options,
+      );
       const looksComplete =
         !graphql.truncated &&
         (reportedTotal === undefined ||
@@ -846,7 +890,10 @@ async function fetchFriendshipList(
           graphql.users.length >= Math.min(target, reportedTotal) ||
           graphql.users.length >= target);
 
-      if (graphql.users.length > 0 && (looksComplete || graphql.users.length >= 100)) {
+      if (
+        graphql.users.length > 0 &&
+        (looksComplete || graphql.users.length >= 100)
+      ) {
         return {
           result: graphql,
           authMode: getInstagramSessionId() ? "session" : "public",
@@ -855,6 +902,7 @@ async function fetchFriendshipList(
 
       if (getInstagramSessionId()) {
         const rest = await fetchSessionRestList(userId, kind, target, options);
+
         if (rest.users.length > graphql.users.length) {
           return { result: rest, authMode: "session" };
         }
@@ -869,7 +917,13 @@ async function fetchFriendshipList(
     } catch (graphqlError) {
       if (getInstagramSessionId()) {
         try {
-          const rest = await fetchSessionRestList(userId, kind, target, options);
+          const rest = await fetchSessionRestList(
+            userId,
+            kind,
+            target,
+            options,
+          );
+
           return { result: rest, authMode: "session" };
         } catch {
           throw graphqlError;
@@ -881,6 +935,7 @@ async function fetchFriendshipList(
 
   if (getInstagramSessionId()) {
     const rest = await fetchSessionRestList(userId, kind, target, options);
+
     return { result: rest, authMode: "session" };
   }
 
@@ -890,6 +945,7 @@ async function fetchFriendshipList(
 
   try {
     const result = await fetchPublicGraphqlList(userId, kind, target, options);
+
     return { result, authMode: "public" };
   } catch {
     return { result: { users: [], truncated: false }, authMode: "none" };
@@ -911,6 +967,7 @@ export async function fetchFriendshipListForSecondDegree(
     false,
     undefined,
   );
+
   return result.users;
 }
 
@@ -919,6 +976,7 @@ function computeMutuals(
   following: InstagramUserSummary[],
 ): InstagramUserSummary[] {
   const followerIds = new Set(followers.map((user) => user.id));
+
   return following.filter((user) => followerIds.has(user.id));
 }
 
@@ -938,7 +996,11 @@ export async function enrichInstagramUsersWithBios(
     const results = await Promise.all(
       batch.map(async (user) => {
         try {
-          const profile = await fetchInstagramUserInfoById(user.id, user.username);
+          const profile = await fetchInstagramUserInfoById(
+            user.id,
+            user.username,
+          );
+
           return {
             ...user,
             fullName: profile.fullName || user.fullName,
@@ -956,6 +1018,7 @@ export async function enrichInstagramUsersWithBios(
         }
       }),
     );
+
     enriched.push(...results);
     if (i + BIO_ENRICH_CONCURRENCY < targets.length) {
       await sleep(200);
@@ -963,10 +1026,8 @@ export async function enrichInstagramUsersWithBios(
   }
 
   const enrichedIds = new Set(enriched.map((user) => user.id));
-  return [
-    ...enriched,
-    ...users.filter((user) => !enrichedIds.has(user.id)),
-  ];
+
+  return [...enriched, ...users.filter((user) => !enrichedIds.has(user.id))];
 }
 
 export async function probeInstagramAvailability(): Promise<boolean> {
@@ -980,6 +1041,7 @@ export async function probeInstagramAvailability(): Promise<boolean> {
         reportToPool: false,
       },
     );
+
     return response.ok || response.status === 429;
   } catch {
     return true;
@@ -1003,6 +1065,7 @@ export async function searchInstagram(
   },
 ): Promise<InstagramSearchResult> {
   const username = normalizeInstagramUsername(rawQuery);
+
   if (!username) {
     throw new Error("Enter a valid Instagram username or profile URL.");
   }
@@ -1018,6 +1081,7 @@ export async function searchInstagram(
     "@/lib/instagram-reauth"
   );
   const sessionGate = await ensureInstagramSession();
+
   if (sessionGate.refreshed) {
     warnings.push(
       sessionGate.message || "Instagram session was automatically refreshed.",
@@ -1025,6 +1089,7 @@ export async function searchInstagram(
   }
 
   let profile: InstagramProfile;
+
   try {
     // Rotate accounts / back off on rate-limit or challenge before giving up.
     profile = await withInstagramRateLimitRetry(() =>
@@ -1033,10 +1098,13 @@ export async function searchInstagram(
   } catch (error) {
     if (!isInstagramAuthError(error)) throw error;
     const refreshed = await ensureInstagramSession({ force: true });
+
     if (!refreshed.ok) {
       throw new Error(
         refreshed.message ||
-          (error instanceof Error ? error.message : "Instagram session expired."),
+          (error instanceof Error
+            ? error.message
+            : "Instagram session expired."),
       );
     }
     warnings.push(
@@ -1073,6 +1141,7 @@ export async function searchInstagram(
       profile.isPrivate,
       profile.followingCount,
     );
+
     following = followingEntry.result.users;
     followingTruncated = followingEntry.result.truncated;
     followingPagesScanned = followingEntry.result.pagesScanned ?? 0;
@@ -1087,6 +1156,7 @@ export async function searchInstagram(
       profile.followersCount,
       candidateIds.size > 0 ? { stopWhenFoundAllIds: candidateIds } : undefined,
     );
+
     followers = followerEntry.result.users;
     followersTruncated = followerEntry.result.truncated;
     followersPagesScanned = followerEntry.result.pagesScanned ?? 0;
@@ -1128,6 +1198,7 @@ export async function searchInstagram(
     }
 
     const listResults = await Promise.all(listJobs);
+
     for (const entry of listResults) {
       if (entry.kind === "followers") {
         followers = entry.result.users;
@@ -1160,6 +1231,7 @@ export async function searchInstagram(
       limit: options.bioLimit ?? DEFAULT_BIO_ENRICH_LIMIT,
     });
     const byId = new Map(enriched.map((user) => [user.id, user]));
+
     followers = followers.map((user) => byId.get(user.id) ?? user);
     following = following.map((user) => byId.get(user.id) ?? user);
     mutuals = computeMutuals(followers, following);
@@ -1202,6 +1274,7 @@ export async function searchInstagram(
   }
 
   let activity: InstagramActivityGraph | null = null;
+
   if (options?.includeActivity !== false && getInstagramSessionId()) {
     try {
       activity = await fetchInstagramActivityGraph(profile.id, username, {
@@ -1220,11 +1293,13 @@ export async function searchInstagram(
   }
 
   let secondDegree: SecondDegreeGraph | null = null;
+
   if (options?.secondDegree && getInstagramSessionId() && mutuals.length >= 3) {
     try {
       const { computeSecondDegreeMutuals } = await import(
         "@/lib/instagram-second-degree"
       );
+
       secondDegree = await computeSecondDegreeMutuals(mutuals, {
         maxMutualsToProbe: options.secondDegreeBudget ?? 18,
       });

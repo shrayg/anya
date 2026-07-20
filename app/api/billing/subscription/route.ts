@@ -72,6 +72,7 @@ async function createSquareCheckout(input: {
   });
 
   const link = result.paymentLink;
+
   if (!link?.id || !link.url) {
     throw new Error("Square did not return a payment link");
   }
@@ -81,11 +82,13 @@ async function createSquareCheckout(input: {
 
 export async function GET() {
   const session = await getSessionCookie();
+
   if (!session?.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const userId = session.userId as number;
+
   await syncUserPlanLifecycle(userId);
 
   const user = await prisma.user.findUnique({
@@ -116,8 +119,7 @@ export async function GET() {
     planEndsAt: user.planEndsAt?.toISOString() ?? null,
     cancelAtPeriodEnd: user.cancelAtPeriodEnd,
     canManage:
-      user.plan !== "free" &&
-      Boolean(user.subscripted || lastSubscription),
+      user.plan !== "free" && Boolean(user.subscripted || lastSubscription),
     lastPayment: lastSubscription
       ? {
           plan: lastSubscription.plan,
@@ -131,6 +133,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSessionCookie();
+
   if (!session?.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -140,6 +143,7 @@ export async function POST(request: NextRequest) {
     string,
     unknown
   > | null;
+
   if (!body) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
@@ -148,10 +152,12 @@ export async function POST(request: NextRequest) {
 
   if (action === "cancel") {
     const result = await schedulePlanCancel(userId);
+
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
     invalidateUserPlanContext(userId);
+
     return NextResponse.json({
       ok: true,
       message: result.message,
@@ -163,10 +169,12 @@ export async function POST(request: NextRequest) {
 
   if (action === "resume") {
     const result = await resumePlan(userId);
+
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
     invalidateUserPlanContext(userId);
+
     return NextResponse.json({
       ok: true,
       message: result.message,
@@ -177,7 +185,9 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === "renew") {
-    const provider = (resolveBillingProvider(body) ?? "square") as BillingProvider;
+    const provider = (resolveBillingProvider(body) ??
+      "square") as BillingProvider;
+
     if (provider === "square" && !isSquareConfigured()) {
       return NextResponse.json(
         { error: "Card checkout (Square) is not configured on this server" },
@@ -200,6 +210,7 @@ export async function POST(request: NextRequest) {
         recoveryEmail: true,
       },
     });
+
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -216,7 +227,7 @@ export async function POST(request: NextRequest) {
           ? body.planId
           : user.plan !== "free"
             ? user.plan
-            : lastSubscription?.plan ?? undefined,
+            : (lastSubscription?.plan ?? undefined),
       ) ?? null;
 
     const intervalRaw =
@@ -234,6 +245,7 @@ export async function POST(request: NextRequest) {
 
     const plan = getPlanDefinition(planId as PlanId);
     const price = getPlanPrice(plan, interval);
+
     if (price.value == null) {
       return NextResponse.json(
         { error: "Plan requires sales contact" },
@@ -325,9 +337,11 @@ export async function POST(request: NextRequest) {
       });
     } catch (error) {
       console.error("[billing/subscription] renew", error);
+
       return NextResponse.json(
         {
-          error: error instanceof Error ? error.message : "Renewal checkout failed",
+          error:
+            error instanceof Error ? error.message : "Renewal checkout failed",
         },
         { status: 502 },
       );

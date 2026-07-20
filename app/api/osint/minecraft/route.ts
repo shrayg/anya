@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import {
   fetchBreachVipSanitized,
   resolveMinecraftBreachVipFields,
 } from "@/lib/breachvip";
 import { fetchCsintMinecraft } from "@/lib/csint";
-import {
-  fetchGodsEyeSearchResult,
-  getGodsEyeApiKey,
-} from "@/lib/godseye";
+import { fetchGodsEyeSearchResult, getGodsEyeApiKey } from "@/lib/godseye";
 import { isCsintEnabled } from "@/lib/csint";
 import { mergeSanitizedResponses } from "@/lib/osintcat";
 import { publicServiceUnavailable } from "@/lib/public-branding";
@@ -28,11 +24,13 @@ function detectMinecraftCsintType(
   ) {
     return "uuid";
   }
+
   return "username";
 }
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "minecraft");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
@@ -57,10 +55,7 @@ export async function GET(req: NextRequest) {
 
     const parts = [];
 
-    if (
-      godseyeResult.status === "fulfilled" &&
-      godseyeResult.value.count > 0
-    ) {
+    if (godseyeResult.status === "fulfilled" && godseyeResult.value.count > 0) {
       parts.push(godseyeResult.value);
     }
 
@@ -81,6 +76,7 @@ export async function GET(req: NextRequest) {
 
     if (parts.length > 0) {
       const data = mergeSanitizedResponses(...parts);
+
       return NextResponse.json(data);
     }
 
@@ -103,6 +99,8 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to reach API";
 
-    return osintFailureResponse(err instanceof Error ? err : new Error(String(message)));
+    return osintFailureResponse(
+      err instanceof Error ? err : new Error(String(message)),
+    );
   }
 }

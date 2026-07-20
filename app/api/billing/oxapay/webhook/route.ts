@@ -1,7 +1,8 @@
+import type { BillingMeta } from "@/lib/billing-meta";
+
 import { NextRequest, NextResponse } from "next/server";
 
 import { fulfillBillingPayment } from "@/lib/billing-fulfillment";
-import type { BillingMeta } from "@/lib/billing-meta";
 import {
   type OxapayWebhookPayload,
   isOxapayConfigured,
@@ -50,6 +51,7 @@ function metaFromPaymentRow(row: {
       "Ops Pack": "credits_50",
       "Agency Pack": "credits_100",
     };
+
     if (packMatch?.[1]) meta.packId = packIdMap[packMatch[1]];
   }
 
@@ -62,14 +64,14 @@ export async function POST(request: NextRequest) {
   }
 
   const rawBody = await request.text();
-  const hmacHeader =
-    request.headers.get("hmac") ?? request.headers.get("HMAC");
+  const hmacHeader = request.headers.get("hmac") ?? request.headers.get("HMAC");
 
   if (!verifyOxapayHmac(rawBody, hmacHeader)) {
     return new NextResponse("invalid_hmac", { status: 400 });
   }
 
   let payload: OxapayWebhookPayload;
+
   try {
     payload = JSON.parse(rawBody) as OxapayWebhookPayload;
   } catch {
@@ -77,13 +79,13 @@ export async function POST(request: NextRequest) {
   }
 
   const status = String(payload.status ?? "").toLowerCase();
+
   // Acknowledge non-paid updates so OxaPay stops retrying; only Paid fulfills.
   if (status !== "paid") {
     return oxapayOk();
   }
 
-  const trackId =
-    payload.track_id != null ? String(payload.track_id) : null;
+  const trackId = payload.track_id != null ? String(payload.track_id) : null;
   const orderId = payload.order_id ? String(payload.order_id) : null;
 
   const payment =
@@ -105,6 +107,7 @@ export async function POST(request: NextRequest) {
 
   if (!payment) {
     console.error("[oxapay/webhook] payment not found", { trackId, orderId });
+
     // Still return ok to avoid endless retries for unknown/orphan invoices
     return oxapayOk();
   }

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type ModuleHealthContextValue = {
   modules: Record<string, boolean> | null;
@@ -14,7 +8,9 @@ type ModuleHealthContextValue = {
   isOperational: (slug: string) => boolean;
 };
 
-const ModuleHealthContext = createContext<ModuleHealthContextValue | null>(null);
+const ModuleHealthContext = createContext<ModuleHealthContextValue | null>(
+  null,
+);
 
 export function ModuleHealthProvider({
   children,
@@ -65,8 +61,10 @@ export function ModuleHealthProvider({
 
 export function useModuleHealth() {
   const context = useContext(ModuleHealthContext);
+
   if (!context) {
     throw new Error("useModuleHealth must be used within ModuleHealthProvider");
   }
+
   return context;
 }

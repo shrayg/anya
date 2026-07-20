@@ -1,3 +1,5 @@
+import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
 
 /**
  * Wisconsin CCAP party search via /jsonPost/caseSearch — twin of the SPA
@@ -41,6 +42,7 @@ export function shouldSearchWiCcap(parsed: ParsedUsQuery): boolean {
   if (parsed.mode === "case") return false;
   if (parsed.country && parsed.country !== "US") return false;
   if (parsed.state === "WI") return true;
+
   return /\b(wisconsin|milwaukee|madison|green bay|ccap)\b/i.test(parsed.raw);
 }
 
@@ -50,6 +52,7 @@ function cookieHeader(res: Response): string {
     typeof headers.getSetCookie === "function"
       ? headers.getSetCookie()
       : [res.headers.get("set-cookie") ?? ""].filter(Boolean);
+
   return parts.map((part) => part.split(";")[0]!).join("; ");
 }
 
@@ -60,6 +63,7 @@ export async function searchWiCcap(
   const { first, last } = requireName(parsed);
   const key = cacheKey("wi-ccap", `${last}|${first}|${limit}`);
   const cached = getCached<CourtCaseHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("wi-ccap", 1200);
@@ -73,6 +77,7 @@ export async function searchWiCcap(
       "User-Agent": BROWSER_UA,
     },
   });
+
   if (!land.ok) {
     throw new Error(`Wisconsin CCAP landing HTTP ${land.status}`);
   }
@@ -116,8 +121,10 @@ export async function searchWiCcap(
 
   for (const row of rows) {
     const caseNo = row.caseNo?.trim();
+
     if (!caseNo) continue;
     const id = `${row.countyNo ?? "x"}-${caseNo}`;
+
     if (seen.has(id)) continue;
     seen.add(id);
 
@@ -136,9 +143,10 @@ export async function searchWiCcap(
         ? `Wisconsin · ${row.countyName} County`
         : "Wisconsin circuit courts",
       dateFiled: row.filingDate || undefined,
-      snippet: [row.status, party ? `Party: ${party}` : null]
-        .filter(Boolean)
-        .join(" · ") || undefined,
+      snippet:
+        [row.status, party ? `Party: ${party}` : null]
+          .filter(Boolean)
+          .join(" · ") || undefined,
       parties: party ? [party] : undefined,
       source: {
         id: "wi-ccap",
@@ -153,5 +161,6 @@ export async function searchWiCcap(
   }
 
   setCached(key, hits, SOURCE_LIMITS["wi-ccap"].ttlMs);
+
   return hits;
 }

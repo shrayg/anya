@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 import NextLink from "next/link";
 
 type LegalPageProps = {
@@ -9,8 +10,8 @@ type LegalPageProps = {
 
 export function LegalPage({ title, updated, children }: LegalPageProps) {
   return (
-    <article className="relative z-20 mx-auto w-full max-w-3xl px-2 pb-20 pt-6 md:pt-10">
-      <header className="mb-10 space-y-3">
+    <article className="brutal-page brutal-legal-page relative z-20 mx-auto w-full max-w-3xl px-2 pb-20 pt-6 md:pt-10">
+      <header className="brutal-page-header mb-10 space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--anya-blush)]">
           Legal
         </p>
@@ -26,7 +27,10 @@ export function LegalPage({ title, updated, children }: LegalPageProps) {
 
       <p className="mt-12 text-sm text-zinc-500">
         Questions?{" "}
-        <NextLink className="text-zinc-200 underline-offset-4 hover:underline" href="/faq">
+        <NextLink
+          className="text-zinc-200 underline-offset-4 hover:underline"
+          href="/faq"
+        >
           FAQ
         </NextLink>{" "}
         or email{" "}

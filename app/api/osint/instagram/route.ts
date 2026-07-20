@@ -18,9 +18,11 @@ const ABSOLUTE_MAX_USERS = 500;
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "instagram");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
+
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
   }
@@ -35,9 +37,15 @@ export async function GET(req: NextRequest) {
   const maxUsersParam = Number(
     req.nextUrl.searchParams.get("maxUsers") ?? String(DEFAULT_MAX_USERS),
   );
-  const bioLimitParam = Number(req.nextUrl.searchParams.get("bioLimit") ?? "40");
-  const maxPostsParam = Number(req.nextUrl.searchParams.get("maxPosts") ?? "24");
-  const maxTaggedParam = Number(req.nextUrl.searchParams.get("maxTagged") ?? "24");
+  const bioLimitParam = Number(
+    req.nextUrl.searchParams.get("bioLimit") ?? "40",
+  );
+  const maxPostsParam = Number(
+    req.nextUrl.searchParams.get("maxPosts") ?? "24",
+  );
+  const maxTaggedParam = Number(
+    req.nextUrl.searchParams.get("maxTagged") ?? "24",
+  );
   const commentPostsParam = Number(
     req.nextUrl.searchParams.get("commentPosts") ?? "8",
   );

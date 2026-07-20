@@ -8,6 +8,7 @@ import { requireWorkspaceStaff } from "@/lib/workspace-admin-server";
 export async function GET(request: Request) {
   try {
     const auth = await requireWorkspaceStaff();
+
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
@@ -49,6 +50,10 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Error listing safety flags:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

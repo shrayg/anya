@@ -8,6 +8,7 @@ import { USER_NOTIFICATION_SELECT } from "@/lib/safety-flag-server";
 export async function GET() {
   try {
     const session = await getSessionCookie();
+
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -30,7 +31,11 @@ export async function GET() {
     return NextResponse.json({ notices });
   } catch (error) {
     console.error("Error loading safety notices:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -38,6 +43,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getSessionCookie();
+
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -67,6 +73,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error acknowledging safety notice:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

@@ -81,7 +81,6 @@ export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
   "portal-backlog",
 ]);
 
-
 export type PlanDefinition = {
   id: PlanId;
   name: string;
@@ -256,7 +255,9 @@ export type UserPlanRecord = {
   billingInterval?: string | null;
 };
 
-export function normalizePlanId(value: string | null | undefined): PlanId | null {
+export function normalizePlanId(
+  value: string | null | undefined,
+): PlanId | null {
   if (!value) return null;
   if (PLAN_IDS.includes(value as PlanId)) return value as PlanId;
 
@@ -266,6 +267,7 @@ export function normalizePlanId(value: string | null | undefined): PlanId | null
   };
 
   if (value in legacy) return legacy[value as LegacyPlanId];
+
   return null;
 }
 
@@ -277,6 +279,7 @@ export function resolveUserPlan(user: UserPlanRecord): PlanId {
   const candidates: PlanId[] = ["free"];
 
   const normalized = normalizePlanId(user.plan ?? null);
+
   if (normalized) candidates.push(normalized);
   else if (user.plan && isPlanId(user.plan)) candidates.push(user.plan);
 
@@ -290,7 +293,9 @@ export function resolveUserPlan(user: UserPlanRecord): PlanId {
 }
 
 export function getPlanDefinition(plan: PlanId): PlanDefinition {
-  return PLAN_DEFINITIONS.find((entry) => entry.id === plan) ?? PLAN_DEFINITIONS[0];
+  return (
+    PLAN_DEFINITIONS.find((entry) => entry.id === plan) ?? PLAN_DEFINITIONS[0]
+  );
 }
 
 export function getPricingPlans(): PlanDefinition[] {
@@ -365,13 +370,15 @@ export function checkModuleAccess(
     if (moduleSlug === "intelx") {
       return {
         allowed: false,
-        reason: "Leak Storage is not available on the Free plan. Upgrade to Professional or higher.",
+        reason:
+          "Leak Storage is not available on the Free plan. Upgrade to Professional or higher.",
       };
     }
 
     return {
       allowed: false,
-      reason: "Upgrade to Starter for email/phone identity search, or Professional for the full panel.",
+      reason:
+        "Upgrade to Starter for email/phone identity search, or Professional for the full panel.",
     };
   }
 
@@ -476,7 +483,10 @@ export function getPlanPrice(
   }
 
   if (interval === "annual") {
-    const annual = Number((plan.monthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2));
+    const annual = Number(
+      (plan.monthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2),
+    );
+
     return {
       label: annual.toFixed(2),
       value: annual,
@@ -498,6 +508,7 @@ export function getDisplayPrice(plan: PlanDefinition) {
     plan.compareAtMonthlyPrice != null &&
     price.value != null &&
     plan.compareAtMonthlyPrice > price.value;
+
   return {
     label: price.label,
     value: price.value,
@@ -521,7 +532,9 @@ export function getCompareAtPrice(
   }
 
   if (interval === "annual") {
-    return Number((plan.compareAtMonthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2));
+    return Number(
+      (plan.compareAtMonthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2),
+    );
   }
 
   return plan.compareAtMonthlyPrice;
@@ -533,7 +546,10 @@ export function getApiPrice(interval: BillingInterval = "monthly"): {
   monthlyEquivalent: number;
 } {
   if (interval === "annual") {
-    const annual = Number((API_PRODUCT.monthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2));
+    const annual = Number(
+      (API_PRODUCT.monthlyPrice * ANNUAL_MONTHS_CHARGED).toFixed(2),
+    );
+
     return {
       label: annual.toFixed(2),
       value: annual,
@@ -558,6 +574,7 @@ export function hasWorkspaceDashboardAccess(
   if (user.canManageWorkspace) return true;
 
   const plan = resolveUserPlan(user);
+
   return getPlanDefinition(plan).panelAccess;
 }
 
@@ -571,5 +588,6 @@ export function getAppLandingPath(
 
 export function annualSavingsLabel(monthlyPrice: number): string {
   const saved = monthlyPrice * 2;
+
   return `Save $${saved.toFixed(2)}/yr`;
 }

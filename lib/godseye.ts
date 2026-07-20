@@ -1,18 +1,15 @@
+import type { SanitizedBreachResponse } from "@/lib/osintcat";
+
 import {
-  PUBLIC_INTEL_SOURCE,
   publicSearchError,
   publicServiceUnavailable,
   sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
 import { isInternalSourceLabel, scrubIntelResults } from "@/lib/intel-record";
-import {
-  fetchWithTimeout,
-  readResponseText,
-} from "@/lib/fetch-with-timeout";
+import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
 import { OSINT_PROVIDER_TIMEOUT_MS } from "@/lib/osint-search-guard";
 import { normalizeDomain } from "@/lib/domain-search";
-import type { SanitizedBreachResponse } from "@/lib/osintcat";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 
 const GODSEYE_BASE = "https://godseye.cat";
@@ -58,6 +55,7 @@ export async function fetchGodsEyeSearchResult(
   timeoutMs = DEFAULT_GODSEYE_SEARCH_TIMEOUT_MS,
 ): Promise<SanitizedBreachResponse> {
   const data = await fetchGodsEyeSearch(searchType, query, timeoutMs);
+
   return sanitizeGodsEyeSearch(data);
 }
 
@@ -235,14 +233,21 @@ function tagIntelRecord(entry: unknown): unknown {
     }
   }
 
-  if (typeof record._source === "string" && isInternalSourceLabel(record._source)) {
+  if (
+    typeof record._source === "string" &&
+    isInternalSourceLabel(record._source)
+  ) {
     delete record._source;
   }
 
   return record;
 }
 
-function pushUniqueRecord(seen: Set<string>, results: unknown[], entry: unknown) {
+function pushUniqueRecord(
+  seen: Set<string>,
+  results: unknown[],
+  entry: unknown,
+) {
   const tagged = tagIntelRecord(entry);
   const key = JSON.stringify(tagged);
 
@@ -407,6 +412,7 @@ export async function fetchGodsEyeFivem(
   discordId: string,
 ): Promise<GodsEyeResponse | null> {
   const result = await fetchGodsEyeFivemDetailed(kind, discordId);
+
   return result.ok ? result.data : null;
 }
 
@@ -500,9 +506,10 @@ export async function fetchGodsEyeEmailReport(
   }
 }
 
-export async function fetchGodsEyeGeolocate(
-  payload: { image?: string; ip?: string },
-): Promise<GodsEyeResponse | null> {
+export async function fetchGodsEyeGeolocate(payload: {
+  image?: string;
+  ip?: string;
+}): Promise<GodsEyeResponse | null> {
   const apiKey = getGodsEyeApiKey();
 
   if (!apiKey) return null;

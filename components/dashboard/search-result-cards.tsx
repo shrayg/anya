@@ -1,5 +1,7 @@
 "use client";
 
+import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
+
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -9,13 +11,13 @@ import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { formatRecordAsText, formatRecordsAsText } from "@/lib/export-intel";
-import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
 
 const PAGE_SIZE = 8;
 const VALUE_PREVIEW_LENGTH = 72;
 
 function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
   if (value.length <= max) return value;
+
   return `${value.slice(0, max)}…`;
 }
 
@@ -101,7 +103,9 @@ export function SearchResultCards({
       const titleCmp = a.title.localeCompare(b.title, undefined, {
         sensitivity: "base",
       });
+
       if (titleCmp !== 0) return titleCmp;
+
       return a.index - b.index;
     });
   }, [records]);
@@ -110,7 +114,6 @@ export function SearchResultCards({
     setExpanded(indexesOf(records));
     setVisibleCount(initialVisible);
     // resultsKey captures record identity; avoid re-expanding on referential churn.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- records mirrored by resultsKey
   }, [resultsKey, initialVisible]);
 
   const selectable = Boolean(onSelectExportIndex);
@@ -164,16 +167,16 @@ export function SearchResultCards({
           {allVisibleExpanded ? (
             <button
               className="anya-result-stack-action"
-              onClick={() => setExpanded(new Set())}
               type="button"
+              onClick={() => setExpanded(new Set())}
             >
               Collapse all
             </button>
           ) : (
             <button
               className="anya-result-stack-action"
-              onClick={() => setExpanded(indexesOf(visibleRecords))}
               type="button"
+              onClick={() => setExpanded(indexesOf(visibleRecords))}
             >
               Expand all
             </button>
@@ -195,6 +198,8 @@ export function SearchResultCards({
                 selectable && "anya-result-card--selectable",
                 selected && "anya-result-card--selected",
               )}
+              role={selectable ? "button" : undefined}
+              tabIndex={selectable ? 0 : undefined}
               onClick={
                 selectable
                   ? () => onSelectExportIndex?.(selected ? -1 : record.index)
@@ -210,8 +215,6 @@ export function SearchResultCards({
                     }
                   : undefined
               }
-              role={selectable ? "button" : undefined}
-              tabIndex={selectable ? 0 : undefined}
             >
               <header className="anya-result-card-header">
                 <div className="min-w-0 flex-1">
@@ -237,11 +240,11 @@ export function SearchResultCards({
                       "anya-result-expand",
                       isExpanded && "anya-result-expand--open",
                     )}
+                    type="button"
                     onClick={(event) => {
                       event.stopPropagation();
                       toggleExpanded(record.index);
                     }}
-                    type="button"
                   >
                     <ChevronDown className="size-3.5" />
                   </button>
@@ -252,10 +255,10 @@ export function SearchResultCards({
                 <div className="anya-result-card-body">
                   {record.fields.map((field) => (
                     <ResultField
+                      key={`${record.index}-${field.key}`}
                       blurResults={blurResults}
                       expanded={isExpanded}
                       field={field}
-                      key={`${record.index}-${field.key}`}
                     />
                   ))}
                 </div>
@@ -268,12 +271,12 @@ export function SearchResultCards({
       {hiddenCount > 0 ? (
         <button
           className="anya-result-load-more"
+          type="button"
           onClick={() =>
             setVisibleCount((count) =>
               Math.min(sortedRecords.length, count + PAGE_SIZE),
             )
           }
-          type="button"
         >
           Show {Math.min(PAGE_SIZE, hiddenCount)} more record
           {Math.min(PAGE_SIZE, hiddenCount) === 1 ? "" : "s"}

@@ -125,9 +125,11 @@ export function badgesFromPublicFlags(flags: unknown): string[] {
   }
 
   const badges: string[] = [];
+
   for (const { bit, key } of PUBLIC_FLAG_BITS) {
     if ((flags & bit) === bit) badges.push(key);
   }
+
   return badges;
 }
 
@@ -137,6 +139,7 @@ export function resolveDiscordBadges(rawBadges: string[]): DiscordBadgeDef[] {
 
   for (const raw of rawBadges) {
     const key = raw.trim().toUpperCase().replace(/\s+/g, "_");
+
     if (HIDDEN_BADGE_KEYS.has(key)) continue;
 
     const def = BADGE_MAP[key];
@@ -151,9 +154,11 @@ export function resolveDiscordBadges(rawBadges: string[]): DiscordBadgeDef[] {
     if (resolved.length > 0) break;
 
     const label = raw.trim();
+
     if (!label) continue;
 
     const key = label.toUpperCase().replace(/\s+/g, "_");
+
     if (HIDDEN_BADGE_KEYS.has(key)) continue;
 
     resolved.push({

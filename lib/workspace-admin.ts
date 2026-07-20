@@ -22,8 +22,7 @@ export const ACCOUNT_STATUS_META: Record<
 > = {
   active: {
     label: "Active",
-    badgeClass:
-      "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
+    badgeClass: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
     rowClass: "",
     actionClass:
       "border-emerald-400/25 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20",

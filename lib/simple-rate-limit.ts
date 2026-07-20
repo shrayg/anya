@@ -8,7 +8,12 @@ export function consumeRateLimit(key: string, limit: number, windowMs: number) {
 
   if (!current || current.resetAt <= now) {
     buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true as const, remaining: limit - 1, retryAfterSeconds: 0 };
+
+    return {
+      allowed: true as const,
+      remaining: limit - 1,
+      retryAfterSeconds: 0,
+    };
   }
 
   if (current.count >= limit) {
@@ -21,6 +26,7 @@ export function consumeRateLimit(key: string, limit: number, windowMs: number) {
 
   current.count += 1;
   buckets.set(key, current);
+
   return {
     allowed: true as const,
     remaining: limit - current.count,

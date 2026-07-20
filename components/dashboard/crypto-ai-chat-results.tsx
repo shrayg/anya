@@ -1,9 +1,11 @@
 "use client";
 
+import type { AiIntelResult } from "@/lib/ai-intel";
+
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { PUBLIC_AI_LABEL } from "@/lib/public-branding";
-import type { AiIntelResult } from "@/lib/ai-intel";
 import {
   buildCryptoAiChatMessages,
   type CryptoChatMessage,
@@ -53,7 +55,7 @@ function TypingIndicator() {
         <span className="crypto-ai-chat-name">{PUBLIC_AI_LABEL}</span>
         <span className="anya-comms-msg-time">analysing…</span>
       </div>
-      <p className="crypto-ai-chat-typing-dots" aria-hidden="true">
+      <p aria-hidden="true" className="crypto-ai-chat-typing-dots">
         <span />
         <span />
         <span />
@@ -84,7 +86,9 @@ function ChatBubble({
       className={`crypto-ai-chat-msg ${isUser ? "crypto-ai-chat-msg--user" : "crypto-ai-chat-msg--anya"} ${toneClass}`}
     >
       <div className="anya-comms-msg-meta">
-        <span className={isUser ? "anya-comms-msg-user" : "crypto-ai-chat-name"}>
+        <span
+          className={isUser ? "anya-comms-msg-user" : "crypto-ai-chat-name"}
+        >
           {isUser ? "you" : PUBLIC_AI_LABEL}
         </span>
         {message.meta ? (
@@ -107,7 +111,10 @@ type CryptoAiChatResultsProps = {
   blurResults?: boolean;
 };
 
-export function CryptoAiChatResults({ result, blurResults = false }: CryptoAiChatResultsProps) {
+export function CryptoAiChatResults({
+  result,
+  blurResults = false,
+}: CryptoAiChatResultsProps) {
   const messages = useMemo(
     () => buildCryptoAiChatMessages(result.query, result),
     [result],
@@ -120,6 +127,7 @@ export function CryptoAiChatResults({ result, blurResults = false }: CryptoAiCha
 
   useEffect(() => {
     isMountedRef.current = true;
+
     return () => {
       isMountedRef.current = false;
     };
@@ -133,6 +141,7 @@ export function CryptoAiChatResults({ result, blurResults = false }: CryptoAiCha
   useEffect(() => {
     if (visibleCount >= messages.length) {
       setIsTyping(false);
+
       return;
     }
 
@@ -196,7 +205,11 @@ export function CryptoAiChatResults({ result, blurResults = false }: CryptoAiCha
       <div className="anya-comms-body">
         <div ref={scrollRef} className="crypto-ai-chat-feed">
           {messages.slice(0, visibleCount).map((message) => (
-            <ChatBubble key={message.id} blurResults={blurResults} message={message} />
+            <ChatBubble
+              key={message.id}
+              blurResults={blurResults}
+              message={message}
+            />
           ))}
           {isTyping ? <TypingIndicator /> : null}
         </div>

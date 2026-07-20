@@ -96,6 +96,7 @@ export function DashboardTour() {
     if (isCentered) {
       setSpotlight(null);
       setTooltip(measureTooltip(null, true));
+
       return;
     }
 
@@ -104,11 +105,13 @@ export function DashboardTour() {
     if (!target) {
       setSpotlight(null);
       setTooltip(measureTooltip(null, true));
+
       return;
     }
 
     target.scrollIntoView({ block: "nearest", behavior: "smooth" });
     const nextSpotlight = measureSpotlight(target);
+
     setSpotlight(nextSpotlight);
     setTooltip(measureTooltip(nextSpotlight, false));
   }, [active, isCentered, step]);
@@ -125,6 +128,7 @@ export function DashboardTour() {
     }
 
     const timer = window.setTimeout(() => setActive(true), 600);
+
     return () => window.clearTimeout(timer);
   }, [hasWorkspace]);
 
@@ -142,6 +146,7 @@ export function DashboardTour() {
     if (!active) return;
 
     const onChange = () => updateLayout();
+
     window.addEventListener("resize", onChange);
     window.addEventListener("scroll", onChange, true);
 
@@ -154,6 +159,7 @@ export function DashboardTour() {
   const goNext = () => {
     if (stepIndex >= DASHBOARD_TOUR_STEPS.length - 1) {
       finishTour();
+
       return;
     }
     setStepIndex((current) => current + 1);
@@ -162,9 +168,18 @@ export function DashboardTour() {
   if (!active || !step || !hasWorkspace) return null;
 
   return (
-    <div className="dashboard-tour" role="dialog" aria-modal="true" aria-label="Workspace tour">
+    <div
+      aria-label="Workspace tour"
+      aria-modal="true"
+      className="dashboard-tour"
+      role="dialog"
+    >
       {!spotlight ? (
-        <div className="dashboard-tour-backdrop" onClick={finishTour} aria-hidden />
+        <div
+          aria-hidden
+          className="dashboard-tour-backdrop"
+          onClick={finishTour}
+        />
       ) : null}
 
       {spotlight ? (
@@ -180,12 +195,12 @@ export function DashboardTour() {
       ) : null}
 
       <TourCard
-        onFinish={finishTour}
-        onNext={goNext}
         step={step}
         stepIndex={stepIndex}
-        totalSteps={DASHBOARD_TOUR_STEPS.length}
         style={{ top: tooltip.top, left: tooltip.left }}
+        totalSteps={DASHBOARD_TOUR_STEPS.length}
+        onFinish={finishTour}
+        onNext={goNext}
       />
     </div>
   );
@@ -210,7 +225,7 @@ function TourCard({
 
   return (
     <div className="dashboard-tour-card" style={style}>
-      <div className="dashboard-tour-progress" aria-hidden>
+      <div aria-hidden className="dashboard-tour-progress">
         {Array.from({ length: totalSteps }).map((_, index) => (
           <span
             key={index}
@@ -229,10 +244,14 @@ function TourCard({
       <p className="dashboard-tour-body">{step.body}</p>
 
       <div className="dashboard-tour-actions">
-        <button className="dashboard-tour-skip" onClick={onFinish} type="button">
+        <button
+          className="dashboard-tour-skip"
+          type="button"
+          onClick={onFinish}
+        >
           Skip
         </button>
-        <button className="dashboard-tour-next" onClick={onNext} type="button">
+        <button className="dashboard-tour-next" type="button" onClick={onNext}>
           {isLast ? "Done" : "Next"}
         </button>
       </div>

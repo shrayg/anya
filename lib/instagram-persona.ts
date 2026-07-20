@@ -199,17 +199,22 @@ const TOPIC_RULES: TopicRule[] = [
   },
   {
     label: "Pets & animals",
-    patterns: [/\b(dog|cat|pet|puppy|kitten|animal|rescue|veterinar|horse|wildlife)\b/i, /🐶|🐱|🐾/],
+    patterns: [
+      /\b(dog|cat|pet|puppy|kitten|animal|rescue|veterinar|horse|wildlife)\b/i,
+      /🐶|🐱|🐾/,
+    ],
   },
 ];
 
 function analyzeText(text: string): string[] {
   const matched: string[] = [];
+
   for (const rule of TOPIC_RULES) {
     if (rule.patterns.some((pattern) => pattern.test(text))) {
       matched.push(rule.label);
     }
   }
+
   return matched;
 }
 
@@ -225,6 +230,7 @@ function isLikelyCreatorOrBrand(user: InstagramUserSummary): boolean {
     return true;
   }
   if (user.category && user.category.trim().length > 0) return true;
+
   return false;
 }
 
@@ -244,14 +250,22 @@ export function buildInstagramPersona(input: {
   const oneWayFollowing = following.filter((user) => !mutualIds.has(user.id));
 
   // ---- Interests ----
-  const topicWeights = new Map<string, { weight: number; examples: string[] }>();
+  const topicWeights = new Map<
+    string,
+    { weight: number; examples: string[] }
+  >();
 
   const addTopics = (user: InstagramUserSummary, weight: number) => {
     const topics = analyzeText(accountText(user));
+
     for (const topic of topics) {
       const entry = topicWeights.get(topic) ?? { weight: 0, examples: [] };
+
       entry.weight += weight;
-      if (entry.examples.length < 5 && !entry.examples.includes(user.username)) {
+      if (
+        entry.examples.length < 5 &&
+        !entry.examples.includes(user.username)
+      ) {
         entry.examples.push(user.username);
       }
       topicWeights.set(topic, entry);
@@ -269,8 +283,10 @@ export function buildInstagramPersona(input: {
       .filter(Boolean)
       .join(" \n "),
   );
+
   for (const topic of selfTopics) {
     const entry = topicWeights.get(topic) ?? { weight: 0, examples: [] };
+
     entry.weight += 3;
     if (!entry.examples.includes("profile bio")) {
       entry.examples.unshift("profile bio");
@@ -298,6 +314,7 @@ export function buildInstagramPersona(input: {
           : user.isVerified
             ? "verified — followed, no follow-back"
             : "followed, no follow-back";
+
       return {
         id: user.id,
         username: user.username,
@@ -313,19 +330,24 @@ export function buildInstagramPersona(input: {
       // Verified + big accounts float up (clearest "interest" signals).
       const score = (item: InterestedInAccount) =>
         (item.isVerified ? 1_000_000_000 : 0) + (item.followerCount ?? 0);
+
       return score(b) - score(a);
     })
     .slice(0, 24);
 
-  const creatorsFollowed = oneWayFollowing.filter(isLikelyCreatorOrBrand).length;
+  const creatorsFollowed = oneWayFollowing.filter(
+    isLikelyCreatorOrBrand,
+  ).length;
 
   // ---- Mutual highlights ----
-  const mutualHighlights: PersonHighlight[] = mutuals.slice(0, 12).map((user) => ({
-    id: user.id,
-    username: user.username,
-    fullName: user.fullName,
-    profilePicUrl: user.profilePicUrl,
-  }));
+  const mutualHighlights: PersonHighlight[] = mutuals
+    .slice(0, 12)
+    .map((user) => ({
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      profilePicUrl: user.profilePicUrl,
+    }));
 
   // ---- Core friend group (second-degree interconnected mutuals) ----
   const coreFriendGroup = (secondDegree?.nodes ?? [])
@@ -341,6 +363,7 @@ export function buildInstagramPersona(input: {
   const youTag: TagRelation[] = [];
   const tagYou: TagRelation[] = [];
   const mutualTag: TagRelation[] = [];
+
   if (activity) {
     for (const signal of activity.taggedAccounts) {
       const base: TagRelation = {
@@ -348,6 +371,7 @@ export function buildInstagramPersona(input: {
         fullName: signal.account.fullName,
         count: 0,
       };
+
       if (signal.taggedInOwnPosts > 0) {
         youTag.push({ ...base, count: signal.taggedInOwnPosts });
       }
@@ -384,6 +408,7 @@ export function buildInstagramPersona(input: {
   const handle = `@${profile.username}`;
 
   const topInterestLabels = interests.slice(0, 4).map((topic) => topic.label);
+
   if (topInterestLabels.length > 0) {
     summary.push(
       `${handle}'s interests skew toward ${topInterestLabels.join(", ")} based on the accounts they follow.`,
@@ -406,6 +431,7 @@ export function buildInstagramPersona(input: {
 
   if (youTag.length > 0 || tagYou.length > 0) {
     const tagBits: string[] = [];
+
     if (youTag[0]) {
       tagBits.push(`${handle} tags @${youTag[0].username} most`);
     }

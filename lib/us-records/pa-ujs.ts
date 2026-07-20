@@ -1,3 +1,5 @@
+import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
 
 /**
  * Pennsylvania UJS Portal Case Search — form POST twin (no separate JSON API).
@@ -43,12 +44,17 @@ function requireName(parsed: ParsedUsQuery): { first: string; last: string } {
 
 function resolveCounty(parsed: ParsedUsQuery): string {
   const raw = (parsed.county || parsed.city || "").trim();
+
   if (!raw) {
     throw new Error(
       "Pennsylvania UJS participant search requires a county (e.g. John Smith, Philadelphia, PA).",
     );
   }
-  const key = raw.toLowerCase().replace(/\s+county$/i, "").trim();
+  const key = raw
+    .toLowerCase()
+    .replace(/\s+county$/i, "")
+    .trim();
+
   return COUNTY_ALIASES[key] || raw.replace(/\s+county$/i, "").trim();
 }
 
@@ -56,6 +62,7 @@ export function shouldSearchPaUjs(parsed: ParsedUsQuery): boolean {
   if (parsed.mode === "case") return false;
   if (parsed.country && parsed.country !== "US") return false;
   if (parsed.state === "PA") return true;
+
   return /\b(pennsylvania|philadelphia|pittsburgh|harrisburg)\b/i.test(
     parsed.raw,
   );
@@ -67,6 +74,7 @@ function cookieHeader(res: Response): string {
     typeof headers.getSetCookie === "function"
       ? headers.getSetCookie()
       : [res.headers.get("set-cookie") ?? ""].filter(Boolean);
+
   return parts.map((part) => part.split(";")[0]!).join("; ");
 }
 
@@ -90,6 +98,7 @@ export async function searchPaUjs(
   const county = resolveCounty(parsed);
   const key = cacheKey("pa-ujs", `${county}|${last}|${first}|${limit}`);
   const cached = getCached<CourtCaseHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("pa-ujs", 1500);
@@ -103,6 +112,7 @@ export async function searchPaUjs(
       "User-Agent": BROWSER_UA,
     },
   });
+
   if (!land.ok) {
     throw new Error(`Pennsylvania UJS landing HTTP ${land.status}`);
   }
@@ -112,6 +122,7 @@ export async function searchPaUjs(
     landHtml.match(
       /name="__RequestVerificationToken"[^>]*value="([^"]+)"/,
     )?.[1] || "";
+
   if (!token) {
     throw new Error("Pennsylvania UJS antiforgery token missing.");
   }
@@ -159,6 +170,7 @@ export async function searchPaUjs(
     const row = match[1] ?? "";
     const href = (match[2] ?? "").replace(/&amp;/g, "&");
     const docketFromLink = decodeURIComponent(match[3] ?? "").trim();
+
     if (!docketFromLink || seen.has(docketFromLink)) continue;
     seen.add(docketFromLink);
 
@@ -183,9 +195,10 @@ export async function searchPaUjs(
         ? `Pennsylvania · ${courtBits.join(" · ")}`
         : "Pennsylvania courts",
       dateFiled: filed || undefined,
-      snippet: [status, party ? `Party: ${party}` : null]
-        .filter(Boolean)
-        .join(" · ") || undefined,
+      snippet:
+        [status, party ? `Party: ${party}` : null]
+          .filter(Boolean)
+          .join(" · ") || undefined,
       parties: party ? [party] : undefined,
       source: {
         id: "pa-ujs",
@@ -206,6 +219,7 @@ export async function searchPaUjs(
     )) {
       const href = (match[1] ?? "").replace(/&amp;/g, "&");
       const docket = decodeURIComponent(match[2] ?? "").trim();
+
       if (!docket || seen.has(docket)) continue;
       seen.add(docket);
       hits.push({
@@ -227,5 +241,6 @@ export async function searchPaUjs(
   }
 
   setCached(key, hits, SOURCE_LIMITS["pa-ujs"].ttlMs);
+
   return hits;
 }

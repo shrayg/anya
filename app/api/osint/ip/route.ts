@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
 import { fetchCsintIpLookup } from "@/lib/csint";
 import { fetchCombinedOsintCatEndpoint } from "@/lib/osint-combined";
 import { normalizeIpSearchPayload } from "@/lib/ip-search";
@@ -13,6 +12,7 @@ import {
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "ip");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
   try {
     const [data, csintIp] = await withDeadline(
       Promise.all([
-        fetchCombinedOsintCatEndpoint("ip", query, "ip", "ip").catch(() => null),
+        fetchCombinedOsintCatEndpoint("ip", query, "ip", "ip").catch(
+          () => null,
+        ),
         fetchCsintIpLookup(query).catch(() => null),
       ]),
       OSINT_ROUTE_DEADLINE_MS,
@@ -32,12 +34,14 @@ export async function GET(req: NextRequest) {
 
     if (data) {
       const payload = normalizeIpSearchPayload(data);
+
       if (csintIp) {
         return NextResponse.json({
           ...payload,
           enrichment: csintIp,
         });
       }
+
       return NextResponse.json(payload);
     }
 
@@ -56,6 +60,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     try {
       const csintIp = await fetchCsintIpLookup(query);
+
       if (csintIp) {
         return NextResponse.json({
           query,

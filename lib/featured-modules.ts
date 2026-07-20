@@ -75,10 +75,12 @@ export const CATALOG_LANES: CatalogLane[] = getHubSections().map((section) => ({
 
 export const CATALOG_MODULE_COUNT = ALL_SEARCH_MODULES.length;
 
-export const AI_CATALOG_MODULES = CATALOG_LANES.find((lane) => lane.isAi)
-  ?.modules ?? [];
+export const AI_CATALOG_MODULES =
+  CATALOG_LANES.find((lane) => lane.isAi)?.modules ?? [];
 
-export const STANDARD_CATALOG_LANES = CATALOG_LANES.filter((lane) => !lane.isAi);
+export const STANDARD_CATALOG_LANES = CATALOG_LANES.filter(
+  (lane) => !lane.isAi,
+);
 
 /** Short blurbs for the AI showcase cards on the marketing page. */
 export const AI_MODULE_EXPLAINERS: Record<string, string> = {

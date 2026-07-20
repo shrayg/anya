@@ -10,6 +10,7 @@ import {
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "dns");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest) {
       fetchCombinedOsintCatEndpoint("dns-resolver", query, "domain"),
       OSINT_ROUTE_DEADLINE_MS,
     );
+
     return NextResponse.json(data);
   } catch (err) {
     return osintFailureResponse(err, {

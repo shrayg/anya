@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-
-import { PUBLIC_INTEL_SOURCE, publicServiceUnavailable } from "@/lib/public-branding";
+import {
+  PUBLIC_INTEL_SOURCE,
+  publicServiceUnavailable,
+} from "@/lib/public-branding";
 import { fetchGodsEyeGeolocate } from "@/lib/godseye";
 import {
   OSINT_ROUTE_DEADLINE_MS,
@@ -12,6 +14,7 @@ import {
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "geolocate");
+
   if (access instanceof NextResponse) return access;
 
   const ip = req.nextUrl.searchParams.get("ip")?.trim();
@@ -37,7 +40,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ ip: target, source: PUBLIC_INTEL_SOURCE, ...data });
+    return NextResponse.json({
+      ip: target,
+      source: PUBLIC_INTEL_SOURCE,
+      ...data,
+    });
   } catch (err) {
     return osintFailureResponse(err, {
       softEmpty: { ip: target, message: "Geolocation timed out or failed." },
@@ -47,6 +54,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const access = await requireOsintAccess(req, "geolocate");
+
   if (access instanceof NextResponse) return access;
 
   let body: { image?: string; ip?: string };

@@ -34,6 +34,7 @@ export default function SearchHubPage() {
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase().trim();
+
     if (!q) return sections;
 
     return sections
@@ -55,7 +56,10 @@ export default function SearchHubPage() {
   );
 
   return (
-    <div className="mod-shell module-search px-4 py-6 md:px-8 md:py-8" data-tour="search-hub">
+    <div
+      className="mod-shell module-search px-4 py-6 md:px-8 md:py-8"
+      data-tour="search-hub"
+    >
       <div className="mod-hub-top">
         <div>
           <p className="mod-kicker">Workspace</p>
@@ -75,10 +79,10 @@ export default function SearchHubPage() {
           <Search className="size-4 text-zinc-500" />
           <input
             id="workspace-module-filter"
-            onChange={(event) => setFilter(event.target.value)}
             placeholder="Filter modules…"
             type="search"
             value={filter}
+            onChange={(event) => setFilter(event.target.value)}
           />
         </label>
         <div className="mod-legend">
@@ -92,7 +96,7 @@ export default function SearchHubPage() {
         </div>
       </div>
 
-      <ModuleCatalog sections={filtered} showStatus />
+      <ModuleCatalog showStatus sections={filtered} />
     </div>
   );
 }

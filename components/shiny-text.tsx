@@ -48,15 +48,18 @@ const ShinyText: React.FC<ShinyTextProps> = ({
   useAnimationFrame((time) => {
     if (disabled || isPaused) {
       lastTimeRef.current = null;
+
       return;
     }
 
     if (lastTimeRef.current === null) {
       lastTimeRef.current = time;
+
       return;
     }
 
     const deltaTime = time - lastTimeRef.current;
+
     lastTimeRef.current = time;
 
     elapsedRef.current += deltaTime;
@@ -68,12 +71,14 @@ const ShinyText: React.FC<ShinyTextProps> = ({
 
       if (cycleTime < animationDuration) {
         const p = (cycleTime / animationDuration) * 100;
+
         progress.set(directionRef.current === 1 ? p : 100 - p);
       } else if (cycleTime < cycleDuration) {
         progress.set(directionRef.current === 1 ? 100 : 0);
       } else if (cycleTime < cycleDuration + animationDuration) {
         const reverseTime = cycleTime - cycleDuration;
         const p = 100 - (reverseTime / animationDuration) * 100;
+
         progress.set(directionRef.current === 1 ? p : 100 - p);
       } else {
         progress.set(directionRef.current === 1 ? 0 : 100);
@@ -84,6 +89,7 @@ const ShinyText: React.FC<ShinyTextProps> = ({
 
       if (cycleTime < animationDuration) {
         const p = (cycleTime / animationDuration) * 100;
+
         progress.set(directionRef.current === 1 ? p : 100 - p);
       } else {
         progress.set(directionRef.current === 1 ? 100 : 0);
@@ -95,7 +101,6 @@ const ShinyText: React.FC<ShinyTextProps> = ({
     directionRef.current = direction === "left" ? 1 : -1;
     elapsedRef.current = 0;
     progress.set(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [direction]);
 
   const backgroundPosition = useTransform(
@@ -126,7 +131,10 @@ const ShinyText: React.FC<ShinyTextProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <span aria-hidden className="invisible col-start-1 row-start-1 pb-[0.18em]">
+      <span
+        aria-hidden
+        className="invisible col-start-1 row-start-1 pb-[0.18em]"
+      >
         {text}
       </span>
       <motion.span

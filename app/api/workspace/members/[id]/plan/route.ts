@@ -7,7 +7,10 @@ import {
   planUpdatesFromId,
 } from "@/lib/plans";
 import { recordPayment } from "@/lib/payments";
-import { MEMBER_SELECT, requireWorkspaceAdmin } from "@/lib/workspace-admin-server";
+import {
+  MEMBER_SELECT,
+  requireWorkspaceAdmin,
+} from "@/lib/workspace-admin-server";
 import { prisma } from "@/prisma/client";
 
 export async function PUT(
@@ -16,6 +19,7 @@ export async function PUT(
 ) {
   try {
     const auth = await requireWorkspaceAdmin();
+
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -24,7 +28,10 @@ export async function PUT(
     const planId = normalizePlanId(plan);
 
     if (!planId) {
-      return NextResponse.json({ error: "Invalid plan specified" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid plan specified" },
+        { status: 400 },
+      );
     }
 
     const updatedUser = await prisma.user.update({
@@ -49,6 +56,10 @@ export async function PUT(
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
     console.error("Error updating member plan:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

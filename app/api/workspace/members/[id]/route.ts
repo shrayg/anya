@@ -10,6 +10,7 @@ export async function DELETE(
 ) {
   try {
     const auth = await requireWorkspaceAdmin();
+
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -50,6 +51,10 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("Error deleting member:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

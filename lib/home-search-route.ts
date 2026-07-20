@@ -1,4 +1,7 @@
-import { detectDatingAppFromQuery, normalizeDatingQuery } from "@/lib/dating-search";
+import {
+  detectDatingAppFromQuery,
+  normalizeDatingQuery,
+} from "@/lib/dating-search";
 import { isPhoneQuery } from "@/lib/search-modules";
 
 export type HomeSearchRoute = {

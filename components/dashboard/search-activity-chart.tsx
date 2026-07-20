@@ -14,6 +14,7 @@ export function SearchActivityChart() {
   const coordinates = POINTS.map((value, index) => {
     const x = padding + index * step;
     const y = height - padding - (value / max) * (height - padding * 2);
+
     return { x, y, value };
   });
 
@@ -31,7 +32,9 @@ export function SearchActivityChart() {
             ⌁
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">Search Activity</h3>
+            <h3 className="text-sm font-semibold text-white">
+              Search Activity
+            </h3>
             <p className="text-xs text-gray-400">Last 7 days</p>
           </div>
         </div>
@@ -47,6 +50,7 @@ export function SearchActivityChart() {
         </defs>
         {[0, 1, 2, 3].map((line) => {
           const y = padding + (line * (height - padding * 2)) / 3;
+
           return (
             <line
               key={line}

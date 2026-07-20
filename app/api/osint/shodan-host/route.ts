@@ -13,6 +13,7 @@ export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "shodan-host");
+
   if (access instanceof NextResponse) return access;
 
   const query = req.nextUrl.searchParams.get("query")?.trim();

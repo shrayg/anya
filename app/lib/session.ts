@@ -1,6 +1,7 @@
+import type { NextResponse } from "next/server";
+
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { NextResponse } from "next/server";
 import "server-only";
 
 function resolveJwtSecret() {
@@ -26,9 +27,11 @@ function shouldUseSecureCookies() {
   if (process.env.COOKIE_SECURE === "false") return false;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+
   if (appUrl) {
     try {
       const hostname = new URL(appUrl).hostname;
+
       if (hostname === "localhost" || hostname === "127.0.0.1") {
         return false;
       }
@@ -57,6 +60,7 @@ export function sessionCookieOptions(expires: Date) {
     0,
     Math.floor((expires.getTime() - Date.now()) / 1000),
   );
+
   return {
     expires,
     maxAge,
@@ -87,6 +91,7 @@ export async function decrypt(input: string): Promise<SessionPayload> {
   });
 
   const userId = Number(payload.userId);
+
   if (!Number.isFinite(userId) || userId <= 0) {
     throw new Error("Invalid session payload");
   }
@@ -105,6 +110,7 @@ export async function createSessionToken(userId: number, isAdmin: boolean) {
     isAdmin,
     expires: expires.toISOString(),
   });
+
   return { token, expires };
 }
 
@@ -115,12 +121,15 @@ export async function attachSessionCookie(
   isAdmin: boolean,
 ) {
   const { token, expires } = await createSessionToken(userId, isAdmin);
+
   response.cookies.set("session", token, sessionCookieOptions(expires));
+
   return response;
 }
 
 export async function clearSessionCookie(response: NextResponse) {
   response.cookies.set("session", "", sessionCookieOptions(new Date(0)));
+
   return response;
 }
 
@@ -128,12 +137,14 @@ export async function clearSessionCookie(response: NextResponse) {
 export async function setSessionCookie(userId: number, isAdmin: boolean) {
   const { token, expires } = await createSessionToken(userId, isAdmin);
   const cookieStore = await cookies();
+
   cookieStore.set("session", token, sessionCookieOptions(expires));
 }
 
 export async function getSessionCookie() {
   const cookieStore = await cookies();
   const session = cookieStore.get("session")?.value;
+
   if (!session) return null;
 
   try {
@@ -145,5 +156,6 @@ export async function getSessionCookie() {
 
 export async function deleteSessionCookie() {
   const cookieStore = await cookies();
+
   cookieStore.set("session", "", sessionCookieOptions(new Date(0)));
 }

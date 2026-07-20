@@ -56,7 +56,12 @@ export function validatePassword(password: string): string | null {
     return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
   }
 
-  if (!hasUpper(password) || !hasLower(password) || !hasDigit(password) || !hasSymbol(password)) {
+  if (
+    !hasUpper(password) ||
+    !hasLower(password) ||
+    !hasDigit(password) ||
+    !hasSymbol(password)
+  ) {
     return "Password must include uppercase, lowercase, a number, and a symbol.";
   }
 
@@ -82,11 +87,15 @@ export function validateUsername(username: string): string | null {
 }
 
 /** Extra registration-only checks (reserved / brand names). */
-export function validateUsernameForRegistration(username: string): string | null {
+export function validateUsernameForRegistration(
+  username: string,
+): string | null {
   const base = validateUsername(username);
+
   if (base) return base;
 
   const normalized = normalizeUsername(username);
+
   if (RESERVED_USERNAMES.has(normalized)) {
     return "That username is reserved. Please choose another.";
   }
@@ -101,7 +110,9 @@ export function normalizeUsername(username: string): string {
 
 function randomChar(alphabet: string) {
   const bytes = new Uint32Array(1);
+
   crypto.getRandomValues(bytes);
+
   return alphabet[bytes[0] % alphabet.length];
 }
 
@@ -121,8 +132,10 @@ export function generateStrongPassword(length = 16): string {
 
   for (let i = chars.length - 1; i > 0; i -= 1) {
     const bytes = new Uint32Array(1);
+
     crypto.getRandomValues(bytes);
     const j = bytes[0] % (i + 1);
+
     [chars[i], chars[j]] = [chars[j], chars[i]];
   }
 

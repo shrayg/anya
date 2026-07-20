@@ -5,6 +5,13 @@ export type ModuleTool = {
   apiType: string;
 };
 
+/** Optional narrowing fields — empty means open-ended search. */
+export type ModuleOptionalFilter = {
+  id: "state" | "city" | "county" | "zip" | "dob";
+  label: string;
+  placeholder: string;
+};
+
 /**
  * Module catalog entry. Pages render via `ModuleSearchView`, which always
  * shows the shared Intel Signal Lattice loader while a run is in flight —
@@ -21,6 +28,8 @@ export type SearchModuleDef = {
   comingSoon?: boolean;
   /** Optional in-module source tools (e.g. leak indexes vs court dockets). */
   tools?: ModuleTool[];
+  /** Optional geographic / identity filters users can fill when they know them. */
+  optionalFilters?: ModuleOptionalFilter[];
   /** Show lawful-use / FCRA notice on the module page. */
   lawfulUseNotice?: boolean;
   /** Override default lawful-use notice copy. */
@@ -41,7 +50,10 @@ function mod(
   tagline: string,
   aiMode?: string,
   comingSoon?: boolean,
-  extras?: Pick<SearchModuleDef, "tools" | "lawfulUseNotice" | "lawfulUseCopy">,
+  extras?: Pick<
+    SearchModuleDef,
+    "tools" | "optionalFilters" | "lawfulUseNotice" | "lawfulUseCopy"
+  >,
 ): SearchModuleDef {
   return {
     name,
@@ -54,6 +66,62 @@ function mod(
     comingSoon,
     ...extras,
   };
+}
+
+const PERSON_GEO_FILTERS: ModuleOptionalFilter[] = [
+  { id: "state", label: "State", placeholder: "VA (optional)" },
+  { id: "city", label: "City", placeholder: "Richmond (optional)" },
+  { id: "county", label: "County", placeholder: "Fairfax (optional)" },
+  { id: "zip", label: "ZIP", placeholder: "22030 (optional)" },
+  { id: "dob", label: "DOB", placeholder: "MM/DD/YYYY (optional)" },
+];
+
+/** Compose free-text query + optional filters into parser-friendly input. */
+export function composeModuleQuery(
+  baseQuery: string,
+  filters: Partial<Record<ModuleOptionalFilter["id"], string>>,
+): string {
+  let name = baseQuery.trim().replace(/\s+/g, " ");
+
+  if (!name && !filters.zip) return "";
+
+  const state = filters.state?.trim().toUpperCase();
+  const city = filters.city?.trim();
+  const countyRaw = filters.county?.trim();
+  const zip = filters.zip?.trim();
+  const dob = filters.dob?.trim();
+
+  const county = countyRaw
+    ? /county$/i.test(countyRaw)
+      ? countyRaw
+      : `${countyRaw} County`
+    : undefined;
+
+  // ZIP-only open search (NSOPW supports this)
+  if (!name && zip) {
+    return [zip, state].filter(Boolean).join(", ");
+  }
+
+  const locality = county || city;
+  const trailing: string[] = [];
+
+  if (locality) trailing.push(locality);
+  if (state) trailing.push(state);
+  if (zip && !trailing.includes(zip)) {
+    // Prefer "Name, ST ZIP" or "Name, ZIP"
+    if (state) {
+      trailing[trailing.length - 1] = `${state} ${zip}`;
+    } else {
+      trailing.push(zip);
+    }
+  }
+
+  let composed = name;
+
+  if (trailing.length) composed = `${name}, ${trailing.join(", ")}`;
+  if (dob) composed = `${composed} ${dob}`;
+
+  return composed.replace(/\s+/g, " ").trim();
 }
 
 export const AI_SEARCH_MODULES: SearchModuleDef[] = [
@@ -192,8 +260,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         undefined,
         {
           tools: [
-            { id: "seon-email", label: "Email footprint", apiType: "seon-email" },
-            { id: "seon-phone", label: "Phone footprint", apiType: "seon-phone" },
+            {
+              id: "seon-email",
+              label: "Email footprint",
+              apiType: "seon-email",
+            },
+            {
+              id: "seon-phone",
+              label: "Phone footprint",
+              apiType: "seon-phone",
+            },
           ],
         },
       ),
@@ -209,14 +285,28 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         {
           tools: [
             { id: "leak-indexes", label: "Leak indexes", apiType: "breach" },
-            { id: "court-dockets", label: "Court dockets", apiType: "us-court" },
-            { id: "public-identity", label: "Public identity", apiType: "us-identity" },
+            {
+              id: "court-dockets",
+              label: "Court dockets",
+              apiType: "us-court",
+            },
+            {
+              id: "public-identity",
+              label: "Public identity",
+              apiType: "us-identity",
+            },
             {
               id: "va-sex-offender",
               label: "VA sex offender",
               apiType: "us-va-sor",
             },
+            {
+              id: "national-sor",
+              label: "National SOR (NSOPW)",
+              apiType: "us-sor-national",
+            },
           ],
+          optionalFilters: PERSON_GEO_FILTERS,
           lawfulUseNotice: true,
         },
       ),
@@ -245,7 +335,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Compose live US federal, state, sanctions, wanted, court, and international registry signals in one dossier.",
         undefined,
         undefined,
-        { lawfulUseNotice: true },
+        { lawfulUseNotice: true, optionalFilters: PERSON_GEO_FILTERS },
       ),
       mod(
         "Public Records",
@@ -256,7 +346,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Federal RECAP dockets, live Virginia OCIS, Delaware CourtConnect, Oklahoma OSCN party search, Hillsborough FL HOVER case lookup, and MD/TX/NY county portal routing when live automation is unavailable.",
         undefined,
         undefined,
-        { lawfulUseNotice: true },
+        { lawfulUseNotice: true, optionalFilters: PERSON_GEO_FILTERS },
       ),
       mod(
         "Public Records",
@@ -267,7 +357,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Compose FEC, NPI, OFAC, UN sanctions, FBI/Interpol wanted, BOP inmate locator, NSOPW, and court indexes.",
         undefined,
         undefined,
-        { lawfulUseNotice: true },
+        { lawfulUseNotice: true, optionalFilters: PERSON_GEO_FILTERS },
       ),
       mod(
         "Public Records",
@@ -278,7 +368,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "National/global people dossier composed from public government registries.",
         undefined,
         undefined,
-        { lawfulUseNotice: true },
+        { lawfulUseNotice: true, optionalFilters: PERSON_GEO_FILTERS },
       ),
       mod(
         "Public Records",
@@ -307,11 +397,26 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "National Sex Offender Registry",
         "national-sor",
         "us-sor-national",
-        "John Smith, VA — first and last name required",
-        "Live NSOPW national search across US state & territory registries, plus Virginia direct adapter.",
+        "John Smith — or John Smith, VA — or ZIP 23220",
+        "Live NSOPW national search across US states & territories (got-scraping twin), plus Canada RCMP high-risk child SOR in parallel. Optional state/city/county/ZIP narrows US results; leave blank for open-ended. Runs Virginia/Florida state twins when those cues are present.",
         undefined,
         undefined,
-        { lawfulUseNotice: true },
+        {
+          tools: [
+            {
+              id: "nsopw-national",
+              label: "NSOPW national",
+              apiType: "us-sor-national",
+            },
+            {
+              id: "va-sex-offender",
+              label: "VA registry",
+              apiType: "us-va-sor",
+            },
+          ],
+          optionalFilters: PERSON_GEO_FILTERS,
+          lawfulUseNotice: true,
+        },
       ),
       mod(
         "Public Records",
@@ -319,10 +424,13 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "va-sex-offender",
         "us-va-sor",
         "John Smith, Fairfax County, VA — or John Smith, 22030",
-        "Live lookup against the Virginia State Police public Sex Offender Registry (name + county or ZIP required).",
+        "Live Virginia State Police registry plus NSOPW scoped to VA. Optional county/ZIP/city filters when known.",
         undefined,
         undefined,
-        { lawfulUseNotice: true },
+        {
+          optionalFilters: PERSON_GEO_FILTERS,
+          lawfulUseNotice: true,
+        },
       ),
       mod(
         "Public Records",
@@ -697,6 +805,7 @@ export function getSearchModule(
   itemName: string | null,
 ): SearchModuleDef | undefined {
   if (!itemName) return undefined;
+
   return MODULE_BY_NAME.get(itemName);
 }
 
@@ -704,10 +813,13 @@ export function getSearchModuleBySlug(
   slug: string | null,
 ): SearchModuleDef | undefined {
   if (!slug) return undefined;
+
   return MODULE_BY_SLUG.get(slug.toLowerCase());
 }
 
-export function getSearchModuleHint(itemName: string | null): string | undefined {
+export function getSearchModuleHint(
+  itemName: string | null,
+): string | undefined {
   return getSearchModule(itemName)?.hint;
 }
 
@@ -743,6 +855,7 @@ export function detectSearchType(query: string): string {
 export function getAiModeForModule(moduleDef: SearchModuleDef): string {
   if (moduleDef.aiMode) return moduleDef.aiMode;
   if (moduleDef.module !== "ai") return "search";
+
   return "auto";
 }
 

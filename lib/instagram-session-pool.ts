@@ -86,25 +86,31 @@ function thawIfReady(slot: PoolSlot): void {
 }
 
 function accountForLabel(label: string): InstagramAccount | null {
-  return getInstagramAccounts().find((account) => account.label === label) ?? null;
+  return (
+    getInstagramAccounts().find((account) => account.label === label) ?? null
+  );
 }
 
 function pickHealthySlot(): PoolSlot | null {
   const pool = ensureSlots();
+
   if (pool.length === 0) return null;
 
   for (const slot of pool) thawIfReady(slot);
 
   const healthy = pool.filter((slot) => slot.status === "healthy");
+
   if (healthy.length === 0) {
     // Prefer the soonest-to-thaw cooling slot over a retired one.
     const cooling = pool
       .filter((slot) => slot.status === "cooling")
       .sort((a, b) => a.cooldownUntil - b.cooldownUntil);
+
     return cooling[0] ?? null;
   }
 
   healthy.sort((a, b) => a.lastUsedAt - b.lastUsedAt);
+
   return healthy[0] ?? null;
 }
 
@@ -114,6 +120,7 @@ export function classifyInstagramFailure(
   errorMessage?: string,
 ): InstagramFailureKind {
   const haystack = `${bodyText}\n${errorMessage ?? ""}`.toLowerCase();
+
   if (
     status === 401 ||
     status === 403 ||
@@ -141,6 +148,7 @@ export function classifyInstagramFailure(
     return "network";
   }
   if (/empty response/.test(haystack)) return "empty";
+
   return "other";
 }
 
@@ -148,6 +156,7 @@ export function getActivePoolAccount(): InstagramAccount | null {
   ensureSlots();
   if (activeLabel) {
     const slot = slots.get(activeLabel);
+
     if (slot) {
       thawIfReady(slot);
       if (slot.status === "healthy") {
@@ -157,6 +166,7 @@ export function getActivePoolAccount(): InstagramAccount | null {
   }
 
   const next = pickHealthySlot();
+
   if (!next) return null;
   if (next.status === "cooling" && next.cooldownUntil > now()) {
     // Nothing healthy yet — still hand back the soonest cooling account so
@@ -164,6 +174,7 @@ export function getActivePoolAccount(): InstagramAccount | null {
     return accountForLabel(next.label);
   }
   activeLabel = next.label;
+
   return accountForLabel(next.label);
 }
 
@@ -184,39 +195,47 @@ export function acquirePoolAccount(options?: {
 
   if (options?.preferLabel && !options.forceRotate) {
     const preferred = slots.get(options.preferLabel);
+
     if (preferred) {
       thawIfReady(preferred);
       if (preferred.status === "healthy") {
         preferred.lastUsedAt = now();
         activeLabel = preferred.label;
+
         return accountForLabel(preferred.label);
       }
     }
   }
 
   const slot = pickHealthySlot();
+
   if (!slot) return null;
 
   if (slot.status === "cooling" && slot.cooldownUntil > now()) {
     const waitMs = slot.cooldownUntil - now();
     const account = accountForLabel(slot.label);
+
     if (!account) return null;
     // Expose wait via lastError so callers can message it.
     slot.lastError = `Account "${slot.label}" cooling for ${Math.ceil(waitMs / 1000)}s (${slot.lastFailureKind ?? "block"}).`;
     activeLabel = slot.label;
     slot.lastUsedAt = now();
+
     return account;
   }
 
   slot.lastUsedAt = now();
   activeLabel = slot.label;
+
   return accountForLabel(slot.label);
 }
 
 export function reportPoolSuccess(label?: string): void {
   const key = label ?? activeLabel;
+
   if (!key) return;
   const slot = slots.get(key);
+
   if (!slot) return;
   slot.status = "healthy";
   slot.consecutiveFailures = 0;
@@ -232,9 +251,11 @@ export function reportPoolFailure(
   label?: string,
 ): { rotated: boolean; retired: boolean; cooldownMs: number } {
   const key = label ?? activeLabel;
+
   if (!key) return { rotated: false, retired: false, cooldownMs: 0 };
 
   const slot = slots.get(key);
+
   if (!slot) return { rotated: false, retired: false, cooldownMs: 0 };
 
   slot.consecutiveFailures += 1;
@@ -242,8 +263,7 @@ export function reportPoolFailure(
   slot.lastFailureKind = kind;
 
   let cooldownMs = 0;
-  const hard =
-    kind === "challenge" || kind === "auth" || kind === "rate_limit";
+  const hard = kind === "challenge" || kind === "auth" || kind === "rate_limit";
 
   if (kind === "rate_limit") cooldownMs = RATE_LIMIT_COOLDOWN_MS;
   else if (kind === "challenge") cooldownMs = CHALLENGE_COOLDOWN_MS;
@@ -275,7 +295,10 @@ export function reportPoolFailure(
   // Rotate away from the failing account.
   activeLabel = null;
   const next = pickHealthySlot();
-  const rotated = Boolean(next && next.label !== key && next.status === "healthy");
+  const rotated = Boolean(
+    next && next.label !== key && next.status === "healthy",
+  );
+
   if (next && next.status === "healthy") {
     activeLabel = next.label;
   }
@@ -285,6 +308,7 @@ export function reportPoolFailure(
 
 export function revivePoolAccount(label: string): boolean {
   const slot = slots.get(label);
+
   if (!slot) return false;
   slot.status = "healthy";
   slot.consecutiveFailures = 0;
@@ -292,6 +316,7 @@ export function revivePoolAccount(label: string): boolean {
   slot.cooldownUntil = 0;
   slot.lastError = undefined;
   slot.lastFailureKind = undefined;
+
   return true;
 }
 
@@ -306,10 +331,14 @@ export function getPoolSnapshot(): Array<{
   lastFailureKind?: InstagramFailureKind;
 }> {
   const accounts = getInstagramAccounts();
+
   ensureSlots();
+
   return accounts.map((account) => {
     const slot = slots.get(account.label)!;
+
     thawIfReady(slot);
+
     return {
       label: account.label,
       status: slot.status,
@@ -326,9 +355,15 @@ export function getPoolSnapshot(): Array<{
 export function msUntilPoolReady(): number {
   ensureSlots();
   const pool = [...slots.values()];
+
   for (const slot of pool) thawIfReady(slot);
   if (pool.some((slot) => slot.status === "healthy")) return 0;
   const cooling = pool.filter((slot) => slot.status === "cooling");
+
   if (cooling.length === 0) return -1;
-  return Math.max(0, Math.min(...cooling.map((slot) => slot.cooldownUntil)) - now());
+
+  return Math.max(
+    0,
+    Math.min(...cooling.map((slot) => slot.cooldownUntil)) - now(),
+  );
 }

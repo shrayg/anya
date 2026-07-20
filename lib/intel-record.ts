@@ -127,16 +127,31 @@ export function isInternalSourceLabel(value: string): boolean {
   if (INTERNAL_SOURCE_LABELS.has(lower)) return true;
   if (USELESS_DATABANK_LABELS.has(lower)) return true;
   if (lower.startsWith("godseye")) return true;
-  if (lower.startsWith("osintcat") || lower.startsWith("osint cat")) return true;
-  if (lower === "breach.vip" || lower.startsWith("breachvip") || lower.startsWith("breach vip")) {
+  if (lower.startsWith("osintcat") || lower.startsWith("osint cat"))
+    return true;
+  if (
+    lower === "breach.vip" ||
+    lower.startsWith("breachvip") ||
+    lower.startsWith("breach vip")
+  ) {
     return true;
   }
-  if (lower.startsWith("snusbase") || lower.startsWith("breachbase")) return true;
-  if (lower.startsWith("oathnet") || lower.startsWith("cordcat") || lower.startsWith("cord.cat")) {
+  if (lower.startsWith("snusbase") || lower.startsWith("breachbase"))
+    return true;
+  if (
+    lower.startsWith("oathnet") ||
+    lower.startsWith("cordcat") ||
+    lower.startsWith("cord.cat")
+  ) {
     return true;
   }
-  if (lower.startsWith("intelx") || lower.startsWith("intelligence x")) return true;
-  if (lower.startsWith("shodan") || lower.startsWith("leakcheck") || lower.startsWith("hackcheck")) {
+  if (lower.startsWith("intelx") || lower.startsWith("intelligence x"))
+    return true;
+  if (
+    lower.startsWith("shodan") ||
+    lower.startsWith("leakcheck") ||
+    lower.startsWith("hackcheck")
+  ) {
     return true;
   }
   if (lower.includes("csint")) return true;
@@ -154,6 +169,7 @@ export function isInternalSourceLabel(value: string): boolean {
  */
 export function isBrandPlaceholderValue(value: string): boolean {
   const trimmed = value.trim();
+
   if (!trimmed) return true;
 
   const lower = trimmed.toLowerCase();
@@ -162,8 +178,15 @@ export function isBrandPlaceholderValue(value: string): boolean {
 
   // Credential-shaped brand pollution: "Anya.Int:Anya.Int" / "GodsEye:GodsEye"
   if (trimmed.includes(":")) {
-    const parts = trimmed.split(":").map((part) => part.trim()).filter(Boolean);
-    if (parts.length > 0 && parts.every((part) => isInternalSourceLabel(part))) {
+    const parts = trimmed
+      .split(":")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (
+      parts.length > 0 &&
+      parts.every((part) => isInternalSourceLabel(part))
+    ) {
       return true;
     }
   }
@@ -176,7 +199,9 @@ export function isBrandPlaceholderValue(value: string): boolean {
 }
 
 export function isIdentityFieldKey(key: string): boolean {
-  return IDENTITY_FIELD_KEYS.has(key) || IDENTITY_FIELD_KEYS.has(key.toLowerCase());
+  return (
+    IDENTITY_FIELD_KEYS.has(key) || IDENTITY_FIELD_KEYS.has(key.toLowerCase())
+  );
 }
 
 /** Returns the breach databank / collection name when present on a record. */
@@ -212,8 +237,12 @@ export function scrubIntelRecord(
 
   for (const key of DATABANK_FIELD_KEYS) {
     const value = record[key];
+
     if (typeof value !== "string") continue;
-    if (isInternalSourceLabel(value) || USELESS_DATABANK_LABELS.has(value.trim().toLowerCase())) {
+    if (
+      isInternalSourceLabel(value) ||
+      USELESS_DATABANK_LABELS.has(value.trim().toLowerCase())
+    ) {
       delete record[key];
     }
   }
@@ -229,7 +258,9 @@ export function scrubIntelRecord(
     }
 
     // Meta strings that collapsed to the brand are also useless.
-    if (/^(source|sources|_source|provider|service|credit|credits)$/i.test(key)) {
+    if (
+      /^(source|sources|_source|provider|service|credit|credits)$/i.test(key)
+    ) {
       delete record[key];
     }
   }
@@ -244,13 +275,19 @@ export function scrubIntelRecord(
 export function hasUsefulIntelFields(record: Record<string, unknown>): boolean {
   for (const [key, value] of Object.entries(record)) {
     if (DATABANK_KEYS.has(key)) continue;
-    if (/^(success|credits?|service|query|type|message|error|status|count|total)$/i.test(key)) {
+    if (
+      /^(success|credits?|service|query|type|message|error|status|count|total)$/i.test(
+        key,
+      )
+    ) {
       continue;
     }
 
     if (typeof value === "string") {
       const trimmed = value.trim();
+
       if (!trimmed || isBrandPlaceholderValue(trimmed)) continue;
+
       return true;
     }
 
@@ -271,6 +308,7 @@ export function scrubIntelResults(results: unknown[]): unknown[] {
 
   for (const entry of results) {
     const clean = scrubIntelRecord(entry);
+
     if (clean) scrubbed.push(clean);
   }
 

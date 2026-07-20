@@ -5,7 +5,9 @@ import { requireWorkspaceAdmin } from "@/lib/workspace-admin-server";
 
 function startOfDay(date: Date) {
   const copy = new Date(date);
+
   copy.setHours(0, 0, 0, 0);
+
   return copy;
 }
 
@@ -16,6 +18,7 @@ function formatDayKey(date: Date) {
 export async function GET() {
   try {
     const auth = await requireWorkspaceAdmin();
+
     if (auth.error) return auth.error;
 
     const now = new Date();
@@ -105,7 +108,9 @@ export async function GET() {
 
     const dailyKeys = Array.from({ length: 7 }, (_, index) => {
       const date = new Date(startOfDay(now));
+
       date.setDate(date.getDate() - (6 - index));
+
       return formatDayKey(date);
     });
 
@@ -114,6 +119,7 @@ export async function GET() {
 
     for (const signup of signupsRecent) {
       const key = formatDayKey(new Date(signup.createdAt));
+
       if (signupMap.has(key)) {
         signupMap.set(key, (signupMap.get(key) ?? 0) + 1);
       }
@@ -121,6 +127,7 @@ export async function GET() {
 
     for (const search of searchRowsRecent) {
       const key = formatDayKey(new Date(search.createdAt));
+
       if (searchMap.has(key)) {
         searchMap.set(key, (searchMap.get(key) ?? 0) + 1);
       }
@@ -172,6 +179,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching workspace overview:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

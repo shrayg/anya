@@ -1,16 +1,10 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Flag,
-  FolderOpen,
-  RefreshCw,
-  Users,
-} from "lucide-react";
+import { Flag, FolderOpen, RefreshCw, Users } from "lucide-react";
 import clsx from "clsx";
 
+import { apiFetch } from "@/lib/csrf-client";
 import {
   DashButton,
   DashInput,
@@ -97,6 +91,7 @@ export function HelperUsersPanel() {
 
       if (!response.ok) {
         setError(data.error || "Could not load users.");
+
         return;
       }
 
@@ -114,6 +109,7 @@ export function HelperUsersPanel() {
 
   const filteredUsers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+
     if (!normalized) return users;
 
     return users.filter((user) =>
@@ -128,7 +124,9 @@ export function HelperUsersPanel() {
 
   const updateUser = (userId: number, patch: Partial<HelperUser>) => {
     setUsers((current) =>
-      current.map((user) => (user.id === userId ? { ...user, ...patch } : user)),
+      current.map((user) =>
+        user.id === userId ? { ...user, ...patch } : user,
+      ),
     );
   };
 
@@ -152,13 +150,16 @@ export function HelperUsersPanel() {
 
       if (!response.ok) {
         setError(data.error || "Could not flag account.");
+
         return;
       }
 
       if (data.user) updateUser(user.id, data.user);
       setFlagNotes((current) => {
         const next = { ...current };
+
         delete next[user.id];
+
         return next;
       });
     } catch {
@@ -184,6 +185,7 @@ export function HelperUsersPanel() {
 
       if (!response.ok) {
         setCasesError(data.error || "Could not load cases.");
+
         return;
       }
 
@@ -227,16 +229,18 @@ export function HelperUsersPanel() {
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <DashInput
               className="sm:w-64"
-              onChange={(event) => setQuery(event.target.value)}
               placeholder="Search username..."
               value={query}
+              onChange={(event) => setQuery(event.target.value)}
             />
             <DashButton
               className="inline-flex items-center justify-center gap-2"
-              onClick={loadUsers}
               variant="secondary"
+              onClick={loadUsers}
             >
-              <RefreshCw className={clsx("size-4", loading && "animate-spin")} />
+              <RefreshCw
+                className={clsx("size-4", loading && "animate-spin")}
+              />
               Refresh
             </DashButton>
           </div>
@@ -332,14 +336,14 @@ export function HelperUsersPanel() {
                             <DashInput
                               className="text-xs"
                               disabled={busy}
+                              placeholder="Optional note for admins"
+                              value={flagNotes[user.id] ?? ""}
                               onChange={(event) =>
                                 setFlagNotes((current) => ({
                                   ...current,
                                   [user.id]: event.target.value,
                                 }))
                               }
-                              placeholder="Optional note for admins"
-                              value={flagNotes[user.id] ?? ""}
                             />
                           )}
                           <div className="flex flex-wrap gap-2">
@@ -351,16 +355,16 @@ export function HelperUsersPanel() {
                                   : "border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20",
                               )}
                               disabled={busy || flagged}
-                              onClick={() => handleFlag(user)}
                               type="button"
+                              onClick={() => handleFlag(user)}
                             >
                               <Flag className="size-3.5" />
                               {flagged ? "Flagged" : "Investigate"}
                             </button>
                             <button
                               className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/20"
-                              onClick={() => loadUserCases(user)}
                               type="button"
+                              onClick={() => loadUserCases(user)}
                             >
                               <FolderOpen className="size-3.5" />
                               Cases
@@ -389,12 +393,12 @@ export function HelperUsersPanel() {
               </p>
             </div>
             <DashButton
+              variant="secondary"
               onClick={() => {
                 setCasesUserId(null);
                 setCases([]);
                 setCasesError("");
               }}
-              variant="secondary"
             >
               Close
             </DashButton>
@@ -436,10 +440,14 @@ export function HelperUsersPanel() {
                       <td className="px-3 py-3 text-zinc-300">
                         <p>{entry.subjectName || "—"}</p>
                         {entry.username && (
-                          <p className="text-xs text-zinc-500">@{entry.username}</p>
+                          <p className="text-xs text-zinc-500">
+                            @{entry.username}
+                          </p>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-zinc-400">{entry.status}</td>
+                      <td className="px-3 py-3 text-zinc-400">
+                        {entry.status}
+                      </td>
                       <td className="px-3 py-3 text-zinc-500">
                         {formatDate(entry.updatedAt)}
                       </td>

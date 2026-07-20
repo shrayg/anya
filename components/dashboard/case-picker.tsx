@@ -40,6 +40,7 @@ export function CasePicker({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -53,8 +54,8 @@ export function CasePicker({
           isDisabled && "cursor-not-allowed opacity-50",
         )}
         disabled={isDisabled}
-        onClick={() => setOpen((current) => !current)}
         type="button"
+        onClick={() => setOpen((current) => !current)}
       >
         <span
           className={clsx(
@@ -62,7 +63,9 @@ export function CasePicker({
             selected ? "font-medium text-white" : "text-zinc-400",
           )}
         >
-          {selected ? `${selected.title} — ${selected.subjectName}` : placeholder}
+          {selected
+            ? `${selected.title} — ${selected.subjectName}`
+            : placeholder}
         </span>
         <ChevronDown
           className={clsx(
@@ -87,16 +90,18 @@ export function CasePicker({
                     ? "bg-white/10 text-white"
                     : "text-zinc-300 hover:bg-white/[0.06] hover:text-white",
                 )}
+                type="button"
                 onClick={() => {
                   onChange(optionValue);
                   setOpen(false);
                 }}
-                type="button"
               >
                 <span className="truncate">
                   {option.title} — {option.subjectName}
                 </span>
-                {active && <Check className="size-4 shrink-0 text-emerald-300" />}
+                {active && (
+                  <Check className="size-4 shrink-0 text-emerald-300" />
+                )}
               </button>
             );
           })}

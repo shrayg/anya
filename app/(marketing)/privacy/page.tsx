@@ -34,7 +34,10 @@ export default function PrivacyPage() {
           <li>
             <strong className="text-zinc-100">Sale / share:</strong> we do not
             sell personal information for money. See{" "}
-            <a className="text-zinc-100 underline-offset-4 hover:underline" href="/do-not-sell">
+            <a
+              className="text-zinc-100 underline-offset-4 hover:underline"
+              href="/do-not-sell"
+            >
               Do Not Sell or Share
             </a>
             .
@@ -46,9 +49,14 @@ export default function PrivacyPage() {
         <p>We use information to:</p>
         <ul className="list-disc space-y-2 pl-5">
           <li>Create and secure accounts, and deliver plan entitlements</li>
-          <li>Run the lookups you request and show results in your workspace</li>
+          <li>
+            Run the lookups you request and show results in your workspace
+          </li>
           <li>Bill subscriptions and credit purchases</li>
-          <li>Detect abuse, enforce our Acceptable Use Policy, and protect the Service</li>
+          <li>
+            Detect abuse, enforce our Acceptable Use Policy, and protect the
+            Service
+          </li>
           <li>Send service messages (security, billing, support)</li>
           <li>Comply with law and lawful requests</li>
         </ul>
@@ -113,12 +121,15 @@ export default function PrivacyPage() {
           >
             {siteConfig.privacyContactEmail}
           </a>
-          . We may need to verify your identity. We will not discriminate against
-          you for exercising privacy rights.
+          . We may need to verify your identity. We will not discriminate
+          against you for exercising privacy rights.
         </p>
         <p>
           California residents can also use our{" "}
-          <a className="text-zinc-100 underline-offset-4 hover:underline" href="/do-not-sell">
+          <a
+            className="text-zinc-100 underline-offset-4 hover:underline"
+            href="/do-not-sell"
+          >
             Do Not Sell or Share
           </a>{" "}
           page.

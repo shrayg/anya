@@ -52,9 +52,12 @@ const COPY: Record<
 
 function StatusIcon({ kind }: { kind: BillingStatusKind }) {
   const className = "size-5";
+
   switch (kind) {
     case "pending":
-      return <Loader2 className={clsx(className, "animate-spin text-emerald-300")} />;
+      return (
+        <Loader2 className={clsx(className, "animate-spin text-emerald-300")} />
+      );
     case "success":
       return <CheckCircle2 className={clsx(className, "text-emerald-300")} />;
     case "cancelled":
@@ -88,13 +91,13 @@ export function BillingStatusBanner({
 
   return (
     <div
+      aria-live="polite"
       className={clsx(
         "relative mt-6 overflow-hidden rounded-2xl border bg-gradient-to-br p-px shadow-lg",
         shell,
         className,
       )}
       role="status"
-      aria-live="polite"
     >
       <div className="relative rounded-[15px] bg-zinc-950/80 px-5 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
         <div
@@ -132,7 +135,9 @@ export function BillingStatusBanner({
               <h3 className="text-base font-semibold tracking-tight text-white sm:text-lg">
                 {copy.title}
               </h3>
-              <p className="max-w-xl text-sm leading-6 text-zinc-400">{copy.body}</p>
+              <p className="max-w-xl text-sm leading-6 text-zinc-400">
+                {copy.body}
+              </p>
             </div>
           </div>
 
@@ -142,11 +147,11 @@ export function BillingStatusBanner({
                 <button
                   className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.06] px-3.5 text-sm font-medium text-zinc-200 transition hover:border-white/20 hover:bg-white/[0.1] hover:text-white disabled:opacity-60"
                   disabled={refreshing}
+                  type="button"
                   onClick={() => {
                     if (onRefresh) onRefresh();
                     else window.location.reload();
                   }}
-                  type="button"
                 >
                   <RefreshCw
                     className={clsx("size-3.5", refreshing && "animate-spin")}
@@ -156,7 +161,7 @@ export function BillingStatusBanner({
               ) : null}
               {copy.showSupport ? (
                 <NextLink
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-indigo-300/35 bg-indigo-500 px-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:bg-indigo-400"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-pink-300/35 bg-pink-500 px-3.5 text-sm font-semibold text-white shadow-lg shadow-pink-500/25 transition hover:bg-pink-400"
                   href="/support"
                 >
                   <Headphones className="size-3.5" />

@@ -1,3 +1,5 @@
+import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
 
 /**
  * Hillsborough County (FL) HOVER case search.
@@ -54,37 +55,49 @@ function requireName(parsed: ParsedUsQuery): { first: string; last: string } {
 export function shouldSearchFlHover(parsed: ParsedUsQuery): boolean {
   if (parsed.mode === "case") return false;
   if (parsed.state === "FL") return true;
-  return /\b(florida|hillsborough|tampa|brandon|plant city)\b/i.test(parsed.raw);
+
+  return /\b(florida|hillsborough|tampa|brandon|plant city)\b/i.test(
+    parsed.raw,
+  );
 }
 
 function readSetCookies(headers: Headers): string[] {
   const withGetter = headers as Headers & { getSetCookie?: () => string[] };
+
   if (typeof withGetter.getSetCookie === "function") {
     return withGetter.getSetCookie();
   }
   const single = headers.get("set-cookie");
+
   return single ? [single] : [];
 }
 
 function mergeCookies(existing: string, setCookies: string[]): string {
   const map = new Map<string, string>();
+
   for (const part of existing
     .split(";")
     .map((value) => value.trim())
     .filter(Boolean)) {
     const idx = part.indexOf("=");
+
     if (idx > 0) map.set(part.slice(0, idx), part.slice(idx + 1));
   }
   for (const raw of setCookies) {
     const first = raw.split(";")[0] ?? "";
     const idx = first.indexOf("=");
+
     if (idx <= 0) continue;
     map.set(first.slice(0, idx), first.slice(idx + 1));
   }
+
   return [...map.entries()].map(([key, value]) => `${key}=${value}`).join("; ");
 }
 
-async function openHoverSession(): Promise<{ cookie: string; user: HoverUser }> {
+async function openHoverSession(): Promise<{
+  cookie: string;
+  user: HoverUser;
+}> {
   let cookie = "";
 
   const land = await fetchWithTimeout(`${BASE}/html/case/caseSearch.html`, {
@@ -96,6 +109,7 @@ async function openHoverSession(): Promise<{ cookie: string; user: HoverUser }> 
       "User-Agent": BROWSER_UA,
     },
   });
+
   cookie = mergeCookies(cookie, readSetCookies(land.headers));
   await land.text();
 
@@ -110,6 +124,7 @@ async function openHoverSession(): Promise<{ cookie: string; user: HoverUser }> 
       Referer: `${BASE}/html/case/caseSearch.html`,
     },
   });
+
   cookie = mergeCookies(cookie, readSetCookies(cfg.headers));
   await cfg.text();
 
@@ -127,11 +142,13 @@ async function openHoverSession(): Promise<{ cookie: string; user: HoverUser }> 
     },
     body: JSON.stringify({}),
   });
+
   cookie = mergeCookies(cookie, readSetCookies(anon.headers));
   if (!anon.ok) {
     throw new Error(`Hillsborough HOVER anonymous login HTTP ${anon.status}`);
   }
   const user = (await anon.json()) as HoverUser;
+
   if (!user.requestorGuid) {
     throw new Error("Hillsborough HOVER did not return a requestorGuid.");
   }
@@ -156,8 +173,10 @@ async function openHoverSession(): Promise<{ cookie: string; user: HoverUser }> 
       }),
     },
   );
+
   cookie = mergeCookies(cookie, readSetCookies(validate.headers));
   const validateText = await validate.text();
+
   if (!validate.ok || !/true/i.test(validateText)) {
     throw new Error(
       `Hillsborough HOVER captcha GUID validation failed: ${validateText.slice(0, 120)}`,
@@ -174,6 +193,7 @@ export async function searchFlHover(
   const { first, last } = requireName(parsed);
   const key = cacheKey("fl-hover", `${last}|${first}|${limit}`);
   const cached = getCached<CourtCaseHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("fl-hover", 1500);
@@ -213,6 +233,7 @@ export async function searchFlHover(
 
   const text = await res.text();
   let body: HoverSearchResponse;
+
   try {
     body = JSON.parse(text) as HoverSearchResponse;
   } catch {
@@ -225,7 +246,9 @@ export async function searchFlHover(
     );
   }
   if (!res.ok) {
-    throw new Error(`Hillsborough HOVER HTTP ${res.status}: ${text.slice(0, 120)}`);
+    throw new Error(
+      `Hillsborough HOVER HTTP ${res.status}: ${text.slice(0, 120)}`,
+    );
   }
 
   const retrievedAt = new Date().toISOString();
@@ -233,7 +256,9 @@ export async function searchFlHover(
   const hits: CourtCaseHit[] = rows.slice(0, limit).map((row, index) => {
     const docket = row.caseNumber || String(row.caseID || index);
     const party = row.partyName;
-    const style = row.caseStyle || `${party || `${last}, ${first}`} — ${docket}`;
+    const style =
+      row.caseStyle || `${party || `${last}, ${first}`} — ${docket}`;
+
     return {
       id: `fl-hover-${row.caseID || docket}`,
       caseName: style,
@@ -264,5 +289,6 @@ export async function searchFlHover(
   });
 
   setCached(key, hits, SOURCE_LIMITS["fl-hover"].ttlMs);
+
   return hits;
 }

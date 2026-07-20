@@ -15,18 +15,22 @@ export function resolveOsintModuleSlug(
   fallbackApiSegment: string,
 ): string | null {
   const explicit = req.nextUrl.searchParams.get("moduleSlug")?.trim();
+
   if (explicit) return explicit;
 
   const scope = req.nextUrl.searchParams.get("scope")?.trim();
+
   if (scope && getPlatformSearchConfig(scope)) {
     return scope;
   }
 
   if (fallbackApiSegment === "ai") {
     const mode = req.nextUrl.searchParams.get("mode")?.trim();
+
     if (mode === "deep") return "ai-deep-scan";
     if (mode === "crypto") return "crypto-ai";
     if (mode === "threat") return "threat-brief";
+
     return "ai-search";
   }
 

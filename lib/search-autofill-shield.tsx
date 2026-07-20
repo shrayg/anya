@@ -60,16 +60,16 @@ export function AutofillDecoyFields() {
       tabIndex={-1}
     >
       <input
+        readOnly
         autoComplete="username"
         name="username"
-        readOnly
         tabIndex={-1}
         type="text"
       />
       <input
+        readOnly
         autoComplete="current-password"
         name="password"
-        readOnly
         tabIndex={-1}
         type="password"
       />

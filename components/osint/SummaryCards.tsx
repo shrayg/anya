@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, Search, Eye, ShieldCheck } from "lucide-react";
+import { Database, Eye, ShieldCheck } from "lucide-react";
 
 interface SummaryCardsProps {
   totalFound: number;
@@ -16,12 +16,15 @@ export function SummaryCards({ totalFound, displayed }: SummaryCardsProps) {
             <Database className="w-6 h-6 text-purple-400" />
           </div>
           <div>
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Total Found</p>
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">
+              Total Found
+            </p>
             <p className="text-white text-2xl font-black">{totalFound}</p>
           </div>
         </div>
         <p className="text-gray-500 text-xs font-medium leading-relaxed">
-           Aggregated records retrieved from unified indexed archives across global endpoints.
+          Aggregated records retrieved from unified indexed archives across
+          global endpoints.
         </p>
       </div>
 
@@ -31,21 +34,28 @@ export function SummaryCards({ totalFound, displayed }: SummaryCardsProps) {
             <Eye className="w-6 h-6 text-blue-400" />
           </div>
           <div>
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Displayed</p>
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">
+              Displayed
+            </p>
             <p className="text-white text-2xl font-black">{displayed}</p>
           </div>
         </div>
         <p className="text-gray-500 text-xs font-medium leading-relaxed">
-           Filtered results currently presented in the active viewport session.
+          Filtered results currently presented in the active viewport session.
         </p>
       </div>
-      
+
       <div className="mt-auto bg-[#0a0a0a] rounded-[2rem] p-6 border border-[#1a1a1a]">
         <div className="flex items-center gap-3 mb-2">
-           <ShieldCheck className="w-4 h-4 text-green-500" />
-           <p className="text-white font-bold text-xs uppercase">Integrity Verified</p>
+          <ShieldCheck className="w-4 h-4 text-green-500" />
+          <p className="text-white font-bold text-xs uppercase">
+            Integrity Verified
+          </p>
         </div>
-        <p className="text-gray-500 text-[10px] font-medium">Data integrity verified through cryptographic hashing and endpoint validation protocols.</p>
+        <p className="text-gray-500 text-[10px] font-medium">
+          Data integrity verified through cryptographic hashing and endpoint
+          validation protocols.
+        </p>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
-import Image from "next/image";
 import type { IconType } from "react-icons";
+
+import Image from "next/image";
 import { BsFillTelephoneFill } from "react-icons/bs";
 import {
   SiBadoo,
@@ -7,7 +8,6 @@ import {
   SiCloudflare,
   SiDatadog,
   SiDiscord,
-  SiEthereum,
   SiFivem,
   SiGithub,
   SiGmail,
@@ -160,11 +160,11 @@ export function PlatformBrandIcon({
   if (brand.imageSrc) {
     return (
       <Image
+        unoptimized
         alt={`${name} logo`}
         className={className}
         height={16}
         src={brand.imageSrc}
-        unoptimized
         width={16}
       />
     );
@@ -174,13 +174,7 @@ export function PlatformBrandIcon({
 
   const { Icon, color } = brand;
 
-  return (
-    <Icon
-      aria-hidden
-      className={className}
-      style={{ color }}
-    />
-  );
+  return <Icon aria-hidden className={className} style={{ color }} />;
 }
 
 export const ModuleBrandIcon = PlatformBrandIcon;

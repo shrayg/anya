@@ -44,6 +44,7 @@ export type UserStats = {
 
 export function getUserPlan(user: UserProfile | null): PlanId {
   if (!user) return "free";
+
   return resolveUserPlan(user);
 }
 
@@ -62,6 +63,7 @@ export function formatAvailableSearches(stats: UserStats | null) {
 /** Display User.balance as spendable credits (USD). */
 export function formatBalance(balance: number | undefined) {
   if (balance === undefined) return "$0.00";
+
   return `$${balance.toFixed(2)}`;
 }
 
@@ -74,11 +76,14 @@ export function formatCountdown(ms: number): string {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   const pad = (n: number) => String(n).padStart(2, "0");
+
   if (hours >= 48) {
     const days = Math.floor(hours / 24);
     const remHours = hours % 24;
+
     return `${days}d ${pad(remHours)}:${pad(minutes)}:${pad(seconds)}`;
   }
+
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 

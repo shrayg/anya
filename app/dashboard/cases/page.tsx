@@ -1,6 +1,6 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
+import type { CaseWithSearches } from "@/lib/case-mind-map";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 
+import { apiFetch } from "@/lib/csrf-client";
 import { AddCaseModal } from "@/components/dashboard/add-case-modal";
 import { CaseMindMap } from "@/components/dashboard/case-mind-map";
 import {
@@ -26,7 +27,6 @@ import {
   StatCard,
 } from "@/components/dashboard/dashboard-ui";
 import { formatDate } from "@/lib/format-datetime";
-import type { CaseWithSearches } from "@/lib/case-mind-map";
 
 type CaseListItem = {
   id: number;
@@ -138,6 +138,7 @@ export default function CasesPage() {
   const handleSave = async () => {
     if (!form.title.trim()) {
       setError("Case name is required.");
+
       return;
     }
 
@@ -159,6 +160,7 @@ export default function CasesPage() {
 
       if (!response.ok) {
         setError(data.error || "Failed to update case.");
+
         return;
       }
 
@@ -184,6 +186,7 @@ export default function CasesPage() {
 
       if (!response.ok) {
         setError("Failed to delete case.");
+
         return;
       }
 
@@ -202,9 +205,9 @@ export default function CasesPage() {
   return (
     <div className="px-6 py-6 md:px-8 md:py-8">
       <AddCaseModal
+        open={showAddModal}
         onClose={() => setShowAddModal(false)}
         onCreated={handleCaseCreated}
-        open={showAddModal}
       />
 
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -213,7 +216,7 @@ export default function CasesPage() {
           subtitle="Name cases, attach past searches, and explore intel on an interactive mind map."
           title="Case ID"
         />
-        <DashButton onClick={startNewCase} variant="primary">
+        <DashButton variant="primary" onClick={startNewCase}>
           <Plus className="size-4" />
           Add case
         </DashButton>
@@ -235,7 +238,10 @@ export default function CasesPage() {
           value={
             loading
               ? "—"
-              : cases.reduce((sum, item) => sum + (item._count?.searches ?? 0), 0)
+              : cases.reduce(
+                  (sum, item) => sum + (item._count?.searches ?? 0),
+                  0,
+                )
           }
         />
         <StatCard
@@ -265,7 +271,11 @@ export default function CasesPage() {
               <p className="mt-1 max-w-xs text-sm text-zinc-400">
                 Click Add case to name a dossier and pull in your old searches.
               </p>
-              <DashButton className="mt-4" onClick={startNewCase} variant="primary">
+              <DashButton
+                className="mt-4"
+                variant="primary"
+                onClick={startNewCase}
+              >
                 <Plus className="size-4" />
                 Add case
               </DashButton>
@@ -279,8 +289,8 @@ export default function CasesPage() {
                     "dash-case-card w-full text-left",
                     selectedId === record.id && "dash-case-card-active",
                   )}
-                  onClick={() => selectCase(record)}
                   type="button"
+                  onClick={() => selectCase(record)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -306,16 +316,24 @@ export default function CasesPage() {
           {!showWorkspace ? (
             <div className="flex h-full min-h-[28rem] flex-col items-center justify-center text-center">
               <GitBranch className="mb-4 size-10 text-gray-500" />
-              <p className="text-zinc-400">Select a case to open the mind map</p>
+              <p className="text-zinc-400">
+                Select a case to open the mind map
+              </p>
             </div>
           ) : loadingCase ? (
-            <p className="py-20 text-center text-sm text-zinc-500">Loading case intel...</p>
+            <p className="py-20 text-center text-sm text-zinc-500">
+              Loading case intel...
+            </p>
           ) : (
             <>
               <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">{activeCase.title}</h2>
-                  <p className="text-sm text-zinc-400">{activeCase.subjectName}</p>
+                  <h2 className="text-lg font-semibold text-white">
+                    {activeCase.title}
+                  </h2>
+                  <p className="text-sm text-zinc-400">
+                    {activeCase.subjectName}
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex rounded-xl border border-white/8 bg-black/30 p-1">
@@ -326,8 +344,8 @@ export default function CasesPage() {
                           ? "bg-white/10 text-white"
                           : "text-gray-400 hover:text-white",
                       )}
-                      onClick={() => setViewMode("mindmap")}
                       type="button"
+                      onClick={() => setViewMode("mindmap")}
                     >
                       Mind map
                     </button>
@@ -338,13 +356,13 @@ export default function CasesPage() {
                           ? "bg-white/10 text-white"
                           : "text-gray-400 hover:text-white",
                       )}
-                      onClick={() => setViewMode("details")}
                       type="button"
+                      onClick={() => setViewMode("details")}
                     >
                       Details
                     </button>
                   </div>
-                  <DashButton onClick={handleDelete} variant="danger">
+                  <DashButton variant="danger" onClick={handleDelete}>
                     <Trash2 className="size-4" />
                     Delete
                   </DashButton>
@@ -362,8 +380,10 @@ export default function CasesPage() {
                       </label>
                       <DashInput
                         id="case-title"
-                        onChange={(e) => setForm({ ...form, title: e.target.value })}
                         value={form.title}
+                        onChange={(e) =>
+                          setForm({ ...form, title: e.target.value })
+                        }
                       />
                     </div>
                     <div>
@@ -372,10 +392,10 @@ export default function CasesPage() {
                       </label>
                       <DashInput
                         id="case-name"
+                        value={form.subjectName}
                         onChange={(e) =>
                           setForm({ ...form, subjectName: e.target.value })
                         }
-                        value={form.subjectName}
                       />
                     </div>
                   </div>
@@ -387,8 +407,10 @@ export default function CasesPage() {
                       </label>
                       <DashInput
                         id="case-email"
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
                         value={form.email}
+                        onChange={(e) =>
+                          setForm({ ...form, email: e.target.value })
+                        }
                       />
                     </div>
                     <div>
@@ -397,35 +419,43 @@ export default function CasesPage() {
                       </label>
                       <DashInput
                         id="case-phone"
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
                         value={form.phone}
+                        onChange={(e) =>
+                          setForm({ ...form, phone: e.target.value })
+                        }
                       />
                     </div>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="dash-field-label" htmlFor="case-username">
+                      <label
+                        className="dash-field-label"
+                        htmlFor="case-username"
+                      >
                         Username
                       </label>
                       <DashInput
                         id="case-username"
+                        value={form.username}
                         onChange={(e) =>
                           setForm({ ...form, username: e.target.value })
                         }
-                        value={form.username}
                       />
                     </div>
                     <div>
-                      <label className="dash-field-label" htmlFor="case-location">
+                      <label
+                        className="dash-field-label"
+                        htmlFor="case-location"
+                      >
                         Location
                       </label>
                       <DashInput
                         id="case-location"
+                        value={form.location}
                         onChange={(e) =>
                           setForm({ ...form, location: e.target.value })
                         }
-                        value={form.location}
                       />
                     </div>
                   </div>
@@ -436,8 +466,10 @@ export default function CasesPage() {
                     </label>
                     <DashSelect
                       id="case-status"
-                      onChange={(e) => setForm({ ...form, status: e.target.value })}
                       value={form.status}
+                      onChange={(e) =>
+                        setForm({ ...form, status: e.target.value })
+                      }
                     >
                       <option value="active">Active</option>
                       <option value="closed">Closed</option>
@@ -451,9 +483,11 @@ export default function CasesPage() {
                     </label>
                     <DashTextarea
                       id="case-notes"
-                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
                       rows={4}
                       value={form.notes}
+                      onChange={(e) =>
+                        setForm({ ...form, notes: e.target.value })
+                      }
                     />
                   </div>
 
@@ -461,7 +495,9 @@ export default function CasesPage() {
                     <label className="dash-field-label">Linked searches</label>
                     <div className="space-y-2 rounded-xl border border-white/8 bg-black/20 p-3">
                       {activeCase.searches.length === 0 ? (
-                        <p className="text-sm text-zinc-500">No searches linked yet.</p>
+                        <p className="text-sm text-zinc-500">
+                          No searches linked yet.
+                        </p>
                       ) : (
                         activeCase.searches.map((link) => (
                           <div
@@ -487,7 +523,11 @@ export default function CasesPage() {
                   )}
 
                   <div className="flex justify-end">
-                    <DashButton disabled={saving} onClick={handleSave} variant="primary">
+                    <DashButton
+                      disabled={saving}
+                      variant="primary"
+                      onClick={handleSave}
+                    >
                       <Save className="size-4" />
                       {saving ? "Saving..." : "Save changes"}
                     </DashButton>

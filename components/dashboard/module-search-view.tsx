@@ -1,12 +1,31 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
+import type { BankSearchResult } from "@/lib/bank-search";
+import type { BinLookupResult } from "@/lib/bin-lookup";
+import type { CryptoWalletResult } from "@/lib/crypto-wallet";
+import type { IbanLookupResult } from "@/lib/iban-lookup";
+import type { UsProviderSearchResult } from "@/lib/us-provider-directory";
+import type { VinDecodeResult } from "@/lib/vin-decode";
+import type {
+  UsCourtSearchResult,
+  UsIdentitySearchResult,
+  UsVaSorSearchResult,
+} from "@/lib/us-records";
+import type { CombCredential, CombSearchResult } from "@/lib/proxynova-comb";
+import type { DiscordSearchResult } from "@/lib/discord-profile";
+import type { DomainSearchResult } from "@/lib/domain-search";
+import type { SitePentestResult } from "@/lib/site-pentest-shared";
+import type { FivemSearchResult } from "@/lib/fivem-search";
+import type { RobloxSearchResult } from "@/lib/roblox-search";
+import type { FormattedRecord } from "@/lib/search-utils";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, FolderPlus, Home } from "lucide-react";
+import dynamic from "next/dynamic";
 
+import { apiFetch } from "@/lib/csrf-client";
 import { SearchBarTour } from "@/components/search-bar-tour";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { CryptoWalletResults } from "@/components/dashboard/crypto-wallet-results";
@@ -34,31 +53,22 @@ import {
   IntelxSearchResults,
   type IntelxSearchPayload,
 } from "@/components/dashboard/intelx-search-results";
-import dynamic from "next/dynamic";
+
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 import { AiSearchResults } from "@/components/dashboard/ai-search-results";
 import { CryptoAiChatResults } from "@/components/dashboard/crypto-ai-chat-results";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { CasePicker } from "@/components/dashboard/case-picker";
 import { aiModeFromSidebarItem, type AiIntelResult } from "@/lib/ai-intel";
-import type { BankSearchResult } from "@/lib/bank-search";
-import type { BinLookupResult } from "@/lib/bin-lookup";
-import type { CryptoWalletResult } from "@/lib/crypto-wallet";
 import {
   CRYPTO_WALLET_INVALID_MESSAGE,
   detectCryptoChain,
 } from "@/lib/crypto-wallet";
-import type { IbanLookupResult } from "@/lib/iban-lookup";
-import type { UsProviderSearchResult } from "@/lib/us-provider-directory";
-import type { VinDecodeResult } from "@/lib/vin-decode";
-import type {
-  UsCourtSearchResult,
-  UsIdentitySearchResult,
-  UsVaSorSearchResult,
-} from "@/lib/us-records";
-import type { CombCredential, CombSearchResult } from "@/lib/proxynova-comb";
 import { normalizeEmail } from "@/lib/proxynova-comb";
-import { sanitizePublicContent, sanitizePublicText } from "@/lib/public-branding";
+import {
+  sanitizePublicContent,
+  sanitizePublicText,
+} from "@/lib/public-branding";
 import {
   AutofillDecoyFields,
   SEARCH_AUTOFILL_SHIELD,
@@ -66,24 +76,25 @@ import {
   unlockAutofillShield,
 } from "@/lib/search-autofill-shield";
 import { isDiscordSnowflake } from "@/lib/osintcat";
-import type { DiscordSearchResult } from "@/lib/discord-profile";
 import { normalizeInstagramUsername } from "@/lib/instagram-username";
 import { DASHBOARD_TOUR_STORAGE_KEY } from "@/lib/dashboard-tour";
 import { isDatingAppSlug, normalizeDatingQuery } from "@/lib/dating-search";
-import type { DomainSearchResult } from "@/lib/domain-search";
 import { extractStealerLogEntries, normalizeDomain } from "@/lib/domain-search";
-import type { SitePentestResult } from "@/lib/site-pentest-shared";
 import {
   defaultSitePentestModules,
   parseSitePentestTarget,
 } from "@/lib/site-pentest-shared";
-import type { FivemSearchResult } from "@/lib/fivem-search";
-import type { RobloxSearchResult } from "@/lib/roblox-search";
-import { checkModuleAccess, resolveUserPlan, shouldBlurResults } from "@/lib/plans";
+import {
+  checkModuleAccess,
+  resolveUserPlan,
+  shouldBlurResults,
+} from "@/lib/plans";
 import {
   getAiModeForModule,
   isPhoneQuery,
   resolveSearchApiType,
+  composeModuleQuery,
+  type ModuleOptionalFilter,
   type SearchModuleDef,
 } from "@/lib/search-modules";
 import {
@@ -93,8 +104,10 @@ import {
 import { ResultExportControls } from "@/components/dashboard/result-export-controls";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
-import type { FormattedRecord } from "@/lib/search-utils";
-import { formatSearchRecords, formatStructuredSearchData } from "@/lib/search-utils";
+import {
+  formatSearchRecords,
+  formatStructuredSearchData,
+} from "@/lib/search-utils";
 import {
   downloadExportFile,
   formatBreachCredentialAsExport,
@@ -113,6 +126,7 @@ const SitePentestResults = dynamic(
     ),
   { ssr: false },
 );
+
 type StructuredResult =
   | { kind: "crypto-wallet"; data: CryptoWalletResult }
   | { kind: "bin"; data: BinLookupResult }
@@ -161,7 +175,11 @@ type CaseOption = {
   subjectName: string;
 };
 
-export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) {
+export function ModuleSearchView({
+  moduleDef,
+}: {
+  moduleDef: SearchModuleDef;
+}) {
   const profile = useDashboardUser();
   const plan = resolveUserPlan(profile);
   const balance = profile.balance ?? 0;
@@ -169,17 +187,24 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const isAi = moduleDef.module === "ai";
   const aiMode = (() => {
     const fromModule = getAiModeForModule(moduleDef);
+
     if (fromModule !== "auto" && fromModule !== "search") return fromModule;
     if (fromModule === "search") return "search";
+
     return aiModeFromSidebarItem(moduleDef.name);
   })();
   const isSummary = aiMode === "summary";
 
   const [query, setQuery] = useState("");
+  const [optionalFilterValues, setOptionalFilterValues] = useState<
+    Partial<Record<ModuleOptionalFilter["id"], string>>
+  >({});
+  const [showOptionalFilters, setShowOptionalFilters] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const prefill = searchParams.get("q")?.trim();
+
     if (prefill) {
       setQuery(prefill);
     }
@@ -191,6 +216,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
   useEffect(() => {
     setSelectedToolId(moduleDef.tools?.[0]?.id ?? "");
+    setOptionalFilterValues({});
+    setShowOptionalFilters(false);
   }, [moduleDef.slug, moduleDef.tools]);
 
   const [isSearching, setIsSearching] = useState(false);
@@ -200,23 +227,35 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const [resultCount, setResultCount] = useState<number | undefined>(undefined);
   const [aiResult, setAiResult] = useState<AiIntelResult | null>(null);
   const [combResult, setCombResult] = useState<CombSearchResult | null>(null);
-  const [domainResult, setDomainResult] = useState<DomainSearchResult | null>(null);
-  const [discordResult, setDiscordResult] = useState<DiscordSearchResult | null>(null);
-  const [intelxResult, setIntelxResult] = useState<IntelxSearchPayload | null>(null);
-  const [fivemResult, setFivemResult] = useState<FivemSearchResult | null>(null);
-  const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(null);
-  const [instagramResult, setInstagramResult] = useState<InstagramSearchPayload | null>(null);
+  const [domainResult, setDomainResult] = useState<DomainSearchResult | null>(
+    null,
+  );
+  const [discordResult, setDiscordResult] =
+    useState<DiscordSearchResult | null>(null);
+  const [intelxResult, setIntelxResult] = useState<IntelxSearchPayload | null>(
+    null,
+  );
+  const [fivemResult, setFivemResult] = useState<FivemSearchResult | null>(
+    null,
+  );
+  const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(
+    null,
+  );
+  const [instagramResult, setInstagramResult] =
+    useState<InstagramSearchPayload | null>(null);
   const [instagramEnriching, setInstagramEnriching] = useState(false);
   const [instagramLoadingMore, setInstagramLoadingMore] = useState(false);
   const [instagramProgressLabel, setInstagramProgressLabel] = useState("");
   const instagramLoadGenRef = useRef(0);
-  const [structuredResult, setStructuredResult] = useState<StructuredResult | null>(null);
+  const [structuredResult, setStructuredResult] =
+    useState<StructuredResult | null>(null);
   const [rawResult, setRawResult] = useState("");
   const [lastSearchLabel, setLastSearchLabel] = useState("");
   const [caseOptions, setCaseOptions] = useState<CaseOption[]>([]);
   const [saveCaseId, setSaveCaseId] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
-  const [workspaceSearchTourReady, setWorkspaceSearchTourReady] = useState(false);
+  const [workspaceSearchTourReady, setWorkspaceSearchTourReady] =
+    useState(false);
 
   useEffect(() => {
     const isDashboardTourDone = () => {
@@ -229,6 +268,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
     if (isDashboardTourDone()) {
       setWorkspaceSearchTourReady(true);
+
       return;
     }
 
@@ -248,7 +288,9 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   }, []);
   const [savingToCase, setSavingToCase] = useState(false);
   const [blurResults, setBlurResults] = useState(false);
-  const [selectedExportIndex, setSelectedExportIndex] = useState<number | null>(null);
+  const [selectedExportIndex, setSelectedExportIndex] = useState<number | null>(
+    null,
+  );
   const [casesLoaded, setCasesLoaded] = useState(false);
   const [pentestModules, setPentestModules] = useState(() =>
     defaultSitePentestModules(),
@@ -257,6 +299,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
   useEffect(() => {
     isMountedRef.current = true;
+
     return () => {
       isMountedRef.current = false;
     };
@@ -280,7 +323,14 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       Boolean(instagramResult) ||
       Boolean(fivemResult) ||
       Boolean(domainResult),
-    [combResult, domainResult, fivemResult, instagramResult, records.length, robloxResult],
+    [
+      combResult,
+      domainResult,
+      fivemResult,
+      instagramResult,
+      records.length,
+      robloxResult,
+    ],
   );
 
   const handleSelectExportIndex = (index: number) => {
@@ -294,18 +344,25 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     if (selectedExportIndex === null) return null;
 
     if (records.length > 0) {
-      const record = records.find((entry) => entry.index === selectedExportIndex);
+      const record = records.find(
+        (entry) => entry.index === selectedExportIndex,
+      );
+
       if (record) return { kind: "record", record };
     }
 
     if (combResult) {
       const row = combResult.credentials[selectedExportIndex - 1];
+
       if (row) return { kind: "breach", row, index: selectedExportIndex };
     }
 
     if (robloxResult) {
       const robloxRecords = formatSearchRecords(robloxResult.results);
-      const record = robloxRecords.find((entry) => entry.index === selectedExportIndex);
+      const record = robloxRecords.find(
+        (entry) => entry.index === selectedExportIndex,
+      );
+
       if (record) return { kind: "record", record };
     }
 
@@ -315,6 +372,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         ...formatSearchRecords(fivemResult.bans.records),
       ];
       const record = pools.find((entry) => entry.index === selectedExportIndex);
+
       if (record) return { kind: "record", record };
     }
 
@@ -322,10 +380,15 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       const stealerRecords = formatSearchRecords(
         extractStealerLogEntries(domainResult.stealerLogs.data),
       );
-      const stealerRecord = stealerRecords.find((entry) => entry.index === selectedExportIndex);
+      const stealerRecord = stealerRecords.find(
+        (entry) => entry.index === selectedExportIndex,
+      );
+
       if (stealerRecord) return { kind: "record", record: stealerRecord };
 
-      const breachRow = domainResult.breachedData?.credentials[selectedExportIndex - 1];
+      const breachRow =
+        domainResult.breachedData?.credentials[selectedExportIndex - 1];
+
       if (breachRow) {
         return { kind: "breach", row: breachRow, index: selectedExportIndex };
       }
@@ -341,7 +404,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const handleExportAll = (format: ExportFormat) => {
     if (!canExportAll) return;
 
-    const filename = safeExportFilename(lastSearchLabel || moduleDef.slug, format);
+    const filename = safeExportFilename(
+      lastSearchLabel || moduleDef.slug,
+      format,
+    );
     let content: string;
 
     if (records.length > 0) {
@@ -363,6 +429,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
   const handleExportSelected = (format: ExportFormat) => {
     const selected = resolveSelectedExport();
+
     if (!selected) return;
 
     const filename = safeExportFilename(
@@ -384,7 +451,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   };
 
   const handleInstagramEnrichBios = async () => {
-    if (!instagramResult?.query || instagramEnriching || instagramLoadingMore) return;
+    if (!instagramResult?.query || instagramEnriching || instagramLoadingMore)
+      return;
 
     setInstagramEnriching(true);
     setError("");
@@ -395,9 +463,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       );
       const responseText = await response.text();
       let data: InstagramSearchPayload & { error?: string };
+
       try {
         data = responseText
-          ? (JSON.parse(responseText) as InstagramSearchPayload & { error?: string })
+          ? (JSON.parse(responseText) as InstagramSearchPayload & {
+              error?: string;
+            })
           : ({ error: "Empty response" } as InstagramSearchPayload & {
               error?: string;
             });
@@ -405,11 +476,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setError(
           `Could not enrich Instagram bios (HTTP ${response.status}). Try again.`,
         );
+
         return;
       }
 
       if (!response.ok || data.error) {
         setError(data.error || "Could not enrich Instagram bios.");
+
         return;
       }
 
@@ -484,6 +557,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
+
       return {
         allowed: false,
         reason: data.error || "Could not verify search access.",
@@ -497,7 +571,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     }>;
   };
 
-  const recordSearch = async (trimmed: string, type: string, resultData: string) => {
+  const recordSearch = async (
+    trimmed: string,
+    type: string,
+    resultData: string,
+  ) => {
     const response = await apiFetch("/api/user/stats", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -531,7 +609,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const trimmed = query.trim();
+    const trimmed = composeModuleQuery(query, optionalFilterValues);
+
+    if (!trimmed) {
+      setError("Enter a search target.");
+
+      return;
+    }
     const searchQuery = isDatingAppSlug(moduleDef.slug)
       ? normalizeDatingQuery(trimmed, moduleDef.slug)
       : trimmed;
@@ -573,6 +657,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     if (moduleLocked) {
       setError(moduleLocked);
       setIsSearching(false);
+
       return;
     }
 
@@ -583,6 +668,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     if (!access.allowed) {
       setError(access.reason || "This search is not available on your plan.");
       setIsSearching(false);
+
       return;
     }
 
@@ -603,6 +689,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         if (!searchResponse.ok) {
           setError(data.error || "AI analysis failed.");
+
           return;
         }
 
@@ -624,7 +711,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     }
 
     let activeType = resolveSearchApiType(moduleDef, trimmed);
-    const selectedTool = moduleDef.tools?.find((tool) => tool.id === selectedToolId);
+    const selectedTool = moduleDef.tools?.find(
+      (tool) => tool.id === selectedToolId,
+    );
+
     if (selectedTool?.apiType) {
       activeType = selectedTool.apiType;
     }
@@ -632,56 +722,68 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     if (activeType === "breaches" && !normalizeEmail(trimmed)) {
       setError("Enter a valid email address.");
       setIsSearching(false);
+
       return;
     }
 
     if (activeType === "crypto-wallet" && !detectCryptoChain(trimmed)) {
       setError(CRYPTO_WALLET_INVALID_MESSAGE);
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "phone" && !isPhoneQuery(trimmed)) {
       setError("Enter a valid phone number (10–15 digits).");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "username" && trimmed.length < 2) {
       setError("Enter a username (at least 2 characters).");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "stealer-logs" && isDiscordSnowflake(trimmed)) {
-      setError("Discord IDs are not supported here. Use the Discord ID module.");
+      setError(
+        "Discord IDs are not supported here. Use the Discord ID module.",
+      );
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "discord-id" && !isDiscordSnowflake(trimmed)) {
       setError("Enter a valid Discord ID (17–20 digits).");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "oathnet-roblox" && !isDiscordSnowflake(trimmed)) {
       setError("Enter a valid Discord ID (17–20 digits).");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "fraud-footprint") {
       const tool = moduleDef.tools?.find((t) => t.id === selectedToolId);
       const api = tool?.apiType || "seon-email";
+
       if (api === "seon-email" && !normalizeEmail(trimmed)) {
         setError("Enter a valid email address.");
         setIsSearching(false);
+
         return;
       }
       if (api === "seon-phone" && !isPhoneQuery(trimmed)) {
         setError("Enter a valid phone number (10–15 digits).");
         setIsSearching(false);
+
         return;
       }
     }
@@ -689,42 +791,52 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
     if (moduleDef.slug === "fivem" && !isDiscordSnowflake(trimmed)) {
       setError("FiveM lookups require a Discord ID (17–20 digits).");
       setIsSearching(false);
+
       return;
     }
 
-    if (moduleDef.slug === "instagram" && !normalizeInstagramUsername(trimmed)) {
+    if (
+      moduleDef.slug === "instagram" &&
+      !normalizeInstagramUsername(trimmed)
+    ) {
       setError("Enter a valid Instagram username or profile URL.");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "domain" && !normalizeDomain(trimmed)) {
       setError("Enter a valid domain name (e.g. example.com).");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "site-pentest" && !parseSitePentestTarget(trimmed)) {
       setError("Enter a valid domain or http(s) URL (e.g. example.com).");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "hash-lookup" && trimmed.length < 8) {
       setError("Enter a valid hash (at least 8 characters).");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "password-search" && trimmed.length < 3) {
       setError("Enter a password to search (at least 3 characters).");
       setIsSearching(false);
+
       return;
     }
 
     if (moduleDef.slug === "name-search" && trimmed.length < 2) {
       setError("Enter a name to search (at least 2 characters).");
       setIsSearching(false);
+
       return;
     }
 
@@ -750,8 +862,11 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
       );
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
+
       try {
-        data = responseText ? (JSON.parse(responseText) as Record<string, unknown>) : {};
+        data = responseText
+          ? (JSON.parse(responseText) as Record<string, unknown>)
+          : {};
       } catch {
         setError(
           searchResponse.ok
@@ -762,6 +877,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               ? "Search timed out or the upstream index was unreachable. Try again in a moment."
               : `Search failed (HTTP ${searchResponse.status}). Try again.`,
         );
+
         return;
       }
 
@@ -773,6 +889,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             typeof data.error === "string" ? data.error : "Search failed.",
           ),
         );
+
         return;
       }
 
@@ -794,6 +911,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           !breachData.hasBreachVipResults
         ) {
           markNoResults(breachData.message);
+
           return;
         }
 
@@ -801,6 +919,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(breachData, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -815,6 +934,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             domainData.message ||
               "No stealer logs or breached data found for this domain.",
           );
+
           return;
         }
 
@@ -822,6 +942,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(domainData, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -841,6 +962,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 "No FiveM results found for this Discord ID.",
             ),
           );
+
           return;
         }
 
@@ -848,6 +970,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(fivemData, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -873,11 +996,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         if (robloxData.error) {
           setError(robloxData.error);
+
           return;
         }
 
         if (!hasResults && !hasLinked && !hasDiscordToRoblox) {
           markNoResults(robloxData.message);
+
           return;
         }
 
@@ -885,6 +1010,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(robloxData, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -899,10 +1025,12 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         if (results.length === 0) {
           markNoResults(linkData.message || linkData.error);
+
           return;
         }
 
         const formatted = formatSearchRecords(results);
+
         setRecords(formatted);
         setResultCount(
           typeof linkData.count === "number" ? linkData.count : results.length,
@@ -910,6 +1038,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -921,6 +1050,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         if (instagramData.error) {
           setError(instagramData.error);
+
           return;
         }
 
@@ -937,6 +1067,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             instagramData.message ||
               "No Instagram graph or breach data was returned.",
           );
+
           return;
         }
 
@@ -951,6 +1082,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         // Background paced batches — UI already shows first ~100.
         const loadGen = ++instagramLoadGenRef.current;
         const username = instagramData.query || trimmed;
+
         void (async () => {
           const chill = (ms: number) =>
             new Promise((resolve) => setTimeout(resolve, ms));
@@ -963,7 +1095,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           try {
             // Self-rate-limit: wait before the heavier pass.
             await chill(4_000);
-            if (!isMountedRef.current || instagramLoadGenRef.current !== loadGen) {
+            if (
+              !isMountedRef.current ||
+              instagramLoadGenRef.current !== loadGen
+            ) {
               return;
             }
 
@@ -975,18 +1110,26 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               `/api/osint/instagram?query=${encodeURIComponent(username)}&moduleSlug=instagram&maxUsers=500&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4&enrichBios=0`,
             );
             const text = await response.text();
+
             if (!response.ok || !text) return;
 
             let next: InstagramSearchPayload;
+
             try {
               next = JSON.parse(text) as InstagramSearchPayload;
             } catch {
               return;
             }
-            if (!isMountedRef.current || instagramLoadGenRef.current !== loadGen) {
+            if (
+              !isMountedRef.current ||
+              instagramLoadGenRef.current !== loadGen
+            ) {
               return;
             }
-            if (!next.profile && !(next.followers?.length || next.following?.length)) {
+            if (
+              !next.profile &&
+              !(next.followers?.length || next.following?.length)
+            ) {
               return;
             }
 
@@ -998,7 +1141,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           } catch {
             // Keep the first batch on screen if the paced pass fails.
           } finally {
-            if (isMountedRef.current && instagramLoadGenRef.current === loadGen) {
+            if (
+              isMountedRef.current &&
+              instagramLoadGenRef.current === loadGen
+            ) {
               setInstagramLoadingMore(false);
               setInstagramProgressLabel("");
             }
@@ -1037,9 +1183,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           !hasFivem &&
           !hasDsa
         ) {
-          markNoResults(
-            discordData.error || "No results were found.",
-          );
+          markNoResults(discordData.error || "No results were found.");
+
           return;
         }
 
@@ -1047,6 +1192,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(discordData, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1066,16 +1212,21 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               intelxData.error || "No export content returned.",
             ),
           );
+
           return;
         }
 
-        const exportBody = sanitizePublicContent(intelxData.content ?? "").trim();
+        const exportBody = sanitizePublicContent(
+          intelxData.content ?? "",
+        ).trim();
+
         if (!exportBody) {
           markNoResults(
             sanitizePublicText(
               intelxData.error || "No export content returned.",
             ),
           );
+
           return;
         }
 
@@ -1091,6 +1242,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(exportBody || serialized);
         setLastSearchLabel(`${moduleDef.name} · ${storageId}`);
         persistSearch(trimmed, moduleDef.slug, exportBody || serialized);
+
         return;
       }
 
@@ -1101,27 +1253,36 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           message?: string;
           error?: string;
         };
-        const results = Array.isArray(breachData.results) ? breachData.results : [];
+        const results = Array.isArray(breachData.results)
+          ? breachData.results
+          : [];
 
         if (results.length === 0) {
           markNoResults(breachData.message || breachData.error);
+
           return;
         }
 
         const formatted = formatSearchRecords(results);
 
         if (formatted.length === 0) {
-          markNoResults(breachData.message || breachData.error || "No results were found.");
+          markNoResults(
+            breachData.message || breachData.error || "No results were found.",
+          );
+
           return;
         }
 
         setRecords(formatted);
         setResultCount(
-          typeof breachData.count === "number" ? breachData.count : results.length,
+          typeof breachData.count === "number"
+            ? breachData.count
+            : results.length,
         );
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1130,11 +1291,13 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         if (formatted.length === 0) {
           const ipData = data as { error?: string };
+
           markNoResults(
             sanitizePublicText(
               ipData.error || "No IP intelligence was returned.",
             ),
           );
+
           return;
         }
 
@@ -1143,15 +1306,18 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
       if (activeType === "site-pentest") {
         const pentest = data as SitePentestResult & { error?: string };
+
         if (!pentest.findings && !pentest.results) {
           setError(
             sanitizePublicText(pentest.error || "Site pentest audit failed."),
           );
+
           return;
         }
 
@@ -1168,6 +1334,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           setEmptyResult("No results were found.");
         }
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1182,20 +1349,21 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
         if (results.length === 0 && profile) {
           const formattedProfile = formatSearchRecords([profile]);
+
           if (formattedProfile.length > 0) {
             setRecords(formattedProfile);
             setResultCount(formattedProfile.length);
             setRawResult(JSON.stringify(data, null, 2));
             setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
             persistSearch(trimmed, moduleDef.slug, serialized);
+
             return;
           }
         }
 
         if (results.length === 0) {
-          markNoResults(
-            typeof data.message === "string" ? data.message : null,
-          );
+          markNoResults(typeof data.message === "string" ? data.message : null);
+
           return;
         }
 
@@ -1207,22 +1375,30 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
               ? data.message
               : "No results were found.",
           );
+
           return;
         }
 
         setRecords(formatted);
-        setResultCount(typeof data.count === "number" ? data.count : results.length);
+        setResultCount(
+          typeof data.count === "number" ? data.count : results.length,
+        );
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
       if (activeType === "crypto-wallet") {
-        setStructuredResult({ kind: "crypto-wallet", data: data as CryptoWalletResult });
+        setStructuredResult({
+          kind: "crypto-wallet",
+          data: data as CryptoWalletResult,
+        });
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1231,15 +1407,18 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
       if (activeType === "iban") {
         const ibanData = data as IbanLookupResult;
+
         setStructuredResult({ kind: "iban", data: ibanData });
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1250,6 +1429,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           markNoResults(
             bankData.message || "No bank institutions matched that search.",
           );
+
           return;
         }
 
@@ -1257,6 +1437,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1265,11 +1446,14 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
       if (activeType === "car-insurance" || activeType === "healthcare") {
-        const providerData = data as UsProviderSearchResult & { message?: string };
+        const providerData = data as UsProviderSearchResult & {
+          message?: string;
+        };
 
         if (!providerData.providers?.length) {
           markNoResults(
@@ -1278,6 +1462,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 ? "No US car insurers matched that search."
                 : "No US health care providers matched that search."),
           );
+
           return;
         }
 
@@ -1288,6 +1473,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1308,6 +1494,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 "No court matters matched that search.",
             );
           }
+
           return;
         }
 
@@ -1315,11 +1502,14 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
       if (PUBLIC_RECORDS_COMPOSE_KINDS.has(activeType)) {
-        const identityData = data as UsIdentitySearchResult & { error?: string };
+        const identityData = data as UsIdentitySearchResult & {
+          error?: string;
+        };
         const kind = activeType as
           | "us-identity"
           | "us-npd"
@@ -1342,6 +1532,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 "No public registry matches found.",
             );
           }
+
           return;
         }
 
@@ -1349,6 +1540,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1358,7 +1550,10 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         if (!sorData.count) {
           if (sorData.errors?.length) {
             setStructuredResult({
-              kind: activeType === "us-sor-national" ? "us-sor-national" : "us-va-sor",
+              kind:
+                activeType === "us-sor-national"
+                  ? "us-sor-national"
+                  : "us-va-sor",
               data: sorData,
             });
             setRawResult(JSON.stringify(data, null, 2));
@@ -1370,16 +1565,19 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                 "No sex offender registry matches found.",
             );
           }
+
           return;
         }
 
         setStructuredResult({
-          kind: activeType === "us-sor-national" ? "us-sor-national" : "us-va-sor",
+          kind:
+            activeType === "us-sor-national" ? "us-sor-national" : "us-va-sor",
           data: sorData,
         });
         setRawResult(JSON.stringify(data, null, 2));
         setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
         persistSearch(trimmed, moduleDef.slug, serialized);
+
         return;
       }
 
@@ -1387,6 +1585,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
       if (formatted.length === 0) {
         markNoResults();
+
         return;
       }
 
@@ -1405,6 +1604,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
           err instanceof Error && err.message
             ? sanitizePublicText(err.message)
             : "Could not complete the search.";
+
         setError(message);
       }
     } finally {
@@ -1437,6 +1637,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
 
       if (!response.ok) {
         setSaveMessage("Failed to save to case.");
+
         return;
       }
 
@@ -1451,11 +1652,17 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
   return (
     <div className="module-search px-6 py-6 md:px-8 md:py-8">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <Link className="module-search-back inline-flex items-center gap-2" href="/dashboard/search">
+        <Link
+          className="module-search-back inline-flex items-center gap-2"
+          href="/dashboard/search"
+        >
           <ArrowLeft className="size-4" />
           Search hub
         </Link>
-        <Link className="module-search-back inline-flex items-center gap-2" href="/">
+        <Link
+          className="module-search-back inline-flex items-center gap-2"
+          href="/"
+        >
           <Home className="size-4" />
           Home
         </Link>
@@ -1491,6 +1698,7 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             <div className="mb-4 flex flex-wrap gap-2">
               {moduleDef.tools.map((tool) => {
                 const active = tool.id === selectedToolId;
+
                 return (
                   <button
                     key={tool.id}
@@ -1499,8 +1707,8 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
                         ? "rounded-full border border-[var(--anya-blush)]/50 bg-[var(--anya-blush)]/15 px-3 py-1 text-xs font-medium text-[var(--anya-blush)]"
                         : "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300 hover:border-white/25"
                     }
-                    onClick={() => setSelectedToolId(tool.id)}
                     type="button"
+                    onClick={() => setSelectedToolId(tool.id)}
                   >
                     {tool.label}
                   </button>
@@ -1517,38 +1725,42 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             {isSummary ? (
               <textarea
                 {...TEXTAREA_AUTOFILL_SHIELD}
+                readOnly
                 className="ui-input min-h-[7rem] flex-1 resize-y font-mono text-sm"
                 data-tour="search-input"
                 name="osint-summary-query"
+                placeholder="Paste intel, JSON, logs, or case notes…"
+                value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onFocus={unlockAutofillShield}
-                placeholder="Paste intel, JSON, logs, or case notes…"
-                readOnly
-                value={query}
               />
             ) : (
               <input
                 {...SEARCH_AUTOFILL_SHIELD}
                 autoFocus
+                readOnly
                 className="ui-input flex-1 font-mono text-sm"
                 data-tour="search-input"
                 name="osint-search-query"
-                onChange={(event) => setQuery(event.target.value)}
-                onFocus={unlockAutofillShield}
                 placeholder={
                   moduleDef.slug === "intelx"
                     ? "Paste Storage ID or share URL…"
                     : moduleDef.hint
                 }
-                readOnly
                 type="text"
                 value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onFocus={unlockAutofillShield}
               />
             )}
             <button
               className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
               data-tour="search-submit"
-              disabled={!query.trim() || isSearching || Boolean(moduleLocked)}
+              disabled={
+                (!query.trim() && !optionalFilterValues.zip?.trim()) ||
+                isSearching ||
+                Boolean(moduleLocked)
+              }
               type="submit"
             >
               {isSearching
@@ -1561,6 +1773,48 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
             </button>
           </form>
 
+          {moduleDef.optionalFilters && moduleDef.optionalFilters.length > 0 ? (
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <button
+                className="text-xs font-medium text-zinc-400 hover:text-zinc-200"
+                type="button"
+                onClick={() => setShowOptionalFilters((open) => !open)}
+              >
+                {showOptionalFilters ? "Hide" : "Show"} optional filters
+                <span className="ml-2 font-normal text-zinc-500">
+                  — leave blank for open-ended search
+                </span>
+              </button>
+              {showOptionalFilters ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {moduleDef.optionalFilters.map((filter) => (
+                    <label key={filter.id} className="flex flex-col gap-1">
+                      <span className="text-[11px] uppercase tracking-wide text-zinc-500">
+                        {filter.label}
+                      </span>
+                      <input
+                        {...SEARCH_AUTOFILL_SHIELD}
+                        readOnly
+                        className="ui-input font-mono text-sm"
+                        name={`osint-filter-${filter.id}`}
+                        placeholder={filter.placeholder}
+                        type="text"
+                        value={optionalFilterValues[filter.id] ?? ""}
+                        onChange={(event) =>
+                          setOptionalFilterValues((prev) => ({
+                            ...prev,
+                            [filter.id]: event.target.value,
+                          }))
+                        }
+                        onFocus={unlockAutofillShield}
+                      />
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {error && (
             <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-sm text-red-200">
               {error}
@@ -1569,208 +1823,253 @@ export function ModuleSearchView({ moduleDef }: { moduleDef: SearchModuleDef }) 
         </div>
       </section>
 
-          {!isSearching && emptyResult && moduleDef.slug !== "site-pentest" ? (
-            <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
-              {lastSearchLabel ? (
-                <p className="mb-4 text-sm text-zinc-400">{lastSearchLabel}</p>
-              ) : null}
+      {!isSearching && emptyResult && moduleDef.slug !== "site-pentest" ? (
+        <div
+          className="mt-5 border-t border-white/8 pt-5"
+          data-tour="search-results"
+        >
+          {lastSearchLabel ? (
+            <p className="mb-4 text-sm text-zinc-400">{lastSearchLabel}</p>
+          ) : null}
+          <SearchEmptyState detail={emptyResult} />
+        </div>
+      ) : null}
+
+      {moduleDef.slug === "site-pentest" ? (
+        <div
+          className="mt-5 border-t border-white/8 pt-5"
+          data-tour="search-results"
+        >
+          {(structuredResult?.kind === "site-pentest" || lastSearchLabel) && (
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-zinc-400">
+                {lastSearchLabel || "Site Pentest"}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <ResultExportControls
+                  disabled={!rawResult}
+                  label="Export"
+                  onExport={handleExportAll}
+                />
+                <CasePicker
+                  options={caseOptions}
+                  value={saveCaseId}
+                  onChange={setSaveCaseId}
+                />
+                <button
+                  className="ui-btn ui-btn-primary"
+                  disabled={!saveCaseId || savingToCase || !rawResult}
+                  type="button"
+                  onClick={handleSaveToCase}
+                >
+                  <FolderPlus className="size-3.5" />
+                  {savingToCase ? "Saving…" : "File intel"}
+                </button>
+              </div>
+            </div>
+          )}
+          {saveMessage ? (
+            <p className="mb-3 text-sm text-zinc-300">{saveMessage}</p>
+          ) : null}
+          <SitePentestResults
+            blurResults={blurResults}
+            result={
+              structuredResult?.kind === "site-pentest"
+                ? structuredResult.data
+                : null
+            }
+            scanning={isSearching}
+            selectedModules={pentestModules}
+            onModulesChange={setPentestModules}
+          />
+          {!isSearching && emptyResult ? (
+            <div className="mt-4">
               <SearchEmptyState detail={emptyResult} />
             </div>
           ) : null}
+        </div>
+      ) : null}
 
-          {moduleDef.slug === "site-pentest" ? (
-            <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
-              {(structuredResult?.kind === "site-pentest" || lastSearchLabel) && (
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-zinc-400">
-                    {lastSearchLabel || "Site Pentest"}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <ResultExportControls
-                      disabled={!rawResult}
-                      label="Export"
-                      onExport={handleExportAll}
-                    />
-                    <CasePicker
-                      onChange={setSaveCaseId}
-                      options={caseOptions}
-                      value={saveCaseId}
-                    />
-                    <button
-                      className="ui-btn ui-btn-primary"
-                      disabled={!saveCaseId || savingToCase || !rawResult}
-                      onClick={handleSaveToCase}
-                      type="button"
-                    >
-                      <FolderPlus className="size-3.5" />
-                      {savingToCase ? "Saving…" : "File intel"}
-                    </button>
-                  </div>
-                </div>
-              )}
-              {saveMessage ? (
-                <p className="mb-3 text-sm text-zinc-300">{saveMessage}</p>
-              ) : null}
-              <SitePentestResults
-                blurResults={blurResults}
-                onModulesChange={setPentestModules}
-                result={
-                  structuredResult?.kind === "site-pentest"
-                    ? structuredResult.data
-                    : null
-                }
-                scanning={isSearching}
-                selectedModules={pentestModules}
+      {(records.length > 0 ||
+        aiResult ||
+        combResult ||
+        domainResult ||
+        discordResult ||
+        intelxResult ||
+        fivemResult ||
+        robloxResult ||
+        instagramResult ||
+        (structuredResult && structuredResult.kind !== "site-pentest")) && (
+        <div
+          className="mt-5 border-t border-white/8 pt-5"
+          data-tour="search-results"
+        >
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-zinc-400">{lastSearchLabel}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <ResultExportControls
+                disabled={!hasSelectableCards || selectedExportIndex === null}
+                label="Export selected"
+                onExport={handleExportSelected}
               />
-              {!isSearching && emptyResult ? (
-                <div className="mt-4">
-                  <SearchEmptyState detail={emptyResult} />
-                </div>
-              ) : null}
+              <ResultExportControls
+                disabled={!canExportAll}
+                label="Export"
+                onExport={handleExportAll}
+              />
+              <CasePicker
+                options={caseOptions}
+                value={saveCaseId}
+                onChange={setSaveCaseId}
+              />
+              <button
+                className="ui-btn ui-btn-primary"
+                disabled={!saveCaseId || savingToCase}
+                type="button"
+                onClick={handleSaveToCase}
+              >
+                <FolderPlus className="size-3.5" />
+                {savingToCase ? "Saving…" : "File intel"}
+              </button>
             </div>
-          ) : null}
-
-          {(records.length > 0 ||
-            aiResult ||
-            combResult ||
-            domainResult ||
-            discordResult ||
-            intelxResult ||
-            fivemResult ||
-            robloxResult ||
-            instagramResult ||
-            (structuredResult && structuredResult.kind !== "site-pentest")) && (
-            <div className="mt-5 border-t border-white/8 pt-5" data-tour="search-results">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-zinc-400">{lastSearchLabel}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <ResultExportControls
-                    disabled={!hasSelectableCards || selectedExportIndex === null}
-                    label="Export selected"
-                    onExport={handleExportSelected}
-                  />
-                  <ResultExportControls
-                    disabled={!canExportAll}
-                    label="Export"
-                    onExport={handleExportAll}
-                  />
-                  <CasePicker
-                    onChange={setSaveCaseId}
-                    options={caseOptions}
-                    value={saveCaseId}
-                  />
-                  <button
-                    className="ui-btn ui-btn-primary"
-                    disabled={!saveCaseId || savingToCase}
-                    onClick={handleSaveToCase}
-                    type="button"
-                  >
-                    <FolderPlus className="size-3.5" />
-                    {savingToCase ? "Saving…" : "File intel"}
-                  </button>
-                </div>
-              </div>
-              {saveMessage && (
-                <p className="mb-3 text-sm text-zinc-300">{saveMessage}</p>
-              )}
-              {caseOptions.length === 0 && (
-                <p className="mb-3 text-xs text-zinc-500">
-                  No cases yet.{" "}
-                  <Link
-                    className="text-anya-accent underline hover:text-anya-accent-hover"
-                    href="/dashboard/cases"
-                  >
-                    Open Case ID
-                  </Link>{" "}
-                  to start filing.
-                </p>
-              )}
-              {aiResult ? (
-                aiResult.mode === "crypto" ? (
-                  <CryptoAiChatResults blurResults={blurResults} result={aiResult} />
-                ) : (
-                  <AiSearchResults blurResults={blurResults} result={aiResult} />
-                )
-              ) : intelxResult ? (
-                <IntelxSearchResults blurResults={blurResults} result={intelxResult} />
-              ) : fivemResult ? (
-                <FivemSearchResults
-                  blurResults={blurResults}
-                  onSelectExportIndex={handleSelectExportIndex}
-                  result={fivemResult}
-                  selectedExportIndex={selectedExportIndex}
-                />
-              ) : robloxResult ? (
-                <RobloxSearchResults
-                  blurResults={blurResults}
-                  onSelectExportIndex={handleSelectExportIndex}
-                  result={robloxResult}
-                  selectedExportIndex={selectedExportIndex}
-                />
-              ) : instagramResult ? (
-                <InstagramSearchResults
-                  blurResults={blurResults}
-                  enriching={instagramEnriching}
-                  loadingMore={instagramLoadingMore}
-                  onEnrichBios={handleInstagramEnrichBios}
-                  onSelectExportIndex={handleSelectExportIndex}
-                  progressLabel={instagramProgressLabel}
-                  result={instagramResult}
-                  selectedExportIndex={selectedExportIndex}
-                />
-              ) : discordResult ? (
-                <DiscordSearchResults blurResults={blurResults} result={discordResult} />
-              ) : domainResult ? (
-                <DomainSearchResults
-                  blurResults={blurResults}
-                  onSelectExportIndex={handleSelectExportIndex}
-                  result={domainResult}
-                  selectedExportIndex={selectedExportIndex}
-                />
-              ) : combResult ? (
-                <BreachesSearchResults
-                  blurResults={blurResults}
-                  onSelectExportIndex={handleSelectExportIndex}
-                  result={combResult}
-                  selectedExportIndex={selectedExportIndex}
-                />
-              ) : structuredResult?.kind === "crypto-wallet" ? (
-                <CryptoWalletResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "bin" ? (
-                <BinSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "iban" ? (
-                <IbanSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "bank" ? (
-                <BankSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "vin" ? (
-                <VinSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "car-insurance" || structuredResult?.kind === "healthcare" ? (
-                <UsProviderSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "us-court" ? (
-                <UsCourtSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult?.kind === "us-va-sor" || structuredResult?.kind === "us-sor-national" ? (
-                <UsVaSorSearchResults blurResults={blurResults} result={structuredResult.data} />
-              ) : structuredResult &&
-                structuredResult.kind !== "site-pentest" &&
-                PUBLIC_RECORDS_COMPOSE_KINDS.has(structuredResult.kind) ? (
-                <UsIdentitySearchResults
-                  blurResults={blurResults}
-                  result={structuredResult.data as UsIdentitySearchResult}
-                  title={
-                    PUBLIC_RECORDS_COMPOSE_TITLES[structuredResult.kind] || "Public records hits"
-                  }
-                />
-              ) : records.length > 0 ? (
-                <SearchResultCards
-                  blurResults={blurResults}
-                  onSelectExportIndex={handleSelectExportIndex}
-                  records={records}
-                  selectedExportIndex={selectedExportIndex}
-                  totalCount={resultCount}
-                />
-              ) : null}
-            </div>
+          </div>
+          {saveMessage && (
+            <p className="mb-3 text-sm text-zinc-300">{saveMessage}</p>
           )}
+          {caseOptions.length === 0 && (
+            <p className="mb-3 text-xs text-zinc-500">
+              No cases yet.{" "}
+              <Link
+                className="text-anya-accent underline hover:text-anya-accent-hover"
+                href="/dashboard/cases"
+              >
+                Open Case ID
+              </Link>{" "}
+              to start filing.
+            </p>
+          )}
+          {aiResult ? (
+            aiResult.mode === "crypto" ? (
+              <CryptoAiChatResults
+                blurResults={blurResults}
+                result={aiResult}
+              />
+            ) : (
+              <AiSearchResults blurResults={blurResults} result={aiResult} />
+            )
+          ) : intelxResult ? (
+            <IntelxSearchResults
+              blurResults={blurResults}
+              result={intelxResult}
+            />
+          ) : fivemResult ? (
+            <FivemSearchResults
+              blurResults={blurResults}
+              result={fivemResult}
+              selectedExportIndex={selectedExportIndex}
+              onSelectExportIndex={handleSelectExportIndex}
+            />
+          ) : robloxResult ? (
+            <RobloxSearchResults
+              blurResults={blurResults}
+              result={robloxResult}
+              selectedExportIndex={selectedExportIndex}
+              onSelectExportIndex={handleSelectExportIndex}
+            />
+          ) : instagramResult ? (
+            <InstagramSearchResults
+              blurResults={blurResults}
+              enriching={instagramEnriching}
+              loadingMore={instagramLoadingMore}
+              progressLabel={instagramProgressLabel}
+              result={instagramResult}
+              selectedExportIndex={selectedExportIndex}
+              onEnrichBios={handleInstagramEnrichBios}
+              onSelectExportIndex={handleSelectExportIndex}
+            />
+          ) : discordResult ? (
+            <DiscordSearchResults
+              blurResults={blurResults}
+              result={discordResult}
+            />
+          ) : domainResult ? (
+            <DomainSearchResults
+              blurResults={blurResults}
+              result={domainResult}
+              selectedExportIndex={selectedExportIndex}
+              onSelectExportIndex={handleSelectExportIndex}
+            />
+          ) : combResult ? (
+            <BreachesSearchResults
+              blurResults={blurResults}
+              result={combResult}
+              selectedExportIndex={selectedExportIndex}
+              onSelectExportIndex={handleSelectExportIndex}
+            />
+          ) : structuredResult?.kind === "crypto-wallet" ? (
+            <CryptoWalletResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "bin" ? (
+            <BinSearchResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "iban" ? (
+            <IbanSearchResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "bank" ? (
+            <BankSearchResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "vin" ? (
+            <VinSearchResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "car-insurance" ||
+            structuredResult?.kind === "healthcare" ? (
+            <UsProviderSearchResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "us-court" ? (
+            <UsCourtSearchResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "us-va-sor" ||
+            structuredResult?.kind === "us-sor-national" ? (
+            <UsVaSorSearchResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult &&
+            structuredResult.kind !== "site-pentest" &&
+            PUBLIC_RECORDS_COMPOSE_KINDS.has(structuredResult.kind) ? (
+            <UsIdentitySearchResults
+              blurResults={blurResults}
+              result={structuredResult.data as UsIdentitySearchResult}
+              title={
+                PUBLIC_RECORDS_COMPOSE_TITLES[structuredResult.kind] ||
+                "Public records hits"
+              }
+            />
+          ) : records.length > 0 ? (
+            <SearchResultCards
+              blurResults={blurResults}
+              records={records}
+              selectedExportIndex={selectedExportIndex}
+              totalCount={resultCount}
+              onSelectExportIndex={handleSelectExportIndex}
+            />
+          ) : null}
+        </div>
+      )}
 
       <SearchBarTour
         ariaLabel="Workspace search guide"

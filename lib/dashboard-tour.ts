@@ -73,20 +73,24 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     title: "Cases & account",
     body: "Case ID files intel from searches. Admin Dashboard manages users and plans. Search hub lists every module as cards if you prefer browsing.",
     target: "[data-tour='case-id']",
-    fallbackTargets: ["[data-tour='footer-admin']", "[data-tour='footer-settings']"],
+    fallbackTargets: [
+      "[data-tour='footer-admin']",
+      "[data-tour='footer-settings']",
+    ],
   },
 ];
 
 export function resolveTourTarget(step: DashboardTourStep): Element | null {
-  const selectors = [
-    step.target,
-    ...(step.fallbackTargets ?? []),
-  ].filter(Boolean) as string[];
+  const selectors = [step.target, ...(step.fallbackTargets ?? [])].filter(
+    Boolean,
+  ) as string[];
 
   for (const selector of selectors) {
     const element = document.querySelector(selector);
+
     if (element instanceof HTMLElement) {
       const rect = element.getBoundingClientRect();
+
       if (rect.width > 0 && rect.height > 0) {
         return element;
       }

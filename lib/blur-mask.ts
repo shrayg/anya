@@ -9,12 +9,18 @@ function stableHash(input: string): number {
   return hash >>> 0;
 }
 
-export function buildStableBlurMask(text: string, blurPercentage = 0.65): Set<number> {
+export function buildStableBlurMask(
+  text: string,
+  blurPercentage = 0.65,
+): Set<number> {
   const chars = text.split("");
   const blurIndices = new Set<number>();
   const teaserCount = Math.min(2, Math.max(1, Math.floor(chars.length * 0.15)));
   const maxBlur = Math.max(0, chars.length - teaserCount);
-  const targetBlur = Math.min(maxBlur, Math.ceil(chars.length * blurPercentage));
+  const targetBlur = Math.min(
+    maxBlur,
+    Math.ceil(chars.length * blurPercentage),
+  );
 
   const ranked = chars
     .map((char, index) => ({

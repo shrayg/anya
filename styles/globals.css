@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @import "./theme-lime-test.css";
 @import "./theme-mac-dashboard.css";
@@ -15,10 +15,16 @@
 }
 :root {
   scroll-behavior: smooth;
-  --anya-blush: #f0a4b8;
+  --anya-blush: #ff4fa3;
   --anya-blush-soft: color-mix(in srgb, var(--anya-blush) 12%, transparent);
   --anya-blush-glow: color-mix(in srgb, var(--anya-blush) 35%, transparent);
-  --anya-blush-hover: #f5b8c8;
+  --anya-blush-hover: #ff78ba;
+  --anya-pink: #ff4fa3;
+  --anya-pink-soft: color-mix(in srgb, var(--anya-pink) 14%, transparent);
+  --anya-pink-glow: color-mix(in srgb, var(--anya-pink) 40%, transparent);
+  --anya-pink-hover: #ff78ba;
+  --anya-void: #000000;
+  --anya-ink: #0a0a0b;
 }
 
 .text-anya-accent {
@@ -91,8 +97,25 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  background: #000;
+  background:
+    radial-gradient(ellipse 70% 50% at 12% -10%, var(--anya-pink-soft), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 88% 110%, var(--anya-blush-soft), transparent 50%),
+    var(--anya-void);
   color: #fff;
+}
+
+.dash-shell::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 75%);
 }
 
 .dash-shell--sidebar-collapsed {
@@ -235,14 +258,9 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
 }
 
 .dash-nav-link-active {
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--anya-pink) 12%, transparent);
   color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-.dash-nav-link-coffee.dash-nav-link-active {
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anya-pink) 35%, transparent);
 }
 
 .dash-page-header {
@@ -252,15 +270,16 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
 .dash-badge {
   display: inline-block;
   margin-bottom: 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.04);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.65rem;
+  border-radius: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 8%, transparent);
+  padding: 0.25rem 0.7rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.62rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #d1d5db;
+  color: var(--anya-blush);
 }
 
 .dash-title {
@@ -279,12 +298,14 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
 }
 
 .dash-panel {
-  border-radius: 0.5rem;
+  border-radius: 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.4);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--anya-pink) 6%, transparent), transparent 42%),
+    rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(24px);
   padding: 1.25rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
 }
 
 .dash-quick-grid {
@@ -379,8 +400,15 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
 
 .dash-panel-glow-teal,
 .dash-panel-glow-amber,
-.dash-panel-glow-violet {
+.dash-panel-glow-violet,
+.dash-panel-glow-pink {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+}
+
+.dash-panel-glow-pink {
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.45),
+    0 0 0 1px color-mix(in srgb, var(--anya-pink) 18%, transparent);
 }
 
 .dash-stat {
@@ -452,14 +480,14 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
 }
 
 .dash-btn-primary {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #fff;
-  color: #000;
-  box-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--anya-pink) 55%, transparent);
+  background: var(--anya-pink);
+  color: #fff;
+  box-shadow: 0 8px 24px var(--anya-pink-glow);
 }
 
 .dash-btn-primary:hover:not(:disabled) {
-  background: #e5e5e5;
+  background: var(--anya-pink-hover);
   transform: translateY(-1px);
 }
 
@@ -507,12 +535,6 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   color: #fca5a5;
 }
 
-.dash-btn-coffee {
-  background: linear-gradient(135deg, #d4a574, #b8956a);
-  color: #1c1410;
-  box-shadow: 0 4px 16px rgba(212, 165, 116, 0.25);
-}
-
 .dash-input,
 .dash-textarea,
 .dash-select {
@@ -550,8 +572,8 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
 .dash-input:focus,
 .dash-textarea:focus,
 .dash-select:focus {
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: none;
+  border-color: color-mix(in srgb, var(--anya-pink) 55%, transparent);
+  box-shadow: 0 0 0 3px var(--anya-pink-soft);
 }
 
 .dash-textarea {
@@ -614,12 +636,160 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.dash-coffee-hero {
-  border-radius: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.4);
+.dash-ops-hero {
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--anya-pink) 28%, rgba(255, 255, 255, 0.1));
+  background:
+    linear-gradient(120deg, var(--anya-pink-soft), transparent 55%),
+    linear-gradient(300deg, var(--anya-blush-soft), transparent 45%),
+    rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(24px);
-  padding: 2rem;
+  padding: 1.5rem 1.75rem;
+}
+
+.dash-ops-hero-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--anya-blush) 85%, #fff);
+}
+
+.dash-ticket-item {
+  width: 100%;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dash-ticket-item:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dash-ticket-item-active {
+  border-color: color-mix(in srgb, var(--anya-pink) 45%, transparent);
+  background: color-mix(in srgb, var(--anya-pink) 12%, transparent);
+}
+
+/* Marketing craft shell — Incredibles-inspired structure, Anya palette */
+.craft-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--anya-blush);
+}
+
+.craft-display {
+  font-family: var(--font-bruno-ace-sc), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: #fff;
+}
+
+.craft-lede {
+  max-width: 36rem;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #a1a1aa;
+}
+
+.craft-section {
+  position: relative;
+  padding-block: clamp(3.5rem, 8vw, 6rem);
+}
+
+.craft-divider {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--anya-pink) 40%, transparent),
+    color-mix(in srgb, var(--anya-blush) 35%, transparent),
+    transparent
+  );
+}
+
+.craft-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.85rem 1rem;
+  text-align: left;
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.craft-chip:hover {
+  border-color: color-mix(in srgb, var(--anya-pink) 40%, transparent);
+  background: color-mix(in srgb, var(--anya-pink) 8%, transparent);
+}
+
+.craft-surface {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background:
+    linear-gradient(145deg, var(--anya-pink-soft), transparent 50%),
+    rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(20px);
+}
+
+.craft-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--anya-pink) 50%, transparent);
+  background: var(--anya-pink);
+  padding: 0.7rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 10px 28px var(--anya-pink-glow);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.craft-cta:hover {
+  background: var(--anya-pink-hover);
+  transform: translateY(-1px);
+}
+
+.craft-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e4e4e7;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.craft-cta-ghost:hover {
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  background: var(--anya-blush-soft);
+  color: #fff;
 }
 
 .case-mind-map .react-flow__pane {

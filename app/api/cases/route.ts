@@ -39,7 +39,11 @@ export async function GET() {
     return NextResponse.json({ cases });
   } catch (error) {
     console.error("List cases error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -59,7 +63,10 @@ export async function POST(request: Request) {
       : [];
 
     if (!title) {
-      return NextResponse.json({ error: "Case name is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Case name is required" },
+        { status: 400 },
+      );
     }
 
     const userId = session.userId as number;
@@ -96,6 +103,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ case: created }, { status: 201 });
   } catch (error) {
     console.error("Create case error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

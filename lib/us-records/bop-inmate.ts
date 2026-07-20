@@ -1,3 +1,5 @@
+import type { ParsedUsQuery, PersonHit } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { ParsedUsQuery, PersonHit } from "@/lib/us-records/types";
 
 type BopInmate = {
   nameLast?: string;
@@ -38,6 +39,7 @@ function requireName(parsed: ParsedUsQuery): { first: string; last: string } {
 
 export function shouldSearchBop(parsed: ParsedUsQuery): boolean {
   if (parsed.country && parsed.country !== "US") return false;
+
   return Boolean(parsed.firstName && parsed.lastName);
 }
 
@@ -48,6 +50,7 @@ export async function searchBopInmateLocator(
   const { first, last } = requireName(parsed);
   const key = cacheKey("bop-inmate", `${last}|${first}|${limit}`);
   const cached = getCached<PersonHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("bop-inmate", 800);
@@ -83,6 +86,7 @@ export async function searchBopInmateLocator(
   }
 
   const body = (await res.json()) as BopResponse;
+
   if (body.Captcha) {
     throw new Error("BOP Inmate Locator requested CAPTCHA for this query.");
   }
@@ -98,6 +102,7 @@ export async function searchBopInmateLocator(
         row.actRelDate ||
         row.projRelDate ||
         (row.releaseCode === "R" ? "Released" : undefined);
+
       return {
         id: `bop-${row.inmateNum || index}`,
         name,
@@ -127,5 +132,6 @@ export async function searchBopInmateLocator(
     });
 
   setCached(key, hits, SOURCE_LIMITS["bop-inmate"].ttlMs);
+
   return hits;
 }

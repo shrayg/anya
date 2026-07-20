@@ -1,4 +1,18 @@
-import { searchBopInmateLocator, shouldSearchBop } from "@/lib/us-records/bop-inmate";
+import type {
+  CourtCaseHit,
+  PersonHit,
+  PublicPortalHit,
+  PublicRecordsSearchResult,
+  PublicRecordsSourceId,
+  UsCourtSearchResult,
+  UsIdentitySearchResult,
+  UsVaSorSearchResult,
+} from "@/lib/us-records/types";
+
+import {
+  searchBopInmateLocator,
+  shouldSearchBop,
+} from "@/lib/us-records/bop-inmate";
 import { searchCourtListener } from "@/lib/us-records/courtlistener";
 import { buildCountryPortals } from "@/lib/us-records/country-portals";
 import {
@@ -10,27 +24,60 @@ import {
   shouldSearchDeCourtConnect,
 } from "@/lib/us-records/de-courtconnect";
 import { searchFbiWanted } from "@/lib/us-records/fbi-wanted";
-import {
-  searchFlHover,
-  shouldSearchFlHover,
-} from "@/lib/us-records/fl-hover";
+import { searchFlHover, shouldSearchFlHover } from "@/lib/us-records/fl-hover";
 import { searchInterpolRedNotices } from "@/lib/us-records/interpol";
 import { searchNppes } from "@/lib/us-records/nppes";
 import { searchNsopw } from "@/lib/us-records/nsopw";
 import { searchOfacSdn } from "@/lib/us-records/ofac-sdn";
+import {
+  searchCaSanctions,
+  searchEuSanctions,
+  searchUkSanctions,
+} from "@/lib/us-records/intl-sanctions";
+import {
+  searchAuDfat,
+  searchChSeco,
+} from "@/lib/us-records/intl-sanctions-bulk";
+import {
+  searchEuMostWanted,
+  searchWorldBankDebarred,
+} from "@/lib/us-records/intl-wanted-debarment";
+import { searchNoBrreg } from "@/lib/us-records/no-brreg";
+import { searchSecEdgar } from "@/lib/us-records/sec-edgar";
+import { searchTxTdcj, shouldSearchTxTdcj } from "@/lib/us-records/tx-tdcj";
+import {
+  searchFlSunbiz,
+  shouldSearchFlSunbiz,
+} from "@/lib/us-records/fl-sunbiz";
+import {
+  searchNycAcris,
+  searchNycPluto,
+  searchPhillyOpa,
+  searchKaneIlProperty,
+  shouldSearchNycProperty,
+  shouldSearchPhillyOpa,
+  shouldSearchKaneIlProperty,
+} from "@/lib/us-records/us-property-open";
+import { searchUsaSpending } from "@/lib/us-records/usaspending";
+import { searchNysDos, shouldSearchNysDos } from "@/lib/us-records/nys-dos";
+import { searchIrsEoNonprofit } from "@/lib/us-records/irs-eo";
+import {
+  searchCaRcmpSor,
+  shouldSearchCaRcmpSor,
+} from "@/lib/us-records/ca-rcmp-sor";
 import { searchOkOscn, shouldSearchOkOscn } from "@/lib/us-records/ok-oscn";
 import {
   searchInMycase,
   shouldSearchInMycase,
 } from "@/lib/us-records/in-mycase";
-import {
-  searchWiCcap,
-  shouldSearchWiCcap,
-} from "@/lib/us-records/wi-ccap";
+import { searchWiCcap, shouldSearchWiCcap } from "@/lib/us-records/wi-ccap";
 import { searchPaUjs, shouldSearchPaUjs } from "@/lib/us-records/pa-ujs";
 import { searchFlFdle, shouldSearchFlFdle } from "@/lib/us-records/fl-fdle";
 import { searchOpenFec } from "@/lib/us-records/openfec";
-import { hasOpenSanctionsKey, searchOpenSanctions } from "@/lib/us-records/opensanctions";
+import {
+  hasOpenSanctionsKey,
+  searchOpenSanctions,
+} from "@/lib/us-records/opensanctions";
 import {
   buildCandidateBacklogPortals,
   buildPriorityStatePortals,
@@ -47,16 +94,6 @@ import {
 import { searchUnSanctions } from "@/lib/us-records/un-sanctions";
 import { searchVaOcis, shouldSearchVaOcis } from "@/lib/us-records/va-ocis";
 import { searchVaSexOffenderRegistry } from "@/lib/us-records/va-sor";
-import type {
-  CourtCaseHit,
-  PersonHit,
-  PublicPortalHit,
-  PublicRecordsSearchResult,
-  PublicRecordsSourceId,
-  UsCourtSearchResult,
-  UsIdentitySearchResult,
-  UsVaSorSearchResult,
-} from "@/lib/us-records/types";
 
 type SettledSource<T> = {
   id: PublicRecordsSourceId;
@@ -102,7 +139,10 @@ function collectErrors(parts: SettledSource<unknown>[]): Array<{
 function wantsVaSor(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean {
   if (parsed.country && parsed.country !== "US") return false;
   if (parsed.state && parsed.state !== "VA") return false;
-  return Boolean(parsed.county || parsed.city || parsed.zip || parsed.state === "VA");
+
+  return Boolean(
+    parsed.county || parsed.city || parsed.zip || parsed.state === "VA",
+  );
 }
 
 function wantsFlFdle(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean {
@@ -111,10 +151,13 @@ function wantsFlFdle(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean {
 
 function wantsNsopw(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean {
   if (parsed.country && parsed.country !== "US") return false;
+
   return Boolean(parsed.firstName && parsed.lastName);
 }
 
-function wantsUsFederal(parsed: ReturnType<typeof parseUsRecordsQuery>): boolean {
+function wantsUsFederal(
+  parsed: ReturnType<typeof parseUsRecordsQuery>,
+): boolean {
   return !parsed.country || parsed.country === "US";
 }
 
@@ -122,20 +165,36 @@ function wantsPriorityStatePortals(
   parsed: ReturnType<typeof parseUsRecordsQuery>,
 ): boolean {
   if (parsed.country && parsed.country !== "US") return false;
+
   return (
     !parsed.state ||
-    ["MD", "FL", "TX", "NY", "DE", "VA", "OK", "PA", "IN", "WA", "NC", "WI"].includes(
-      parsed.state,
-    )
+    [
+      "MD",
+      "FL",
+      "TX",
+      "NY",
+      "DE",
+      "VA",
+      "OK",
+      "PA",
+      "IN",
+      "WA",
+      "NC",
+      "WI",
+    ].includes(parsed.state)
   );
 }
 
-function buildPortalLayer(parsed: ReturnType<typeof parseUsRecordsQuery>): PublicPortalHit[] {
+function buildPortalLayer(
+  parsed: ReturnType<typeof parseUsRecordsQuery>,
+): PublicPortalHit[] {
   const portals: PublicPortalHit[] = [];
+
   if (!parsed.country || parsed.country === "US") {
     if (parsed.state) {
       portals.push(...buildStateCourtPortals(parsed));
-      if (parsed.mode === "person") portals.push(...buildStateSorPortals(parsed));
+      if (parsed.mode === "person")
+        portals.push(...buildStateSorPortals(parsed));
     }
     if (wantsPriorityStatePortals(parsed)) {
       portals.push(...buildPriorityStatePortals(parsed));
@@ -147,6 +206,7 @@ function buildPortalLayer(parsed: ReturnType<typeof parseUsRecordsQuery>): Publi
   if (parsed.country && parsed.country !== "US") {
     portals.push(...buildCountryPortals(parsed));
   }
+
   return portals;
 }
 
@@ -165,6 +225,7 @@ function composeResult(
     ...portals.map((row) => row.source.label),
   ]);
   const count = people.length + cases.length + portals.length;
+
   return {
     query: trimmed,
     parsed,
@@ -174,18 +235,18 @@ function composeResult(
     portals,
     sources,
     errors,
-    message:
-      count === 0
-        ? errors[0]?.message || emptyMessage
-        : undefined,
+    message: count === 0 ? errors[0]?.message || emptyMessage : undefined,
   };
 }
 
-export async function searchUsCourt(query: string): Promise<UsCourtSearchResult> {
+export async function searchUsCourt(
+  query: string,
+): Promise<UsCourtSearchResult> {
   const trimmed = assertUsQuery(query);
   const parsed = parseUsRecordsQuery(trimmed);
 
   const jobs: Array<Promise<SettledSource<CourtCaseHit[]>>> = [];
+
   if (wantsUsFederal(parsed)) {
     jobs.push(
       settleSource("courtlistener", "CourtListener / RECAP", () =>
@@ -266,9 +327,76 @@ export async function searchUsIdentity(
       settleSource("openfec", "FEC OpenFEC", () => searchOpenFec(parsed, 8)),
       settleSource("nppes", "CMS NPPES", () => searchNppes(parsed, 8)),
       settleSource("ofac", "OFAC SDN", () => searchOfacSdn(parsed, 8)),
-      settleSource("un-sanctions", "UN Sanctions", () => searchUnSanctions(parsed, 8)),
-      settleSource("fbi-wanted", "FBI Wanted", () => searchFbiWanted(parsed, 8)),
-      settleSource("sam-gov", "SAM.gov Exclusions", () => searchSamExclusions(parsed, 6)),
+      settleSource("un-sanctions", "UN Sanctions", () =>
+        searchUnSanctions(parsed, 8),
+      ),
+      settleSource("eu-sanctions", "EU Sanctions", () =>
+        searchEuSanctions(parsed, 8),
+      ),
+      settleSource("uk-sanctions", "UK OFSI Sanctions", () =>
+        searchUkSanctions(parsed, 8),
+      ),
+      settleSource("ca-sanctions", "Canada SEMA Sanctions", () =>
+        searchCaSanctions(parsed, 8),
+      ),
+      settleSource("au-dfat", "Australia DFAT Sanctions", () =>
+        searchAuDfat(parsed, 8),
+      ),
+      settleSource("ch-seco", "Switzerland SECO Sanctions", () =>
+        searchChSeco(parsed, 8),
+      ),
+      settleSource("worldbank-debarred", "World Bank Debarment", () =>
+        searchWorldBankDebarred(parsed, 6),
+      ),
+      settleSource("fbi-wanted", "FBI Wanted", () =>
+        searchFbiWanted(parsed, 8),
+      ),
+      settleSource("sam-gov", "SAM.gov Exclusions", () =>
+        searchSamExclusions(parsed, 6),
+      ),
+      settleSource("sec-edgar", "SEC EDGAR", () => searchSecEdgar(parsed, 6)),
+      settleSource("usaspending", "USASpending.gov", () =>
+        searchUsaSpending(parsed, 6),
+      ),
+      settleSource("irs-eo", "IRS EO (ProPublica)", () =>
+        searchIrsEoNonprofit(parsed, 6),
+      ),
+    );
+  } else {
+    jobs.push(
+      settleSource("ofac", "OFAC SDN", () => searchOfacSdn(parsed, 8)),
+      settleSource("un-sanctions", "UN Sanctions", () =>
+        searchUnSanctions(parsed, 8),
+      ),
+      settleSource("eu-sanctions", "EU Sanctions", () =>
+        searchEuSanctions(parsed, 8),
+      ),
+      settleSource("uk-sanctions", "UK OFSI Sanctions", () =>
+        searchUkSanctions(parsed, 8),
+      ),
+      settleSource("ca-sanctions", "Canada SEMA Sanctions", () =>
+        searchCaSanctions(parsed, 8),
+      ),
+      settleSource("au-dfat", "Australia DFAT Sanctions", () =>
+        searchAuDfat(parsed, 8),
+      ),
+      settleSource("ch-seco", "Switzerland SECO Sanctions", () =>
+        searchChSeco(parsed, 8),
+      ),
+      settleSource("worldbank-debarred", "World Bank Debarment", () =>
+        searchWorldBankDebarred(parsed, 6),
+      ),
+    );
+  }
+
+  if (
+    parsed.country === "NO" ||
+    /\b(norway|norsk|brreg|oslo)\b/i.test(parsed.raw)
+  ) {
+    jobs.push(
+      settleSource("no-brreg", "Norway Brønnøysund", () =>
+        searchNoBrreg(parsed, 8),
+      ),
     );
   }
 
@@ -276,6 +404,55 @@ export async function searchUsIdentity(
     jobs.push(
       settleSource("bop-inmate", "BOP Inmate Locator", () =>
         searchBopInmateLocator(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchTxTdcj(parsed)) {
+    jobs.push(
+      settleSource("tx-tdcj", "Texas TDCJ Inmate Search", () =>
+        searchTxTdcj(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchFlSunbiz(parsed)) {
+    jobs.push(
+      settleSource("fl-sunbiz", "Florida Sunbiz", () =>
+        searchFlSunbiz(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchNycProperty(parsed)) {
+    jobs.push(
+      settleSource("nyc-pluto", "NYC PLUTO Property", () =>
+        searchNycPluto(parsed, 6),
+      ),
+      settleSource("nyc-acris", "NYC ACRIS", () => searchNycAcris(parsed, 6)),
+    );
+  }
+
+  if (shouldSearchPhillyOpa(parsed)) {
+    jobs.push(
+      settleSource("philly-opa", "Philadelphia OPA", () =>
+        searchPhillyOpa(parsed, 6),
+      ),
+    );
+  }
+
+  if (shouldSearchKaneIlProperty(parsed)) {
+    jobs.push(
+      settleSource("kane-il-property", "Kane County IL Assessor", () =>
+        searchKaneIlProperty(parsed, 6),
+      ),
+    );
+  }
+
+  if (shouldSearchNysDos(parsed)) {
+    jobs.push(
+      settleSource("nys-dos", "NY DOS Corporations", () =>
+        searchNysDos(parsed, 6),
       ),
     );
   }
@@ -292,6 +469,9 @@ export async function searchUsIdentity(
     settleSource("interpol", "Interpol Red Notices", () =>
       searchInterpolRedNotices(parsed, 8),
     ),
+    settleSource("eu-most-wanted", "Europe's Most Wanted", () =>
+      searchEuMostWanted(parsed, 8),
+    ),
   );
 
   if (hasOpenSanctionsKey()) {
@@ -304,7 +484,17 @@ export async function searchUsIdentity(
 
   if (wantsNsopw(parsed)) {
     jobs.push(
-      settleSource("nsopw", "NSOPW National SOR", () => searchNsopw(parsed, 12)),
+      settleSource("nsopw", "NSOPW National SOR", () =>
+        searchNsopw(parsed, 12),
+      ),
+    );
+  }
+
+  if (shouldSearchCaRcmpSor(parsed)) {
+    jobs.push(
+      settleSource("ca-rcmp-sor", "RCMP High Risk Child SOR", () =>
+        searchCaRcmpSor(parsed, 10),
+      ),
     );
   }
 
@@ -334,7 +524,9 @@ export async function searchUsIdentity(
     }
     if (shouldSearchVaOcis(parsed)) {
       jobs.push(
-        settleSource("va-ocis", "Virginia OCIS", () => searchVaOcis(parsed, 10)),
+        settleSource("va-ocis", "Virginia OCIS", () =>
+          searchVaOcis(parsed, 10),
+        ),
       );
     }
     if (shouldSearchDeCourtConnect(parsed)) {
@@ -346,7 +538,9 @@ export async function searchUsIdentity(
     }
     if (shouldSearchOkOscn(parsed)) {
       jobs.push(
-        settleSource("ok-oscn", "Oklahoma OSCN", () => searchOkOscn(parsed, 10)),
+        settleSource("ok-oscn", "Oklahoma OSCN", () =>
+          searchOkOscn(parsed, 10),
+        ),
       );
     }
     if (shouldSearchFlHover(parsed)) {
@@ -382,6 +576,7 @@ export async function searchUsIdentity(
   const settled = await Promise.all(jobs);
   const people: PersonHit[] = [];
   const cases: CourtCaseHit[] = [];
+
   for (const part of settled) {
     if (!part.value) continue;
     if (
@@ -401,6 +596,7 @@ export async function searchUsIdentity(
   }
 
   const portals = buildPortalLayer(parsed);
+
   return composeResult(
     trimmed,
     parsed,
@@ -412,21 +608,38 @@ export async function searchUsIdentity(
   );
 }
 
-export async function searchUsNpd(query: string): Promise<UsIdentitySearchResult> {
+export async function searchUsNpd(
+  query: string,
+): Promise<UsIdentitySearchResult> {
   return searchUsIdentity(query, { includeCourt: true });
 }
 
-export async function searchUsVaSor(query: string): Promise<UsVaSorSearchResult> {
+export async function searchUsVaSor(
+  query: string,
+): Promise<UsVaSorSearchResult> {
   const trimmed = assertUsQuery(query);
   const parsed = parseUsRecordsQuery(trimmed);
 
+  // Virginia-focused: VA SOR + NSOPW scoped to VA (and FL FDLE only if FL cues present)
   const jobs = [
-    settleSource("nsopw", "NSOPW National SOR", () => searchNsopw(parsed, 25)),
+    settleSource("nsopw", "NSOPW National SOR", () =>
+      searchNsopw(
+        parsed.state ? parsed : { ...parsed, state: "VA", country: "US" },
+        25,
+      ),
+    ),
     settleSource("va-sor", "Virginia Sex Offender Registry", () =>
       searchVaSexOffenderRegistry(parsed, 25),
     ),
-    settleSource("fl-fdle", "Florida FDLE SOR", () => searchFlFdle(parsed, 25)),
   ];
+
+  if (wantsFlFdle(parsed)) {
+    jobs.push(
+      settleSource("fl-fdle", "Florida FDLE SOR", () =>
+        searchFlFdle(parsed, 25),
+      ),
+    );
+  }
 
   const settled = await Promise.all(jobs);
   const people = settled.flatMap((part) => (part.value as PersonHit[]) ?? []);
@@ -447,6 +660,91 @@ export async function searchUsVaSor(query: string): Promise<UsVaSorSearchResult>
   };
 }
 
+/** National NSOPW (+ live state SOR twins when query cues match). */
+export async function searchNationalSor(
+  query: string,
+): Promise<UsVaSorSearchResult> {
+  const trimmed = assertUsQuery(query);
+  const parsed = parseUsRecordsQuery(trimmed);
+
+  const jobs = [];
+
+  if (!parsed.country || parsed.country === "US") {
+    jobs.push(
+      settleSource("nsopw", "NSOPW National SOR", () =>
+        searchNsopw(parsed, 40),
+      ),
+    );
+  }
+  // Always fan out to Canada high-risk SOR on this module (tiny public set).
+  if (!parsed.country || parsed.country === "US" || parsed.country === "CA") {
+    jobs.push(
+      settleSource("ca-rcmp-sor", "RCMP High Risk Child SOR", () =>
+        searchCaRcmpSor(parsed, 20),
+      ),
+    );
+  }
+  if (
+    (!parsed.country || parsed.country === "US") &&
+    (!parsed.state || parsed.state === "VA") &&
+    (parsed.county || parsed.city || parsed.zip)
+  ) {
+    jobs.push(
+      settleSource("va-sor", "Virginia Sex Offender Registry", () =>
+        searchVaSexOffenderRegistry(parsed, 20),
+      ),
+    );
+  }
+  if ((!parsed.country || parsed.country === "US") && wantsFlFdle(parsed)) {
+    jobs.push(
+      settleSource("fl-fdle", "Florida FDLE SOR", () =>
+        searchFlFdle(parsed, 20),
+      ),
+    );
+  }
+
+  if (!jobs.length) {
+    return {
+      query: trimmed,
+      parsed,
+      count: 0,
+      people: [],
+      sources: [],
+      errors: [],
+      message:
+        "No applicable sex offender registries for this country. Try US (NSOPW) or Canada.",
+    };
+  }
+
+  const settled = await Promise.all(jobs);
+  const people = settled.flatMap((part) => (part.value as PersonHit[]) ?? []);
+  // Dedupe by name+state+source
+  const seen = new Set<string>();
+  const deduped = people.filter((row) => {
+    const key = `${row.name.toUpperCase()}|${row.state || ""}|${row.country || ""}|${row.source.id}`;
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+
+    return true;
+  });
+  const errors = collectErrors(settled);
+  const sources = uniqueSources(deduped.map((row) => row.source.label));
+
+  return {
+    query: trimmed,
+    parsed,
+    count: deduped.length,
+    people: deduped,
+    sources,
+    errors,
+    message:
+      deduped.length === 0
+        ? errors[0]?.message || "No sex offender registry matches found."
+        : undefined,
+  };
+}
+
 export async function searchSanctionsWatchlists(
   query: string,
 ): Promise<UsIdentitySearchResult> {
@@ -455,8 +753,29 @@ export async function searchSanctionsWatchlists(
 
   const jobs: Array<Promise<SettledSource<PersonHit[]>>> = [
     settleSource("ofac", "OFAC SDN", () => searchOfacSdn(parsed, 12)),
-    settleSource("un-sanctions", "UN Sanctions", () => searchUnSanctions(parsed, 12)),
+    settleSource("un-sanctions", "UN Sanctions", () =>
+      searchUnSanctions(parsed, 12),
+    ),
+    settleSource("eu-sanctions", "EU Sanctions", () =>
+      searchEuSanctions(parsed, 12),
+    ),
+    settleSource("uk-sanctions", "UK OFSI Sanctions", () =>
+      searchUkSanctions(parsed, 12),
+    ),
+    settleSource("ca-sanctions", "Canada SEMA Sanctions", () =>
+      searchCaSanctions(parsed, 12),
+    ),
+    settleSource("au-dfat", "Australia DFAT Sanctions", () =>
+      searchAuDfat(parsed, 12),
+    ),
+    settleSource("ch-seco", "Switzerland SECO Sanctions", () =>
+      searchChSeco(parsed, 12),
+    ),
+    settleSource("worldbank-debarred", "World Bank Debarment", () =>
+      searchWorldBankDebarred(parsed, 10),
+    ),
   ];
+
   if (hasOpenSanctionsKey()) {
     jobs.push(
       settleSource("opensanctions", "OpenSanctions", () =>
@@ -466,7 +785,9 @@ export async function searchSanctionsWatchlists(
   }
   if (wantsUsFederal(parsed)) {
     jobs.push(
-      settleSource("sam-gov", "SAM.gov Exclusions", () => searchSamExclusions(parsed, 8)),
+      settleSource("sam-gov", "SAM.gov Exclusions", () =>
+        searchSamExclusions(parsed, 8),
+      ),
     );
   }
 
@@ -487,7 +808,9 @@ export async function searchSanctionsWatchlists(
   );
 }
 
-export async function searchWantedPersons(query: string): Promise<UsIdentitySearchResult> {
+export async function searchWantedPersons(
+  query: string,
+): Promise<UsIdentitySearchResult> {
   const trimmed = assertUsQuery(query);
   const parsed = parseUsRecordsQuery(trimmed);
 
@@ -496,12 +819,16 @@ export async function searchWantedPersons(query: string): Promise<UsIdentitySear
     settleSource("interpol", "Interpol Red Notices", () =>
       searchInterpolRedNotices(parsed, 12),
     ),
+    settleSource("eu-most-wanted", "Europe's Most Wanted", () =>
+      searchEuMostWanted(parsed, 12),
+    ),
     settleSource("dallas-wanted", "Dallas County Wanted", () =>
       searchDallasWanted(parsed, 12),
     ),
   ]);
 
   const people = settled.flatMap((part) => part.value ?? []);
+
   return composeResult(
     trimmed,
     parsed,
@@ -519,6 +846,7 @@ export async function searchInternationalRecordsDirectory(
   const trimmed = assertUsQuery(query);
   const parsed = parseUsRecordsQuery(trimmed);
   const portals = buildCountryPortals(parsed);
+
   return composeResult(
     trimmed,
     parsed,
@@ -541,6 +869,7 @@ export async function searchStateRecordsDirectory(
     ...buildPriorityStatePortals(parsed),
     ...buildCandidateBacklogPortals(parsed, 60),
   ];
+
   return composeResult(
     trimmed,
     parsed,
@@ -558,6 +887,7 @@ export async function searchPortalBacklogDirectory(
   const trimmed = assertUsQuery(query);
   const parsed = parseUsRecordsQuery(trimmed);
   const portals = buildCandidateBacklogPortals(parsed, 120);
+
   return composeResult(
     trimmed,
     parsed,

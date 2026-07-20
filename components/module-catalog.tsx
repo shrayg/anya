@@ -48,9 +48,14 @@ export function ModuleCatalogTile({
       href={`/dashboard/search/${item.slug}`}
     >
       <div className="mod-tile-top">
-        <span className="mod-tile-icon">
-          <ModuleIcon name={item.name} />
-        </span>
+        <div className="mod-tile-identity">
+          <span className="mod-tile-icon">
+            <ModuleIcon name={item.name} />
+          </span>
+          {item.code ? (
+            <span className="mod-tile-code">{item.code}</span>
+          ) : null}
+        </div>
         <span className="mod-tile-meta">
           {showStatus ? (
             <ModuleStatusDot slug={item.slug} />
@@ -79,7 +84,12 @@ export function ModuleCatalogSectionBlock({
   showStatus?: boolean;
 }) {
   return (
-    <section className={clsx("mod-section", section.featured && "mod-section--featured")}>
+    <section
+      className={clsx(
+        "mod-section",
+        section.featured && "mod-section--featured",
+      )}
+    >
       <header className="mod-section-head">
         <div>
           <h2 className="mod-section-title">{section.title}</h2>

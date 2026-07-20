@@ -45,17 +45,21 @@ export function addMessage(username: string, text: string) {
   };
 
   messages = [...messages, message].slice(-MAX_MESSAGES);
+
   return message;
 }
 
 export function touchPresence(sessionKey: string) {
   const now = Date.now();
+
   presence.set(sessionKey, now);
   prunePresence(now);
 }
 
 export function getOnlineCount() {
   const now = Date.now();
+
   prunePresence(now);
+
   return presence.size;
 }

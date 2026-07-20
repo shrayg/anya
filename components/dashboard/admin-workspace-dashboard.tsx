@@ -11,7 +11,11 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 
-import { DashButton, DashPanel, StatCard } from "@/components/dashboard/dashboard-ui";
+import {
+  DashButton,
+  DashPanel,
+  StatCard,
+} from "@/components/dashboard/dashboard-ui";
 import { formatDate, formatTime } from "@/lib/format-datetime";
 
 type OverviewResponse = {
@@ -65,11 +69,14 @@ export function AdminWorkspaceDashboard() {
     setError("");
 
     try {
-      const response = await fetch("/api/workspace/overview", { cache: "no-store" });
+      const response = await fetch("/api/workspace/overview", {
+        cache: "no-store",
+      });
       const data = await response.json();
 
       if (!response.ok) {
         setError(data.error || "Could not load workspace overview.");
+
         return;
       }
 
@@ -94,15 +101,17 @@ export function AdminWorkspaceDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">Workspace overview</h2>
+          <h2 className="text-lg font-semibold text-white">
+            Workspace overview
+          </h2>
           <p className="text-sm text-zinc-400">
             Payments, traffic, and platform activity in one place.
           </p>
         </div>
         <DashButton
           className="inline-flex items-center justify-center gap-2"
-          onClick={loadOverview}
           variant="secondary"
+          onClick={loadOverview}
         >
           <RefreshCw className={clsx("size-4", loading && "animate-spin")} />
           Refresh
@@ -146,11 +155,7 @@ export function AdminWorkspaceDashboard() {
           }
           icon={Activity}
           label="Moderation"
-          value={
-            overview
-              ? overview.summary.openSafetyFlags
-              : "—"
-          }
+          value={overview ? overview.summary.openSafetyFlags : "—"}
         />
       </div>
 
@@ -158,7 +163,9 @@ export function AdminWorkspaceDashboard() {
         <DashPanel glow="teal">
           <div className="mb-4 flex items-center gap-2">
             <TrendingUp className="size-4 text-teal-300" />
-            <h3 className="text-base font-semibold text-white">Traffic (7 days)</h3>
+            <h3 className="text-base font-semibold text-white">
+              Traffic (7 days)
+            </h3>
           </div>
 
           <div className="space-y-3">
@@ -173,7 +180,9 @@ export function AdminWorkspaceDashboard() {
                 <div className="h-2 overflow-hidden rounded-full bg-white/5">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-teal-400/70 to-cyan-300/70"
-                    style={{ width: `${Math.max((entry.searches / maxTraffic) * 100, 4)}%` }}
+                    style={{
+                      width: `${Math.max((entry.searches / maxTraffic) * 100, 4)}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -200,7 +209,9 @@ export function AdminWorkspaceDashboard() {
         <DashPanel glow="amber">
           <div className="mb-4 flex items-center gap-2">
             <CreditCard className="size-4 text-amber-300" />
-            <h3 className="text-base font-semibold text-white">Recent payments</h3>
+            <h3 className="text-base font-semibold text-white">
+              Recent payments
+            </h3>
           </div>
 
           <div className="overflow-x-auto">
@@ -229,13 +240,18 @@ export function AdminWorkspaceDashboard() {
                 ) : (
                   overview?.payments.map((payment) => (
                     <tr key={payment.id} className="border-b border-white/5">
-                      <td className="px-2 py-3 text-white">{payment.username}</td>
+                      <td className="px-2 py-3 text-white">
+                        {payment.username}
+                      </td>
                       <td className="px-2 py-3 text-emerald-200">
                         {formatMoney(payment.amount)}
                       </td>
-                      <td className="px-2 py-3 text-zinc-400">{payment.type}</td>
+                      <td className="px-2 py-3 text-zinc-400">
+                        {payment.type}
+                      </td>
                       <td className="px-2 py-3 text-zinc-500">
-                        {formatDate(payment.createdAt)} · {formatTime(payment.createdAt)}
+                        {formatDate(payment.createdAt)} ·{" "}
+                        {formatTime(payment.createdAt)}
                       </td>
                     </tr>
                   ))

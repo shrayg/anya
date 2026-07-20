@@ -1,4 +1,8 @@
-import type { ParsedPublicQuery, PublicPortalHit } from "@/lib/us-records/types";
+import type {
+  ParsedPublicQuery,
+  PublicPortalHit,
+} from "@/lib/us-records/types";
+
 import { filterPortalBacklog } from "@/lib/us-records/portal-backlog";
 
 /** High-value county / specialty portals for MD, FL, TX, NY. */

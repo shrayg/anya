@@ -4,9 +4,7 @@ import {
   loginInstagramWeb,
   loadInstagramCredentials,
 } from "@/lib/instagram-login";
-import {
-  getInstagramSessionId,
-} from "@/lib/instagram-search";
+import { getInstagramSessionId } from "@/lib/instagram-search";
 import { instagramFetch } from "@/lib/instagram-http";
 
 let refreshInFlight: Promise<boolean> | null = null;
@@ -15,6 +13,7 @@ const MIN_REFRESH_GAP_MS = 60_000;
 
 export function isInstagramAuthError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
+
   return /please wait a few minutes|require_login|not logged in|login_required|checkpoint|sessionid is not configured|unauthorized|401|challenge_required|user has been temporarily blocked/i.test(
     message,
   );
@@ -25,6 +24,7 @@ export function isInstagramAuthError(error: unknown): boolean {
  */
 export async function probeInstagramSessionAlive(): Promise<boolean> {
   const sessionId = getInstagramSessionId();
+
   if (!sessionId) return false;
   try {
     const response = await instagramFetch(
@@ -34,12 +34,15 @@ export async function probeInstagramSessionAlive(): Promise<boolean> {
         reportToPool: false,
       },
     );
+
     if (response.status === 401 || response.status === 403) return false;
     if (response.status === 429) return true;
     const text = await response.text();
+
     if (/require_login|login_required|Please wait a few minutes/i.test(text)) {
       return false;
     }
+
     return response.ok || response.status === 400;
   } catch {
     return false;
@@ -56,6 +59,7 @@ export async function ensureInstagramSession(options?: {
 
   if (!force) {
     const alive = await probeInstagramSessionAlive();
+
     if (alive) return { ok: true, refreshed: false };
   }
 
@@ -70,6 +74,7 @@ export async function ensureInstagramSession(options?: {
 
   if (refreshInFlight) {
     const ok = await refreshInFlight;
+
     return {
       ok,
       refreshed: ok,
@@ -81,18 +86,22 @@ export async function ensureInstagramSession(options?: {
     return {
       ok: false,
       refreshed: false,
-      message: "Instagram login recently failed. Wait a minute before retrying.",
+      message:
+        "Instagram login recently failed. Wait a minute before retrying.",
     };
   }
 
   refreshInFlight = (async () => {
     try {
       const result = await loginInstagramWeb();
+
       lastRefreshAt = Date.now();
       if (result.checkpoint || result.twoFactor) {
         console.warn("[instagram-reauth]", result.message);
+
         return false;
       }
+
       return Boolean(result.cookies.INSTAGRAM_SESSION_ID);
     } catch (error) {
       lastRefreshAt = Date.now();
@@ -100,6 +109,7 @@ export async function ensureInstagramSession(options?: {
         "[instagram-reauth]",
         error instanceof Error ? error.message : error,
       );
+
       return false;
     } finally {
       refreshInFlight = null;
@@ -107,6 +117,7 @@ export async function ensureInstagramSession(options?: {
   })();
 
   const ok = await refreshInFlight;
+
   return {
     ok,
     refreshed: ok,
@@ -127,6 +138,7 @@ export async function withInstagramSessionRetry<T>(
   } catch (error) {
     if (!isInstagramAuthError(error)) throw error;
     const ensured = await ensureInstagramSession({ force: true });
+
     if (!ensured.ok) {
       throw new Error(
         ensured.message ||
@@ -135,6 +147,7 @@ export async function withInstagramSessionRetry<T>(
             : "Instagram session expired."),
       );
     }
+
     return operation();
   }
 }

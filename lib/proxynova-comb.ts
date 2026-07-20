@@ -25,6 +25,7 @@ export function parseCombLine(line: string): CombCredential {
 
   if (trimmed.includes("\t")) {
     const [identifier = "", secret = ""] = trimmed.split("\t");
+
     return { identifier, secret, raw: trimmed };
   }
 
@@ -66,7 +67,9 @@ export function filterCredentialsForDomain(
   credentials: CombCredential[],
   domain: string,
 ): CombCredential[] {
-  return credentials.filter((row) => credentialMatchesDomain(row.identifier, domain));
+  return credentials.filter((row) =>
+    credentialMatchesDomain(row.identifier, domain),
+  );
 }
 
 export function normalizeEmail(input: string): string | null {
@@ -90,7 +93,9 @@ export function filterCredentialsForEmail(
   credentials: CombCredential[],
   email: string,
 ): CombCredential[] {
-  return credentials.filter((row) => credentialMatchesEmail(row.identifier, email));
+  return credentials.filter((row) =>
+    credentialMatchesEmail(row.identifier, email),
+  );
 }
 
 export async function searchProxynovaCombForEmail(
@@ -135,6 +140,7 @@ export async function searchProxynovaComb(
   const limit = Math.min(Math.max(1, options?.limit ?? 100), 100);
 
   const url = new URL("https://api.proxynova.com/comb");
+
   url.searchParams.set("query", query);
   url.searchParams.set("start", String(start));
   url.searchParams.set("limit", String(limit));
@@ -146,7 +152,9 @@ export async function searchProxynovaComb(
   });
 
   if (res.status === 429) {
-    throw new Error("Rate limited — ProxyNova allows about 100 requests per minute.");
+    throw new Error(
+      "Rate limited — ProxyNova allows about 100 requests per minute.",
+    );
   }
 
   if (!res.ok) {
@@ -162,7 +170,8 @@ export async function searchProxynovaComb(
   return {
     source: "Breached Data",
     query,
-    totalMatches: typeof data.count === "number" ? data.count : credentials.length,
+    totalMatches:
+      typeof data.count === "number" ? data.count : credentials.length,
     returned: credentials.length,
     start,
     credentials,

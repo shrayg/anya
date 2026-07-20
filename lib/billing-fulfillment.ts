@@ -1,3 +1,5 @@
+import type { BillingMeta } from "@/lib/billing-meta";
+
 import {
   API_PRODUCT,
   CREDIT_PACKS,
@@ -8,7 +10,6 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { notifyPaymentDiscord } from "@/lib/discord-payments-webhook";
-import type { BillingMeta } from "@/lib/billing-meta";
 import { computePlanEndsAt } from "@/lib/plan-lifecycle";
 import { prisma } from "@/prisma/client";
 
@@ -24,9 +25,15 @@ function paidViaLabel(meta: BillingMeta): string {
   return meta.provider === "oxapay" ? "paid via OxaPay" : "paid via Square";
 }
 
-function markPaidDescription(existing: string | undefined, meta: BillingMeta, fallback: string) {
+function markPaidDescription(
+  existing: string | undefined,
+  meta: BillingMeta,
+  fallback: string,
+) {
   const via = paidViaLabel(meta);
+
   if (!existing) return fallback;
+
   return existing
     .replace("awaiting payment confirmation", via)
     .replace("pending payment confirmation", via)
@@ -70,6 +77,7 @@ async function sendPaymentNotification(input: {
 export async function fulfillBillingPayment(input: FulfillBillingInput) {
   const { meta, checkoutSessionId, paymentReferenceId, amountCents } = input;
   const userId = Number(meta.userId);
+
   if (!Number.isFinite(userId) || userId <= 0) {
     return { ok: false as const, reason: "missing_user" };
   }
@@ -90,15 +98,16 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
   }
 
   const amount =
-    amountCents != null
-      ? amountCents / 100
-      : existing?.amount ?? 0;
+    amountCents != null ? amountCents / 100 : (existing?.amount ?? 0);
 
   const via = paidViaLabel(meta);
 
   if (meta.type === "subscription") {
     const planId = normalizePlanId(meta.planId ?? existing?.plan);
-    const interval = (meta.interval ?? existing?.interval ?? "monthly") as BillingInterval;
+    const interval = (meta.interval ??
+      existing?.interval ??
+      "monthly") as BillingInterval;
+
     if (!planId || planId === "free") {
       return { ok: false as const, reason: "invalid_plan" };
     }
@@ -167,7 +176,9 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
     const creditTotal = pack
       ? getCreditPackTotal(pack)
       : existing
-        ? Number(existing.description.match(/\$([\d.]+)/)?.[1] ?? existing.amount)
+        ? Number(
+            existing.description.match(/\$([\d.]+)/)?.[1] ?? existing.amount,
+          )
         : amount;
 
     const description = markPaidDescription(
@@ -217,11 +228,17 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
       providerRef: paymentReferenceId ?? checkoutSessionId,
     });
 
-    return { ok: true as const, type: "credits" as const, credits: creditTotal };
+    return {
+      ok: true as const,
+      type: "credits" as const,
+      credits: creditTotal,
+    };
   }
 
   if (meta.type === "api_access") {
-    const interval = (meta.interval ?? existing?.interval ?? "monthly") as BillingInterval;
+    const interval = (meta.interval ??
+      existing?.interval ??
+      "monthly") as BillingInterval;
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { apiKey: true },

@@ -1,3 +1,5 @@
+import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
 
 /**
  * Indiana MyCase party search via /mycase/Search/SearchCases.
@@ -46,6 +47,7 @@ export function shouldSearchInMycase(parsed: ParsedUsQuery): boolean {
   if (parsed.mode === "case") return false;
   if (parsed.country && parsed.country !== "US") return false;
   if (parsed.state === "IN") return true;
+
   return /\b(indiana|indianapolis|fort wayne|evansville|south bend)\b/i.test(
     parsed.raw,
   );
@@ -57,6 +59,7 @@ function cookieHeader(res: Response): string {
     typeof headers.getSetCookie === "function"
       ? headers.getSetCookie()
       : [res.headers.get("set-cookie") ?? ""].filter(Boolean);
+
   return parts.map((part) => part.split(";")[0]!).join("; ");
 }
 
@@ -67,6 +70,7 @@ export async function searchInMycase(
   const { first, last } = requireName(parsed);
   const key = cacheKey("in-mycase", `${last}|${first}|${limit}`);
   const cached = getCached<CourtCaseHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("in-mycase", 1200);
@@ -80,6 +84,7 @@ export async function searchInMycase(
       "User-Agent": BROWSER_UA,
     },
   });
+
   if (!land.ok) {
     throw new Error(`Indiana MyCase landing HTTP ${land.status}`);
   }
@@ -129,16 +134,16 @@ export async function searchInMycase(
 
   for (const row of rows) {
     const number = row.CaseNumber?.trim();
+
     if (!number) continue;
     const style = row.Style?.trim() || number;
     const token = row.CaseToken?.trim();
+
     hits.push({
       id: `in-mycase-${row.CaseID ?? number}`,
       caseName: style,
       docketNumber: number,
-      court: row.Court
-        ? `Indiana · ${row.Court}`
-        : "Indiana courts",
+      court: row.Court ? `Indiana · ${row.Court}` : "Indiana courts",
       dateFiled: row.FileDate || undefined,
       natureOfSuit: row.CaseType || undefined,
       snippet: row.CaseStatus ? `Status: ${row.CaseStatus}` : undefined,
@@ -157,5 +162,6 @@ export async function searchInMycase(
   }
 
   setCached(key, hits, SOURCE_LIMITS["in-mycase"].ttlMs);
+
   return hits;
 }

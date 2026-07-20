@@ -35,6 +35,7 @@ export function normalizeIpSearchPayload(
 
   // Prefer neutral key for merged index hits (legacy godseye payload shape).
   const indexHits = data.indexHits ?? data.godseye;
+
   if (indexHits) {
     normalized.indexHits = indexHits;
   }
@@ -45,6 +46,7 @@ export function normalizeIpSearchPayload(
     (typeof data.godseyeError === "string" && data.godseyeError) ||
     "";
   const err = sanitizePublicText(errRaw);
+
   if (err) {
     normalized.error = err;
   }

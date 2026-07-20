@@ -34,8 +34,10 @@ export function IntelSignalLoader({
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => setReducedMotion(mq.matches);
+
     apply();
     mq.addEventListener("change", apply);
+
     return () => mq.removeEventListener("change", apply);
   }, []);
 
@@ -48,6 +50,7 @@ export function IntelSignalLoader({
         cancelAnimationFrame(progressRafRef.current);
         progressRafRef.current = null;
       }
+
       return;
     }
 
@@ -59,6 +62,7 @@ export function IntelSignalLoader({
       if (!alive) return;
       const elapsed = (now - startRef.current) / 1000;
       const next = Math.min(0.94, 1 - Math.exp(-elapsed / 9.5));
+
       progressRef.current = next;
       if (now - lastUi > 80) {
         lastUi = now;
@@ -68,6 +72,7 @@ export function IntelSignalLoader({
     };
 
     progressRafRef.current = requestAnimationFrame(tick);
+
     return () => {
       alive = false;
       if (progressRafRef.current != null) {
@@ -80,9 +85,11 @@ export function IntelSignalLoader({
   useEffect(() => {
     if (!active) return;
     const canvas = canvasRef.current;
+
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
+
     if (!ctx) return;
 
     let alive = true;
@@ -96,13 +103,16 @@ export function IntelSignalLoader({
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const css = canvas.clientWidth || (variant === "compact" ? 120 : 220);
+
       canvas.width = Math.floor(css * dpr);
       canvas.height = Math.floor(css * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
+
     resize();
 
     const ro = new ResizeObserver(resize);
+
     ro.observe(canvas);
 
     type Pt = { x: number; y: number; z: number; sx: number; sy: number };
@@ -113,8 +123,10 @@ export function IntelSignalLoader({
       const pad = size * 0.08;
       let sx = size / 2 + x * scale * persp;
       let sy = size / 2 + y * scale * persp * 0.92;
+
       sx = Math.min(size - pad, Math.max(pad, sx));
       sy = Math.min(size - pad, Math.max(pad, sy));
+
       return { x, y, z, sx, sy };
     };
 
@@ -141,6 +153,7 @@ export function IntelSignalLoader({
       const z1 = y * sinX + z * cosX;
       const x2 = x * cosY + z1 * sinY;
       const z2 = -x * sinY + z1 * cosY;
+
       return project(x2, y1, z2, size);
     };
 
@@ -149,6 +162,7 @@ export function IntelSignalLoader({
       const size = canvas.clientWidth || 220;
       const t = reducedMotion ? 0.8 : now / 1000;
       const pct = progressRef.current;
+
       ctx.clearRect(0, 0, size, size);
 
       const bloom = ctx.createRadialGradient(
@@ -159,6 +173,7 @@ export function IntelSignalLoader({
         size / 2,
         size * 0.48,
       );
+
       bloom.addColorStop(0, "rgba(240, 164, 184, 0.12)");
       bloom.addColorStop(0.45, "rgba(255, 255, 255, 0.03)");
       bloom.addColorStop(1, "rgba(0, 0, 0, 0)");
@@ -166,8 +181,10 @@ export function IntelSignalLoader({
       ctx.fillRect(0, 0, size, size);
 
       const grid: Pt[][] = [];
+
       for (let i = 0; i <= majorSegs; i++) {
         const ring: Pt[] = [];
+
         for (let j = 0; j <= minorSegs; j++) {
           ring.push(pointAt(i % majorSegs, j % minorSegs, t, size));
         }
@@ -178,6 +195,7 @@ export function IntelSignalLoader({
         const z = (a.z + b.z) * 0.5;
         const depth = Math.max(0.12, Math.min(1, (z + 1.4) / 2.6));
         const blushMix = 0.35 + depth * 0.4;
+
         ctx.strokeStyle = `rgba(${Math.round(220 + blushMix * 35)}, ${Math.round(190 + depth * 40)}, ${Math.round(200 + depth * 30)}, ${0.12 + depth * 0.55})`;
         ctx.lineWidth = 0.6 + depth * 0.9;
         ctx.beginPath();
@@ -199,6 +217,7 @@ export function IntelSignalLoader({
 
       if (!reducedMotion) {
         const sweep = (t * 0.9) % (Math.PI * 2);
+
         for (let k = 0; k < 14; k++) {
           const i =
             Math.floor(((sweep + k * 0.08) / (Math.PI * 2)) * majorSegs) %
@@ -206,6 +225,7 @@ export function IntelSignalLoader({
           const j = Math.floor(minorSegs * 0.35);
           const a = grid[i][j];
           const b = grid[(i + 1) % majorSegs][j];
+
           ctx.strokeStyle = `rgba(240, 164, 184, ${0.55 - k * 0.035})`;
           ctx.lineWidth = 1.6;
           ctx.beginPath();
@@ -216,6 +236,7 @@ export function IntelSignalLoader({
       }
 
       const ringR = size * 0.34;
+
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, ringR, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(255,255,255,0.08)";
@@ -223,6 +244,7 @@ export function IntelSignalLoader({
       ctx.stroke();
 
       const start = -Math.PI / 2;
+
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, ringR, start, start + pct * Math.PI * 2);
       ctx.strokeStyle = "rgba(240, 164, 184, 0.85)";
@@ -260,9 +282,9 @@ export function IntelSignalLoader({
       <div className="intel-signal-loader__stack">
         <div className="intel-signal-loader__canvas-wrap">
           <canvas
+            ref={canvasRef}
             aria-hidden
             className="intel-signal-loader__canvas"
-            ref={canvasRef}
           />
           <div aria-hidden className="intel-signal-loader__pct">
             {pctLabel}

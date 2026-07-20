@@ -9,6 +9,7 @@ function addSnowflake(value: string, found: Set<string>) {
 
   if (isDiscordSnowflake(trimmed)) {
     found.add(trimmed);
+
     return;
   }
 
@@ -29,11 +30,13 @@ export function extractDiscordIdsFromUnknown(
 
   if (typeof value === "string") {
     addSnowflake(value, found);
+
     return Array.from(found);
   }
 
   if (typeof value === "number") {
     addSnowflake(String(value), found);
+
     return Array.from(found);
   }
 
@@ -46,7 +49,9 @@ export function extractDiscordIdsFromUnknown(
   }
 
   if (typeof value === "object") {
-    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    for (const [key, entry] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
       if (DISCORD_FIELD_RE.test(key) && entry !== null && entry !== undefined) {
         addSnowflake(String(entry), found);
       }

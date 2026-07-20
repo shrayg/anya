@@ -8,7 +8,10 @@ import {
   hasWorkspaceAdminAccess,
   type InvestigationStatus,
 } from "@/lib/workspace-admin";
-import { MEMBER_SELECT, requireWorkspaceAdmin } from "@/lib/workspace-admin-server";
+import {
+  MEMBER_SELECT,
+  requireWorkspaceAdmin,
+} from "@/lib/workspace-admin-server";
 
 export async function PATCH(
   request: Request,
@@ -16,6 +19,7 @@ export async function PATCH(
 ) {
   try {
     const auth = await requireWorkspaceAdmin();
+
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -33,7 +37,10 @@ export async function PATCH(
     };
 
     if (!status || !isAccountStatus(status)) {
-      return NextResponse.json({ error: "Invalid account status" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid account status" },
+        { status: 400 },
+      );
     }
 
     const target = await prisma.user.findUnique({
@@ -124,6 +131,10 @@ export async function PATCH(
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
     console.error("Error updating member status:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

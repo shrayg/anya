@@ -1,16 +1,14 @@
 "use client";
 
+import type { FivemSearchResult } from "@/lib/fivem-search";
+
 import { useMemo, useState } from "react";
 import { Shield, UserRound } from "lucide-react";
 
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import { themeAccent } from "@/config/branding";
-import {
-  formatDiscordCreatedAt,
-  profileAccent,
-} from "@/lib/discord-profile";
-import type { FivemSearchResult } from "@/lib/fivem-search";
+import { formatDiscordCreatedAt, profileAccent } from "@/lib/discord-profile";
 import { formatSearchRecords } from "@/lib/search-utils";
 
 type FivemTab = "accounts" | "bans" | "profile";
@@ -58,10 +56,10 @@ function SectionPanel({
         <SearchResultCards
           blurResults={blurResults}
           emptyDetail={emptyMessage}
-          onSelectExportIndex={onSelectExportIndex}
           records={formatted}
           selectedExportIndex={selectedExportIndex}
           totalCount={formatted.length}
+          onSelectExportIndex={onSelectExportIndex}
         />
       )}
     </div>
@@ -89,7 +87,9 @@ export function FivemSearchResults({
           : "accounts";
 
   const [tab, setTab] = useState<FivemTab>(defaultTab);
-  const accent = result.profile ? profileAccent(result.profile) : themeAccent.blush;
+  const accent = result.profile
+    ? profileAccent(result.profile)
+    : themeAccent.blush;
 
   return (
     <div className="discord-profile-shell">
@@ -161,8 +161,8 @@ export function FivemSearchResults({
           <div className="discord-profile-tabs">
             <button
               className={`discord-profile-tab ${tab === "accounts" ? "discord-profile-tab--active" : ""}`}
-              onClick={() => setTab("accounts")}
               type="button"
+              onClick={() => setTab("accounts")}
             >
               Accounts
               {result.accounts.records.length > 0 ? (
@@ -173,8 +173,8 @@ export function FivemSearchResults({
             </button>
             <button
               className={`discord-profile-tab ${tab === "bans" ? "discord-profile-tab--active" : ""}`}
-              onClick={() => setTab("bans")}
               type="button"
+              onClick={() => setTab("bans")}
             >
               Bans
               {result.bans.records.length > 0 ? (
@@ -186,8 +186,8 @@ export function FivemSearchResults({
             {result.profile ? (
               <button
                 className={`discord-profile-tab ${tab === "profile" ? "discord-profile-tab--active" : ""}`}
-                onClick={() => setTab("profile")}
                 type="button"
+                onClick={() => setTab("profile")}
               >
                 Discord
               </button>
@@ -199,22 +199,22 @@ export function FivemSearchResults({
               blurResults={blurResults}
               emptyMessage="No linked FiveM accounts returned for this Discord ID."
               error={result.accounts.error}
-              onSelectExportIndex={onSelectExportIndex}
               records={result.accounts.records}
               selectedExportIndex={selectedExportIndex}
               subtitle="Linked FiveM accounts"
               title="FiveM accounts"
+              onSelectExportIndex={onSelectExportIndex}
             />
           ) : tab === "bans" ? (
             <SectionPanel
               blurResults={blurResults}
               emptyMessage="No FiveM ban records returned for this Discord ID."
               error={result.bans.error}
-              onSelectExportIndex={onSelectExportIndex}
               records={result.bans.records}
               selectedExportIndex={selectedExportIndex}
               subtitle="Ban history"
               title="FiveM bans"
+              onSelectExportIndex={onSelectExportIndex}
             />
           ) : result.profile ? (
             <div className="discord-profile-panel">
@@ -226,7 +226,9 @@ export function FivemSearchResults({
                   <Shield className="size-5" />
                 </div>
                 <div>
-                  <p className="discord-profile-highlight-title">Linked Discord profile</p>
+                  <p className="discord-profile-highlight-title">
+                    Linked Discord profile
+                  </p>
                   <p className="discord-profile-highlight-sub">
                     @{result.profile.username} · {result.profile.id}
                   </p>

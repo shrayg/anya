@@ -94,13 +94,13 @@ async function markAccountForInvestigation(params: {
       accountStatus: "investigate",
       investigationStatus: already ? undefined : "flagged",
       investigationFlaggedAt: already
-        ? target.investigationFlaggedAt ?? new Date()
+        ? (target.investigationFlaggedAt ?? new Date())
         : new Date(),
       investigationFlaggedById: already
-        ? target.investigationFlaggedById ?? params.flaggedById
+        ? (target.investigationFlaggedById ?? params.flaggedById)
         : params.flaggedById,
       investigationFlaggedByUsername: already
-        ? target.investigationFlaggedByUsername ?? params.flaggedByUsername
+        ? (target.investigationFlaggedByUsername ?? params.flaggedByUsername)
         : params.flaggedByUsername,
       investigationNote: params.note.slice(0, 500),
     },
@@ -138,6 +138,7 @@ export async function maybeAutoFlagRiskySearch(params: {
   searchHistoryId?: number | null;
 }) {
   const assessment = assessSearchQueryForSafety(params.query);
+
   if (!assessment.flagged) {
     return { flagged: false as const, flag: null };
   }
@@ -156,8 +157,14 @@ export async function maybeAutoFlagRiskySearch(params: {
         data: { searchHistoryId: params.searchHistoryId },
         select: SAFETY_FLAG_SELECT,
       });
-      return { flagged: true as const, flag: updated, duplicate: true as const };
+
+      return {
+        flagged: true as const,
+        flag: updated,
+        duplicate: true as const,
+      };
     }
+
     return { flagged: true as const, flag: existing, duplicate: true as const };
   }
 
@@ -213,9 +220,7 @@ export async function createManualSafetyFlag(params: {
       moduleSlug: null,
       searchType: null,
       matchedRules: JSON.stringify(["manual"]),
-      reason:
-        note ||
-        `Manual ${params.source} flag by ${params.actorUsername}`,
+      reason: note || `Manual ${params.source} flag by ${params.actorUsername}`,
       flaggedById: params.actorId,
       flaggedByUsername: params.actorUsername,
       assignedHelperId: params.source === "helper" ? params.actorId : null,
@@ -248,6 +253,7 @@ export async function sendFlagHelperMessage(params: {
   assignHelper?: boolean;
 }) {
   const message = params.message.trim().slice(0, 1000);
+
   if (!message) {
     throw new Error("Message is required.");
   }

@@ -1,6 +1,3 @@
-import { ExternalLink } from "lucide-react";
-
-import { BlurredValue } from "@/components/dashboard/blurred-value";
 import type {
   CourtCaseHit,
   PersonHit,
@@ -9,6 +6,10 @@ import type {
   UsIdentitySearchResult,
   UsVaSorSearchResult,
 } from "@/lib/us-records";
+
+import { ExternalLink } from "lucide-react";
+
+import { BlurredValue } from "@/components/dashboard/blurred-value";
 
 function SourcePill({ label }: { label: string }) {
   return (
@@ -182,6 +183,7 @@ function ParsedHint({
   result: Pick<UsIdentitySearchResult, "parsed">;
 }) {
   const { parsed } = result;
+
   if (
     !parsed.fullName &&
     !parsed.state &&
@@ -243,7 +245,9 @@ export function UsCourtSearchResults({
       ) : null}
       {portals.length > 0 ? (
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">State portals</p>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">
+            State portals
+          </p>
           <div className="grid gap-3">
             {portals.map((item) => (
               <PortalCard key={item.id} blurResults={blurResults} item={item} />
@@ -302,7 +306,9 @@ export function UsIdentitySearchResults({
       ) : null}
       {result.people.length > 0 ? (
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Registry people</p>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">
+            Registry people
+          </p>
           <div className="grid gap-3">
             {result.people.map((item) => (
               <PersonCard key={item.id} blurResults={blurResults} item={item} />
@@ -312,7 +318,9 @@ export function UsIdentitySearchResults({
       ) : null}
       {result.cases.length > 0 ? (
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Related court matters</p>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">
+            Related court matters
+          </p>
           <div className="grid gap-3">
             {result.cases.map((item) => (
               <CaseCard key={item.id} blurResults={blurResults} item={item} />
@@ -322,7 +330,9 @@ export function UsIdentitySearchResults({
       ) : null}
       {portals.length > 0 ? (
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">State portals</p>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">
+            State portals
+          </p>
           <div className="grid gap-3">
             {portals.map((item) => (
               <PortalCard key={item.id} blurResults={blurResults} item={item} />

@@ -1,5 +1,8 @@
 import type { InstagramActivityGraph } from "@/lib/instagram-activity";
-import type { InstagramProfile, InstagramUserSummary } from "@/lib/instagram-search";
+import type {
+  InstagramProfile,
+  InstagramUserSummary,
+} from "@/lib/instagram-search";
 
 export type BubbleEntityKind =
   | "school"
@@ -34,7 +37,14 @@ export type BubblePerson = {
   isPrivate?: boolean;
   isMutual: boolean;
   relation: "mutual" | "following" | "follower" | "subject";
-  relationship: "subject" | "likely_family" | "likely_classmate" | "close_friend" | "friend" | "org_or_place_tie" | "unknown";
+  relationship:
+    | "subject"
+    | "likely_family"
+    | "likely_classmate"
+    | "close_friend"
+    | "friend"
+    | "org_or_place_tie"
+    | "unknown";
   confidence: number;
   confidenceReasons: string[];
   lastName?: string;
@@ -118,7 +128,9 @@ const SCHOOL_PATTERNS: Array<{ re: RegExp; label?: string }> = [
   { re: /\b(?:student\s+at|studying\s+at|grad(?:uate)?\s+of)\b/i },
   { re: /🎓/ },
   { re: /\bU\s*of\s+[A-Z][A-Za-z.'-]{2,}/ },
-  { re: /\b[A-Z][A-Za-z&.\'-]{2,}\s+(?:University|College|Institute|School)\b/ },
+  {
+    re: /\b[A-Z][A-Za-z&.\'-]{2,}\s+(?:University|College|Institute|School)\b/,
+  },
 ];
 
 const ORG_PATTERNS: Array<{ re: RegExp }> = [
@@ -131,7 +143,9 @@ const ORG_PATTERNS: Array<{ re: RegExp }> = [
 
 const PLACE_PATTERNS: Array<{ re: RegExp }> = [
   { re: /📍\s*([^\n|,/]{2,40})/ },
-  { re: /\b(?:based\s+in|living\s+in|lives?\s+in|from|located\s+in)\s+([A-Z][A-Za-z .'-]{2,40})/i },
+  {
+    re: /\b(?:based\s+in|living\s+in|lives?\s+in|from|located\s+in)\s+([A-Z][A-Za-z .'-]{2,40})/i,
+  },
 ];
 
 function normalizeLabel(value: string): string {
@@ -139,7 +153,10 @@ function normalizeLabel(value: string): string {
 }
 
 function entityId(kind: BubbleEntityKind, label: string): string {
-  return `${kind}:${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`;
+  return `${kind}:${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 48)}`;
 }
 
 function extractMentions(bio: string): string[] {
@@ -151,6 +168,7 @@ function extractSchoolLabels(bio: string): string[] {
 
   for (const pattern of SCHOOL_PATTERNS) {
     const match = bio.match(pattern.re);
+
     if (!match) continue;
 
     if (pattern.re.source.includes("University|College")) {
@@ -159,14 +177,21 @@ function extractSchoolLabels(bio: string): string[] {
     }
 
     const nearby = bio
-      .slice(Math.max(0, (match.index ?? 0) - 24), (match.index ?? 0) + match[0].length + 40)
+      .slice(
+        Math.max(0, (match.index ?? 0) - 24),
+        (match.index ?? 0) + match[0].length + 40,
+      )
       .replace(/\n/g, " ");
     const named = nearby.match(
       /([A-Z][A-Za-z&.\'-]{2,}(?:\s+[A-Z][A-Za-z&.\'-]{2,}){0,3}\s+(?:University|College|Institute|School|Academy))/,
     );
+
     if (named?.[1]) {
       labels.add(normalizeLabel(named[1]));
-    } else if (match[0].length > 3 && !/🎓|alumni|student|studying|class of/i.test(match[0])) {
+    } else if (
+      match[0].length > 3 &&
+      !/🎓|alumni|student|studying|class of/i.test(match[0])
+    ) {
       labels.add(normalizeLabel(match[0]));
     } else {
       labels.add("School / education signal");
@@ -184,6 +209,7 @@ function extractOrgLabels(bio: string): string[] {
     const atMatch = bio.match(
       /(?:@|at)\s*([A-Za-z0-9&.'-]{2,}(?:\s+[A-Za-z0-9&.'-]{2,}){0,3})/i,
     );
+
     if (atMatch?.[1] && atMatch[1].length > 2) {
       labels.add(normalizeLabel(atMatch[1]));
     } else {
@@ -204,6 +230,7 @@ function extractPlaceLabels(bio: string): string[] {
 
   for (const pattern of PLACE_PATTERNS) {
     const match = bio.match(pattern.re);
+
     if (!match) continue;
     if (match[1] && match[2]) {
       labels.add(normalizeLabel(`${match[1]}, ${match[2]}`));
@@ -219,7 +246,10 @@ function extractPlaceLabels(bio: string): string[] {
 
 function extractGraduationYears(text: string): string[] {
   const years = new Set<string>();
-  for (const match of text.matchAll(/\b(?:class\s*of\s*)?'?(\d{2}|\d{4})\b/gi)) {
+
+  for (const match of text.matchAll(
+    /\b(?:class\s*of\s*)?'?(\d{2}|\d{4})\b/gi,
+  )) {
     const raw = match[1];
     const numeric = Number(raw);
     const full =
@@ -228,17 +258,24 @@ function extractGraduationYears(text: string): string[] {
           ? 1900 + numeric
           : 2000 + numeric
         : numeric;
+
     if (full >= 1980 && full <= 2050) {
       years.add(String(full));
     }
   }
+
   return [...years];
 }
 
 function canonicalSchoolLabel(raw: string): string {
   const clean = normalizeLabel(raw);
   const key = clean.toLowerCase().replace(/[^a-z0-9]+/g, "");
-  return SCHOOL_ABBREVIATIONS[key] ?? SCHOOL_ABBREVIATIONS[clean.toLowerCase()] ?? clean;
+
+  return (
+    SCHOOL_ABBREVIATIONS[key] ??
+    SCHOOL_ABBREVIATIONS[clean.toLowerCase()] ??
+    clean
+  );
 }
 
 function extractSchoolSignals(bio: string): string[] {
@@ -246,12 +283,15 @@ function extractSchoolSignals(bio: string): string[] {
 
   for (const [abbr, school] of Object.entries(SCHOOL_ABBREVIATIONS)) {
     const escaped = abbr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     if (new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`, "i").test(bio)) {
       signals.add(school);
     }
   }
 
-  return [...signals].filter((signal) => signal !== "School / education signal");
+  return [...signals].filter(
+    (signal) => signal !== "School / education signal",
+  );
 }
 
 function inferLastName(fullName: string): string | undefined {
@@ -260,14 +300,23 @@ function inferLastName(fullName: string): string | undefined {
     .split(/\s+/)
     .map((part) => part.trim())
     .filter(Boolean);
+
   if (parts.length < 2) return undefined;
   const last = parts[parts.length - 1];
+
   if (!last || last.length < 3) return undefined;
+
   return last.toLowerCase();
 }
 
-function parseSignals(user: InstagramUserSummary | InstagramProfile): ParsedSignals {
-  const text = [user.fullName, user.biography ?? "", "category" in user ? user.category ?? "" : ""]
+function parseSignals(
+  user: InstagramUserSummary | InstagramProfile,
+): ParsedSignals {
+  const text = [
+    user.fullName,
+    user.biography ?? "",
+    "category" in user ? (user.category ?? "") : "",
+  ]
     .filter(Boolean)
     .join("\n");
 
@@ -282,6 +331,7 @@ function parseSignals(user: InstagramUserSummary | InstagramProfile): ParsedSign
 
 function sharedValues(left: string[], right: string[]): string[] {
   const rightSet = new Set(right.map((value) => value.toLowerCase()));
+
   return left.filter((value) => rightSet.has(value.toLowerCase()));
 }
 
@@ -290,6 +340,7 @@ function hasReciprocalTagReasons(reasons: string[]): boolean {
   const taggedSubject = reasons.some((reason) =>
     reason.startsWith("subject tagged in "),
   );
+
   return taggedThem && taggedSubject;
 }
 
@@ -314,12 +365,18 @@ function classifyRelationship(input: {
   let confidence = 0.12;
   let relationship: BubblePerson["relationship"] = "unknown";
 
-  const sharedSchools = sharedValues(input.signals.schools, input.subjectSignals.schools);
+  const sharedSchools = sharedValues(
+    input.signals.schools,
+    input.subjectSignals.schools,
+  );
   const sharedYears = sharedValues(
     input.signals.graduationYears,
     input.subjectSignals.graduationYears,
   );
-  const sharedPlaces = sharedValues(input.signals.places, input.subjectSignals.places);
+  const sharedPlaces = sharedValues(
+    input.signals.places,
+    input.subjectSignals.places,
+  );
   const sharedOrgs = sharedValues(
     input.signals.organizations,
     input.subjectSignals.organizations,
@@ -350,19 +407,24 @@ function classifyRelationship(input: {
   ) {
     confidence += 0.18;
     relationship = relationship === "unknown" ? "likely_family" : relationship;
-    reasons.push(`last name appears in multiple connected accounts: ${input.signals.lastName}`);
+    reasons.push(
+      `last name appears in multiple connected accounts: ${input.signals.lastName}`,
+    );
   }
 
   if (sharedSchools.length > 0) {
     confidence += sharedYears.length > 0 ? 0.35 : 0.25;
-    relationship = relationship === "likely_family" ? relationship : "likely_classmate";
+    relationship =
+      relationship === "likely_family" ? relationship : "likely_classmate";
     reasons.push(`shared school: ${sharedSchools.slice(0, 2).join(", ")}`);
   } else if (input.signals.schools.length > 0) {
     confidence += 0.12;
     if (relationship === "unknown" || relationship === "friend") {
       relationship = "likely_classmate";
     }
-    reasons.push(`school signal: ${input.signals.schools.slice(0, 2).join(", ")}`);
+    reasons.push(
+      `school signal: ${input.signals.schools.slice(0, 2).join(", ")}`,
+    );
   }
 
   if (sharedYears.length > 0) {
@@ -370,7 +432,9 @@ function classifyRelationship(input: {
     reasons.push(`shared graduation year: ${sharedYears.join(", ")}`);
   } else if (input.signals.graduationYears.length > 0) {
     confidence += 0.05;
-    reasons.push(`graduation year signal: ${input.signals.graduationYears.join(", ")}`);
+    reasons.push(
+      `graduation year signal: ${input.signals.graduationYears.join(", ")}`,
+    );
   }
 
   if (sharedOrgs.length > 0 || sharedPlaces.length > 0) {
@@ -378,16 +442,20 @@ function classifyRelationship(input: {
     if (relationship === "unknown" || relationship === "friend") {
       relationship = "org_or_place_tie";
     }
-    if (sharedOrgs.length > 0) reasons.push(`shared org: ${sharedOrgs.slice(0, 2).join(", ")}`);
-    if (sharedPlaces.length > 0) reasons.push(`shared place: ${sharedPlaces.slice(0, 2).join(", ")}`);
+    if (sharedOrgs.length > 0)
+      reasons.push(`shared org: ${sharedOrgs.slice(0, 2).join(", ")}`);
+    if (sharedPlaces.length > 0)
+      reasons.push(`shared place: ${sharedPlaces.slice(0, 2).join(", ")}`);
   }
 
   const activityScore = input.activityBoost?.score ?? 0;
+
   if (activityScore > 0 && input.activityBoost) {
     confidence += Math.min(0.55, activityScore / 16);
     reasons.push(...input.activityBoost.reasons.slice(0, 3));
 
     const reciprocal = hasReciprocalTagReasons(input.activityBoost.reasons);
+
     if (reciprocal) confidence += 0.08;
 
     // Require real interaction — a single one-off tag (e.g. score 4) is not enough.
@@ -396,10 +464,7 @@ function classifyRelationship(input: {
       (activityScore >= 5 && input.isMutual) ||
       (reciprocal && activityScore >= 6);
 
-    if (
-      qualifiesAsCloseFriend &&
-      relationship !== "likely_family"
-    ) {
+    if (qualifiesAsCloseFriend && relationship !== "likely_family") {
       relationship = "close_friend";
     }
   }
@@ -422,9 +487,11 @@ function pushEntity(
   evidence: string,
 ) {
   const clean = normalizeLabel(label);
+
   if (!clean || clean.length < 2) return;
   const id = entityId(kind, clean);
   const existing = map.get(id);
+
   if (existing) {
     if (!existing.userIds.includes(user.id)) {
       existing.userIds.push(user.id);
@@ -433,6 +500,7 @@ function pushEntity(
     if (!existing.evidence.includes(evidence) && existing.evidence.length < 6) {
       existing.evidence.push(evidence);
     }
+
     return;
   }
 
@@ -457,8 +525,10 @@ function layoutPeople(
 
   const entityCenters = new Map<string, { x: number; y: number }>();
   const entityBuckets = new Map<BubbleEntityKind, BubbleEntity[]>();
+
   for (const entity of entities) {
     const list = entityBuckets.get(entity.kind) ?? [];
+
     list.push(entity);
     entityBuckets.set(entity.kind, list);
   }
@@ -480,10 +550,12 @@ function layoutPeople(
 
   for (const [kind, list] of entityBuckets) {
     const base = kindAngles[kind] ?? 0;
+
     list.forEach((entity, index) => {
       const spread = (index - (list.length - 1) / 2) * 0.35;
       const angle = base + spread;
       const radius = 170 + Math.min(entity.userIds.length, 12) * 8;
+
       entityCenters.set(entity.id, {
         x: cx + Math.cos(angle) * radius,
         y: cy + Math.sin(angle) * radius,
@@ -507,11 +579,13 @@ function layoutPeople(
       x = linked.reduce((sum, point) => sum + point.x, 0) / linked.length;
       y = linked.reduce((sum, point) => sum + point.y, 0) / linked.length;
       const jitter = ((index % 7) - 3) * 12;
+
       x += jitter;
       y += ((index % 5) - 2) * 10;
     } else {
       const angle = (index / Math.max(people.length, 1)) * Math.PI * 2;
       const ring = person.isMutual ? 120 : 250;
+
       x = cx + Math.cos(angle) * ring;
       y = cy + Math.sin(angle) * ring;
     }
@@ -524,6 +598,7 @@ function layoutPeople(
           : person.relation === "following"
             ? 13
             : 11;
+
     return {
       ...person,
       x: Math.max(28, Math.min(width - 28, x)),
@@ -545,7 +620,11 @@ export function buildInstagramBubbleMap(input: {
   const followingIds = new Set(following.map((user) => user.id));
   const subjectSignals = parseSignals(profile);
 
-  const activityBoostById = new Map<string, { score: number; reasons: string[] }>();
+  const activityBoostById = new Map<
+    string,
+    { score: number; reasons: string[] }
+  >();
+
   if (activity) {
     for (const candidate of activity.closeFriendCandidates) {
       activityBoostById.set(candidate.account.id, {
@@ -556,12 +635,14 @@ export function buildInstagramBubbleMap(input: {
   }
 
   const byId = new Map<string, InstagramUserSummary>();
+
   for (const user of [...followers, ...following, ...mutuals]) {
     byId.set(user.id, { ...byId.get(user.id), ...user });
   }
   if (activity) {
     for (const candidate of activity.closeFriendCandidates) {
       const account = candidate.account;
+
       if (!byId.has(account.id) && !account.id.startsWith("mention:")) {
         byId.set(account.id, {
           id: account.id,
@@ -575,6 +656,7 @@ export function buildInstagramBubbleMap(input: {
     }
     for (const commenter of activity.consistentCommenters) {
       const account = commenter.account;
+
       if (!byId.has(account.id)) {
         byId.set(account.id, {
           id: account.id,
@@ -589,11 +671,16 @@ export function buildInstagramBubbleMap(input: {
   }
   const signalsById = new Map<string, ParsedSignals>();
   const lastNameCounts = new Map<string, number>();
+
   for (const user of byId.values()) {
     const signals = parseSignals(user);
+
     signalsById.set(user.id, signals);
     if (signals.lastName) {
-      lastNameCounts.set(signals.lastName, (lastNameCounts.get(signals.lastName) ?? 0) + 1);
+      lastNameCounts.set(
+        signals.lastName,
+        (lastNameCounts.get(signals.lastName) ?? 0) + 1,
+      );
     }
   }
 
@@ -612,6 +699,7 @@ export function buildInstagramBubbleMap(input: {
           isVerified: commenter.account.isVerified,
           isPrivate: commenter.account.isPrivate,
         } satisfies InstagramUserSummary);
+
       pushEntity(
         entities,
         "consistent_commenter",
@@ -620,6 +708,7 @@ export function buildInstagramBubbleMap(input: {
         `Commented on ${commenter.postCount} posts`,
       );
       const linked = personEntityIds.get(user.id) ?? [];
+
       linked.push(entityId("consistent_commenter", "Consistent commenters"));
       personEntityIds.set(user.id, [...new Set(linked)]);
     }
@@ -636,6 +725,7 @@ export function buildInstagramBubbleMap(input: {
           isVerified: tagged.account.isVerified,
           isPrivate: tagged.account.isPrivate,
         } satisfies InstagramUserSummary);
+
       pushEntity(
         entities,
         "tagged_together",
@@ -644,6 +734,7 @@ export function buildInstagramBubbleMap(input: {
         `Tag/coauthor score ${tagged.score}`,
       );
       const linked = personEntityIds.get(user.id) ?? [];
+
       linked.push(entityId("tagged_together", "Tagged together"));
       personEntityIds.set(user.id, [...new Set(linked)]);
     }
@@ -651,6 +742,7 @@ export function buildInstagramBubbleMap(input: {
     for (const visit of activity.locations.slice(0, 15)) {
       const label = visit.location.name;
       const evidence = `${visit.lastSeenIso || "unknown date"} · ${visit.visitCount} post(s)`;
+
       // Attach travel places to the subject for map clustering.
       pushEntity(
         entities,
@@ -670,9 +762,12 @@ export function buildInstagramBubbleMap(input: {
   for (const user of byId.values()) {
     const signals = signalsById.get(user.id) ?? parseSignals(user);
     const bio = (user.biography ?? "").trim();
+
     if (!bio) continue;
 
-    const schoolLabels = signals.schools.length ? signals.schools : extractSchoolLabels(bio);
+    const schoolLabels = signals.schools.length
+      ? signals.schools
+      : extractSchoolLabels(bio);
     const orgLabels = signals.organizations;
     const placeLabels = signals.places;
     const linked = personEntityIds.get(user.id) ?? [];
@@ -682,6 +777,7 @@ export function buildInstagramBubbleMap(input: {
       linked.push(entityId("school", label));
       for (const year of signals.graduationYears) {
         const classLabel = `${canonicalSchoolLabel(label)} ${year}`;
+
         pushEntity(entities, "classmate", classLabel, user, bio.slice(0, 120));
         linked.push(entityId("classmate", classLabel));
       }
@@ -696,7 +792,14 @@ export function buildInstagramBubbleMap(input: {
     }
     if (signals.lastName && (lastNameCounts.get(signals.lastName) ?? 0) >= 2) {
       const familyLabel = `${signals.lastName} family-name cluster`;
-      pushEntity(entities, "family", familyLabel, user, user.fullName || user.username);
+
+      pushEntity(
+        entities,
+        "family",
+        familyLabel,
+        user,
+        user.fullName || user.username,
+      );
       linked.push(entityId("family", familyLabel));
     }
 
@@ -761,6 +864,7 @@ export function buildInstagramBubbleMap(input: {
   for (const person of peopleBase) {
     if (person.relation === "subject") continue;
     const linked = [...(personEntityIds.get(person.id) ?? [])];
+
     if (person.relationship === "close_friend") {
       pushEntity(
         entities,
@@ -795,13 +899,17 @@ export function buildInstagramBubbleMap(input: {
       linked.push(entityId("mutuals", "Mutuals (weak signal)"));
     }
     const deduped = [...new Set(linked)];
+
     personEntityIds.set(person.id, deduped);
     person.entities = deduped;
   }
 
   const rankedCloseFriends: RankedCloseFriend[] = peopleBase
     .filter((person) => person.relationship === "close_friend")
-    .sort((a, b) => b.confidence - a.confidence || b.username.localeCompare(a.username))
+    .sort(
+      (a, b) =>
+        b.confidence - a.confidence || b.username.localeCompare(a.username),
+    )
     .slice(0, 80)
     .map((person) => ({
       id: person.id,
@@ -816,7 +924,9 @@ export function buildInstagramBubbleMap(input: {
 
   // Prefer high-confidence close friends + activity signals; cap weak mutuals.
   const closeFriendIds = new Set(
-    peopleBase.filter((p) => p.relationship === "close_friend").map((p) => p.id),
+    peopleBase
+      .filter((p) => p.relationship === "close_friend")
+      .map((p) => p.id),
   );
   const activitySignalIds = new Set([
     ...(activity?.closeFriendCandidates ?? []).map((entry) => entry.account.id),
@@ -850,7 +960,8 @@ export function buildInstagramBubbleMap(input: {
     ),
     ...peopleBase.filter(
       (p) =>
-        p.relationship === "likely_family" || p.relationship === "likely_classmate",
+        p.relationship === "likely_family" ||
+        p.relationship === "likely_classmate",
     ),
     ...weakMutuals,
     ...peopleBase.filter(
@@ -866,6 +977,7 @@ export function buildInstagramBubbleMap(input: {
 
   const seen = new Set<string>();
   const selected: typeof peopleBase = [];
+
   for (const person of prioritized) {
     if (seen.has(person.id)) continue;
     seen.add(person.id);
@@ -876,10 +988,16 @@ export function buildInstagramBubbleMap(input: {
   // Drop weak-mutual entity membership for people not shown on the map,
   // so the "Mutuals" halo only reflects visible nodes.
   const selectedIds = new Set(selected.map((p) => p.id));
-  const mutualsEntity = entities.get(entityId("mutuals", "Mutuals (weak signal)"));
+  const mutualsEntity = entities.get(
+    entityId("mutuals", "Mutuals (weak signal)"),
+  );
+
   if (mutualsEntity) {
     const usernameById = new Map(peopleBase.map((p) => [p.id, p.username]));
-    mutualsEntity.userIds = mutualsEntity.userIds.filter((id) => selectedIds.has(id));
+
+    mutualsEntity.userIds = mutualsEntity.userIds.filter((id) =>
+      selectedIds.has(id),
+    );
     mutualsEntity.usernames = mutualsEntity.userIds
       .map((id) => usernameById.get(id))
       .filter((name): name is string => Boolean(name));
@@ -896,6 +1014,7 @@ export function buildInstagramBubbleMap(input: {
   const biosLoaded = people.filter((p) => p.biography.trim().length > 0).length;
 
   const insights: string[] = [];
+
   if (rankedCloseFriends.length > 0) {
     insights.push(
       `${rankedCloseFriends.length} close-friend candidates ranked by tags, comments, and graph signals (not raw mutuals). Top: ${rankedCloseFriends
@@ -917,8 +1036,12 @@ export function buildInstagramBubbleMap(input: {
   const families = entityList.filter((e) => e.kind === "family");
   const orgs = entityList.filter((e) => e.kind === "organization");
   const places = entityList.filter((e) => e.kind === "place");
-  const likelyFamilyCount = people.filter((person) => person.relationship === "likely_family").length;
-  const likelyClassmateCount = people.filter((person) => person.relationship === "likely_classmate").length;
+  const likelyFamilyCount = people.filter(
+    (person) => person.relationship === "likely_family",
+  ).length;
+  const likelyClassmateCount = people.filter(
+    (person) => person.relationship === "likely_classmate",
+  ).length;
   const closeFriendCount = rankedCloseFriends.length;
 
   if (schools.length) {
@@ -965,7 +1088,10 @@ export function buildInstagramBubbleMap(input: {
     insights.push(
       `Geotagged visits: ${activity.locations
         .slice(0, 4)
-        .map((visit) => `${visit.location.name} (${visit.lastSeenIso.slice(0, 10) || "undated"})`)
+        .map(
+          (visit) =>
+            `${visit.location.name} (${visit.lastSeenIso.slice(0, 10) || "undated"})`,
+        )
         .join(", ")}.`,
     );
   }

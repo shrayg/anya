@@ -18,6 +18,7 @@ import { prisma } from "@/prisma/client";
 
 async function getAuthedUser() {
   const session = await getSessionCookie();
+
   if (!session?.userId) return null;
 
   return prisma.user.findUnique({
@@ -35,6 +36,7 @@ async function getAuthedUser() {
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthedUser();
+
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -81,23 +83,36 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("List tickets error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthedUser();
+
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (user.accountStatus === "banned" || user.accountStatus === "frozen") {
-      return NextResponse.json({ error: "Account restricted" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Account restricted" },
+        { status: 403 },
+      );
     }
 
     const ip = getClientIp(req);
-    const limit = consumeRateLimit(`ticket:create:${user.id}:${ip}`, 5, 60 * 60 * 1000);
+    const limit = consumeRateLimit(
+      `ticket:create:${user.id}:${ip}`,
+      5,
+      60 * 60 * 1000,
+    );
+
     if (!limit.allowed) {
       return NextResponse.json(
         { error: "Too many tickets created. Try again later." },
@@ -109,16 +124,28 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => null);
-    const subject = sanitizeTicketText(String(body?.subject ?? ""), MAX_TICKET_SUBJECT);
-    const message = sanitizeTicketText(String(body?.message ?? ""), MAX_TICKET_BODY);
+    const subject = sanitizeTicketText(
+      String(body?.subject ?? ""),
+      MAX_TICKET_SUBJECT,
+    );
+    const message = sanitizeTicketText(
+      String(body?.message ?? ""),
+      MAX_TICKET_BODY,
+    );
     const categoryRaw = String(body?.category ?? "general");
 
     if (subject.length < 3) {
-      return NextResponse.json({ error: "Subject is too short." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Subject is too short." },
+        { status: 400 },
+      );
     }
 
     if (message.length < 10) {
-      return NextResponse.json({ error: "Message is too short." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Message is too short." },
+        { status: 400 },
+      );
     }
 
     if (!isTicketCategory(categoryRaw)) {
@@ -134,7 +161,9 @@ export async function POST(req: NextRequest) {
 
     if (openCount >= MAX_OPEN_TICKETS_PER_USER) {
       return NextResponse.json(
-        { error: `You can have at most ${MAX_OPEN_TICKETS_PER_USER} open tickets.` },
+        {
+          error: `You can have at most ${MAX_OPEN_TICKETS_PER_USER} open tickets.`,
+        },
         { status: 400 },
       );
     }
@@ -178,6 +207,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error("Create ticket error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

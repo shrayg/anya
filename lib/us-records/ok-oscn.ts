@@ -1,3 +1,5 @@
+import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
+
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { cacheKey, getCached, setCached } from "@/lib/us-records/cache";
 import {
@@ -5,7 +7,6 @@ import {
   paceSource,
   SOURCE_LIMITS,
 } from "@/lib/us-records/robots-and-limits";
-import type { CourtCaseHit, ParsedUsQuery } from "@/lib/us-records/types";
 
 /**
  * Oklahoma OSCN party search via Results.ashx — uses the public results
@@ -25,6 +26,7 @@ function requireName(parsed: ParsedUsQuery): { first: string; last: string } {
 export function shouldSearchOkOscn(parsed: ParsedUsQuery): boolean {
   if (parsed.mode === "case") return false;
   if (parsed.state === "OK") return true;
+
   return /\b(oklahoma|tulsa|oklahoma city|okc)\b/i.test(parsed.raw);
 }
 
@@ -50,6 +52,7 @@ export async function searchOkOscn(
     : "oklahoma";
   const key = cacheKey("ok-oscn", `${county}|${last}|${first}|${limit}`);
   const cached = getCached<CourtCaseHit[]>(key);
+
   if (cached) return cached;
 
   await paceSource("ok-oscn", 1200);
@@ -79,6 +82,7 @@ export async function searchOkOscn(
   }
 
   const html = await res.text();
+
   if (/turnstile/i.test(html)) {
     throw new Error("Oklahoma OSCN returned Cloudflare Turnstile.");
   }
@@ -98,6 +102,7 @@ export async function searchOkOscn(
     const style = decodeEntities(match[6] ?? "");
     const party = decodeEntities((match[7] ?? "").replace(/<[^>]+>/g, " "));
     const id = `${db}-${number}-${cmid}`;
+
     if (!number || seen.has(id)) continue;
     seen.add(id);
 
@@ -132,6 +137,7 @@ export async function searchOkOscn(
       const filed = decodeEntities(match[5] ?? "");
       const style = decodeEntities(match[6] ?? "");
       const id = `${db}-${number}-${cmid}`;
+
       if (!number || seen.has(id)) continue;
       seen.add(id);
       hits.push({
@@ -154,5 +160,6 @@ export async function searchOkOscn(
   }
 
   setCached(key, hits, SOURCE_LIMITS["ok-oscn"].ttlMs);
+
   return hits;
 }

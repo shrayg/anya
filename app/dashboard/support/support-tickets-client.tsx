@@ -1,12 +1,10 @@
 "use client";
 
-import { apiFetch } from "@/lib/csrf-client";
-
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MessageCircle, RefreshCw, Send, Ticket } from "lucide-react";
-import { GiCoffeeCup } from "react-icons/gi";
 
+import { apiFetch } from "@/lib/csrf-client";
 import {
   DashButton,
   DashInput,
@@ -81,8 +79,10 @@ export default function SupportTicketsClient() {
         credentials: "include",
       });
       const data = await response.json();
+
       if (!response.ok) {
         setError(data.error || "Could not load tickets.");
+
         return;
       }
       setTickets(data.tickets ?? []);
@@ -98,14 +98,19 @@ export default function SupportTicketsClient() {
     setDetailLoading(true);
     setError("");
     try {
-      const response = await fetch(`/api/support/tickets/${encodeURIComponent(id)}`, {
-        cache: "no-store",
-        credentials: "include",
-      });
+      const response = await fetch(
+        `/api/support/tickets/${encodeURIComponent(id)}`,
+        {
+          cache: "no-store",
+          credentials: "include",
+        },
+      );
       const data = await response.json();
+
       if (!response.ok) {
         setError(data.error || "Could not open ticket.");
         setDetail(null);
+
         return;
       }
       setDetail(data.ticket);
@@ -149,8 +154,10 @@ export default function SupportTicketsClient() {
         body: JSON.stringify({ subject, message, category }),
       });
       const data = await response.json();
+
       if (!response.ok) {
         setError(data.error || "Could not create ticket.");
+
         return;
       }
       setSubject("");
@@ -171,15 +178,20 @@ export default function SupportTicketsClient() {
     setSubmitting(true);
     setError("");
     try {
-      const response = await apiFetch(`/api/support/tickets/${encodeURIComponent(selectedId)}`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: reply }),
-      });
+      const response = await apiFetch(
+        `/api/support/tickets/${encodeURIComponent(selectedId)}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: reply }),
+        },
+      );
       const data = await response.json();
+
       if (!response.ok) {
         setError(data.error || "Could not send reply.");
+
         return;
       }
       setReply("");
@@ -197,15 +209,20 @@ export default function SupportTicketsClient() {
     setSubmitting(true);
     setError("");
     try {
-      const response = await apiFetch(`/api/support/tickets/${encodeURIComponent(selectedId)}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
+      const response = await apiFetch(
+        `/api/support/tickets/${encodeURIComponent(selectedId)}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
       const data = await response.json();
+
       if (!response.ok) {
         setError(data.error || "Could not update status.");
+
         return;
       }
       await loadDetail(selectedId);
@@ -220,28 +237,28 @@ export default function SupportTicketsClient() {
   return (
     <div className="px-6 py-6 md:px-8 md:py-8">
       <PageHeader
-        badge="Support desk"
-        subtitle={`Open a ticket and the ${siteConfig.name} team will follow up. Staff replies also notify Discord.`}
-        title="Support Tickets"
+        badge="Support"
+        subtitle={`Private tickets for ${siteConfig.name}. Staff replies notify Discord.`}
+        title="Support"
       />
 
-      <section className="dash-coffee-hero mb-8">
+      <section className="dash-ops-hero mb-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="mb-3 flex items-center gap-2 text-amber-300/90">
-              <Ticket className="size-5 text-amber-200" />
-              <span className="text-sm font-medium">
-                {openTickets} open · secured account tickets
-              </span>
+            <div className="dash-ops-hero-meta mb-3">
+              <Ticket className="size-4" />
+              <span>{openTickets} open · encrypted account channel</span>
             </div>
-            <h2 className="text-2xl font-semibold text-white">Need a hand?</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-white">
+              Operations desk
+            </h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
-              Tickets are private to your account. Staff can reply here, and updates are sent to
-              our Discord webhook.
+              Track billing, access, and product issues from your account. For
+              quick chat, reach the team on Telegram.
             </p>
           </div>
           <a href={siteConfig.links.telegram} rel="noreferrer" target="_blank">
-            <DashButton className="dash-btn-coffee" variant="coffee">
+            <DashButton type="button" variant="primary">
               <MessageCircle className="size-4" />
               Telegram
             </DashButton>
@@ -257,14 +274,14 @@ export default function SupportTicketsClient() {
 
       <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
         <div className="space-y-4">
-          <DashPanel glow="amber">
+          <DashPanel glow="pink">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="font-semibold text-white">Your tickets</h3>
               <DashButton
-                onClick={() => void loadTickets()}
                 className="!px-2 !py-1"
                 type="button"
                 variant="secondary"
+                onClick={() => void loadTickets()}
               >
                 <RefreshCw className="size-3.5" />
               </DashButton>
@@ -275,8 +292,8 @@ export default function SupportTicketsClient() {
                 <input
                   checked={scopeAll}
                   className="rounded border-zinc-600"
-                  onChange={(event) => setScopeAll(event.target.checked)}
                   type="checkbox"
+                  onChange={(event) => setScopeAll(event.target.checked)}
                 />
                 Show all tickets (staff)
               </label>
@@ -291,23 +308,27 @@ export default function SupportTicketsClient() {
                 {tickets.map((ticket) => (
                   <li key={ticket.id}>
                     <button
-                      className={`w-full rounded-xl border px-3 py-3 text-left transition ${
+                      className={`dash-ticket-item ${
                         selectedId === ticket.id
-                          ? "border-amber-400/30 bg-amber-500/10"
-                          : "border-white/5 bg-black/20 hover:border-white/10"
+                          ? "dash-ticket-item-active"
+                          : ""
                       }`}
-                      onClick={() => setSelectedId(ticket.id)}
                       type="button"
+                      onClick={() => setSelectedId(ticket.id)}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-sm font-medium text-white">{ticket.subject}</p>
-                        <span className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-500">
+                        <p className="truncate text-sm font-medium text-white">
+                          {ticket.subject}
+                        </p>
+                        <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-zinc-500">
                           {statusLabel(ticket.status)}
                         </span>
                       </div>
                       <p className="mt-1 truncate text-xs text-zinc-500">
                         {categoryLabel(ticket.category)}
-                        {canManageSupport && scopeAll ? ` · ${ticket.username}` : ""}
+                        {canManageSupport && scopeAll
+                          ? ` · ${ticket.username}`
+                          : ""}
                       </p>
                     </button>
                   </li>
@@ -316,8 +337,10 @@ export default function SupportTicketsClient() {
             )}
           </DashPanel>
 
-          <DashPanel glow="amber">
-            <h3 className="mb-4 text-lg font-semibold text-white">New ticket</h3>
+          <DashPanel glow="pink">
+            <h3 className="mb-4 text-lg font-semibold text-white">
+              New ticket
+            </h3>
             <form className="space-y-4" onSubmit={handleCreate}>
               <div>
                 <label className="dash-field-label" htmlFor="ticket-category">
@@ -325,8 +348,10 @@ export default function SupportTicketsClient() {
                 </label>
                 <DashSelect
                   id="ticket-category"
-                  onChange={(event) => setCategory(event.target.value as TicketCategory)}
                   value={category}
+                  onChange={(event) =>
+                    setCategory(event.target.value as TicketCategory)
+                  }
                 >
                   {TICKET_CATEGORIES.map((value) => (
                     <option key={value} value={value}>
@@ -340,12 +365,12 @@ export default function SupportTicketsClient() {
                   Subject
                 </label>
                 <DashInput
+                  required
                   id="ticket-subject"
                   maxLength={120}
-                  onChange={(event) => setSubject(event.target.value)}
                   placeholder="What's this about?"
-                  required
                   value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
                 />
               </div>
               <div>
@@ -353,32 +378,38 @@ export default function SupportTicketsClient() {
                   Message
                 </label>
                 <DashTextarea
+                  required
                   id="ticket-message"
                   maxLength={4000}
-                  onChange={(event) => setMessage(event.target.value)}
                   placeholder="Tell us what you need help with..."
-                  required
                   rows={5}
                   value={message}
+                  onChange={(event) => setMessage(event.target.value)}
                 />
               </div>
               <DashButton
-                className="dash-btn-coffee"
-                disabled={submitting || !subject.trim() || message.trim().length < 10}
+                disabled={
+                  submitting || !subject.trim() || message.trim().length < 10
+                }
                 type="submit"
-                variant="coffee"
+                variant="primary"
               >
-                <GiCoffeeCup aria-hidden size={18} />
+                <Send className="size-4" />
                 {submitting ? "Sending…" : "Open ticket"}
               </DashButton>
             </form>
           </DashPanel>
         </div>
 
-        <DashPanel className="min-h-[32rem]" glow="amber">
+        <DashPanel className="min-h-[32rem]" glow="pink">
           {!selectedId ? (
-            <div className="flex h-full min-h-[24rem] items-center justify-center text-sm text-zinc-500">
-              Select a ticket or open a new one.
+            <div className="flex h-full min-h-[24rem] flex-col items-center justify-center gap-2 text-center">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+                Thread
+              </p>
+              <p className="text-sm text-zinc-500">
+                Select a ticket or open a new one.
+              </p>
             </div>
           ) : detailLoading || !detail ? (
             <p className="text-sm text-zinc-500">Loading ticket…</p>
@@ -387,10 +418,12 @@ export default function SupportTicketsClient() {
               <div className="mb-4 border-b border-white/5 pb-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">{detail.subject}</h3>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {categoryLabel(detail.category)} · {statusLabel(detail.status)} · #
-                      {detail.id.slice(0, 8)}
+                    <h3 className="text-lg font-semibold text-white">
+                      {detail.subject}
+                    </h3>
+                    <p className="mt-1 font-mono text-xs text-zinc-500">
+                      {categoryLabel(detail.category)} ·{" "}
+                      {statusLabel(detail.status)} · #{detail.id.slice(0, 8)}
                       {canManageSupport ? ` · ${detail.username}` : ""}
                     </p>
                   </div>
@@ -398,31 +431,31 @@ export default function SupportTicketsClient() {
                     {canManageSupport && (
                       <>
                         <DashButton
+                          className="text-xs"
                           disabled={submitting}
-                          onClick={() => void handleStatus("awaiting_user")}
-className="text-xs"
                           type="button"
                           variant="secondary"
+                          onClick={() => void handleStatus("awaiting_user")}
                         >
                           Mark awaiting user
                         </DashButton>
                         <DashButton
-                          disabled={submitting}
-                          onClick={() => void handleStatus("resolved")}
                           className="text-xs"
+                          disabled={submitting}
                           type="button"
                           variant="secondary"
+                          onClick={() => void handleStatus("resolved")}
                         >
                           Resolve
                         </DashButton>
                       </>
                     )}
                     <DashButton
-                      disabled={submitting || detail.status === "closed"}
-                      onClick={() => void handleStatus("closed")}
                       className="text-xs"
+                      disabled={submitting || detail.status === "closed"}
                       type="button"
                       variant="secondary"
+                      onClick={() => void handleStatus("closed")}
                     >
                       Close
                     </DashButton>
@@ -436,7 +469,7 @@ className="text-xs"
                     key={item.id}
                     className={`rounded-xl border px-3 py-3 ${
                       item.isStaff
-                        ? "border-sky-400/20 bg-sky-500/10"
+                        ? "border-pink-400/25 bg-pink-500/10"
                         : "border-white/5 bg-black/20"
                     }`}
                   >
@@ -447,25 +480,29 @@ className="text-xs"
                       </span>
                       <span>{new Date(item.createdAt).toLocaleString()}</span>
                     </div>
-                    <p className="whitespace-pre-wrap text-sm text-zinc-200">{item.body}</p>
+                    <p className="whitespace-pre-wrap text-sm text-zinc-200">
+                      {item.body}
+                    </p>
                   </div>
                 ))}
               </div>
 
               {detail.status !== "closed" ? (
-                <form className="space-y-3 border-t border-white/5 pt-4" onSubmit={handleReply}>
+                <form
+                  className="space-y-3 border-t border-white/5 pt-4"
+                  onSubmit={handleReply}
+                >
                   <DashTextarea
                     maxLength={4000}
-                    onChange={(event) => setReply(event.target.value)}
                     placeholder="Write a reply…"
                     rows={3}
                     value={reply}
+                    onChange={(event) => setReply(event.target.value)}
                   />
                   <DashButton
-                    className="dash-btn-coffee"
                     disabled={submitting || reply.trim().length < 2}
                     type="submit"
-                    variant="coffee"
+                    variant="primary"
                   >
                     <Send className="size-4" />
                     {submitting ? "Sending…" : "Send reply"}

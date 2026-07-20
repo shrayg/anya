@@ -25,24 +25,30 @@ export function resolveInstagramSecretsPath(): string {
 
 function sanitizeValue(raw: string): string {
   let value = raw.trim();
+
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
     (value.startsWith("'") && value.endsWith("'"))
   ) {
     value = value.slice(1, -1);
   }
+
   return value;
 }
 
 export function parseEnvFile(contents: string): Record<string, string> {
   const out: Record<string, string> = {};
+
   for (const line of contents.split(/\r?\n/)) {
     const trimmed = line.trim();
+
     if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
     const eq = trimmed.indexOf("=");
     const key = trimmed.slice(0, eq).trim();
+
     out[key] = sanitizeValue(trimmed.slice(eq + 1));
   }
+
   return out;
 }
 
@@ -60,6 +66,7 @@ export function mergeEnvContents(
       continue;
     }
     const key = line.split("=", 1)[0]?.trim() ?? "";
+
     if (key && key in updates) {
       out.push(`${key}=${updates[key]}`);
       seen.add(key);
@@ -74,18 +81,24 @@ export function mergeEnvContents(
     }
   }
 
-  return `${out.filter((line, index, arr) => !(line === "" && arr[index - 1] === "")).join("\n").trimEnd()}\n`;
+  return `${out
+    .filter((line, index, arr) => !(line === "" && arr[index - 1] === ""))
+    .join("\n")
+    .trimEnd()}\n`;
 }
 
 export function normalizeInstagramSessionInput(
   input: InstagramSessionInput,
 ): Record<string, string> {
   const updates: Record<string, string> = {};
+
   for (const key of INSTAGRAM_ENV_KEYS) {
     const value = input[key]?.trim();
+
     if (!value) continue;
     updates[key] = sanitizeValue(value);
   }
+
   return updates;
 }
 
@@ -95,15 +108,18 @@ export function writeInstagramSessionFiles(input: InstagramSessionInput): {
   keysWritten: string[];
 } {
   const updates = normalizeInstagramSessionInput(input);
+
   if (!updates.INSTAGRAM_SESSION_ID) {
     throw new Error("INSTAGRAM_SESSION_ID is required.");
   }
 
   const secretsPath = resolveInstagramSecretsPath();
+
   mkdirSync(dirname(secretsPath), { recursive: true });
   const previousSecrets = existsSync(secretsPath)
     ? readFileSync(secretsPath, "utf8")
     : "";
+
   writeFileSync(secretsPath, mergeEnvContents(previousSecrets, updates), {
     encoding: "utf8",
     mode: 0o600,
@@ -113,6 +129,7 @@ export function writeInstagramSessionFiles(input: InstagramSessionInput): {
   const previousLocal = existsSync(localPath)
     ? readFileSync(localPath, "utf8")
     : "";
+
   writeFileSync(localPath, mergeEnvContents(previousLocal, updates), {
     encoding: "utf8",
     mode: 0o600,
@@ -140,6 +157,7 @@ export function readInstagramSessionStatus(): {
   const keysPresent = INSTAGRAM_ENV_KEYS.filter((key) =>
     Boolean(process.env[key]?.trim()),
   );
+
   return {
     configured: Boolean(process.env.INSTAGRAM_SESSION_ID?.trim()),
     keysPresent: [...keysPresent],

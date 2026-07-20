@@ -20,7 +20,10 @@ const POWERED_BY_PROVIDER =
 function stripProviderNames(text: string): string {
   let cleaned = text
     .replace(POWERED_BY_PROVIDER, `Powered by ${PUBLIC_BRAND}`)
-    .replace(/powered\s+by\s+csint(?:\.pro)?(?:\s+tools)?/gi, `Powered by ${PUBLIC_BRAND}`)
+    .replace(
+      /powered\s+by\s+csint(?:\.pro)?(?:\s+tools)?/gi,
+      `Powered by ${PUBLIC_BRAND}`,
+    )
     .replace(/GodsEye[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/OsintCat[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/OSINT\s*Cat[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
@@ -95,7 +98,9 @@ export function sanitizePublicText(text: string): string {
   if (!text) return text;
 
   const original = text.trim();
-  const cleaned = stripProviderNames(text).replace(/\s{2,}/g, " ").trim();
+  const cleaned = stripProviderNames(text)
+    .replace(/\s{2,}/g, " ")
+    .trim();
 
   // Provider-only strings must not become the product brand (fake credentials / Source ads).
   if (
@@ -128,7 +133,9 @@ export function sanitizePublicContent(text: string): string {
   return cleaned;
 }
 
-export function publicSearchError(fallback = "Search failed. Try again or contact support.") {
+export function publicSearchError(
+  fallback = "Search failed. Try again or contact support.",
+) {
   return fallback;
 }
 

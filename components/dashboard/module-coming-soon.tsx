@@ -1,12 +1,17 @@
 "use client";
 
+import type { SearchModuleDef } from "@/lib/search-modules";
+
 import Link from "next/link";
 import { ArrowLeft, Home, Sparkles } from "lucide-react";
 
-import type { SearchModuleDef } from "@/lib/search-modules";
 import { siteConfig } from "@/config/site";
 
-export function ModuleComingSoon({ moduleDef }: { moduleDef: SearchModuleDef }) {
+export function ModuleComingSoon({
+  moduleDef,
+}: {
+  moduleDef: SearchModuleDef;
+}) {
   return (
     <div className="module-search px-6 py-6 md:px-8 md:py-8">
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -17,7 +22,10 @@ export function ModuleComingSoon({ moduleDef }: { moduleDef: SearchModuleDef }) 
           <ArrowLeft className="size-4" />
           Back
         </Link>
-        <Link className="module-search-back inline-flex items-center gap-2" href="/">
+        <Link
+          className="module-search-back inline-flex items-center gap-2"
+          href="/"
+        >
           <Home className="size-4" />
           Home
         </Link>
@@ -38,11 +46,17 @@ export function ModuleComingSoon({ moduleDef }: { moduleDef: SearchModuleDef }) 
         <span className="module-coming-soon-badge">Coming soon</span>
         <p className="module-coming-soon-text">
           {siteConfig.name} is training this module. Check back soon — or try{" "}
-          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/dashboard/search/ai-search">
+          <Link
+            className="text-anya-accent underline hover:text-anya-accent-hover"
+            href="/dashboard/search/ai-search"
+          >
             AI Search
           </Link>{" "}
           and{" "}
-          <Link className="text-anya-accent underline hover:text-anya-accent-hover" href="/dashboard/search/ai-deep-scan">
+          <Link
+            className="text-anya-accent underline hover:text-anya-accent-hover"
+            href="/dashboard/search/ai-deep-scan"
+          >
             AI Deep Scan
           </Link>{" "}
           in the meantime.

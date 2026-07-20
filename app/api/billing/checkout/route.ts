@@ -70,6 +70,7 @@ async function createSquareCheckout(input: {
   });
 
   const link = result.paymentLink;
+
   if (!link?.id || !link.url) {
     throw new Error("Square did not return a payment link");
   }
@@ -153,6 +154,7 @@ async function finalizeCheckout(input: {
 
 export async function POST(request: NextRequest) {
   const session = await getSessionCookie();
+
   if (!session?.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -162,11 +164,13 @@ export async function POST(request: NextRequest) {
     string,
     unknown
   > | null;
+
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
   const provider = resolveBillingProvider(body) ?? "square";
+
   if (provider === "square" && !isSquareConfigured()) {
     return NextResponse.json(
       { error: "Card checkout (Square) is not configured on this server" },
@@ -184,6 +188,7 @@ export async function POST(request: NextRequest) {
     where: { id: userId },
     select: { id: true, username: true },
   });
+
   if (!dbUser) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
@@ -197,17 +202,25 @@ export async function POST(request: NextRequest) {
         typeof body.planId === "string" ? body.planId : undefined,
       );
       const interval = body.interval;
+
       if (!planId || planId === "free") {
         return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
       }
       if (!isInterval(interval)) {
-        return NextResponse.json({ error: "Invalid billing interval" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid billing interval" },
+          { status: 400 },
+        );
       }
 
       const plan = getPlanDefinition(planId as PlanId);
       const price = getPlanPrice(plan, interval);
+
       if (price.value == null) {
-        return NextResponse.json({ error: "Plan requires sales contact" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Plan requires sales contact" },
+          { status: 400 },
+        );
       }
 
       const payment = await recordPayment({
@@ -249,8 +262,12 @@ export async function POST(request: NextRequest) {
     if (type === "credits") {
       const packId = typeof body.packId === "string" ? body.packId : undefined;
       const pack = CREDIT_PACKS.find((entry) => entry.id === packId);
+
       if (!pack) {
-        return NextResponse.json({ error: "Invalid credit pack" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid credit pack" },
+          { status: 400 },
+        );
       }
 
       const creditTotal = getCreditPackTotal(pack);
@@ -287,8 +304,12 @@ export async function POST(request: NextRequest) {
 
     if (type === "api_access") {
       const interval = body.interval;
+
       if (!isInterval(interval)) {
-        return NextResponse.json({ error: "Invalid billing interval" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid billing interval" },
+          { status: 400 },
+        );
       }
 
       const price = getApiPrice(interval);
@@ -325,13 +346,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result);
     }
 
-    return NextResponse.json({ error: "Unknown checkout type" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Unknown checkout type" },
+      { status: 400 },
+    );
   } catch (error) {
     console.error("[billing/checkout]", error);
+
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "Checkout failed",
+        error: error instanceof Error ? error.message : "Checkout failed",
       },
       { status: 502 },
     );
