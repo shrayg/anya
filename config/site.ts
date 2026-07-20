@@ -18,11 +18,13 @@ export const siteConfig = {
   privacyContactEmail: "support@anyaint.com",
   governingLawState: "Delaware",
   navItems: [
+    { label: "Home", href: "/" },
     { label: "Pricing", href: "/pricing" },
     { label: "Status", href: "/status" },
     { label: "Support", href: "/support" },
   ] as NavItem[],
   navMenuItems: [
+    { label: "Home", href: "/" },
     { label: "Pricing", href: "/pricing" },
     { label: "Status", href: "/status" },
     { label: "Support", href: "/support" },

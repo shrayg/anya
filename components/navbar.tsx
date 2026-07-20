@@ -97,6 +97,7 @@ export const Navbar = () => {
     for (const item of [
       { label: "Pricing", href: "/pricing" },
       { label: "Status", href: "/status" },
+      { label: "Home", href: "/" },
     ] as NavItem[]) {
       if (!seen.has(item.href)) {
         ensured.unshift(item);
