@@ -49,6 +49,18 @@ html.theme-mac-dashboard .dash-sidebar {
   box-shadow: 1px 0 0 rgba(0, 0, 0, 0.25);
 }
 
+html.theme-mac-dashboard .dash-sidebar.dash-sidebar--shadcn {
+  border-right: none;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+html.theme-mac-dashboard .dash-sidebar-liquid-glass > .liquid-glass-card__content {
+  border-color: var(--mac-border);
+  background: var(--mac-sidebar);
+}
+
 html.theme-mac-dashboard .dash-sidebar-brand span {
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -56,9 +68,9 @@ html.theme-mac-dashboard .dash-sidebar-brand span {
 }
 
 html.theme-mac-dashboard .dash-sidebar-minimize {
-  border-radius: 9999px;
-  border-color: var(--mac-border);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0.375rem;
+  border-color: transparent;
+  background: transparent;
   color: var(--mac-muted);
 }
 
@@ -67,19 +79,21 @@ html.theme-mac-dashboard .dash-sidebar-minimize:hover {
   color: var(--mac-text);
 }
 
+html.theme-mac-dashboard .dash-sidebar-menu-button,
 html.theme-mac-dashboard .dash-nav-link {
-  border-radius: 0.65rem;
+  border-radius: 0.5rem;
   color: var(--mac-muted);
-  margin-inline: 0.45rem;
-  padding-block: 0.5rem;
 }
 
+html.theme-mac-dashboard .dash-sidebar-menu-button:hover,
 html.theme-mac-dashboard .dash-nav-link:hover {
   background: rgba(255, 255, 255, 0.06);
   color: var(--mac-text);
 }
 
-html.theme-mac-dashboard .dash-nav-link-active {
+html.theme-mac-dashboard .dash-sidebar-menu-button--active,
+html.theme-mac-dashboard .dash-nav-link-active,
+html.theme-mac-dashboard .dash-sidebar-menu-button[data-active="true"] {
   background: rgba(255, 255, 255, 0.1);
   color: var(--mac-text);
   box-shadow: none;
@@ -87,13 +101,11 @@ html.theme-mac-dashboard .dash-nav-link-active {
 }
 
 html.theme-mac-dashboard .dash-sidebar-section-divider,
+html.theme-mac-dashboard .dash-sidebar-category-toggle,
+html.theme-mac-dashboard .dash-sidebar-group-label,
 html.theme-mac-dashboard .dash-sidebar [class*="section"] h3,
 html.theme-mac-dashboard .dash-sidebar .text-zinc-500 {
   color: var(--mac-muted) !important;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-size: 0.65rem;
-  font-weight: 600;
 }
 
 html.theme-mac-dashboard .dash-main {

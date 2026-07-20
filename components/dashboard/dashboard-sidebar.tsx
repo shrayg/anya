@@ -27,6 +27,7 @@ import {
 import { AI_SEARCH_MODULES, getHubSections } from "@/lib/search-modules";
 import { isCryptoIntelEnabled } from "@/lib/crypto-intel/enabled";
 import { checkModuleAccess, resolveUserPlan } from "@/lib/plans";
+import { getPlanDisplayLabel } from "@/lib/account-plan";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import {
   hasPlatformBrandIcon,
@@ -36,6 +37,20 @@ import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 import { StaffBadge } from "@/components/dashboard/staff-badge";
 import { useDashboardSidebar } from "@/components/dashboard/dashboard-sidebar-context";
 import { LiquidGlassCard } from "@/components/ui/liquid-glass";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInput,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarSeparator,
+} from "@/components/ui/sidebar";
 import { getStaffRoleMeta } from "@/lib/staff-roles";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
@@ -145,23 +160,24 @@ function SidebarLink({
   const isActive = isNavActive(item, pathname);
 
   return (
-    <Link
-      prefetch
-      className={clsx("dash-nav-link", isActive && "dash-nav-link-active")}
-      data-tour={dataTour}
-      href={item.href}
-      title={item.name}
-    >
-      <div className="flex items-center gap-3">
-        <item.icon className="size-4 shrink-0" />
-        <span>{item.name}</span>
-      </div>
-      {item.badge && (
-        <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-300">
-          {item.badge}
-        </span>
-      )}
-    </Link>
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive}>
+        <Link
+          prefetch
+          data-tour={dataTour}
+          href={item.href}
+          title={item.name}
+        >
+          <div>
+            <item.icon />
+            <span>{item.name}</span>
+          </div>
+          {item.badge ? (
+            <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+          ) : null}
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }
 
@@ -170,13 +186,13 @@ function ModuleIcon({ name }: { name: string }) {
     return (
       <PlatformBrandIcon
         muted
-        className="size-[1.15rem] shrink-0 text-zinc-400"
+        className="size-4 shrink-0 text-zinc-400"
         name={name}
       />
     );
   }
 
-  return <Search className="size-[1.15rem] shrink-0 text-zinc-400" />;
+  return <Search className="size-4 shrink-0 text-zinc-400" />;
 }
 
 function ModuleLink({
@@ -198,30 +214,26 @@ function ModuleLink({
   const title = locked ? `${name} — upgrade to unlock` : `${name} — ${hint}`;
 
   return (
-    <Link
-      prefetch
-      className={clsx(
-        "dash-nav-link w-full",
-        isActive && "dash-nav-link-active",
-        locked && "opacity-45",
-      )}
-      href={`/dashboard/search/${slug}`}
-      title={title}
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <ModuleIcon name={name} />
-        <span className="truncate">{name}</span>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <ModuleStatusDot className="size-1.5" slug={slug} />
-        {locked && <Lock className="size-3 text-zinc-500" />}
-        {badge && (
-          <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-300">
-            {badge}
-          </span>
-        )}
-      </div>
-    </Link>
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive}>
+        <Link
+          prefetch
+          className={clsx(locked && "opacity-45")}
+          href={`/dashboard/search/${slug}`}
+          title={title}
+        >
+          <div>
+            <ModuleIcon name={name} />
+            <span>{name}</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <ModuleStatusDot className="size-1.5" slug={slug} />
+            {locked ? <Lock className="size-3 text-zinc-500" /> : null}
+            {badge ? <SidebarMenuBadge>{badge}</SidebarMenuBadge> : null}
+          </div>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }
 
@@ -243,11 +255,12 @@ function CollapsibleCategory({
   const panelId = `dash-sidebar-category-${sectionId}`;
 
   return (
-    <div data-tour={dataTour}>
+    <SidebarGroup data-tour={dataTour}>
       <button
         aria-controls={panelId}
         aria-expanded={open}
         className="dash-sidebar-category-toggle"
+        data-sidebar="group-label"
         title={open ? `Collapse ${title}` : `Expand ${title}`}
         type="button"
         onClick={onToggle}
@@ -269,10 +282,12 @@ function CollapsibleCategory({
         id={panelId}
       >
         <div className="dash-sidebar-category-body-inner">
-          <div className="space-y-0.5">{children}</div>
+          <SidebarGroupContent>
+            <SidebarMenu>{children}</SidebarMenu>
+          </SidebarGroupContent>
         </div>
       </div>
-    </div>
+    </SidebarGroup>
   );
 }
 
@@ -281,6 +296,7 @@ export function DashboardSidebar({ username }: { username: string }) {
   const router = useRouter();
   const profile = useDashboardUser();
   const plan = resolveUserPlan(profile);
+  const planLabel = getPlanDisplayLabel(profile);
   const balance = profile.balance ?? 0;
   const staffMeta = getStaffRoleMeta(profile.staffRole);
   const { footerCollapsed, toggleFooterCollapsed } = useDashboardSidebar();
@@ -375,43 +391,46 @@ export function DashboardSidebar({ username }: { username: string }) {
   };
 
   return (
-    <aside className="dash-sidebar dash-sidebar--liquid-glass">
+    <Sidebar>
       <LiquidGlassCard
-        blurIntensity="md"
+        blurIntensity="sm"
         borderRadius="12px"
         className="dash-sidebar-liquid-glass"
         draggable={false}
-        glowIntensity="sm"
-        shadowIntensity="sm"
+        glowIntensity="none"
+        shadowIntensity="none"
       >
-        <div className="dash-sidebar-header">
-          <Link
-            prefetch
-            className="dash-sidebar-brand min-w-0 flex-1"
-            href={siteConfig.defaultWorkspacePath}
-            title={`${siteConfig.name} dashboard`}
-          >
-            <Image
-              unoptimized
-              alt={siteConfig.name}
-              className={siteLogoClassName}
-              height={36}
-              src={siteLogoSrc}
-              width={36}
-            />
-            <span className="[font-family:var(--font-bruno-ace-sc)]">
-              {siteConfig.name}
-            </span>
-          </Link>
-        </div>
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild size="lg">
+                <Link
+                  prefetch
+                  className="dash-sidebar-brand"
+                  href={siteConfig.defaultWorkspacePath}
+                  title={`${siteConfig.name} dashboard`}
+                >
+                  <Image
+                    unoptimized
+                    alt={siteConfig.name}
+                    className={siteLogoClassName}
+                    height={32}
+                    src={siteLogoSrc}
+                    width={32}
+                  />
+                  <span className="[font-family:var(--font-bruno-ace-sc)]">
+                    {siteConfig.name}
+                  </span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
 
-        <div className="border-b border-white/6 px-4 pb-4">
-          <div className="relative">
+          <div className="relative px-0.5 pb-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-            <input
+            <SidebarInput
               {...SEARCH_AUTOFILL_SHIELD}
               readOnly
-              className="dash-input dash-input--icon py-2 pr-3"
               data-tour="sidebar-filter"
               name="module-filter"
               placeholder="Filter modules..."
@@ -421,22 +440,25 @@ export function DashboardSidebar({ username }: { username: string }) {
               onFocus={unlockAutofillShield}
             />
           </div>
-        </div>
+        </SidebarHeader>
 
-        <div
-          className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
-          data-tour="sidebar-scroll"
-        >
-          <div className="space-y-1">
-            {mainNav.map((item) => (
-              <SidebarLink
-                key={item.name}
-                dataTour={item.name === "Case ID" ? "case-id" : undefined}
-                item={item}
-                pathname={pathname}
-              />
-            ))}
-          </div>
+        <SidebarSeparator />
+
+        <SidebarContent data-tour="sidebar-scroll">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {mainNav.map((item) => (
+                  <SidebarLink
+                    key={item.name}
+                    dataTour={item.name === "Case ID" ? "case-id" : undefined}
+                    item={item}
+                    pathname={pathname}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
           {filteredAiItems.length > 0 && (
             <CollapsibleCategory
@@ -486,9 +508,9 @@ export function DashboardSidebar({ username }: { username: string }) {
               </CollapsibleCategory>
             );
           })}
-        </div>
+        </SidebarContent>
 
-        <div className="border-t border-white/6 px-3 py-2">
+        <SidebarFooter>
           <button
             aria-controls="dash-sidebar-footer-links"
             aria-expanded={!footerCollapsed}
@@ -518,59 +540,63 @@ export function DashboardSidebar({ username }: { username: string }) {
               </>
             )}
           </button>
-        </div>
 
-        <div
-          className={clsx(
-            "dash-sidebar-footer-nav",
-            footerCollapsed && "dash-sidebar-footer-nav--collapsed",
-          )}
-          id="dash-sidebar-footer-links"
-        >
-          <div className="dash-sidebar-footer-nav-inner">
-            <div className="space-y-1 border-t border-white/6 px-3 py-3">
-              {footerItems.map((item) => (
-                <SidebarLink
-                  key={item.name}
-                  dataTour={
-                    item.name === "Account"
-                      ? "footer-settings"
-                      : item.name === "Admin"
-                        ? "footer-admin"
-                        : undefined
-                  }
-                  item={item}
-                  pathname={pathname}
-                />
-              ))}
+          <div
+            className={clsx(
+              "dash-sidebar-footer-nav",
+              footerCollapsed && "dash-sidebar-footer-nav--collapsed",
+            )}
+            id="dash-sidebar-footer-links"
+          >
+            <div className="dash-sidebar-footer-nav-inner">
+              <SidebarMenu>
+                {footerItems.map((item) => (
+                  <SidebarLink
+                    key={item.name}
+                    dataTour={
+                      item.name === "Account"
+                        ? "footer-settings"
+                        : item.name === "Admin"
+                          ? "footer-admin"
+                          : undefined
+                    }
+                    item={item}
+                    pathname={pathname}
+                  />
+                ))}
+              </SidebarMenu>
             </div>
           </div>
-        </div>
 
-        <div className="border-t border-white/6 p-4">
-          <div className="flex items-center justify-between rounded-xl border border-white/8 bg-black/30 px-3 py-2.5 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
+          <div className="dash-sidebar-user">
+            <div className="flex min-w-0 items-center gap-2.5">
               <div
                 className={clsx(
-                  "flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-white ring-2",
+                  "dash-sidebar-user-avatar ring-2",
                   staffMeta?.avatarRingClass ?? "ring-transparent",
                 )}
               >
                 {username.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-white">{username}</p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="truncate text-sm font-medium text-white">
+                    {username}
+                  </p>
                   <StaffBadge role={profile.staffRole} size="xs" />
                 </div>
-                <p className="text-[10px] text-zinc-500">
-                  {staffMeta ? `${staffMeta.label} staff` : "Investigator"}
+                <p className="truncate text-[11px] capitalize text-zinc-500">
+                  {staffMeta
+                    ? `${staffMeta.label} staff`
+                    : planLabel
+                      ? planLabel
+                      : "Investigator"}
                 </p>
               </div>
             </div>
             <button
               aria-label="Log out"
-              className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+              className="rounded-md p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
               title="Log out"
               type="button"
               onClick={handleLogout}
@@ -578,8 +604,8 @@ export function DashboardSidebar({ username }: { username: string }) {
               <LogOut className="size-4" />
             </button>
           </div>
-        </div>
+        </SidebarFooter>
       </LiquidGlassCard>
-    </aside>
+    </Sidebar>
   );
 }
