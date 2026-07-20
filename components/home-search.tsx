@@ -18,6 +18,7 @@ import { useEffect, useState, type ElementType } from "react";
 
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { getHubSections } from "@/lib/search-modules";
 import {
   STARTER_SEARCH_MODES,
@@ -300,7 +301,7 @@ export function HomeSearch() {
         onChange={(event) => setQuery(event.target.value)}
         onFocus={unlockAutofillShield}
       />
-      <button
+      <LiquidButton
         className="home-search-submit"
         data-tour="home-search-submit"
         disabled={!query.trim() || isSearching || auth.status === "loading"}
@@ -314,7 +315,7 @@ export function HomeSearch() {
             <ArrowRight className="size-5" />
           </>
         )}
-      </button>
+      </LiquidButton>
     </div>
   );
 

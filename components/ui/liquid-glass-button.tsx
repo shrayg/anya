@@ -1,0 +1,110 @@
+"use client";
+
+import clsx from "clsx";
+import {
+  forwardRef,
+  useId,
+  type ButtonHTMLAttributes,
+  type CSSProperties,
+} from "react";
+
+export type LiquidButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  /** Prefer CSS glass when SVG backdrop filters are unsupported / too heavy. */
+  variant?: "liquid" | "glass";
+};
+
+/**
+ * Removable trial: liquid / CSS glass CTAs for dark marketing surfaces.
+ * Uses unique SVG filter IDs per instance so multiple buttons on one page do not clash.
+ */
+export const LiquidButton = forwardRef<HTMLButtonElement, LiquidButtonProps>(
+  function LiquidButton(
+    {
+      className,
+      children,
+      variant = "liquid",
+      type = "button",
+      style,
+      disabled,
+      ...props
+    },
+    ref,
+  ) {
+    const reactId = useId();
+    const filterId = `container-glass-${reactId.replace(/:/g, "")}`;
+
+    if (variant === "glass") {
+      return (
+        <button
+          ref={ref}
+          className={clsx("glass-button", className)}
+          disabled={disabled}
+          style={style}
+          type={type}
+          {...props}
+        >
+          <span className="glass-button__label">{children}</span>
+        </button>
+      );
+    }
+
+    const liquidStyle = {
+      ...style,
+      ["--liquid-glass-filter" as string]: `url(#${filterId})`,
+    } as CSSProperties;
+
+    return (
+      <button
+        ref={ref}
+        className={clsx("liquid-glass-button", className)}
+        disabled={disabled}
+        style={liquidStyle}
+        type={type}
+        {...props}
+      >
+        <span aria-hidden className="liquid-glass-button__shine" />
+        <span aria-hidden className="liquid-glass-button__glass" />
+        <span className="liquid-glass-button__label">{children}</span>
+        <svg
+          aria-hidden
+          className="liquid-glass-button__filter"
+          focusable="false"
+        >
+          <defs>
+            <filter
+              colorInterpolationFilters="sRGB"
+              filterUnits="objectBoundingBox"
+              height="140%"
+              id={filterId}
+              width="140%"
+              x="-20%"
+              y="-20%"
+            >
+              <feTurbulence
+                baseFrequency="0.02 0.05"
+                numOctaves="2"
+                result="noise"
+                seed="2"
+                type="fractalNoise"
+              />
+              <feGaussianBlur
+                in="noise"
+                result="blurred"
+                stdDeviation="1.2"
+              />
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="blurred"
+                scale="12"
+                xChannelSelector="R"
+                yChannelSelector="G"
+              />
+            </filter>
+          </defs>
+        </svg>
+      </button>
+    );
+  },
+);
+
+LiquidButton.displayName = "LiquidButton";

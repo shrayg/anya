@@ -15,6 +15,7 @@ import {
   type BillingStatusKind,
 } from "@/components/billing-status-banner";
 import AnimatedPrice from "@/components/animated-price";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import {
   ANNUAL_MONTHS_CHARGED,
   API_PRODUCT,
@@ -373,16 +374,14 @@ export function PricingPageContent({
                         ))}
                       </ul>
 
-                      <Button
+                      <LiquidButton
                         className={clsx(
-                          "mt-5 h-10 w-full border text-sm font-semibold",
-                          plan.highlighted
-                            ? "border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-[#0c1019]"
-                            : "border-white/15 bg-white/10 text-white",
+                          "mt-5 h-10 w-full text-sm font-semibold",
+                          plan.highlighted && "liquid-glass-button--accent",
                         )}
-                        isDisabled={busyId === plan.id}
-                        isLoading={busyId === plan.id}
-                        onPress={() => {
+                        disabled={busyId === plan.id}
+                        type="button"
+                        onClick={() => {
                           if (plan.customPricing) {
                             router.push("/dashboard/support");
 
@@ -398,8 +397,12 @@ export function PricingPageContent({
                           );
                         }}
                       >
-                        {plan.customPricing ? "Contact Sales" : "Get Started"}
-                      </Button>
+                        {busyId === plan.id
+                          ? "Working…"
+                          : plan.customPricing
+                            ? "Contact Sales"
+                            : "Get Started"}
+                      </LiquidButton>
                     </article>
                   </div>
                 );
