@@ -19,7 +19,7 @@ const nodeTypeConfig: Record<
   email: { icon: Mail, color: "#f87171", label: "Email" },
   phone: { icon: Phone, color: "#34d399", label: "Phone" },
   domain: { icon: Globe, color: "#fbbf24", label: "Domain" },
-  discord: { icon: MessageCircle, color: "#ff78ba", label: "Discord" },
+  discord: { icon: MessageCircle, color: "#d8e6f4", label: "Discord" },
   note: { icon: HelpCircle, color: "#94a3b8", label: "Note" },
 };
 

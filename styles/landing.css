@@ -1,6 +1,6 @@
 .anya-landing, .brutal-page, .marketing-canvas {
-  --anya-pink: #ff3f9d;
-  --anya-pink-bright: #ff62b0;
+  --anya-pink: #c3d3e6;
+  --anya-pink-bright: #d8e6f4;
   --anya-black: #050506;
   --anya-ink: #0a0a0b;
   --anya-white: #f4f1f3;
@@ -140,7 +140,7 @@
   left: 0.55rem;
   height: 1px;
   background: var(--anya-pink);
-  box-shadow: 0 0 7px rgba(255, 63, 157, 0.48);
+  box-shadow: 0 0 7px rgba(195, 211, 230, 0.48);
   content: "";
 }
 
@@ -219,11 +219,11 @@
   bottom: -30%;
   width: 62%;
   aspect-ratio: 1;
-  border: 1px solid rgba(255, 63, 157, 0.08);
+  border: 1px solid rgba(195, 211, 230, 0.08);
   border-radius: 50%;
   box-shadow:
-    0 0 0 7vw rgba(255, 63, 157, 0.018),
-    0 0 0 14vw rgba(255, 63, 157, 0.012);
+    0 0 0 7vw rgba(195, 211, 230, 0.018),
+    0 0 0 14vw rgba(195, 211, 230, 0.012);
   content: "";
 }
 
@@ -342,15 +342,15 @@
   position: relative;
   display: grid;
   min-height: 3.45rem;
-  border: 1px solid rgba(255, 63, 157, 0.68);
+  border: 1px solid rgba(195, 211, 230, 0.68);
   border-radius: 0;
   background: rgba(4, 4, 5, 0.94);
   grid-template-columns: 2.9rem 1fr auto;
   align-items: center;
   box-shadow:
-    9px 9px 0 rgba(255, 63, 157, 0.11),
+    9px 9px 0 rgba(195, 211, 230, 0.11),
     0 0 0 1px rgba(244, 241, 243, 0.025),
-    0 18px 54px rgba(255, 63, 157, 0.1);
+    0 18px 54px rgba(195, 211, 230, 0.1);
   backdrop-filter: blur(18px);
   transition:
     border-color 160ms ease,
@@ -380,7 +380,7 @@
   bottom: -1.65rem;
   left: 8%;
   height: 2rem;
-  background: rgba(255, 63, 157, 0.12);
+  background: rgba(195, 211, 230, 0.12);
   filter: blur(28px);
   content: "";
   pointer-events: none;
@@ -389,9 +389,9 @@
 .anya-landing .home-search-input-wrap:focus-within {
   border-color: rgba(255, 159, 205, 0.98);
   box-shadow:
-    9px 9px 0 rgba(255, 63, 157, 0.18),
-    0 0 0 1px rgba(255, 63, 157, 0.14),
-    0 18px 64px rgba(255, 63, 157, 0.16);
+    9px 9px 0 rgba(195, 211, 230, 0.18),
+    0 0 0 1px rgba(195, 211, 230, 0.14),
+    0 18px 64px rgba(195, 211, 230, 0.16);
 }
 
 .anya-landing .home-search-icon {
@@ -446,8 +446,8 @@
 }
 
 .anya-landing .home-search-submit:disabled {
-  border-left: 1px solid rgba(255, 63, 157, 0.24);
-  background: rgba(255, 63, 157, 0.1);
+  border-left: 1px solid rgba(195, 211, 230, 0.24);
+  background: rgba(195, 211, 230, 0.1);
   color: #a65f82;
   cursor: not-allowed;
 }
@@ -455,9 +455,9 @@
 .anya-landing .home-search-foot {
   display: grid;
   min-height: 2.2rem;
-  border-right: 1px solid rgba(255, 63, 157, 0.15);
-  border-bottom: 1px solid rgba(255, 63, 157, 0.15);
-  border-left: 1px solid rgba(255, 63, 157, 0.15);
+  border-right: 1px solid rgba(195, 211, 230, 0.15);
+  border-bottom: 1px solid rgba(195, 211, 230, 0.15);
+  border-left: 1px solid rgba(195, 211, 230, 0.15);
   grid-template-columns: 1fr auto auto;
   align-items: center;
   color: #777278;
@@ -501,12 +501,12 @@
   width: 100%;
   min-width: 10.6rem;
   padding: 0 0.72rem;
-  border: 1px solid rgba(255, 63, 157, 0.72);
+  border: 1px solid rgba(195, 211, 230, 0.72);
   border-radius: 0;
   grid-template-columns: auto auto 1fr;
   align-items: center;
   gap: 0.42rem;
-  background: rgba(255, 63, 157, 0.1);
+  background: rgba(195, 211, 230, 0.1);
   color: var(--anya-pink);
   font-family: var(--font-anya-mono), monospace;
   text-align: left;
@@ -548,10 +548,10 @@
   max-height: min(52vh, 25rem);
   padding: 0.85rem;
   overflow: auto;
-  border: 1px solid rgba(255, 63, 157, 0.72);
+  border: 1px solid rgba(195, 211, 230, 0.72);
   background: rgba(5, 5, 6, 0.98);
   box-shadow:
-    8px 8px 0 rgba(255, 63, 157, 0.11),
+    8px 8px 0 rgba(195, 211, 230, 0.11),
     0 24px 64px rgba(0, 0, 0, 0.62);
   opacity: 0;
   pointer-events: none;
@@ -650,24 +650,24 @@
 }
 
 .anya-landing .starter-search-mode:hover {
-  background: rgba(255, 63, 157, 0.055);
+  background: rgba(195, 211, 230, 0.055);
   color: var(--anya-white);
 }
 
 .anya-landing .starter-search-mode--active {
   border-color: var(--anya-pink);
-  background: rgba(255, 63, 157, 0.105);
+  background: rgba(195, 211, 230, 0.105);
   color: var(--anya-pink);
   box-shadow: inset 0 -2px 0 var(--anya-pink);
 }
 
 .anya-landing .home-search-error {
   margin: 0;
-  border: 1px solid rgba(255, 63, 157, 0.45);
+  border: 1px solid rgba(195, 211, 230, 0.45);
   border-top: 0;
   padding: 0.75rem;
-  background: rgba(255, 63, 157, 0.08);
-  color: #ff8fc4;
+  background: rgba(195, 211, 230, 0.08);
+  color: #d0e0f0;
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.65rem;
 }
@@ -818,7 +818,7 @@
 
 .case-visual-map path {
   fill: none;
-  stroke: rgba(255, 63, 157, 0.46);
+  stroke: rgba(195, 211, 230, 0.46);
   stroke-dasharray: 1.5 2.8;
   stroke-width: 0.25;
   vector-effect: non-scaling-stroke;
@@ -826,8 +826,8 @@
 }
 
 .case-visual-map circle:first-of-type {
-  fill: rgba(255, 63, 157, 0.035);
-  stroke: rgba(255, 63, 157, 0.46);
+  fill: rgba(195, 211, 230, 0.035);
+  stroke: rgba(195, 211, 230, 0.46);
   stroke-width: 0.2;
   vector-effect: non-scaling-stroke;
 }
@@ -949,7 +949,7 @@
   bottom: 0;
   width: 2px;
   background: var(--anya-pink);
-  box-shadow: 0 0 24px rgba(255, 63, 157, 0.72);
+  box-shadow: 0 0 24px rgba(195, 211, 230, 0.72);
   content: "";
   pointer-events: none;
   animation: brutal-render-scan 720ms steps(8, end) forwards;
@@ -1038,7 +1038,7 @@
   background: #080709;
   text-align: center;
   transform: translate(-50%, -50%) rotate(45deg);
-  box-shadow: 0 0 0 1.4rem rgba(255, 63, 157, 0.025);
+  box-shadow: 0 0 0 1.4rem rgba(195, 211, 230, 0.025);
 }
 
 .module-mindmap-core > * {
@@ -1295,7 +1295,7 @@
   place-content: center;
   background: #070607;
   text-align: center;
-  box-shadow: 0 0 0 1.2rem rgba(255, 63, 157, 0.025);
+  box-shadow: 0 0 0 1.2rem rgba(195, 211, 230, 0.025);
 }
 
 .ai-synthesis-logo {
@@ -1303,7 +1303,7 @@
   width: 2.75rem;
   height: 2.75rem;
   margin: 0 auto 0.8rem;
-  border: 1px solid rgba(255, 63, 157, 0.55);
+  border: 1px solid rgba(195, 211, 230, 0.55);
   background: var(--anya-white);
   animation: ai-logo-dither 1.8s steps(5, end) infinite;
 }
@@ -1331,7 +1331,7 @@
 
 .ai-resolved-card {
   padding: 1.5rem;
-  border: 1px solid rgba(255, 63, 157, 0.62);
+  border: 1px solid rgba(195, 211, 230, 0.62);
   background: rgba(7, 7, 8, 0.97);
 }
 
@@ -1820,10 +1820,10 @@
 }
 
 .coverage-directory .mod-section--featured {
-  border-color: rgba(255, 63, 157, 0.38);
+  border-color: rgba(195, 211, 230, 0.38);
   background: linear-gradient(
     135deg,
-    rgba(255, 63, 157, 0.055),
+    rgba(195, 211, 230, 0.055),
     rgba(6, 6, 7, 0.96) 48%
   );
 }
@@ -1843,7 +1843,7 @@
   height: 1.55rem;
   border: 0;
   border-radius: 0 !important;
-  background: rgba(255, 63, 157, 0.08);
+  background: rgba(195, 211, 230, 0.08);
 }
 
 .coverage-directory .mod-grid {
@@ -1860,7 +1860,7 @@
 
 .coverage-directory .mod-tile:hover {
   padding: 0.42rem 0.65rem;
-  background: rgba(255, 63, 157, 0.065);
+  background: rgba(195, 211, 230, 0.065);
   box-shadow: inset 2px 0 0 var(--anya-pink);
 }
 
@@ -1938,7 +1938,7 @@
   width: 2rem;
   height: 2rem;
   place-items: center;
-  border: 1px solid rgba(255, 63, 157, 0.32);
+  border: 1px solid rgba(195, 211, 230, 0.32);
   color: var(--anya-pink);
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.54rem;
@@ -2318,7 +2318,7 @@
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-plan-shell.is-highlighted
   .pricing-option-card {
-  border-top-color: rgba(255, 63, 157, 0.6) !important;
+  border-top-color: rgba(195, 211, 230, 0.6) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card:hover {
@@ -2424,7 +2424,7 @@
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-api-card {
   border-radius: 0 !important;
-  box-shadow: 12px 12px 0 rgba(255, 63, 157, 0.055);
+  box-shadow: 12px 12px 0 rgba(195, 211, 230, 0.055);
 }
 
 .status-timeline-segment {
@@ -2466,7 +2466,7 @@
 }
 
 .brutal-status-page li:hover {
-  border-color: rgba(255, 63, 157, 0.32) !important;
+  border-color: rgba(195, 211, 230, 0.32) !important;
   background: #0d0d0f !important;
 }
 
@@ -2497,7 +2497,7 @@
   border-color: var(--anya-line);
   border-left-color: var(--anya-pink);
   background: rgba(5, 5, 6, 0.94);
-  box-shadow: 16px 16px 0 rgba(255, 63, 157, 0.055);
+  box-shadow: 16px 16px 0 rgba(195, 211, 230, 0.055);
   backdrop-filter: none;
 }
 
@@ -2512,7 +2512,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 63, 157, 0.1),
+    rgba(195, 211, 230, 0.1),
     rgba(244, 241, 243, 0.13),
     transparent
   );
@@ -2831,7 +2831,7 @@
   .anya-landing .home-search-input-wrap {
     min-height: 3.25rem;
     grid-template-columns: 2.45rem 1fr auto;
-    box-shadow: 6px 6px 0 rgba(255, 63, 157, 0.1);
+    box-shadow: 6px 6px 0 rgba(195, 211, 230, 0.1);
   }
 
   .anya-landing .home-search-module-row {
@@ -2949,7 +2949,7 @@
     top: 3.5rem;
     width: 4.4rem;
     height: 4.4rem;
-    box-shadow: 0 0 0 0.8rem rgba(255, 63, 157, 0.025);
+    box-shadow: 0 0 0 0.8rem rgba(195, 211, 230, 0.025);
   }
 
   .module-mindmap-core strong {

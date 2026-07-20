@@ -35,10 +35,10 @@ export const themeAccent = TEST_LIME_ICON_THEME
       pillarBottom: "#141908",
     }
   : {
-      blush: "#ff4fa3",
-      blushSoft: "rgba(255, 79, 163, 0.12)",
-      blushGlow: "rgba(255, 79, 163, 0.35)",
-      blushHover: "#ff78ba",
-      pillarTop: "#ff8fc5",
-      pillarBottom: "#1a030e",
+      blush: "#c3d3e6",
+      blushSoft: "rgba(195, 211, 230, 0.12)",
+      blushGlow: "rgba(195, 211, 230, 0.35)",
+      blushHover: "#d8e6f4",
+      pillarTop: "#d0e0f0",
+      pillarBottom: "#0c1019",
     };

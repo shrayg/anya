@@ -204,7 +204,7 @@ export function PricingPageContent({
             className={clsx(
               "flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition",
               tab === id
-                ? "bg-[var(--anya-blush)]/85 text-white shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
+                ? "bg-[var(--anya-blush)]/85 text-[#0c1019] shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
             )}
             type="button"
@@ -222,7 +222,7 @@ export function PricingPageContent({
             className={clsx(
               "pricing-interval-option rounded-xl px-5 py-2 text-sm font-medium transition",
               interval === "monthly"
-                ? "bg-[var(--anya-blush)]/85 text-white shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
+                ? "bg-[var(--anya-blush)]/85 text-[#0c1019] shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
             )}
             type="button"
@@ -234,7 +234,7 @@ export function PricingPageContent({
             className={clsx(
               "pricing-interval-option rounded-xl px-5 py-2 text-sm font-medium transition",
               interval === "annual"
-                ? "bg-[var(--anya-blush)]/85 text-white shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
+                ? "bg-[var(--anya-blush)]/85 text-[#0c1019] shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
             )}
             type="button"
@@ -377,7 +377,7 @@ export function PricingPageContent({
                         className={clsx(
                           "mt-5 h-10 w-full border text-sm font-semibold",
                           plan.highlighted
-                            ? "border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-white"
+                            ? "border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-[#0c1019]"
                             : "border-white/15 bg-white/10 text-white",
                         )}
                         isDisabled={busyId === plan.id}
@@ -529,7 +529,7 @@ export function PricingPageContent({
                     </ul>
 
                     <Button
-                      className="mt-8 h-11 w-full border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-white"
+                      className="mt-8 h-11 w-full border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-[#0c1019]"
                       isDisabled={busyId === "api_access"}
                       isLoading={busyId === "api_access"}
                       onPress={() =>
@@ -586,7 +586,7 @@ export function PricingPageContent({
             </p>
             <div className="mt-5 grid gap-3">
               <Button
-                className="h-11 w-full border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-white"
+                className="h-11 w-full border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-[#0c1019]"
                 isDisabled={busyId === pendingCheckout.id}
                 isLoading={busyId === pendingCheckout.id}
                 onPress={() =>

@@ -92,7 +92,7 @@ export function CaseMindMap({ caseRecord }: { caseRecord: CaseWithSearches }) {
       <ReactFlow
         fitView
         defaultEdgeOptions={{
-          style: { stroke: "#ff4fa3", strokeWidth: 1.5 },
+          style: { stroke: "#c3d3e6", strokeWidth: 1.5 },
           animated: false,
         }}
         edges={graph.edges}
@@ -108,7 +108,7 @@ export function CaseMindMap({ caseRecord }: { caseRecord: CaseWithSearches }) {
           nodeColor={(node) => {
             const accent = (node.data as MindMapNodeData).accent;
 
-            return accent || "#ff4fa3";
+            return accent || "#c3d3e6";
           }}
         />
         <Controls className="!border-white/10 !bg-zinc-900/90 !shadow-xl [&>button]:!border-white/10 [&>button]:!bg-zinc-800 [&>button]:!text-white" />

@@ -167,7 +167,7 @@ export function buildCaseMindMap(caseRecord: CaseWithSearches) {
         kind: "search",
         label: type.toUpperCase(),
         sublabel: parsed.query,
-        accent: "#ff78ba",
+        accent: "#d8e6f4",
       },
     });
     edges.push({

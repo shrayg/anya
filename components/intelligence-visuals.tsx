@@ -438,7 +438,7 @@ export function IntelligenceSignalField() {
       context.save();
       context.setLineDash([2, 10]);
       context.lineWidth = 1;
-      context.strokeStyle = `rgba(255, 63, 157, ${alpha})`;
+      context.strokeStyle = `rgba(195, 211, 230, ${alpha})`;
       context.beginPath();
       context.ellipse(
         identityCenter.x,
@@ -506,11 +506,11 @@ export function IntelligenceSignalField() {
         context.textBaseline = "middle";
         context.font = `${value === "1" ? 700 : 500} ${value === "1" ? 9 : 7}px "Courier New", monospace`;
         context.fillStyle = accent
-          ? `rgba(255, 63, 157, ${alpha})`
+          ? `rgba(195, 211, 230, ${alpha})`
           : `rgba(244, 241, 243, ${alpha})`;
 
         if (value === "1") {
-          context.shadowColor = "rgba(255, 63, 157, 0.9)";
+          context.shadowColor = "rgba(195, 211, 230, 0.9)";
           context.shadowBlur = 7;
         }
 
@@ -597,11 +597,11 @@ export function IntelligenceSignalField() {
         context.font = `${value === "1" ? 700 : 500} ${value === "1" ? 9 : 7}px "Courier New", monospace`;
         context.fillStyle =
           value === "1"
-            ? `rgba(255, 63, 157, ${alpha})`
+            ? `rgba(195, 211, 230, ${alpha})`
             : `rgba(244, 241, 243, ${alpha})`;
 
         if (value === "1") {
-          context.shadowColor = "rgba(255, 63, 157, 0.95)";
+          context.shadowColor = "rgba(195, 211, 230, 0.95)";
           context.shadowBlur = 8;
         }
 
@@ -657,13 +657,13 @@ export function IntelligenceSignalField() {
       context.save();
       context.lineWidth = 1;
       context.strokeStyle = node.live
-        ? "rgba(255, 63, 157, 0.9)"
+        ? "rgba(195, 211, 230, 0.9)"
         : "rgba(244, 241, 243, 0.25)";
       context.beginPath();
       context.arc(x, y, 10 * pulse, 0, Math.PI * 2);
       context.stroke();
       context.fillStyle = node.live
-        ? "rgba(255, 63, 157, 0.95)"
+        ? "rgba(195, 211, 230, 0.95)"
         : "rgba(244, 241, 243, 0.45)";
       context.fillRect(x - 1.5, y - 1.5, 3, 3);
       context.font = '500 10px "Courier New", monospace';
@@ -703,9 +703,9 @@ export function IntelligenceSignalField() {
           76 * scale + ringExpansion,
         );
 
-        glow.addColorStop(0, "rgba(255, 63, 157, 0.3)");
-        glow.addColorStop(0.34, "rgba(255, 63, 157, 0.12)");
-        glow.addColorStop(1, "rgba(255, 63, 157, 0)");
+        glow.addColorStop(0, "rgba(195, 211, 230, 0.3)");
+        glow.addColorStop(0.34, "rgba(195, 211, 230, 0.12)");
+        glow.addColorStop(1, "rgba(195, 211, 230, 0)");
         context.fillStyle = glow;
         context.beginPath();
         context.arc(
@@ -745,7 +745,7 @@ export function IntelligenceSignalField() {
         drawDiamond(
           78 * scale + ringExpansion,
           outerRotation,
-          "rgba(255, 63, 157, 0.16)",
+          "rgba(195, 211, 230, 0.16)",
           [2, 8],
         );
         drawDiamond(
@@ -757,7 +757,7 @@ export function IntelligenceSignalField() {
         drawDiamond(
           37 * scale + pulse * 0.18,
           0,
-          isCoreHovered ? "rgba(255, 121, 188, 1)" : "rgba(255, 63, 157, 0.92)",
+          isCoreHovered ? "rgba(216, 230, 244, 1)" : "rgba(195, 211, 230, 0.92)",
         );
 
         context.save();
@@ -775,14 +775,14 @@ export function IntelligenceSignalField() {
         const scanProgress = reducedMotion ? 0.54 : (time * 0.00022) % 1;
         const scanY = (-27 + scanProgress * 54) * scale;
 
-        context.fillStyle = "rgba(255, 63, 157, 0.08)";
+        context.fillStyle = "rgba(195, 211, 230, 0.08)";
         context.fillRect(
           -36 * scale,
           scanY - 5 * scale,
           72 * scale,
           10 * scale,
         );
-        context.strokeStyle = "rgba(255, 63, 157, 0.46)";
+        context.strokeStyle = "rgba(195, 211, 230, 0.46)";
         context.lineWidth = 1;
         context.beginPath();
         context.moveTo(-36 * scale, scanY);
@@ -804,7 +804,7 @@ export function IntelligenceSignalField() {
 
             context.fillStyle =
               bit === "1"
-                ? "rgba(255, 63, 157, 0.98)"
+                ? "rgba(195, 211, 230, 0.98)"
                 : `rgba(244, 241, 243, ${Math.max(0.2, 0.58 - distanceFromScan * 0.44)})`;
             context.fillText(
               bit,
@@ -827,7 +827,7 @@ export function IntelligenceSignalField() {
           context.fillStyle =
             portIndex === 2
               ? "rgba(244, 241, 243, 0.9)"
-              : "rgba(255, 63, 157, 0.9)";
+              : "rgba(195, 211, 230, 0.9)";
           context.fillRect(
             portX - (portSize * scale) / 2,
             portY - (portSize * scale) / 2,
@@ -843,7 +843,7 @@ export function IntelligenceSignalField() {
         context.letterSpacing = "1.5px";
         context.fillStyle = "rgba(244, 241, 243, 0.56)";
         context.fillText("SIGNAL FUSION / 08:01", labelX, labelY);
-        context.fillStyle = "rgba(255, 63, 157, 0.82)";
+        context.fillStyle = "rgba(195, 211, 230, 0.82)";
         context.fillText(
           isCoreHovered
             ? "KERNEL FIELD: EXPANDED"
@@ -943,7 +943,7 @@ export function IntelligenceSignalField() {
 
         context.lineWidth = accent ? 0.9 : 0.72;
         context.strokeStyle = accent
-          ? "rgba(255, 63, 157, 0.72)"
+          ? "rgba(195, 211, 230, 0.72)"
           : "rgba(244, 241, 243, 0.34)";
         context.stroke();
         context.restore();
@@ -966,7 +966,7 @@ export function IntelligenceSignalField() {
 
         context.fillStyle =
           pixel.accent || ditherAccent
-            ? `rgba(255, 63, 157, ${Math.max(0.42, flicker)})`
+            ? `rgba(195, 211, 230, ${Math.max(0.42, flicker)})`
             : `rgba(244, 241, 243, ${flicker})`;
         context.fillRect(
           Math.round(pixel.x - pixel.size / 2),
@@ -985,7 +985,7 @@ export function IntelligenceSignalField() {
       context.save();
       context.lineWidth = 1;
       context.strokeStyle = isSubjectHovered
-        ? "rgba(255, 63, 157, 0.72)"
+        ? "rgba(195, 211, 230, 0.72)"
         : "rgba(244, 241, 243, 0.22)";
       context.beginPath();
       context.moveTo(left, top + corner);
@@ -1005,7 +1005,7 @@ export function IntelligenceSignalField() {
       const scanProgress = reducedMotion ? 0.56 : (time * 0.00013) % 1;
       const scanY = top + bracketHeight * scanProgress;
 
-      context.strokeStyle = "rgba(255, 63, 157, 0.2)";
+      context.strokeStyle = "rgba(195, 211, 230, 0.2)";
       context.beginPath();
       context.moveTo(left - 8, scanY);
       context.lineTo(left + bracketWidth + 8, scanY);
@@ -1026,7 +1026,7 @@ export function IntelligenceSignalField() {
         identityLabelX,
         identityCenter.y + 47 * scale,
       );
-      context.fillStyle = "rgba(255, 63, 157, 0.78)";
+      context.fillStyle = "rgba(195, 211, 230, 0.78)";
       context.fillText(
         isSubjectHovered
           ? "VOXELS: DISPERSED"

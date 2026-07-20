@@ -6,8 +6,8 @@ let css = fs.readFileSync(path, "utf8");
 css = css.replace(
   /:root \{[\s\S]*?--anya-line-soft:[^;]+;\r?\n\}/,
   `.anya-landing, .brutal-page, .marketing-canvas {
-  --anya-pink: #ff3f9d;
-  --anya-pink-bright: #ff62b0;
+  --anya-pink: #c3d3e6;
+  --anya-pink-bright: #d8e6f4;
   --anya-black: #050506;
   --anya-ink: #0a0a0b;
   --anya-white: #f4f1f3;

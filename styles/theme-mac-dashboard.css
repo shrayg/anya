@@ -5,10 +5,10 @@
  */
 
 html.theme-mac-dashboard {
-  --anya-blush: #ff9fba;
+  --anya-blush: #b8cce0;
   --anya-blush-soft: color-mix(in srgb, var(--anya-blush) 14%, transparent);
   --anya-blush-glow: color-mix(in srgb, var(--anya-blush) 28%, transparent);
-  --anya-blush-hover: #ffb4c8;
+  --anya-blush-hover: #d0e0f0;
   --mac-surface: #1c1c1e;
   --mac-surface-elevated: #2c2c2e;
   --mac-sidebar: rgba(44, 44, 46, 0.78);
@@ -19,7 +19,7 @@ html.theme-mac-dashboard {
 
 html.theme-mac-dashboard .dash-shell {
   background:
-    radial-gradient(120% 80% at 0% 0%, rgba(255, 159, 186, 0.08), transparent 45%),
+    radial-gradient(120% 80% at 0% 0%, rgba(195, 211, 230, 0.08), transparent 45%),
     radial-gradient(90% 70% at 100% 0%, rgba(10, 132, 255, 0.06), transparent 40%),
     var(--mac-surface);
   color: var(--mac-text);
