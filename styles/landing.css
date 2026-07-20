@@ -528,14 +528,14 @@
   letter-spacing: 0.08em;
 }
 
-.anya-landing .home-search-locked-module:hover .anya-landing .home-search-locked-trigger,
-.anya-landing .home-search-locked-module:focus-within .anya-landing .home-search-locked-trigger {
+.anya-landing .home-search-locked-module:hover .home-search-locked-trigger,
+.anya-landing .home-search-locked-module:focus-within .home-search-locked-trigger {
   background: var(--anya-pink);
   color: var(--anya-black);
 }
 
-.anya-landing .home-search-locked-module:hover .anya-landing .home-search-locked-trigger span,
-.anya-landing .home-search-locked-module:focus-within .anya-landing .home-search-locked-trigger span {
+.anya-landing .home-search-locked-module:hover .home-search-locked-trigger span,
+.anya-landing .home-search-locked-module:focus-within .home-search-locked-trigger span {
   color: var(--anya-black);
 }
 
@@ -561,8 +561,8 @@
     transform 150ms ease;
 }
 
-.anya-landing .home-search-locked-module:hover .anya-landing .home-search-locked-popover,
-.anya-landing .home-search-locked-module:focus-within .anya-landing .home-search-locked-popover {
+.anya-landing .home-search-locked-module:hover .home-search-locked-popover,
+.anya-landing .home-search-locked-module:focus-within .home-search-locked-popover {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);

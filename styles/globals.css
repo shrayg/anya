@@ -5076,12 +5076,183 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   text-align: left;
 }
 
+.home-search {
+  position: relative;
+  z-index: 30;
+  width: min(100%, 42rem);
+  margin-inline: auto;
+}
+
+.home-search-module-row {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  margin-bottom: 0.65rem;
+}
+
+.home-search-locked-module {
+  position: relative;
+}
+
+.home-search-locked-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.05rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 40%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--anya-blush) 10%, transparent);
+  color: var(--anya-blush);
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.home-search-locked-trigger strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.home-search-locked-trigger span {
+  color: rgba(212, 212, 216, 0.92);
+  font-weight: 600;
+}
+
+.home-search-locked-module:hover .home-search-locked-trigger,
+.home-search-locked-module:focus-within .home-search-locked-trigger {
+  border-color: color-mix(in srgb, var(--anya-blush) 60%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 18%, transparent);
+  color: #fff;
+}
+
+.home-search-locked-module:hover .home-search-locked-trigger span,
+.home-search-locked-module:focus-within .home-search-locked-trigger span {
+  color: #fff;
+}
+
+.home-search-locked-popover {
+  position: absolute;
+  z-index: 80;
+  bottom: calc(100% + 0.55rem);
+  left: 0;
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: min(48vh, 22rem);
+  padding: 0.85rem;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.85rem;
+  background: rgba(10, 10, 12, 0.97);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 18px 48px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.35rem);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  text-align: left;
+}
+
+.home-search-locked-module:hover .home-search-locked-popover,
+.home-search-locked-module:focus-within .home-search-locked-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.home-search-locked-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(161, 161, 170, 0.95);
+  font-size: 0.72rem;
+}
+
+.home-search-locked-heading strong {
+  color: var(--anya-blush);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-search-locked-grid {
+  display: grid;
+  margin: 0;
+  padding: 0.75rem 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem 0.85rem;
+  list-style: none;
+}
+
+.home-search-locked-grid li {
+  overflow: hidden;
+  color: rgba(161, 161, 170, 0.95);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-search-locked-popover > a {
+  display: block;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.home-search-locked-popover > a:hover {
+  color: var(--anya-blush);
+}
+
+.home-search-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+  color: rgba(113, 113, 122, 0.95);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.home-search-foot a {
+  color: rgba(212, 212, 216, 0.95);
+}
+
+.home-search-foot a:hover {
+  color: var(--anya-blush);
+}
+
+@media (max-width: 720px) {
+  .home-search-locked-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-search-locked-popover {
+    width: min(100vw - 2rem, 22rem);
+  }
+}
+
 /* â”€â”€ Starter plan mode selector (above classic search bar) â”€â”€ */
 .starter-search-modes {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin-bottom: 0.7rem;
+  margin-bottom: 0;
 }
 
 .starter-search-mode {
