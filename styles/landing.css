@@ -2549,6 +2549,7 @@
 
 .brutal-auth-page .ui-tabs,
 .brutal-auth-page .ui-tabs--auth {
+  position: relative;
   gap: 0.2rem;
   padding: 0.28rem;
   border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 18%, rgba(255, 255, 255, 0.08));
@@ -2559,6 +2560,7 @@
 .brutal-auth-page .ui-tab,
 .brutal-auth-page .ui-tab--auth {
   position: relative;
+  z-index: 1;
   background: transparent;
   border-radius: 9999px;
   font-family: var(--font-anya-mono), monospace;
@@ -2582,11 +2584,14 @@
 
 .brutal-auth-page .auth-mode-pill {
   position: absolute;
-  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   border-radius: 9999px;
   border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 35%, transparent);
   background: color-mix(in srgb, var(--anya-blush, #c3d3e6) 14%, transparent);
   box-shadow: 0 0 18px color-mix(in srgb, var(--anya-blush, #c3d3e6) 18%, transparent);
+  /* left/width/top/height are driven by framer-motion — do not CSS-transition them */
+  transition: none;
 }
 
 .brutal-auth-page .ui-input {

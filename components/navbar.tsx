@@ -3,7 +3,14 @@
 import { apiFetch } from "@/lib/csrf-client";
 
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
@@ -31,6 +38,8 @@ import {
   resolveUserPlan,
 } from "@/lib/plans";
 
+const PILL_SPRING = { type: "spring" as const, stiffness: 280, damping: 32 };
+
 function isNavActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -40,33 +49,22 @@ function NavPillLink({
   item,
   active,
   onModal,
+  tabRef,
 }: {
   item: NavItem;
   active: boolean;
   onModal?: () => void;
+  tabRef: (node: HTMLElement | null) => void;
 }) {
   const className = clsx(
-    "relative inline-flex items-center justify-center rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-200",
+    "relative z-10 inline-flex items-center justify-center rounded-full px-4 py-1.5 text-sm font-medium transition-[color] duration-200",
     active ? "text-white" : "text-white/55 hover:text-white/90",
-  );
-
-  const content = (
-    <>
-      {active ? (
-        <motion.span
-          layoutId="marketing-nav-pill"
-          className="absolute inset-0 rounded-full border border-anya-accent-soft bg-[var(--anya-blush-soft)] shadow-[0_0_18px_var(--anya-blush-glow)]"
-          transition={{ type: "spring", stiffness: 420, damping: 34 }}
-        />
-      ) : null}
-      <span className="relative z-10">{item.label}</span>
-    </>
   );
 
   if (onModal) {
     return (
-      <button type="button" className={className} onClick={onModal}>
-        {content}
+      <button ref={tabRef} type="button" className={className} onClick={onModal}>
+        {item.label}
       </button>
     );
   }
@@ -74,19 +72,20 @@ function NavPillLink({
   if (item.newTab) {
     return (
       <a
+        ref={tabRef}
         className={className}
         href={item.href}
         rel="noopener noreferrer"
         target="_blank"
       >
-        {content}
+        {item.label}
       </a>
     );
   }
 
   return (
-    <NextLink className={className} href={item.href}>
-      {content}
+    <NextLink ref={tabRef} className={className} href={item.href}>
+      {item.label}
     </NextLink>
   );
 }
@@ -99,6 +98,13 @@ export const Navbar = () => {
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [pricingOpen, setPricingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pillNavRef = useRef<HTMLElement>(null);
+  const pillTabRefs = useRef<(HTMLElement | null)[]>([]);
+  const [pillHighlight, setPillHighlight] = useState({
+    left: 0,
+    width: 0,
+    ready: false,
+  });
 
   const navItems = useMemo(() => {
     const fromConfig = siteConfig.navItems;
@@ -117,6 +123,56 @@ export const Navbar = () => {
 
     return ensured;
   }, []);
+
+  const activePillIndex = useMemo(
+    () =>
+      navItems.findIndex(
+        (item) => !item.newTab && isNavActive(item.href, pathname),
+      ),
+    [navItems, pathname],
+  );
+
+  const measurePillHighlight = useCallback(() => {
+    const nav = pillNavRef.current;
+    const tab = pillTabRefs.current[activePillIndex];
+    if (!nav || !tab || activePillIndex < 0) {
+      setPillHighlight((prev) => (prev.ready ? { ...prev, ready: false } : prev));
+      return;
+    }
+
+    const navRect = nav.getBoundingClientRect();
+    const tabRect = tab.getBoundingClientRect();
+    const left = tabRect.left - navRect.left;
+    const width = tabRect.width;
+
+    setPillHighlight((prev) => {
+      if (
+        prev.ready &&
+        Math.abs(prev.left - left) < 0.5 &&
+        Math.abs(prev.width - width) < 0.5
+      ) {
+        return prev;
+      }
+      return { left, width, ready: true };
+    });
+  }, [activePillIndex]);
+
+  useLayoutEffect(() => {
+    measurePillHighlight();
+  }, [measurePillHighlight, navItems.length]);
+
+  useEffect(() => {
+    const nav = pillNavRef.current;
+    if (!nav || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => measurePillHighlight());
+    observer.observe(nav);
+    window.addEventListener("resize", measurePillHighlight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measurePillHighlight);
+    };
+  }, [measurePillHighlight]);
 
   const loadAuth = useCallback(() => {
     fetch("/api/auth/me", { cache: "no-store", credentials: "include" })
@@ -203,18 +259,13 @@ export const Navbar = () => {
                   "size-8 transition-transform duration-200 ease-out group-hover:scale-105",
                 )}
               />
-              <span className="flex flex-col leading-none">
-                <span
-                  className={clsx(
-                    "text-[15px] font-bold tracking-wide text-white transition-transform duration-200 ease-out group-hover:-rotate-3",
-                    "[font-family:var(--font-bruno-ace-sc)]",
-                  )}
-                >
-                  {siteConfig.navName}
-                </span>
-                <span className="mt-0.5 hidden text-[10px] font-medium uppercase tracking-[0.14em] text-anya-accent sm:block">
-                  OSINT
-                </span>
+              <span
+                className={clsx(
+                  "text-[15px] font-bold leading-none tracking-wide text-white transition-transform duration-200 ease-out group-hover:-rotate-3",
+                  "[font-family:var(--font-bruno-ace-sc)]",
+                )}
+              >
+                {siteConfig.navName}
               </span>
             </NextLink>
           </NavbarBrand>
@@ -226,19 +277,37 @@ export const Navbar = () => {
           justify="center"
         >
           <nav
+            ref={pillNavRef}
             aria-label="Primary"
-            className="flex items-center gap-0.5 rounded-full border border-white/[0.1] bg-white/[0.045] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md"
+            className="relative flex items-center gap-0.5 rounded-full border border-white/[0.1] bg-white/[0.045] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md"
           >
-            {navItems.map((item) => {
+            {pillHighlight.ready ? (
+              <motion.span
+                aria-hidden
+                className="pointer-events-none absolute top-1 bottom-1 rounded-full border border-anya-accent-soft bg-[var(--anya-blush-soft)] shadow-[0_0_18px_var(--anya-blush-glow)]"
+                initial={false}
+                animate={{
+                  left: pillHighlight.left,
+                  width: pillHighlight.width,
+                  opacity: 1,
+                }}
+                style={{ originX: 0 }}
+                transition={PILL_SPRING}
+              />
+            ) : null}
+            {navItems.map((item, index) => {
               const modalHandler = getModalHandler(item);
               const active = !item.newTab && isNavActive(item.href, pathname);
 
               return (
-                <NavbarItem key={item.label} className="shrink-0">
+                <NavbarItem key={item.label} className="relative z-10 shrink-0">
                   <NavPillLink
                     item={item}
                     active={active}
                     onModal={modalHandler ?? undefined}
+                    tabRef={(node) => {
+                      pillTabRefs.current[index] = node;
+                    }}
                   />
                 </NavbarItem>
               );

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import NextLink from "next/link";
 import Image from "next/image";
@@ -99,6 +99,65 @@ function AuthForm() {
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const turnstileRequired = isTurnstileEnabledOnClient();
+  const modeTabsRef = useRef<HTMLDivElement>(null);
+  const loginTabRef = useRef<HTMLButtonElement>(null);
+  const registerTabRef = useRef<HTMLButtonElement>(null);
+  const [modePill, setModePill] = useState({
+    left: 0,
+    width: 0,
+    top: 0,
+    height: 0,
+    ready: false,
+  });
+
+  const measureModePill = useCallback(() => {
+    const tabs = modeTabsRef.current;
+    const tab = mode === "login" ? loginTabRef.current : registerTabRef.current;
+    if (!tabs || !tab) {
+      setModePill((prev) => (prev.ready ? { ...prev, ready: false } : prev));
+      return;
+    }
+
+    const tabsRect = tabs.getBoundingClientRect();
+    const tabRect = tab.getBoundingClientRect();
+    const next = {
+      left: tabRect.left - tabsRect.left,
+      width: tabRect.width,
+      top: tabRect.top - tabsRect.top,
+      height: tabRect.height,
+      ready: true,
+    };
+
+    setModePill((prev) => {
+      if (
+        prev.ready &&
+        Math.abs(prev.left - next.left) < 0.5 &&
+        Math.abs(prev.width - next.width) < 0.5 &&
+        Math.abs(prev.top - next.top) < 0.5 &&
+        Math.abs(prev.height - next.height) < 0.5
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [mode]);
+
+  useLayoutEffect(() => {
+    measureModePill();
+  }, [measureModePill]);
+
+  useEffect(() => {
+    const tabs = modeTabsRef.current;
+    if (!tabs || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => measureModePill());
+    observer.observe(tabs);
+    window.addEventListener("resize", measureModePill);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measureModePill);
+    };
+  }, [measureModePill]);
 
   useEffect(() => {
     setMode(searchParams.get("action") === "register" ? "register" : "login");
@@ -321,12 +380,29 @@ function AuthForm() {
         </motion.div>
 
         <motion.div
+          ref={modeTabsRef}
           animate={{ opacity: 1, y: 0 }}
-          className="ui-tabs ui-tabs--auth mb-8"
+          className="ui-tabs ui-tabs--auth relative mb-8"
           initial={{ opacity: 0, y: 10 }}
           transition={{ delay: 0.32, duration: 0.38 }}
         >
+          {modePill.ready ? (
+            <motion.span
+              aria-hidden
+              className="auth-mode-pill"
+              initial={false}
+              animate={{
+                left: modePill.left,
+                width: modePill.width,
+                top: modePill.top,
+                height: modePill.height,
+              }}
+              style={{ originX: 0 }}
+              transition={{ type: "spring", stiffness: 280, damping: 32 }}
+            />
+          ) : null}
           <button
+            ref={loginTabRef}
             className={clsx(
               "ui-tab ui-tab--lg ui-tab--auth",
               mode === "login" && "ui-tab--active",
@@ -334,16 +410,10 @@ function AuthForm() {
             type="button"
             onClick={() => switchMode("login")}
           >
-            {mode === "login" ? (
-              <motion.span
-                layoutId="auth-mode-pill"
-                className="auth-mode-pill"
-                transition={{ type: "spring", stiffness: 420, damping: 34 }}
-              />
-            ) : null}
             <span className="relative z-10">Login</span>
           </button>
           <button
+            ref={registerTabRef}
             className={clsx(
               "ui-tab ui-tab--lg ui-tab--auth",
               mode === "register" && "ui-tab--active",
@@ -351,13 +421,6 @@ function AuthForm() {
             type="button"
             onClick={() => switchMode("register")}
           >
-            {mode === "register" ? (
-              <motion.span
-                layoutId="auth-mode-pill"
-                className="auth-mode-pill"
-                transition={{ type: "spring", stiffness: 420, damping: 34 }}
-              />
-            ) : null}
             <span className="relative z-10">Register</span>
           </button>
         </motion.div>
