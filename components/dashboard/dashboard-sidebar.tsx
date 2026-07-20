@@ -17,7 +17,7 @@ import {
   UserRound,
 } from "lucide-react";
 import clsx from "clsx";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "@/lib/csrf-client";
 import {
@@ -46,6 +46,8 @@ type NavItem = {
   badge?: string;
 };
 
+const CATEGORIES_STORAGE_KEY = "anya-sidebar-categories";
+
 const SECTION_TOUR_ATTR: Record<string, string> = {
   "Stealer Intel": "section-stealer",
   "Breach & Leaks": "section-breach",
@@ -56,6 +58,34 @@ const SECTION_TOUR_ATTR: Record<string, string> = {
   Platforms: "section-platforms",
   "Dating Apps": "section-dating",
 };
+
+function toSectionId(title: string) {
+  return title
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function readCategoryOpenMap(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    if (!raw) return {};
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+
+    const map: Record<string, boolean> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "boolean") map[key] = value;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
 
 const AI_BADGES: Record<string, string> = {
   "AI Search": "NEW",
@@ -194,6 +224,57 @@ function ModuleLink({
   );
 }
 
+function CollapsibleCategory({
+  title,
+  sectionId,
+  open,
+  onToggle,
+  dataTour,
+  children,
+}: {
+  title: string;
+  sectionId: string;
+  open: boolean;
+  onToggle: () => void;
+  dataTour?: string;
+  children: React.ReactNode;
+}) {
+  const panelId = `dash-sidebar-category-${sectionId}`;
+
+  return (
+    <div data-tour={dataTour}>
+      <button
+        aria-controls={panelId}
+        aria-expanded={open}
+        className="dash-sidebar-category-toggle"
+        title={open ? `Collapse ${title}` : `Expand ${title}`}
+        type="button"
+        onClick={onToggle}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          aria-hidden
+          className={clsx(
+            "dash-sidebar-category-chevron size-3.5",
+            open && "dash-sidebar-category-chevron--open",
+          )}
+        />
+      </button>
+      <div
+        className={clsx(
+          "dash-sidebar-category-body",
+          !open && "dash-sidebar-category-body--collapsed",
+        )}
+        id={panelId}
+      >
+        <div className="dash-sidebar-category-body-inner">
+          <div className="space-y-0.5">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardSidebar({ username }: { username: string }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -203,6 +284,38 @@ export function DashboardSidebar({ username }: { username: string }) {
   const staffMeta = getStaffRoleMeta(profile.staffRole);
   const { footerCollapsed, toggleFooterCollapsed } = useDashboardSidebar();
   const [moduleQuery, setModuleQuery] = useState("");
+  const [categoryOpen, setCategoryOpen] = useState<Record<string, boolean>>({});
+  const [categoriesReady, setCategoriesReady] = useState(false);
+
+  useEffect(() => {
+    setCategoryOpen(readCategoryOpenMap());
+    setCategoriesReady(true);
+  }, []);
+
+  const isCategoryOpen = useCallback(
+    (sectionId: string) => {
+      // While filtering, keep matching sections visible.
+      if (moduleQuery.trim()) return true;
+      if (!categoriesReady) return true;
+      return categoryOpen[sectionId] !== false;
+    },
+    [categoriesReady, categoryOpen, moduleQuery],
+  );
+
+  const toggleCategory = useCallback((sectionId: string) => {
+    setCategoryOpen((current) => {
+      const nextOpen = current[sectionId] === false;
+      const next = { ...current, [sectionId]: nextOpen };
+
+      try {
+        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore storage failures
+      }
+
+      return next;
+    });
+  }, []);
 
   const footerItems = useMemo<NavItem[]>(() => {
     const items = [...footerNav];
@@ -317,35 +430,39 @@ export function DashboardSidebar({ username }: { username: string }) {
         </div>
 
         {filteredAiItems.length > 0 && (
-          <div data-tour="section-ai">
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-              AI Intelligence
-            </p>
-            <div className="space-y-0.5">
-              {filteredAiItems.map((item) => (
-                <ModuleLink
-                  key={item.slug}
-                  badge={AI_BADGES[item.name]}
-                  hint={item.hint}
-                  locked={isModuleLocked(item.slug)}
-                  name={item.name}
-                  pathname={pathname}
-                  slug={item.slug}
-                />
-              ))}
-            </div>
-          </div>
+          <CollapsibleCategory
+            dataTour="section-ai"
+            open={isCategoryOpen("ai-intelligence")}
+            sectionId="ai-intelligence"
+            title="AI Intelligence"
+            onToggle={() => toggleCategory("ai-intelligence")}
+          >
+            {filteredAiItems.map((item) => (
+              <ModuleLink
+                key={item.slug}
+                badge={AI_BADGES[item.name]}
+                hint={item.hint}
+                locked={isModuleLocked(item.slug)}
+                name={item.name}
+                pathname={pathname}
+                slug={item.slug}
+              />
+            ))}
+          </CollapsibleCategory>
         )}
 
-        {filteredSections.map((section) => (
-          <div
-            key={section.title}
-            data-tour={SECTION_TOUR_ATTR[section.title]}
-          >
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-              {section.title}
-            </p>
-            <div className="space-y-0.5">
+        {filteredSections.map((section) => {
+          const sectionId = toSectionId(section.title);
+
+          return (
+            <CollapsibleCategory
+              key={section.title}
+              dataTour={SECTION_TOUR_ATTR[section.title]}
+              open={isCategoryOpen(sectionId)}
+              sectionId={sectionId}
+              title={section.title}
+              onToggle={() => toggleCategory(sectionId)}
+            >
               {section.items.map((item) => (
                 <ModuleLink
                   key={item.slug}
@@ -357,9 +474,9 @@ export function DashboardSidebar({ username }: { username: string }) {
                   slug={item.slug}
                 />
               ))}
-            </div>
-          </div>
-        ))}
+            </CollapsibleCategory>
+          );
+        })}
       </div>
 
       <div className="border-t border-white/6 px-3 py-2">

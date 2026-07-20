@@ -211,6 +211,60 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   overflow: hidden;
 }
 
+.dash-sidebar-category-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: none;
+  background: transparent;
+  padding: 0.15rem 0.75rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #71717a;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.dash-sidebar-category-toggle:hover {
+  color: #a1a1aa;
+}
+
+.dash-sidebar-category-toggle:hover .dash-sidebar-category-chevron {
+  color: #a1a1aa;
+}
+
+.dash-sidebar-category-chevron {
+  flex-shrink: 0;
+  color: #71717a;
+  transition:
+    color 0.15s ease,
+    transform 0.28s ease;
+}
+
+.dash-sidebar-category-chevron--open {
+  transform: rotate(180deg);
+}
+
+.dash-sidebar-category-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.dash-sidebar-category-body--collapsed {
+  grid-template-rows: 0fr;
+}
+
+.dash-sidebar-category-body-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .dash-nav-link {
   display: flex;
   align-items: center;
