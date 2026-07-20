@@ -327,8 +327,8 @@ export function HomeSearch() {
         borderRadius="1.25rem"
         className="home-search-glass px-4 py-4 md:px-5 md:py-5"
         draggable={false}
-        glowIntensity="sm"
-        shadowIntensity="sm"
+        glowIntensity="none"
+        shadowIntensity="xs"
       >
         <form
           autoComplete="off"

@@ -6759,6 +6759,18 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
 .home-search-glass {
   width: 100%;
   overflow: visible;
+  /* Kill outer bloom; keep a faint depth shadow only */
+  --liquid-glass-card-glow:
+    0 2px 8px rgba(0, 0, 0, 0.22),
+    0 0 1px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    var(--liquid-glass-card-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.home-search-glass > .liquid-glass-card__face {
+  /* Avoid doubling the outer glow via the face layer */
+  box-shadow: none;
 }
 
 .home-search-glass > .liquid-glass-card__content {
