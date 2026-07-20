@@ -7,6 +7,7 @@ import { Bruno_Ace_SC } from "next/font/google";
 
 import { Providers } from "./providers";
 
+import { InspectGuard } from "@/components/inspect-guard";
 import { siteConfig } from "@/config/site";
 import { fontMono, fontSans } from "@/config/fonts";
 import {
@@ -72,6 +73,7 @@ export default function RootLayout({
         className="min-h-screen bg-background font-sans text-foreground antialiased [font-feature-settings:'ss01'_on,'cv11'_on]"
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
+          <InspectGuard />
           {children}
         </Providers>
       </body>
