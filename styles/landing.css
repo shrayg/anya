@@ -2585,13 +2585,16 @@
 .brutal-auth-page .auth-mode-pill {
   position: absolute;
   z-index: 0;
+  left: 0;
+  top: 0;
   pointer-events: none;
   border-radius: 9999px;
   border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 35%, transparent);
   background: color-mix(in srgb, var(--anya-blush, #c3d3e6) 14%, transparent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--anya-blush, #c3d3e6) 18%, transparent);
-  /* left/width/top/height are driven by framer-motion — do not CSS-transition them */
-  transition: none;
+  /* Flat fill + hairline only — no glow on the sliding piece */
+  will-change: transform, width;
+  transition: transform 180ms ease, width 180ms ease, height 180ms ease,
+    opacity 180ms ease;
 }
 
 .brutal-auth-page .ui-input {

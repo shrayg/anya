@@ -102,49 +102,57 @@ function AuthForm() {
   const modeTabsRef = useRef<HTMLDivElement>(null);
   const loginTabRef = useRef<HTMLButtonElement>(null);
   const registerTabRef = useRef<HTMLButtonElement>(null);
-  const [modePill, setModePill] = useState({
-    left: 0,
-    width: 0,
-    top: 0,
-    height: 0,
-    ready: false,
-  });
+  const modePillRef = useRef<HTMLSpanElement>(null);
+  const modePillPlacedRef = useRef(false);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
 
   const measureModePill = useCallback(() => {
     const tabs = modeTabsRef.current;
-    const tab = mode === "login" ? loginTabRef.current : registerTabRef.current;
+    const el = modePillRef.current;
+    const tab =
+      modeRef.current === "login"
+        ? loginTabRef.current
+        : registerTabRef.current;
+
+    if (!el) return;
+
+    // Keep last geometry if a tab is briefly missing — never unmount.
     if (!tabs || !tab) {
-      setModePill((prev) => (prev.ready ? { ...prev, ready: false } : prev));
+      el.style.opacity = "0";
       return;
     }
 
     const tabsRect = tabs.getBoundingClientRect();
     const tabRect = tab.getBoundingClientRect();
-    const next = {
-      left: tabRect.left - tabsRect.left,
-      width: tabRect.width,
-      top: tabRect.top - tabsRect.top,
-      height: tabRect.height,
-      ready: true,
-    };
+    const left = tabRect.left - tabsRect.left;
+    const top = tabRect.top - tabsRect.top;
+    const width = tabRect.width;
+    const height = tabRect.height;
 
-    setModePill((prev) => {
-      if (
-        prev.ready &&
-        Math.abs(prev.left - next.left) < 0.5 &&
-        Math.abs(prev.width - next.width) < 0.5 &&
-        Math.abs(prev.top - next.top) < 0.5 &&
-        Math.abs(prev.height - next.height) < 0.5
-      ) {
-        return prev;
-      }
-      return next;
-    });
-  }, [mode]);
+    if (!modePillPlacedRef.current) {
+      el.style.transition = "none";
+      el.style.transform = `translate3d(${left}px,${top}px,0)`;
+      el.style.width = `${width}px`;
+      el.style.height = `${height}px`;
+      el.style.opacity = "1";
+      void el.offsetWidth;
+      el.style.transition = "";
+      modePillPlacedRef.current = true;
+      return;
+    }
+
+    el.style.transform = `translate3d(${left}px,${top}px,0)`;
+    el.style.width = `${width}px`;
+    el.style.height = `${height}px`;
+    el.style.opacity = "1";
+  }, []);
 
   useLayoutEffect(() => {
     measureModePill();
-  }, [measureModePill]);
+    const raf = requestAnimationFrame(() => measureModePill());
+    return () => cancelAnimationFrame(raf);
+  }, [measureModePill, mode]);
 
   useEffect(() => {
     const tabs = modeTabsRef.current;
@@ -386,21 +394,17 @@ function AuthForm() {
           initial={{ opacity: 0, y: 10 }}
           transition={{ delay: 0.32, duration: 0.38 }}
         >
-          {modePill.ready ? (
-            <motion.span
-              aria-hidden
-              className="auth-mode-pill"
-              initial={false}
-              animate={{
-                left: modePill.left,
-                width: modePill.width,
-                top: modePill.top,
-                height: modePill.height,
-              }}
-              style={{ originX: 0 }}
-              transition={{ type: "spring", stiffness: 280, damping: 32 }}
-            />
-          ) : null}
+          <span
+            ref={modePillRef}
+            aria-hidden
+            className="auth-mode-pill"
+            style={{
+              transform: "translate3d(0,0,0)",
+              width: 0,
+              height: 0,
+              opacity: 0,
+            }}
+          />
           <button
             ref={loginTabRef}
             className={clsx(

@@ -25,7 +25,6 @@ import { Link } from "@heroui/link";
 import NextLink from "next/link";
 import clsx from "clsx";
 import Image from "next/image";
-import { motion } from "framer-motion";
 
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
@@ -36,9 +35,6 @@ import {
   hasWorkspaceDashboardAccess,
   resolveUserPlan,
 } from "@/lib/plans";
-
-/** Tween (no spring overshoot) — leftmost Pricing tab was twitching at the track edge. */
-const PILL_TWEEN = { type: "tween" as const, duration: 0.28, ease: [0.22, 1, 0.36, 1] };
 
 function isNavActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";
@@ -89,12 +85,9 @@ export const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pillNavRef = useRef<HTMLElement>(null);
   const pillTabRefs = useRef<(HTMLElement | null)[]>([]);
+  const highlightRef = useRef<HTMLSpanElement>(null);
   const activePillIndexRef = useRef(-1);
-  const [pillHighlight, setPillHighlight] = useState({
-    left: 0,
-    width: 0,
-    ready: false,
-  });
+  const highlightPlacedRef = useRef(false);
 
   const navItems = useMemo(() => {
     const fromConfig = siteConfig.navItems;
@@ -126,33 +119,42 @@ export const Navbar = () => {
 
   const measurePillHighlight = useCallback(() => {
     const nav = pillNavRef.current;
+    const el = highlightRef.current;
     const index = activePillIndexRef.current;
     const tab = pillTabRefs.current[index];
 
-    // Keep last geometry if the active tab node is briefly missing — never
-    // unmount the highlight mid-route (that remount jump hit Pricing hardest).
-    if (!nav || !tab || index < 0) return;
+    if (!el) return;
+
+    // Keep last geometry if the active tab is briefly missing — never unmount.
+    if (!nav || !tab || index < 0) {
+      el.style.opacity = "0";
+      return;
+    }
 
     const navRect = nav.getBoundingClientRect();
     const tabRect = tab.getBoundingClientRect();
     const left = tabRect.left - navRect.left;
     const width = tabRect.width;
 
-    setPillHighlight((prev) => {
-      if (
-        prev.ready &&
-        Math.abs(prev.left - left) < 0.5 &&
-        Math.abs(prev.width - width) < 0.5
-      ) {
-        return prev;
-      }
-      return { left, width, ready: true };
-    });
+    // First placement: snap with no transition so the pill does not fly in.
+    if (!highlightPlacedRef.current) {
+      el.style.transition = "none";
+      el.style.transform = `translate3d(${left}px,0,0)`;
+      el.style.width = `${width}px`;
+      el.style.opacity = "1";
+      void el.offsetWidth;
+      el.style.transition = "";
+      highlightPlacedRef.current = true;
+      return;
+    }
+
+    el.style.transform = `translate3d(${left}px,0,0)`;
+    el.style.width = `${width}px`;
+    el.style.opacity = "1";
   }, []);
 
   useLayoutEffect(() => {
     measurePillHighlight();
-    // Pricing mounts a heavy WebGL background; remeasure after paint settles.
     const raf = requestAnimationFrame(() => measurePillHighlight());
     return () => cancelAnimationFrame(raf);
   }, [measurePillHighlight, activePillIndex, navItems.length]);
@@ -270,20 +272,17 @@ export const Navbar = () => {
             aria-label="Primary"
             className="relative flex items-center gap-0.5 rounded-full border border-white/[0.1] bg-white/[0.045] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md"
           >
-            {pillHighlight.ready ? (
-              <motion.span
-                aria-hidden
-                className="pointer-events-none absolute top-1 bottom-1 rounded-full border border-anya-accent-soft bg-[var(--anya-blush-soft)] shadow-[0_0_18px_var(--anya-blush-glow)]"
-                initial={false}
-                animate={{
-                  left: pillHighlight.left,
-                  width: pillHighlight.width,
-                  opacity: activePillIndex >= 0 ? 1 : 0,
-                }}
-                style={{ originX: 0 }}
-                transition={PILL_TWEEN}
-              />
-            ) : null}
+            {/* Flat fill + hairline only — no blur/glow on the sliding piece */}
+            <span
+              ref={highlightRef}
+              aria-hidden
+              className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-full border border-anya-accent-soft bg-[var(--anya-blush-soft)] will-change-[transform,width] [transition:transform_180ms_ease,width_180ms_ease,opacity_180ms_ease]"
+              style={{
+                transform: "translate3d(0,0,0)",
+                width: 0,
+                opacity: 0,
+              }}
+            />
             {navItems.map((item, index) => {
               const active = !item.newTab && isNavActive(item.href, pathname);
 
