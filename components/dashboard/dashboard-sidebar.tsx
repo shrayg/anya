@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
+  ChevronsLeft,
+  ChevronsRight,
   CreditCard,
   IdCard,
   LifeBuoy,
@@ -312,7 +314,10 @@ export function DashboardSidebar({ username }: { username: string }) {
       <div className="dash-sidebar-header">
         <Link
           prefetch
-          className="dash-sidebar-brand min-w-0 flex-1"
+          className={clsx(
+            "dash-sidebar-brand min-w-0",
+            !collapsed && "flex-1",
+          )}
           href={siteConfig.defaultWorkspacePath}
           title={`${siteConfig.name} dashboard`}
         >
@@ -331,8 +336,10 @@ export function DashboardSidebar({ username }: { username: string }) {
           )}
         </Link>
         <button
+          aria-expanded={!collapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="dash-sidebar-toggle shrink-0"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           type="button"
           onClick={toggleCollapsed}
         >
@@ -448,7 +455,40 @@ export function DashboardSidebar({ username }: { username: string }) {
         )}
       </div>
 
-      <div className="space-y-1 border-t border-white/6 px-3 py-3">
+      <div
+        className={clsx(
+          "border-t border-white/6 py-2",
+          collapsed ? "px-2" : "px-3",
+        )}
+      >
+        <button
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Minimize sidebar"}
+          className={clsx(
+            "dash-sidebar-minimize",
+            collapsed && "dash-sidebar-minimize--icon-only",
+          )}
+          title={collapsed ? "Expand sidebar" : "Minimize sidebar"}
+          type="button"
+          onClick={toggleCollapsed}
+        >
+          {collapsed ? (
+            <ChevronsRight className="size-4 shrink-0" />
+          ) : (
+            <>
+              <ChevronsLeft className="size-4 shrink-0" />
+              <span>Minimize</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      <div
+        className={clsx(
+          "space-y-1 border-t border-white/6 py-3",
+          collapsed ? "px-2" : "px-3",
+        )}
+      >
         {footerItems.map((item) => (
           <SidebarLink
             key={item.name}
@@ -466,7 +506,12 @@ export function DashboardSidebar({ username }: { username: string }) {
         ))}
       </div>
 
-      <div className="border-t border-white/6 p-4">
+      <div
+        className={clsx(
+          "border-t border-white/6",
+          collapsed ? "p-2" : "p-4",
+        )}
+      >
         {collapsed ? (
           <div className="flex flex-col items-center gap-2">
             <Link
@@ -479,6 +524,7 @@ export function DashboardSidebar({ username }: { username: string }) {
             <button
               aria-label="Log out"
               className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+              title="Log out"
               type="button"
               onClick={handleLogout}
             >
@@ -509,6 +555,7 @@ export function DashboardSidebar({ username }: { username: string }) {
             <button
               aria-label="Log out"
               className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+              title="Log out"
               type="button"
               onClick={handleLogout}
             >

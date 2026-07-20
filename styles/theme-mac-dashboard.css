@@ -49,24 +49,22 @@ html.theme-mac-dashboard .dash-sidebar {
   box-shadow: 1px 0 0 rgba(0, 0, 0, 0.25);
 }
 
-html.theme-mac-dashboard .dash-sidebar-brand {
-  padding-top: 1.1rem;
-}
-
 html.theme-mac-dashboard .dash-sidebar-brand span {
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--mac-text);
 }
 
-html.theme-mac-dashboard .dash-sidebar-toggle {
+html.theme-mac-dashboard .dash-sidebar-toggle,
+html.theme-mac-dashboard .dash-sidebar-minimize {
   border-radius: 9999px;
   border-color: var(--mac-border);
   background: rgba(255, 255, 255, 0.04);
   color: var(--mac-muted);
 }
 
-html.theme-mac-dashboard .dash-sidebar-toggle:hover {
+html.theme-mac-dashboard .dash-sidebar-toggle:hover,
+html.theme-mac-dashboard .dash-sidebar-minimize:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--mac-text);
 }
