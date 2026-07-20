@@ -1904,23 +1904,23 @@
   white-space: nowrap;
 }
 
-.mod-catalog {
+.anya-landing .mod-catalog {
   display: grid;
   gap: 5rem;
 }
 
-.mod-section {
+.anya-landing .mod-section {
   border-top: 1px solid var(--anya-line);
 }
 
-.mod-section-head {
+.anya-landing .mod-section-head {
   display: grid;
   min-height: 5.5rem;
   grid-template-columns: 1fr auto;
   align-items: center;
 }
 
-.mod-section-title {
+.anya-landing .mod-section-title {
   margin: 0;
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.68rem;
@@ -1929,11 +1929,11 @@
   text-transform: uppercase;
 }
 
-.mod-section-desc {
+.anya-landing .mod-section-desc {
   display: none;
 }
 
-.mod-section-count {
+.anya-landing .mod-section-count {
   display: grid;
   width: 2rem;
   height: 2rem;
@@ -1944,12 +1944,12 @@
   font-size: 0.54rem;
 }
 
-.mod-grid {
+.anya-landing .mod-grid {
   display: block;
   border-top: 1px solid var(--anya-line);
 }
 
-.mod-tile {
+.anya-landing .mod-tile {
   display: grid;
   min-height: 5.6rem;
   padding: 0.85rem 0;
@@ -1962,25 +1962,25 @@
     background 160ms ease;
 }
 
-.mod-tile:hover {
+.anya-landing .mod-tile:hover {
   padding-right: 0.8rem;
   padding-left: 0.8rem;
   background: rgba(255, 255, 255, 0.045);
 }
 
-.mod-tile-top {
+.anya-landing .mod-tile-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.mod-tile-identity {
+.anya-landing .mod-tile-identity {
   display: flex;
   align-items: center;
   gap: 0.7rem;
 }
 
-.mod-tile-icon {
+.anya-landing .mod-tile-icon {
   display: grid;
   width: 2.1rem;
   height: 2.1rem;
@@ -1988,44 +1988,44 @@
   color: var(--anya-pink);
 }
 
-.mod-tile-code {
+.anya-landing .mod-tile-code {
   color: #6f6a6f;
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.48rem;
   letter-spacing: 0.07em;
 }
 
-.mod-tile-arrow {
+.anya-landing .mod-tile-arrow {
   display: none;
 }
 
-.mod-tile-body {
+.anya-landing .mod-tile-body {
   display: grid;
   grid-template-columns: minmax(11rem, 0.42fr) 1fr;
   align-items: center;
   gap: 1rem;
 }
 
-.mod-tile-title {
+.anya-landing .mod-tile-title {
   margin: 0;
   font-size: 1rem;
   font-weight: 500;
   letter-spacing: -0.03em;
 }
 
-.mod-tile-hint,
-.mod-tile-summary {
+.anya-landing .mod-tile-hint,
+.anya-landing .mod-tile-summary {
   margin: 0;
   color: #797479;
   font-size: 0.72rem;
   line-height: 1.55;
 }
 
-.mod-tile-summary {
+.anya-landing .mod-tile-summary {
   display: none;
 }
 
-.mod-empty {
+.anya-landing .mod-empty {
   padding: 4rem 0;
   color: #817c81;
   font-family: var(--font-anya-mono), monospace;
@@ -3180,7 +3180,7 @@
     display: none;
   }
 
-  .mod-catalog {
+  .anya-landing .mod-catalog {
     gap: 3rem;
   }
 
@@ -3197,21 +3197,21 @@
     grid-template-columns: minmax(7rem, 0.9fr) minmax(0, 1.1fr);
   }
 
-  .mod-tile {
+  .anya-landing .mod-tile {
     min-height: 6rem;
     grid-template-columns: 4.8rem 1fr;
   }
 
-  .mod-tile-body {
+  .anya-landing .mod-tile-body {
     display: block;
   }
 
-  .mod-tile-hint {
+  .anya-landing .mod-tile-hint {
     margin-top: 0.35rem;
     font-size: 0.64rem;
   }
 
-  .mod-tile-code {
+  .anya-landing .mod-tile-code {
     display: none;
   }
 

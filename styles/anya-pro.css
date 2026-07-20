@@ -591,7 +591,7 @@ pre,
   color: #fff;
 }
 
-:focus-visible {
+:focus-visible:not(.home-search-input):not(.home-search-submit):not(input.home-search-input) {
   outline: 2px solid color-mix(in srgb, var(--anya-blush) 65%, transparent);
   outline-offset: 2px;
 }
