@@ -21,7 +21,7 @@ type DashboardShellProps = {
 };
 
 function DashboardShellInner({ children, username }: DashboardShellProps) {
-  const { collapsed } = useDashboardSidebar();
+  const { collapsed, isResizing } = useDashboardSidebar();
   const profile = useDashboardUser();
   const isFrozen = profile.accountStatus === "frozen";
 
@@ -30,6 +30,7 @@ function DashboardShellInner({ children, username }: DashboardShellProps) {
       className={clsx(
         "dash-shell text-white",
         collapsed && "dash-shell--sidebar-collapsed",
+        isResizing && "dash-shell--sidebar-resizing",
         isFrozen && "dash-shell--frozen",
       )}
     >

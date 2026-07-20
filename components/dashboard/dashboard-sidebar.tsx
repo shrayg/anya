@@ -181,19 +181,15 @@ function SidebarLink({
           href={item.href}
           title={item.name}
         >
-          {collapsed ? (
+          <div>
             <item.icon />
-          ) : (
-            <>
-              <div>
-                <item.icon />
-                <span>{item.name}</span>
-              </div>
-              {item.badge ? (
-                <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
-              ) : null}
-            </>
-          )}
+            <span className="dash-sidebar-label">{item.name}</span>
+          </div>
+          {item.badge ? (
+            <SidebarMenuBadge className="dash-sidebar-label-meta">
+              {item.badge}
+            </SidebarMenuBadge>
+          ) : null}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -245,27 +241,23 @@ function ModuleLink({
         isActive={isActive}
       >
         <Link prefetch href={`/dashboard/search/${slug}`} title={title}>
-          {collapsed ? (
-            <div className="dash-sidebar-menu-icon-wrap">
-              <ModuleIcon name={name} />
+          <div className={clsx(collapsed && "dash-sidebar-menu-icon-wrap")}>
+            <ModuleIcon name={name} />
+            <span className="dash-sidebar-label">{name}</span>
+            {collapsed ? (
               <ModuleStatusDot
                 className="dash-sidebar-menu-status size-1.5"
                 slug={slug}
               />
-            </div>
-          ) : (
-            <>
-              <div>
-                <ModuleIcon name={name} />
-                <span>{name}</span>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <ModuleStatusDot className="size-1.5" slug={slug} />
-                {locked ? <Lock className="size-3 text-zinc-500" /> : null}
-                {badge ? <SidebarMenuBadge>{badge}</SidebarMenuBadge> : null}
-              </div>
-            </>
-          )}
+            ) : null}
+          </div>
+          <div className="dash-sidebar-label-meta flex shrink-0 items-center gap-1.5">
+            {!collapsed ? (
+              <ModuleStatusDot className="size-1.5" slug={slug} />
+            ) : null}
+            {locked ? <Lock className="size-3 text-zinc-500" /> : null}
+            {badge ? <SidebarMenuBadge>{badge}</SidebarMenuBadge> : null}
+          </div>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -336,6 +328,7 @@ export function DashboardSidebar({ username }: { username: string }) {
   const staffMeta = getStaffRoleMeta(profile.staffRole);
   const {
     collapsed,
+    isResizing,
     toggleCollapsed,
     footerCollapsed,
     toggleFooterCollapsed,
@@ -343,11 +336,29 @@ export function DashboardSidebar({ username }: { username: string }) {
   const [moduleQuery, setModuleQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState<Record<string, boolean>>({});
   const [categoriesReady, setCategoriesReady] = useState(false);
+  /** Icon-rail nav tree lags width collapse so labels can fade first. */
+  const [railContent, setRailContent] = useState(collapsed);
 
   useEffect(() => {
     setCategoryOpen(readCategoryOpenMap());
     setCategoriesReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!collapsed) {
+      setRailContent(false);
+      return;
+    }
+
+    // Hydrate / post-animation: snap to rail. Mid-collapse: delay for label fade.
+    if (!isResizing) {
+      setRailContent(true);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setRailContent(true), 160);
+    return () => window.clearTimeout(timer);
+  }, [collapsed, isResizing]);
 
   const isCategoryOpen = useCallback(
     (sectionId: string) => {
@@ -452,6 +463,7 @@ export function DashboardSidebar({ username }: { username: string }) {
     <Sidebar
       className={clsx(collapsed && "dash-sidebar--collapsed")}
       data-collapsed={collapsed ? "true" : undefined}
+      data-resizing={isResizing ? "true" : undefined}
     >
       <LiquidGlassCard
         blurIntensity="md"
@@ -481,11 +493,9 @@ export function DashboardSidebar({ username }: { username: string }) {
                   src={siteLogoSrc}
                   width={32}
                 />
-                {!collapsed ? (
-                  <span className="[font-family:var(--font-bruno-ace-sc)]">
-                    {siteConfig.name}
-                  </span>
-                ) : null}
+                <span className="dash-sidebar-label [font-family:var(--font-bruno-ace-sc)]">
+                  {siteConfig.name}
+                </span>
               </Link>
             </SidebarMenuButton>
 
@@ -505,22 +515,30 @@ export function DashboardSidebar({ username }: { username: string }) {
             </button>
           </div>
 
-          {!collapsed ? (
-            <div className="relative px-0.5 pb-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-              <SidebarInput
-                {...SEARCH_AUTOFILL_SHIELD}
-                readOnly
-                data-tour="sidebar-filter"
-                name="module-filter"
-                placeholder="Filter modules..."
-                type="text"
-                value={moduleQuery}
-                onChange={(event) => setModuleQuery(event.target.value)}
-                onFocus={unlockAutofillShield}
-              />
+          <div
+            className={clsx(
+              "dash-sidebar-filter",
+              collapsed && "dash-sidebar-filter--collapsed",
+            )}
+          >
+            <div className="dash-sidebar-filter-inner">
+              <div className="relative px-0.5 pb-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+                <SidebarInput
+                  {...SEARCH_AUTOFILL_SHIELD}
+                  readOnly
+                  data-tour="sidebar-filter"
+                  name="module-filter"
+                  placeholder="Filter modules..."
+                  tabIndex={collapsed ? -1 : undefined}
+                  type="text"
+                  value={moduleQuery}
+                  onChange={(event) => setModuleQuery(event.target.value)}
+                  onFocus={unlockAutofillShield}
+                />
+              </div>
             </div>
-          ) : null}
+          </div>
         </SidebarHeader>
 
         <SidebarSeparator />
@@ -542,7 +560,7 @@ export function DashboardSidebar({ username }: { username: string }) {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {collapsed ? (
+          {railContent ? (
             <>
               <div className="dash-sidebar-section-divider" />
               <SidebarGroup>
@@ -647,20 +665,14 @@ export function DashboardSidebar({ username }: { username: string }) {
               onClick={toggleFooterCollapsed}
             >
               {footerCollapsed ? (
-                collapsed ? (
+                <>
                   <ChevronUp className="size-4 shrink-0" />
-                ) : (
-                  <>
-                    <ChevronUp className="size-4 shrink-0" />
-                    <span>Account & more</span>
-                  </>
-                )
-              ) : collapsed ? (
-                <ChevronsLeft className="size-4 shrink-0" />
+                  <span className="dash-sidebar-label">Account & more</span>
+                </>
               ) : (
                 <>
                   <ChevronsLeft className="size-4 shrink-0" />
-                  <span>Minimize</span>
+                  <span className="dash-sidebar-label">Minimize</span>
                 </>
               )}
             </button>
@@ -694,8 +706,13 @@ export function DashboardSidebar({ username }: { username: string }) {
             </div>
           </div>
 
-          {collapsed ? (
-            <div className="dash-sidebar-user dash-sidebar-user--collapsed">
+          <div
+            className={clsx(
+              "dash-sidebar-user",
+              collapsed && "dash-sidebar-user--collapsed",
+            )}
+          >
+            <div className="flex min-w-0 items-center gap-2.5">
               <Link
                 className={clsx(
                   "dash-sidebar-user-avatar ring-2",
@@ -706,54 +723,32 @@ export function DashboardSidebar({ username }: { username: string }) {
               >
                 {username.charAt(0).toUpperCase()}
               </Link>
-              <button
-                aria-label="Log out"
-                className="rounded-md p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-                title="Log out"
-                type="button"
-                onClick={handleLogout}
-              >
-                <LogOut className="size-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="dash-sidebar-user">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div
-                  className={clsx(
-                    "dash-sidebar-user-avatar ring-2",
-                    staffMeta?.avatarRingClass ?? "ring-transparent",
-                  )}
-                >
-                  {username.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="truncate text-sm font-medium text-white">
-                      {username}
-                    </p>
-                    <StaffBadge role={profile.staffRole} size="xs" />
-                  </div>
-                  <p className="truncate text-[11px] capitalize text-zinc-500">
-                    {staffMeta
-                      ? `${staffMeta.label} staff`
-                      : planLabel
-                        ? planLabel
-                        : "Investigator"}
+              <div className="dash-sidebar-user-meta min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="truncate text-sm font-medium text-white">
+                    {username}
                   </p>
+                  <StaffBadge role={profile.staffRole} size="xs" />
                 </div>
+                <p className="truncate text-[11px] capitalize text-zinc-500">
+                  {staffMeta
+                    ? `${staffMeta.label} staff`
+                    : planLabel
+                      ? planLabel
+                      : "Investigator"}
+                </p>
               </div>
-              <button
-                aria-label="Log out"
-                className="rounded-md p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-                title="Log out"
-                type="button"
-                onClick={handleLogout}
-              >
-                <LogOut className="size-4" />
-              </button>
             </div>
-          )}
+            <button
+              aria-label="Log out"
+              className="rounded-md p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+              title="Log out"
+              type="button"
+              onClick={handleLogout}
+            >
+              <LogOut className="size-4" />
+            </button>
+          </div>
         </SidebarFooter>
       </LiquidGlassCard>
     </Sidebar>

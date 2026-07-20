@@ -12,8 +12,11 @@ import {
 const RAIL_STORAGE_KEY = "anya-sidebar-collapsed";
 const FOOTER_STORAGE_KEY = "anya-sidebar-footer-collapsed";
 
+const SIDEBAR_RESIZE_MS = 450;
+
 type DashboardSidebarContextValue = {
   collapsed: boolean;
+  isResizing: boolean;
   toggleCollapsed: () => void;
   footerCollapsed: boolean;
   toggleFooterCollapsed: () => void;
@@ -29,6 +32,7 @@ export function DashboardSidebarProvider({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [footerCollapsed, setFooterCollapsed] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -43,7 +47,18 @@ export function DashboardSidebarProvider({
     }
   }, []);
 
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const timer = window.setTimeout(() => {
+      setIsResizing(false);
+    }, SIDEBAR_RESIZE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [isResizing, collapsed]);
+
   const toggleCollapsed = useCallback(() => {
+    setIsResizing(true);
     setCollapsed((current) => {
       const next = !current;
 
@@ -74,6 +89,7 @@ export function DashboardSidebarProvider({
   const value = useMemo(
     () => ({
       collapsed: ready ? collapsed : false,
+      isResizing: ready ? isResizing : false,
       toggleCollapsed,
       footerCollapsed: ready ? footerCollapsed : false,
       toggleFooterCollapsed,
@@ -81,6 +97,7 @@ export function DashboardSidebarProvider({
     [
       collapsed,
       footerCollapsed,
+      isResizing,
       ready,
       toggleCollapsed,
       toggleFooterCollapsed,

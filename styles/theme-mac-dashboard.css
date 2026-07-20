@@ -101,6 +101,11 @@ html.theme-mac-dashboard .dash-sidebar-toggle:hover {
   color: var(--mac-text);
 }
 
+html.theme-mac-dashboard .dash-sidebar[data-resizing="true"] .liquid-glass-card__bend {
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+}
+
 html.theme-mac-dashboard .dash-sidebar-menu-button,
 html.theme-mac-dashboard .dash-nav-link {
   border-radius: 0.5rem;
