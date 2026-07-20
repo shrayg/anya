@@ -9,7 +9,7 @@ export function HomeBackground() {
       <LightPillar
         bottomColor={themeAccent.pillarBottom}
         glowAmount={0.001}
-        intensity={0.55}
+        intensity={0.4}
         interactive={false}
         mixBlendMode="screen"
         noiseIntensity={0.1}
