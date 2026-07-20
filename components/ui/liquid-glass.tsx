@@ -22,9 +22,17 @@ export type LiquidGlassGlowIntensity =
   | "2xl";
 export type LiquidGlassShadowIntensity = LiquidGlassGlowIntensity;
 
+/** React DOM handlers that clash with motion/framer-motion prop types. */
+type MotionConflictingProps =
+  | "draggable"
+  | "onAnimationStart"
+  | "onDrag"
+  | "onDragStart"
+  | "onDragEnd";
+
 export type LiquidGlassCardProps = Omit<
   HTMLAttributes<HTMLDivElement>,
-  "draggable"
+  MotionConflictingProps
 > & {
   children: ReactNode;
   /** Enable free-form drag with elastic snap-back (off by default for panels). */
