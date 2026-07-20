@@ -50,8 +50,9 @@ export type LiquidGlassCardProps = Omit<
 };
 
 /**
- * Frosted liquid-glass panel for dark UI (Anya-native).
- * API mirrors common community LiquidGlassCard props (ui-layouts / AstroAnimate).
+ * Apple-like liquid glass panel for dark UI.
+ * Layer stack: frosted fill → top specular → refractive edge → content.
+ * SVG displacement is optional/decorative and not required for the look.
  * Removable with `.liquid-glass-card*` CSS in globals.css.
  */
 export function LiquidGlassCard({
@@ -63,8 +64,8 @@ export function LiquidGlassCard({
   height,
   expandedWidth,
   expandedHeight,
-  blurIntensity = "sm",
-  borderRadius = "12px",
+  blurIntensity = "lg",
+  borderRadius = "16px",
   glowIntensity = "sm",
   shadowIntensity = "sm",
   style,
@@ -103,25 +104,26 @@ export function LiquidGlassCard({
 
   const layers = (
     <>
+      {/* Frosted material — CSS backdrop blur is the real look */}
       <div
         aria-hidden
         className="liquid-glass-card__bend"
-        style={{
-          borderRadius,
-          ["--liquid-glass-card-filter" as string]: `url(#${filterId})`,
-        }}
+        style={{ borderRadius }}
       />
+      {/* Soft specular light catch along the top edge */}
       <div
         aria-hidden
         className="liquid-glass-card__face"
         style={{ borderRadius }}
       />
+      {/* Refractive inner/outer hairline */}
       <div
         aria-hidden
         className="liquid-glass-card__edge"
         style={{ borderRadius }}
       />
       <div className="liquid-glass-card__content">{children}</div>
+      {/* Optional subtle displacement — not applied to backdrop-filter */}
       <svg
         aria-hidden
         className="liquid-glass-card__filter"
@@ -138,7 +140,7 @@ export function LiquidGlassCard({
             y="0"
           >
             <feTurbulence
-              baseFrequency="0.003 0.007"
+              baseFrequency="0.008 0.012"
               numOctaves="1"
               result="turbulence"
               type="fractalNoise"
@@ -146,7 +148,7 @@ export function LiquidGlassCard({
             <feDisplacementMap
               in="SourceGraphic"
               in2="turbulence"
-              scale="48"
+              scale="6"
               xChannelSelector="R"
               yChannelSelector="G"
             />

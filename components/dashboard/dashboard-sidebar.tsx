@@ -454,12 +454,12 @@ export function DashboardSidebar({ username }: { username: string }) {
       data-collapsed={collapsed ? "true" : undefined}
     >
       <LiquidGlassCard
-        blurIntensity="sm"
-        borderRadius="12px"
+        blurIntensity="md"
+        borderRadius="16px"
         className="dash-sidebar-liquid-glass"
         draggable={false}
         glowIntensity="none"
-        shadowIntensity="none"
+        shadowIntensity="xs"
       >
         <SidebarHeader>
           <div className="dash-sidebar-header-row">

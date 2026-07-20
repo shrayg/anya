@@ -14,8 +14,8 @@ export type LiquidButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 /**
- * Removable trial: liquid / CSS glass CTAs for dark marketing surfaces.
- * Uses unique SVG filter IDs per instance so multiple buttons on one page do not clash.
+ * Apple-like liquid / CSS glass CTAs for dark surfaces.
+ * Unique SVG filter IDs per instance; look does not depend on SVG displacement.
  */
 export const LiquidButton = forwardRef<HTMLButtonElement, LiquidButtonProps>(
   function LiquidButton(
@@ -43,6 +43,7 @@ export const LiquidButton = forwardRef<HTMLButtonElement, LiquidButtonProps>(
           type={type}
           {...props}
         >
+          <span aria-hidden className="glass-button__shine" />
           <span className="glass-button__label">{children}</span>
         </button>
       );
@@ -62,8 +63,8 @@ export const LiquidButton = forwardRef<HTMLButtonElement, LiquidButtonProps>(
         type={type}
         {...props}
       >
-        <span aria-hidden className="liquid-glass-button__shine" />
         <span aria-hidden className="liquid-glass-button__glass" />
+        <span aria-hidden className="liquid-glass-button__shine" />
         <span className="liquid-glass-button__label">{children}</span>
         <svg
           aria-hidden
@@ -81,8 +82,8 @@ export const LiquidButton = forwardRef<HTMLButtonElement, LiquidButtonProps>(
               y="-20%"
             >
               <feTurbulence
-                baseFrequency="0.02 0.05"
-                numOctaves="2"
+                baseFrequency="0.015 0.03"
+                numOctaves="1"
                 result="noise"
                 seed="2"
                 type="fractalNoise"
@@ -90,12 +91,12 @@ export const LiquidButton = forwardRef<HTMLButtonElement, LiquidButtonProps>(
               <feGaussianBlur
                 in="noise"
                 result="blurred"
-                stdDeviation="1.2"
+                stdDeviation="0.8"
               />
               <feDisplacementMap
                 in="SourceGraphic"
                 in2="blurred"
-                scale="12"
+                scale="4"
                 xChannelSelector="R"
                 yChannelSelector="G"
               />

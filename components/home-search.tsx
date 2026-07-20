@@ -323,12 +323,12 @@ export function HomeSearch() {
   return (
     <div className="home-search" data-tour="home-search" id="search">
       <LiquidGlassCard
-        blurIntensity="md"
+        blurIntensity="lg"
         borderRadius="1.25rem"
         className="home-search-glass px-4 py-4 md:px-5 md:py-5"
         draggable={false}
         glowIntensity="none"
-        shadowIntensity="xs"
+        shadowIntensity="sm"
       >
         <form
           autoComplete="off"

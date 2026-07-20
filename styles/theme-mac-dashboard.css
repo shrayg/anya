@@ -56,9 +56,15 @@ html.theme-mac-dashboard .dash-sidebar.dash-sidebar--shadcn {
   box-shadow: none;
 }
 
+html.theme-mac-dashboard .dash-sidebar-liquid-glass {
+  --liquid-glass-card-fill: rgba(255, 255, 255, 0.06);
+  --liquid-glass-card-tint: color-mix(in srgb, #c3d3e6 3%, transparent);
+}
+
 html.theme-mac-dashboard .dash-sidebar-liquid-glass > .liquid-glass-card__content {
   border-color: var(--mac-border);
   background: var(--mac-sidebar);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 html.theme-mac-dashboard .dash-sidebar-brand span {
