@@ -9,7 +9,10 @@ import { FrozenAccountOverlay } from "@/components/dashboard/frozen-account-over
 import { SafetyNoticeOverlay } from "@/components/dashboard/safety-notice-overlay";
 import { HomeBackground } from "@/components/home-background";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
-import { DashboardSidebarProvider } from "@/components/dashboard/dashboard-sidebar-context";
+import {
+  DashboardSidebarProvider,
+  useDashboardSidebar,
+} from "@/components/dashboard/dashboard-sidebar-context";
 import { TEST_MAC_DASHBOARD_THEME } from "@/config/branding";
 
 type DashboardShellProps = {
@@ -18,6 +21,7 @@ type DashboardShellProps = {
 };
 
 function DashboardShellInner({ children, username }: DashboardShellProps) {
+  const { collapsed } = useDashboardSidebar();
   const profile = useDashboardUser();
   const isFrozen = profile.accountStatus === "frozen";
 
@@ -25,6 +29,7 @@ function DashboardShellInner({ children, username }: DashboardShellProps) {
     <div
       className={clsx(
         "dash-shell text-white",
+        collapsed && "dash-shell--sidebar-collapsed",
         isFrozen && "dash-shell--frozen",
       )}
     >

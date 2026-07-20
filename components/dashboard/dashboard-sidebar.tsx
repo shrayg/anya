@@ -6,12 +6,15 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   ChevronDown,
-  ChevronUp,
+  ChevronsLeft,
+  ChevronsRight,
   CreditCard,
   IdCard,
   LifeBuoy,
   Lock,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Shield,
   UserRound,
@@ -24,7 +27,11 @@ import {
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
 } from "@/lib/search-autofill-shield";
-import { AI_SEARCH_MODULES, getHubSections } from "@/lib/search-modules";
+import {
+  AI_SEARCH_MODULES,
+  getHubSections,
+  type SearchModuleDef,
+} from "@/lib/search-modules";
 import { isCryptoIntelEnabled } from "@/lib/crypto-intel/enabled";
 import { checkModuleAccess, resolveUserPlan } from "@/lib/plans";
 import { getPlanDisplayLabel } from "@/lib/account-plan";
@@ -151,30 +158,42 @@ function isModuleActive(pathname: string, slug: string) {
 function SidebarLink({
   item,
   pathname,
+  collapsed,
   dataTour,
 }: {
   item: NavItem;
   pathname: string;
+  collapsed?: boolean;
   dataTour?: string;
 }) {
   const isActive = isNavActive(item, pathname);
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive}>
+      <SidebarMenuButton
+        asChild
+        className={clsx(collapsed && "dash-sidebar-menu-button--icon-only")}
+        isActive={isActive}
+      >
         <Link
           prefetch
           data-tour={dataTour}
           href={item.href}
           title={item.name}
         >
-          <div>
+          {collapsed ? (
             <item.icon />
-            <span>{item.name}</span>
-          </div>
-          {item.badge ? (
-            <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
-          ) : null}
+          ) : (
+            <>
+              <div>
+                <item.icon />
+                <span>{item.name}</span>
+              </div>
+              {item.badge ? (
+                <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+              ) : null}
+            </>
+          )}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -202,6 +221,7 @@ function ModuleLink({
   pathname,
   badge,
   locked,
+  collapsed,
 }: {
   name: string;
   slug: string;
@@ -209,28 +229,43 @@ function ModuleLink({
   pathname: string;
   badge?: string;
   locked?: boolean;
+  collapsed?: boolean;
 }) {
   const isActive = isModuleActive(pathname, slug);
   const title = locked ? `${name} — upgrade to unlock` : `${name} — ${hint}`;
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive}>
-        <Link
-          prefetch
-          className={clsx(locked && "opacity-45")}
-          href={`/dashboard/search/${slug}`}
-          title={title}
-        >
-          <div>
-            <ModuleIcon name={name} />
-            <span>{name}</span>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <ModuleStatusDot className="size-1.5" slug={slug} />
-            {locked ? <Lock className="size-3 text-zinc-500" /> : null}
-            {badge ? <SidebarMenuBadge>{badge}</SidebarMenuBadge> : null}
-          </div>
+      <SidebarMenuButton
+        asChild
+        className={clsx(
+          collapsed && "dash-sidebar-menu-button--icon-only",
+          locked && "opacity-45",
+        )}
+        isActive={isActive}
+      >
+        <Link prefetch href={`/dashboard/search/${slug}`} title={title}>
+          {collapsed ? (
+            <div className="dash-sidebar-menu-icon-wrap">
+              <ModuleIcon name={name} />
+              <ModuleStatusDot
+                className="dash-sidebar-menu-status size-1.5"
+                slug={slug}
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <ModuleIcon name={name} />
+                <span>{name}</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <ModuleStatusDot className="size-1.5" slug={slug} />
+                {locked ? <Lock className="size-3 text-zinc-500" /> : null}
+                {badge ? <SidebarMenuBadge>{badge}</SidebarMenuBadge> : null}
+              </div>
+            </>
+          )}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -299,7 +334,7 @@ export function DashboardSidebar({ username }: { username: string }) {
   const planLabel = getPlanDisplayLabel(profile);
   const balance = profile.balance ?? 0;
   const staffMeta = getStaffRoleMeta(profile.staffRole);
-  const { footerCollapsed, toggleFooterCollapsed } = useDashboardSidebar();
+  const { collapsed, toggleCollapsed } = useDashboardSidebar();
   const [moduleQuery, setModuleQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState<Record<string, boolean>>({});
   const [categoriesReady, setCategoriesReady] = useState(false);
@@ -356,6 +391,8 @@ export function DashboardSidebar({ username }: { username: string }) {
     return items;
   }, [profile.canAccessHelperDashboard, profile.canManageWorkspace]);
 
+  const accountHref = "/dashboard/account";
+
   const isModuleLocked = (slug: string) =>
     !checkModuleAccess(plan, slug, { balance }).allowed;
 
@@ -385,13 +422,32 @@ export function DashboardSidebar({ username }: { username: string }) {
     }))
     .filter((section) => section.items.length > 0);
 
+  const collapsedModules = useMemo(
+    (): Array<SearchModuleDef & { badge?: string }> => [
+      ...filteredAiItems.map((item) => ({
+        ...item,
+        badge: AI_BADGES[item.name],
+      })),
+      ...filteredSections.flatMap((section) =>
+        section.items.map((item) => ({
+          ...item,
+          badge: AI_BADGES[item.name],
+        })),
+      ),
+    ],
+    [filteredAiItems, filteredSections],
+  );
+
   const handleLogout = async () => {
     await apiFetch("/api/auth/logout", { method: "POST" });
     router.push("/");
   };
 
   return (
-    <Sidebar>
+    <Sidebar
+      className={clsx(collapsed && "dash-sidebar--collapsed")}
+      data-collapsed={collapsed ? "true" : undefined}
+    >
       <LiquidGlassCard
         blurIntensity="sm"
         borderRadius="12px"
@@ -401,45 +457,65 @@ export function DashboardSidebar({ username }: { username: string }) {
         shadowIntensity="none"
       >
         <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild size="lg">
-                <Link
-                  prefetch
-                  className="dash-sidebar-brand"
-                  href={siteConfig.defaultWorkspacePath}
-                  title={`${siteConfig.name} dashboard`}
-                >
-                  <Image
-                    unoptimized
-                    alt={siteConfig.name}
-                    className={siteLogoClassName}
-                    height={32}
-                    src={siteLogoSrc}
-                    width={32}
-                  />
+          <div className="dash-sidebar-header-row">
+            <SidebarMenuButton asChild size="lg">
+              <Link
+                prefetch
+                className={clsx(
+                  "dash-sidebar-brand",
+                  collapsed && "dash-sidebar-brand--collapsed",
+                )}
+                href={siteConfig.defaultWorkspacePath}
+                title={`${siteConfig.name} dashboard`}
+              >
+                <Image
+                  unoptimized
+                  alt={siteConfig.name}
+                  className={siteLogoClassName}
+                  height={32}
+                  src={siteLogoSrc}
+                  width={32}
+                />
+                {!collapsed ? (
                   <span className="[font-family:var(--font-bruno-ace-sc)]">
                     {siteConfig.name}
                   </span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+                ) : null}
+              </Link>
+            </SidebarMenuButton>
 
-          <div className="relative px-0.5 pb-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-            <SidebarInput
-              {...SEARCH_AUTOFILL_SHIELD}
-              readOnly
-              data-tour="sidebar-filter"
-              name="module-filter"
-              placeholder="Filter modules..."
-              type="text"
-              value={moduleQuery}
-              onChange={(event) => setModuleQuery(event.target.value)}
-              onFocus={unlockAutofillShield}
-            />
+            <button
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="dash-sidebar-toggle"
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              type="button"
+              onClick={toggleCollapsed}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="size-4" />
+              ) : (
+                <PanelLeftClose className="size-4" />
+              )}
+            </button>
           </div>
+
+          {!collapsed ? (
+            <div className="relative px-0.5 pb-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+              <SidebarInput
+                {...SEARCH_AUTOFILL_SHIELD}
+                readOnly
+                data-tour="sidebar-filter"
+                name="module-filter"
+                placeholder="Filter modules..."
+                type="text"
+                value={moduleQuery}
+                onChange={(event) => setModuleQuery(event.target.value)}
+                onFocus={unlockAutofillShield}
+              />
+            </div>
+          ) : null}
         </SidebarHeader>
 
         <SidebarSeparator />
@@ -451,6 +527,7 @@ export function DashboardSidebar({ username }: { username: string }) {
                 {mainNav.map((item) => (
                   <SidebarLink
                     key={item.name}
+                    collapsed={collapsed}
                     dataTour={item.name === "Case ID" ? "case-id" : undefined}
                     item={item}
                     pathname={pathname}
@@ -460,150 +537,182 @@ export function DashboardSidebar({ username }: { username: string }) {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {filteredAiItems.length > 0 && (
-            <CollapsibleCategory
-              dataTour="section-ai"
-              open={isCategoryOpen("ai-intelligence")}
-              sectionId="ai-intelligence"
-              title="AI Intelligence"
-              onToggle={() => toggleCategory("ai-intelligence")}
-            >
-              {filteredAiItems.map((item) => (
-                <ModuleLink
-                  key={item.slug}
-                  badge={AI_BADGES[item.name]}
-                  hint={item.hint}
-                  locked={isModuleLocked(item.slug)}
-                  name={item.name}
-                  pathname={pathname}
-                  slug={item.slug}
-                />
-              ))}
-            </CollapsibleCategory>
+          {collapsed ? (
+            <>
+              <div className="dash-sidebar-section-divider" />
+              <SidebarGroup>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {collapsedModules.map((item) => (
+                      <ModuleLink
+                        key={item.slug}
+                        collapsed
+                        badge={item.badge}
+                        hint={item.hint}
+                        locked={isModuleLocked(item.slug)}
+                        name={item.name}
+                        pathname={pathname}
+                        slug={item.slug}
+                      />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </>
+          ) : (
+            <>
+              {filteredAiItems.length > 0 && (
+                <CollapsibleCategory
+                  dataTour="section-ai"
+                  open={isCategoryOpen("ai-intelligence")}
+                  sectionId="ai-intelligence"
+                  title="AI Intelligence"
+                  onToggle={() => toggleCategory("ai-intelligence")}
+                >
+                  {filteredAiItems.map((item) => (
+                    <ModuleLink
+                      key={item.slug}
+                      badge={AI_BADGES[item.name]}
+                      hint={item.hint}
+                      locked={isModuleLocked(item.slug)}
+                      name={item.name}
+                      pathname={pathname}
+                      slug={item.slug}
+                    />
+                  ))}
+                </CollapsibleCategory>
+              )}
+
+              {filteredSections.map((section) => {
+                const sectionId = toSectionId(section.title);
+
+                return (
+                  <CollapsibleCategory
+                    key={section.title}
+                    dataTour={SECTION_TOUR_ATTR[section.title]}
+                    open={isCategoryOpen(sectionId)}
+                    sectionId={sectionId}
+                    title={section.title}
+                    onToggle={() => toggleCategory(sectionId)}
+                  >
+                    {section.items.map((item) => (
+                      <ModuleLink
+                        key={item.slug}
+                        badge={AI_BADGES[item.name]}
+                        hint={item.hint}
+                        locked={isModuleLocked(item.slug)}
+                        name={item.name}
+                        pathname={pathname}
+                        slug={item.slug}
+                      />
+                    ))}
+                  </CollapsibleCategory>
+                );
+              })}
+            </>
           )}
-
-          {filteredSections.map((section) => {
-            const sectionId = toSectionId(section.title);
-
-            return (
-              <CollapsibleCategory
-                key={section.title}
-                dataTour={SECTION_TOUR_ATTR[section.title]}
-                open={isCategoryOpen(sectionId)}
-                sectionId={sectionId}
-                title={section.title}
-                onToggle={() => toggleCategory(sectionId)}
-              >
-                {section.items.map((item) => (
-                  <ModuleLink
-                    key={item.slug}
-                    badge={AI_BADGES[item.name]}
-                    hint={item.hint}
-                    locked={isModuleLocked(item.slug)}
-                    name={item.name}
-                    pathname={pathname}
-                    slug={item.slug}
-                  />
-                ))}
-              </CollapsibleCategory>
-            );
-          })}
         </SidebarContent>
 
         <SidebarFooter>
           <button
-            aria-controls="dash-sidebar-footer-links"
-            aria-expanded={!footerCollapsed}
-            aria-label={
-              footerCollapsed
-                ? "Show account and more links"
-                : "Minimize account and more links"
-            }
-            className="dash-sidebar-minimize"
-            title={
-              footerCollapsed
-                ? "Show Account, Support, and more"
-                : "Hide Account, Support, and more"
-            }
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Minimize sidebar"}
+            className={clsx(
+              "dash-sidebar-minimize",
+              collapsed && "dash-sidebar-minimize--icon-only",
+            )}
+            title={collapsed ? "Expand sidebar" : "Minimize sidebar"}
             type="button"
-            onClick={toggleFooterCollapsed}
+            onClick={toggleCollapsed}
           >
-            {footerCollapsed ? (
-              <>
-                <ChevronUp className="size-4 shrink-0" />
-                <span>Account & more</span>
-              </>
+            {collapsed ? (
+              <ChevronsRight className="size-4 shrink-0" />
             ) : (
               <>
-                <ChevronDown className="size-4 shrink-0" />
+                <ChevronsLeft className="size-4 shrink-0" />
                 <span>Minimize</span>
               </>
             )}
           </button>
 
-          <div
-            className={clsx(
-              "dash-sidebar-footer-nav",
-              footerCollapsed && "dash-sidebar-footer-nav--collapsed",
-            )}
-            id="dash-sidebar-footer-links"
-          >
-            <div className="dash-sidebar-footer-nav-inner">
-              <SidebarMenu>
-                {footerItems.map((item) => (
-                  <SidebarLink
-                    key={item.name}
-                    dataTour={
-                      item.name === "Account"
-                        ? "footer-settings"
-                        : item.name === "Admin"
-                          ? "footer-admin"
-                          : undefined
-                    }
-                    item={item}
-                    pathname={pathname}
-                  />
-                ))}
-              </SidebarMenu>
-            </div>
-          </div>
+          <SidebarMenu>
+            {footerItems.map((item) => (
+              <SidebarLink
+                key={item.name}
+                collapsed={collapsed}
+                dataTour={
+                  item.name === "Account"
+                    ? "footer-settings"
+                    : item.name === "Admin"
+                      ? "footer-admin"
+                      : undefined
+                }
+                item={item}
+                pathname={pathname}
+              />
+            ))}
+          </SidebarMenu>
 
-          <div className="dash-sidebar-user">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div
+          {collapsed ? (
+            <div className="dash-sidebar-user dash-sidebar-user--collapsed">
+              <Link
                 className={clsx(
                   "dash-sidebar-user-avatar ring-2",
                   staffMeta?.avatarRingClass ?? "ring-transparent",
                 )}
+                href={accountHref}
+                title={username}
               >
                 {username.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <p className="truncate text-sm font-medium text-white">
-                    {username}
-                  </p>
-                  <StaffBadge role={profile.staffRole} size="xs" />
-                </div>
-                <p className="truncate text-[11px] capitalize text-zinc-500">
-                  {staffMeta
-                    ? `${staffMeta.label} staff`
-                    : planLabel
-                      ? planLabel
-                      : "Investigator"}
-                </p>
-              </div>
+              </Link>
+              <button
+                aria-label="Log out"
+                className="rounded-md p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+                title="Log out"
+                type="button"
+                onClick={handleLogout}
+              >
+                <LogOut className="size-4" />
+              </button>
             </div>
-            <button
-              aria-label="Log out"
-              className="rounded-md p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-              title="Log out"
-              type="button"
-              onClick={handleLogout}
-            >
-              <LogOut className="size-4" />
-            </button>
-          </div>
+          ) : (
+            <div className="dash-sidebar-user">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div
+                  className={clsx(
+                    "dash-sidebar-user-avatar ring-2",
+                    staffMeta?.avatarRingClass ?? "ring-transparent",
+                  )}
+                >
+                  {username.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="truncate text-sm font-medium text-white">
+                      {username}
+                    </p>
+                    <StaffBadge role={profile.staffRole} size="xs" />
+                  </div>
+                  <p className="truncate text-[11px] capitalize text-zinc-500">
+                    {staffMeta
+                      ? `${staffMeta.label} staff`
+                      : planLabel
+                        ? planLabel
+                        : "Investigator"}
+                  </p>
+                </div>
+              </div>
+              <button
+                aria-label="Log out"
+                className="rounded-md p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+                title="Log out"
+                type="button"
+                onClick={handleLogout}
+              >
+                <LogOut className="size-4" />
+              </button>
+            </div>
+          )}
         </SidebarFooter>
       </LiquidGlassCard>
     </Sidebar>

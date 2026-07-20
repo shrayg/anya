@@ -79,6 +79,17 @@ html.theme-mac-dashboard .dash-sidebar-minimize:hover {
   color: var(--mac-text);
 }
 
+html.theme-mac-dashboard .dash-sidebar-toggle {
+  border-color: var(--mac-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mac-muted);
+}
+
+html.theme-mac-dashboard .dash-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--mac-text);
+}
+
 html.theme-mac-dashboard .dash-sidebar-menu-button,
 html.theme-mac-dashboard .dash-nav-link {
   border-radius: 0.5rem;

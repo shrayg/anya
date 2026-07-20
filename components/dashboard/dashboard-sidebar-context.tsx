@@ -9,11 +9,11 @@ import {
   useState,
 } from "react";
 
-const STORAGE_KEY = "anya-sidebar-footer-collapsed";
+const STORAGE_KEY = "anya-sidebar-collapsed";
 
 type DashboardSidebarContextValue = {
-  footerCollapsed: boolean;
-  toggleFooterCollapsed: () => void;
+  collapsed: boolean;
+  toggleCollapsed: () => void;
 };
 
 const DashboardSidebarContext =
@@ -24,21 +24,21 @@ export function DashboardSidebarProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [footerCollapsed, setFooterCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
-      setFooterCollapsed(localStorage.getItem(STORAGE_KEY) === "true");
+      setCollapsed(localStorage.getItem(STORAGE_KEY) === "true");
     } catch {
-      setFooterCollapsed(false);
+      setCollapsed(false);
     } finally {
       setReady(true);
     }
   }, []);
 
-  const toggleFooterCollapsed = useCallback(() => {
-    setFooterCollapsed((current) => {
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((current) => {
       const next = !current;
 
       try {
@@ -53,10 +53,10 @@ export function DashboardSidebarProvider({
 
   const value = useMemo(
     () => ({
-      footerCollapsed: ready ? footerCollapsed : false,
-      toggleFooterCollapsed,
+      collapsed: ready ? collapsed : false,
+      toggleCollapsed,
     }),
-    [footerCollapsed, ready, toggleFooterCollapsed],
+    [collapsed, ready, toggleCollapsed],
   );
 
   return (
