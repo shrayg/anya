@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KeyRound, Mail, Shield, Smartphone } from "lucide-react";
+import { KeyRound, Mail, Shield } from "lucide-react";
 
-import { TwoFactorSetupPanel } from "@/components/auth/two-factor-setup-panel";
 import { apiFetch } from "@/lib/csrf-client";
 import { passwordRequirementsHint } from "@/lib/password-policy";
 
@@ -14,7 +13,6 @@ export function AccountSecurityPanel({
   username: string;
   initialRecoveryEmail?: string | null;
 }) {
-  const [autoStart2fa, setAutoStart2fa] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState(
     initialRecoveryEmail ?? "",
   );
@@ -31,15 +29,6 @@ export function AccountSecurityPanel({
   useEffect(() => {
     setRecoveryEmail(initialRecoveryEmail ?? "");
   }, [initialRecoveryEmail]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const flag = params.get("setup2fa");
-
-    if (flag === "1" || flag === "true") {
-      setAutoStart2fa(true);
-    }
-  }, []);
 
   async function saveRecoveryEmail() {
     setEmailBusy(true);
@@ -121,22 +110,6 @@ export function AccountSecurityPanel({
           <p className="mt-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white">
             {username}
           </p>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <div className="flex items-center gap-2">
-          <Smartphone className="size-4 text-pink-300" />
-          <h3 className="text-sm font-semibold text-white">
-            Two-factor authentication
-          </h3>
-        </div>
-        <p className="mt-1 text-xs text-zinc-500">
-          Add an authenticator app for a second step at sign-in. Self-hosted
-          TOTP — works with Google Authenticator, Authy, and similar apps.
-        </p>
-        <div className="mt-4">
-          <TwoFactorSetupPanel autoStart={autoStart2fa} />
         </div>
       </section>
 

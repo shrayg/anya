@@ -13,7 +13,6 @@ import {
   Copy,
   LogIn,
   RefreshCw,
-  Smartphone,
   UserPlus,
 } from "lucide-react";
 
@@ -98,71 +97,7 @@ function AuthForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
-  const [pending2faToken, setPending2faToken] = useState<string | null>(null);
-  const [totpCode, setTotpCode] = useState("");
-  const [showRegister2faPrompt, setShowRegister2faPrompt] = useState(false);
-  const [postAuthLanding, setPostAuthLanding] = useState("/dashboard");
   const turnstileRequired = isTurnstileEnabledOnClient();
-
-  const finishAuthenticatedRedirect = async (userHint?: Record<
-    string,
-    unknown
-  >) => {
-    await new Promise((resolve) => window.setTimeout(resolve, 50));
-
-    const meResponse = await fetch("/api/auth/me", {
-      cache: "no-store",
-      credentials: "include",
-    });
-    const meData = await meResponse.json().catch(() => ({}));
-
-    if (!meResponse.ok || !meData?.authenticated) {
-      if (meResponse.status >= 500) {
-        setError(
-          "Signed in, but session verification failed on the server. Your database may be out of sync — run `npx prisma db push` and restart the dev server.",
-        );
-      } else {
-        setError(
-          "Signed in, but your session cookie was not saved. Check that third-party cookies aren’t blocked, then refresh and try again.",
-        );
-      }
-
-      return;
-    }
-
-    const landingPath = getAppLandingPath({
-      ...(meData.user ?? userHint ?? {}),
-      canManageWorkspace: meData.canManageWorkspace,
-    });
-
-    const plan = searchParams.get("plan");
-    const interval = searchParams.get("interval") ?? "monthly";
-    const method = searchParams.get("method");
-
-    if (plan && plan !== "free") {
-      setInfo("Account ready — opening secure checkout…");
-      const checkout = await startPlanCheckout(plan, interval, method);
-
-      if (checkout.ok) {
-        window.location.assign(checkout.url);
-
-        return;
-      }
-
-      setError(
-        typeof checkout.reason === "string" && checkout.reason.length > 8
-          ? `${checkout.reason} Your account was created — open Pricing to finish checkout.`
-          : "Account ready, but checkout could not start. Opening Pricing…",
-      );
-      window.setTimeout(() => {
-        window.location.assign("/pricing");
-      }, 1400);
-
-      return;
-    }
-
-    window.location.assign(landingPath);
-  };
 
   useEffect(() => {
     setMode(searchParams.get("action") === "register" ? "register" : "login");
@@ -180,9 +115,6 @@ function AuthForm() {
     setError("");
     setInfo("");
     setTurnstileToken("");
-    setPending2faToken(null);
-    setTotpCode("");
-    setShowRegister2faPrompt(false);
     const params = new URLSearchParams(searchParams.toString());
 
     params.set("action", next);
@@ -275,79 +207,61 @@ function AuthForm() {
         return;
       }
 
-      if (mode === "login" && data.requires2fa && typeof data.pendingToken === "string") {
-        setPending2faToken(data.pendingToken);
-        setTotpCode("");
-        setInfo("Enter the code from your authenticator app to finish signing in.");
+      // Brief delay so the browser commits Set-Cookie before the next fetch.
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+
+      const meResponse = await fetch("/api/auth/me", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const meData = await meResponse.json().catch(() => ({}));
+
+      if (!meResponse.ok || !meData?.authenticated) {
+        if (meResponse.status >= 500) {
+          setError(
+            "Signed in, but session verification failed on the server. Your database may be out of sync — run `npx prisma db push` and restart the dev server.",
+          );
+        } else {
+          setError(
+            "Signed in, but your session cookie was not saved. Check that third-party cookies aren’t blocked, then refresh and try again.",
+          );
+        }
 
         return;
       }
 
-      if (mode === "register") {
-        await new Promise((resolve) => window.setTimeout(resolve, 50));
-        const meResponse = await fetch("/api/auth/me", {
-          cache: "no-store",
-          credentials: "include",
-        });
-        const meData = await meResponse.json().catch(() => ({}));
+      const landingPath = getAppLandingPath({
+        ...(meData.user ?? data.user ?? {}),
+        canManageWorkspace: meData.canManageWorkspace,
+      });
 
-        if (!meResponse.ok || !meData?.authenticated) {
-          setError(
-            "Account created, but your session cookie was not saved. Try logging in.",
-          );
+      const plan = searchParams.get("plan");
+      const interval = searchParams.get("interval") ?? "monthly";
+      const method = searchParams.get("method");
+
+      if (plan && plan !== "free") {
+        setInfo("Account ready — opening secure checkout…");
+        const checkout = await startPlanCheckout(plan, interval, method);
+
+        if (checkout.ok) {
+          window.location.assign(checkout.url);
 
           return;
         }
 
-        const landingPath = getAppLandingPath({
-          ...(meData.user ?? data.user ?? {}),
-          canManageWorkspace: meData.canManageWorkspace,
-        });
-
-        setPostAuthLanding(landingPath);
-        setShowRegister2faPrompt(true);
-        setInfo("Account created. We recommend enabling two-factor authentication.");
-
-        return;
-      }
-
-      await finishAuthenticatedRedirect(data.user);
-    } catch {
-      setError(
-        "Could not reach the server. Check your connection and try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handle2faSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!pending2faToken) return;
-
-    setError("");
-    setInfo("");
-    setIsSubmitting(true);
-
-    try {
-      const response = await apiFetch("/api/auth/2fa/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pendingToken: pending2faToken,
-          code: totpCode,
-        }),
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        setError(data.error || "Invalid authenticator code.");
+        setError(
+          typeof checkout.reason === "string" && checkout.reason.length > 8
+            ? `${checkout.reason} Your account was created — open Pricing to finish checkout.`
+            : "Account ready, but checkout could not start. Opening Pricing…",
+        );
+        window.setTimeout(() => {
+          window.location.assign("/pricing");
+        }, 1400);
 
         return;
       }
 
-      setPending2faToken(null);
-      await finishAuthenticatedRedirect(data.user);
+      window.location.assign(landingPath);
     } catch {
       setError(
         "Could not reach the server. Check your connection and try again.",
@@ -400,161 +314,40 @@ function AuthForm() {
               {siteConfig.name}
             </p>
             <p className="text-sm text-zinc-500 md:text-base">
-              {showRegister2faPrompt
-                ? "Secure your new account"
-                : pending2faToken
-                  ? "Two-factor verification"
-                  : mode === "login"
-                    ? "Welcome back"
-                    : "Create your account"}
+              {mode === "login" ? "Welcome back" : "Create your account"}
             </p>
           </div>
         </motion.div>
 
-        {!pending2faToken && !showRegister2faPrompt ? (
-          <motion.div
-            animate={{ opacity: 1, y: 0 }}
-            className="ui-tabs mb-8"
-            initial={{ opacity: 0, y: 10 }}
-            transition={{ delay: 0.32, duration: 0.38 }}
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="ui-tabs mb-8"
+          initial={{ opacity: 0, y: 10 }}
+          transition={{ delay: 0.32, duration: 0.38 }}
+        >
+          <button
+            className={clsx(
+              "ui-tab ui-tab--lg",
+              mode === "login" && "ui-tab--active",
+            )}
+            type="button"
+            onClick={() => switchMode("login")}
           >
-            <button
-              className={clsx(
-                "ui-tab ui-tab--lg",
-                mode === "login" && "ui-tab--active",
-              )}
-              type="button"
-              onClick={() => switchMode("login")}
-            >
-              Login
-            </button>
-            <button
-              className={clsx(
-                "ui-tab ui-tab--lg",
-                mode === "register" && "ui-tab--active",
-              )}
-              type="button"
-              onClick={() => switchMode("register")}
-            >
-              Register
-            </button>
-          </motion.div>
-        ) : null}
+            Login
+          </button>
+          <button
+            className={clsx(
+              "ui-tab ui-tab--lg",
+              mode === "register" && "ui-tab--active",
+            )}
+            type="button"
+            onClick={() => switchMode("register")}
+          >
+            Register
+          </button>
+        </motion.div>
 
         <AnimatePresence initial mode="wait">
-          {showRegister2faPrompt ? (
-            <motion.div
-              key="register-2fa"
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-5"
-              exit={{ opacity: 0, y: -8 }}
-              initial={{ opacity: 0, y: 12 }}
-            >
-              <div className="flex items-center gap-3">
-                <Smartphone className="size-6 text-[var(--anya-blush)]" />
-                <div>
-                  <p className="text-lg font-semibold text-white">
-                    Protect your account
-                  </p>
-                  <p className="text-sm text-zinc-500">
-                    We recommend setting up two-factor authentication with an
-                    authenticator app.
-                  </p>
-                </div>
-              </div>
-              {info && (
-                <p className="rounded-lg border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-sm text-emerald-100">
-                  {info}
-                </p>
-              )}
-              <button
-                className="ui-btn ui-btn-primary ui-btn-primary--lg w-full"
-                type="button"
-                onClick={() => {
-                  window.location.assign(
-                    "/dashboard/account?setup2fa=1#security",
-                  );
-                }}
-              >
-                <Smartphone className="size-5" />
-                Set up authenticator
-              </button>
-              <button
-                className="ui-btn w-full border border-white/10 text-zinc-300"
-                type="button"
-                onClick={() => {
-                  const plan = searchParams.get("plan");
-
-                  if (plan && plan !== "free") {
-                    void finishAuthenticatedRedirect();
-
-                    return;
-                  }
-                  window.location.assign(postAuthLanding);
-                }}
-              >
-                Skip for now
-              </button>
-            </motion.div>
-          ) : pending2faToken ? (
-            <motion.form
-              key="2fa-login"
-              animate={{ opacity: 1, x: 0 }}
-              className="space-y-5"
-              exit={{ opacity: 0, x: -12 }}
-              initial={{ opacity: 0, x: 12 }}
-              onSubmit={handle2faSubmit}
-            >
-              <div>
-                <label className="ui-label" htmlFor="totp">
-                  Authenticator code
-                </label>
-                <input
-                  required
-                  autoComplete="one-time-code"
-                  className="ui-input ui-input--lg"
-                  id="totp"
-                  inputMode="numeric"
-                  placeholder="6-digit code or backup code"
-                  value={totpCode}
-                  onChange={(event) => setTotpCode(event.target.value)}
-                />
-                <p className="mt-2 text-xs text-zinc-500">
-                  Open your authenticator app, or use a one-time backup code.
-                </p>
-              </div>
-              {info && (
-                <p className="rounded-lg border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-sm text-emerald-100">
-                  {info}
-                </p>
-              )}
-              {error && (
-                <p className="rounded-lg border border-red-400/20 bg-red-400/8 px-4 py-3 text-sm text-red-200">
-                  {error}
-                </p>
-              )}
-              <button
-                className="ui-btn ui-btn-primary ui-btn-primary--lg w-full"
-                disabled={isSubmitting || !totpCode.trim()}
-                type="submit"
-              >
-                <LogIn className="size-5" />
-                {isSubmitting ? "Verifying…" : "Verify and continue"}
-              </button>
-              <button
-                className="ui-link text-sm"
-                type="button"
-                onClick={() => {
-                  setPending2faToken(null);
-                  setTotpCode("");
-                  setInfo("");
-                  setError("");
-                }}
-              >
-                Back to login
-              </button>
-            </motion.form>
-          ) : (
           <motion.form
             key={mode}
             animate={{ clipPath: "inset(0 0 0 0)", opacity: 1, x: 0 }}
@@ -733,7 +526,6 @@ function AuthForm() {
                   : "Create account"}
             </button>
           </motion.form>
-          )}
         </AnimatePresence>
 
         <motion.div

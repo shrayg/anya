@@ -45,13 +45,6 @@ model User {
   investigatorTier Boolean @default(false)
   enterpriseTier Boolean @default(false)
   stripeCustomerId String?
-  /// Authenticator TOTP — enabled only after a successful verify step
-  twoFactorEnabled Boolean @default(false)
-  /// AES-GCM ciphertext of the base32 TOTP secret (null when disabled)
-  twoFactorSecret String?
-  twoFactorVerifiedAt DateTime?
-  /// JSON array of bcrypt-hashed one-time backup codes
-  twoFactorBackupCodes String?
   searches  SearchHistory[]
   cases     Case[]
   payments  Payment[]

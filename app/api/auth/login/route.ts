@@ -10,7 +10,6 @@ import {
   recordAuthFailure,
 } from "@/lib/auth-lockout";
 import { normalizeUsername } from "@/lib/password-policy";
-import { createLoginPendingToken } from "@/lib/two-factor";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { prisma } from "@/prisma/client";
 
@@ -95,22 +94,6 @@ export async function POST(request: Request) {
 
     // Frozen users may still sign in so they can see status / contact support.
     clearAuthFailures(ip, lockoutUsername);
-
-    if (user.twoFactorEnabled && user.twoFactorSecret) {
-      const pendingToken = await createLoginPendingToken(
-        user.id,
-        user.isAdmin,
-      );
-
-      return NextResponse.json({
-        success: true,
-        requires2fa: true,
-        pendingToken,
-        user: {
-          username: user.username,
-        },
-      });
-    }
 
     const response = NextResponse.json({
       success: true,
