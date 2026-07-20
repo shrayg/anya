@@ -81,6 +81,8 @@ export function resolveOsintModuleSlug(
     "seon-phone": "fraud-footprint",
     breachbase: "breachbase",
     "oathnet-roblox": "oathnet-roblox",
+    "tinder-live": "tinder-live",
+    "username-accounts": "account-finder",
   };
 
   return defaults[fallbackApiSegment] ?? null;

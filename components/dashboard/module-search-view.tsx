@@ -23,6 +23,8 @@ import type { DomainSearchResult } from "@/lib/domain-search";
 import type { SitePentestResult } from "@/lib/site-pentest-shared";
 import type { FivemSearchResult } from "@/lib/fivem-search";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
+import type { TinderLiveSearchResult } from "@/lib/tinder-live/types";
+import type { UsernameAccountsSearchResult } from "@/lib/username-accounts/types";
 import type { FormattedRecord } from "@/lib/search-utils";
 
 import Link from "next/link";
@@ -66,6 +68,8 @@ import {
   type IntelxSearchPayload,
 } from "@/components/dashboard/intelx-search-results";
 
+import { TinderLiveResults } from "@/components/dashboard/tinder-live-results";
+import { UsernameAccountsResults } from "@/components/dashboard/username-accounts-results";
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 import { AiSearchResults } from "@/components/dashboard/ai-search-results";
 import { CryptoAiChatResults } from "@/components/dashboard/crypto-ai-chat-results";
@@ -162,7 +166,9 @@ type StructuredResult =
   | { kind: "us-state-directory"; data: UsIdentitySearchResult }
   | { kind: "us-portal-backlog"; data: UsIdentitySearchResult }
   | { kind: "us-intl-directory"; data: UsIdentitySearchResult }
-  | { kind: "site-pentest"; data: SitePentestResult };
+  | { kind: "site-pentest"; data: SitePentestResult }
+  | { kind: "tinder-live"; data: TinderLiveSearchResult }
+  | { kind: "username-accounts"; data: UsernameAccountsSearchResult };
 const PUBLIC_RECORDS_COMPOSE_KINDS = new Set([
   "us-identity",
   "us-npd",
@@ -1492,6 +1498,58 @@ export function ModuleSearchView({
         return;
       }
 
+      if (activeType === "tinder-live") {
+        const liveData = data as TinderLiveSearchResult & {
+          error?: string;
+          message?: string;
+        };
+
+        if (!liveData.profiles?.length) {
+          markNoResults(
+            liveData.message ||
+              liveData.error ||
+              "No Tinder recommendations returned for those filters.",
+          );
+
+          return;
+        }
+
+        setStructuredResult({ kind: "tinder-live", data: liveData });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+
+        return;
+      }
+
+      if (activeType === "username-accounts") {
+        const accountsData = data as UsernameAccountsSearchResult & {
+          error?: string;
+          message?: string;
+        };
+
+        if (!accountsData.found?.length) {
+          markNoResults(
+            accountsData.message ||
+              accountsData.error ||
+              accountsData.warning ||
+              "No public profiles returned HTTP 200 for that username.",
+          );
+
+          return;
+        }
+
+        setStructuredResult({
+          kind: "username-accounts",
+          data: accountsData,
+        });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+
+        return;
+      }
+
       if (activeType === "bin") {
         setStructuredResult({ kind: "bin", data: data as BinLookupResult });
         setRawResult(JSON.stringify(data, null, 2));
@@ -2120,6 +2178,13 @@ export function ModuleSearchView({
             <CryptoFundFlowResults
               blurResults={blurResults}
               result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "tinder-live" ? (
+            <TinderLiveResults data={structuredResult.data} />
+          ) : structuredResult?.kind === "username-accounts" ? (
+            <UsernameAccountsResults
+              blurResults={blurResults}
+              data={structuredResult.data}
             />
           ) : structuredResult?.kind === "bin" ? (
             <BinSearchResults

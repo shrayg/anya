@@ -695,6 +695,11 @@ function buildUsernameGraph(
   partial.recommendations.push("Try platform modules for handle expansion.");
   partial.pivots.push(
     {
+      label: "Account Finder",
+      slug: "account-finder",
+      reason: "Scan 200+ public profile URLs for this handle.",
+    },
+    {
       label: "Stealer Logs",
       slug: "stealer-logs",
       reason: "Stealer log mentions.",
@@ -878,6 +883,11 @@ function buildSocialPivot(
   partial.sources.unshift(`${PUBLIC_AI_LABEL} · Social`);
   partial.recommendations.push("Open each platform module with this handle.");
   partial.pivots.push(
+    {
+      label: "Account Finder",
+      slug: "account-finder",
+      reason: "Scan 200+ public profile URLs.",
+    },
     {
       label: "Stealer Logs",
       slug: "stealer-logs",

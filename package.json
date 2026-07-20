@@ -83,6 +83,7 @@
     "server-only": "^0.0.1",
     "square": "^44.2.0",
     "three": "^0.183.2",
+    "tinder-api-ts": "^0.4.4",
     "undici": "^6.27.0"
   },
   "devDependencies": {

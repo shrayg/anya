@@ -3,6 +3,10 @@ import {
   isCryptoIntelEnabled,
   isCryptoIntelSlug,
 } from "@/lib/crypto-intel/enabled";
+import {
+  isTinderLiveEnabled,
+  isTinderLiveSlug,
+} from "@/lib/tinder-live/enabled";
 
 const CRYPTO_WALLET_FALLBACK_SECTION = "Financial & Assets";
 const CRYPTO_AI_FALLBACK_SECTION = "AI Intelligence";
@@ -256,7 +260,31 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "username",
         "breach",
         "Username across platforms",
-        "Pivot a handle across indexes and public footprints.",
+        "Pivot a handle across leak indexes or live public profile URLs.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "leak-indexes",
+              label: "Leak indexes",
+              apiType: "breach",
+            },
+            {
+              id: "account-finder",
+              label: "Account finder",
+              apiType: "username-accounts",
+            },
+          ],
+        },
+      ),
+      mod(
+        "Identity",
+        "Account Finder",
+        "account-finder",
+        "username-accounts",
+        "Username — scan 200+ public profile URLs",
+        "Username → accounts: check coding, social, gaming, music, and more for live public profiles.",
       ),
       mod(
         "Identity",
@@ -363,7 +391,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "identity-search",
         "us-identity",
         "John Doe, Fairfax County, VA — or Name, 22030",
-        "Compose FEC, NPI, OFAC, UN sanctions, FBI/Interpol wanted, BOP inmate locator, NSOPW, and court indexes.",
+        "Compose FEC, NPI, OFAC, UN sanctions, FBI/Interpol/DEA wanted, BOP inmate locator, NSOPW, state licenses (WA DOH / CalBar / TDLR when cued), and court indexes.",
         undefined,
         undefined,
         { lawfulUseNotice: true, optionalFilters: PERSON_GEO_FILTERS },
@@ -396,7 +424,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "wanted-persons",
         "us-wanted",
         "First and last name",
-        "FBI wanted posters, Interpol Red Notices, and Dallas County wanted / delinquent lookup.",
+        "FBI wanted posters, Interpol Red Notices, DEA fugitives, and Dallas County wanted / delinquent lookup.",
         undefined,
         undefined,
         { lawfulUseNotice: true },
@@ -844,6 +872,21 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
       ),
       mod(
         "Dating Apps",
+        "Tinder Live",
+        "tinder-live",
+        "tinder-live",
+        "40.7128,-74.0060 ageMin=22 ageMax=35 distanceKm=40 gender=1",
+        "Live Tinder recommendations via operator session — apply age, distance, gender, and Passport location filters.",
+        undefined,
+        undefined,
+        {
+          lawfulUseNotice: true,
+          lawfulUseCopy:
+            "Tinder Live uses a company-operated Tinder session. Authorized investigative use only. Do not scrape, harass, or store profiles beyond case need. Tinder ToS and local law still apply.",
+        },
+      ),
+      mod(
+        "Dating Apps",
         "Bumble",
         "bumble",
         "breach",
@@ -931,6 +974,10 @@ export function getSearchModuleBySlug(
   const moduleDef = MODULE_BY_SLUG.get(slug.toLowerCase());
 
   if (moduleDef && isCryptoIntelSlug(moduleDef.slug) && !isCryptoIntelEnabled()) {
+    return undefined;
+  }
+
+  if (moduleDef && isTinderLiveSlug(moduleDef.slug) && !isTinderLiveEnabled()) {
     return undefined;
   }
 
@@ -1024,6 +1071,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "site-pentest": "site-pentest",
   "tiktok-recon": "tiktok-recon",
   "share-resolver": "share-resolver",
+  "account-finder": "username-accounts",
   ip: "ip",
   intelx: "intelx",
   "stealer-logs": "breach",
@@ -1113,6 +1161,15 @@ export function getHubSections(): SearchModuleSection[] {
       continue;
     }
 
+    if (section.title === "Dating Apps") {
+      const items = section.items.filter(
+        (item) => !(isTinderLiveSlug(item.slug) && !isTinderLiveEnabled()),
+      );
+
+      sections.push({ title: section.title, items });
+      continue;
+    }
+
     if (section.title === CRYPTO_WALLET_FALLBACK_SECTION) {
       if (!cryptoEnabled && cryptoWallet) {
         sections.push({
@@ -1199,6 +1256,7 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "shodan-host": true,
   "site-pentest": true,
   tinder: true,
+  "tinder-live": true,
   bumble: true,
   hinge: true,
   match: true,
