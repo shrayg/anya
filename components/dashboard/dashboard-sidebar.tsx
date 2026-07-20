@@ -26,7 +26,7 @@ import {
 } from "@/lib/search-autofill-shield";
 import {
   AI_SEARCH_MODULES,
-  SEARCH_MODULE_SECTIONS,
+  getHubSections,
   type SearchModuleDef,
 } from "@/lib/search-modules";
 import { checkModuleAccess, resolveUserPlan } from "@/lib/plans";
@@ -55,6 +55,7 @@ const SECTION_TOUR_ATTR: Record<string, string> = {
   Identity: "section-identity",
   Network: "section-network",
   "Financial & Assets": "section-financial",
+  "Crypto Intel": "section-crypto-intel",
   Platforms: "section-platforms",
   "Dating Apps": "section-dating",
 };
@@ -264,14 +265,20 @@ export function DashboardSidebar({ username }: { username: string }) {
       item.hint.toLowerCase().includes(query),
   );
 
-  const filteredSections = SEARCH_MODULE_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(query) ||
-        item.hint.toLowerCase().includes(query),
-    ),
-  })).filter((section) => section.items.length > 0);
+  const hubSections = getHubSections().filter(
+    (section) => section.title !== "AI Intelligence",
+  );
+
+  const filteredSections = hubSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(query) ||
+          item.hint.toLowerCase().includes(query),
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const collapsedModules = useMemo(
     (): Array<SearchModuleDef & { badge?: string }> => [

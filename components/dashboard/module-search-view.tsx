@@ -3,6 +3,12 @@
 import type { BankSearchResult } from "@/lib/bank-search";
 import type { BinLookupResult } from "@/lib/bin-lookup";
 import type { CryptoWalletResult } from "@/lib/crypto-wallet";
+import type {
+  CryptoAddressIntelResult,
+  CryptoFundFlowResult,
+  CryptoRiskCheckResult,
+  CryptoTxDeepDiveResult,
+} from "@/lib/crypto-intel/types";
 import type { IbanLookupResult } from "@/lib/iban-lookup";
 import type { UsProviderSearchResult } from "@/lib/us-provider-directory";
 import type { VinDecodeResult } from "@/lib/vin-decode";
@@ -29,6 +35,12 @@ import { apiFetch } from "@/lib/csrf-client";
 import { SearchBarTour } from "@/components/search-bar-tour";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { CryptoWalletResults } from "@/components/dashboard/crypto-wallet-results";
+import {
+  CryptoAddressIntelResults,
+  CryptoFundFlowResults,
+  CryptoRiskCheckResults,
+  CryptoTxDeepDiveResults,
+} from "@/components/dashboard/crypto-intel-results";
 import {
   BankSearchResults,
   BinSearchResults,
@@ -129,6 +141,10 @@ const SitePentestResults = dynamic(
 
 type StructuredResult =
   | { kind: "crypto-wallet"; data: CryptoWalletResult }
+  | { kind: "crypto-address"; data: CryptoAddressIntelResult }
+  | { kind: "crypto-tx"; data: CryptoTxDeepDiveResult }
+  | { kind: "crypto-risk"; data: CryptoRiskCheckResult }
+  | { kind: "crypto-flow"; data: CryptoFundFlowResult }
   | { kind: "bin"; data: BinLookupResult }
   | { kind: "iban"; data: IbanLookupResult }
   | { kind: "bank"; data: BankSearchResult }
@@ -728,6 +744,32 @@ export function ModuleSearchView({
 
     if (activeType === "crypto-wallet" && !detectCryptoChain(trimmed)) {
       setError(CRYPTO_WALLET_INVALID_MESSAGE);
+      setIsSearching(false);
+
+      return;
+    }
+
+    if (
+      (activeType === "crypto-address" ||
+        activeType === "crypto-risk" ||
+        activeType === "crypto-flow") &&
+      !detectCryptoChain(trimmed)
+    ) {
+      setError(CRYPTO_WALLET_INVALID_MESSAGE);
+      setIsSearching(false);
+
+      return;
+    }
+
+    if (
+      activeType === "crypto-tx" &&
+      !/^0x[a-fA-F0-9]{64}$/.test(trimmed) &&
+      !/^[a-fA-F0-9]{64}$/.test(trimmed) &&
+      !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(trimmed)
+    ) {
+      setError(
+        "Paste an Ethereum 0x…64 hash, Bitcoin 64-hex txid, or Solana signature.",
+      );
       setIsSearching(false);
 
       return;
@@ -1402,6 +1444,54 @@ export function ModuleSearchView({
         return;
       }
 
+      if (activeType === "crypto-address") {
+        setStructuredResult({
+          kind: "crypto-address",
+          data: data as CryptoAddressIntelResult,
+        });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+
+        return;
+      }
+
+      if (activeType === "crypto-tx") {
+        setStructuredResult({
+          kind: "crypto-tx",
+          data: data as CryptoTxDeepDiveResult,
+        });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+
+        return;
+      }
+
+      if (activeType === "crypto-risk") {
+        setStructuredResult({
+          kind: "crypto-risk",
+          data: data as CryptoRiskCheckResult,
+        });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+
+        return;
+      }
+
+      if (activeType === "crypto-flow") {
+        setStructuredResult({
+          kind: "crypto-flow",
+          data: data as CryptoFundFlowResult,
+        });
+        setRawResult(JSON.stringify(data, null, 2));
+        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+        persistSearch(trimmed, moduleDef.slug, serialized);
+
+        return;
+      }
+
       if (activeType === "bin") {
         setStructuredResult({ kind: "bin", data: data as BinLookupResult });
         setRawResult(JSON.stringify(data, null, 2));
@@ -2008,6 +2098,26 @@ export function ModuleSearchView({
             />
           ) : structuredResult?.kind === "crypto-wallet" ? (
             <CryptoWalletResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "crypto-address" ? (
+            <CryptoAddressIntelResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "crypto-tx" ? (
+            <CryptoTxDeepDiveResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "crypto-risk" ? (
+            <CryptoRiskCheckResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "crypto-flow" ? (
+            <CryptoFundFlowResults
               blurResults={blurResults}
               result={structuredResult.data}
             />

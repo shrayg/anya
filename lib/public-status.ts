@@ -6,6 +6,7 @@ import {
 import { prisma } from "@/prisma/client";
 import { isSquareConfigured } from "@/lib/square";
 import { AI_SEARCH_MODULES, ALL_SEARCH_MODULES } from "@/lib/search-modules";
+import { isCryptoIntelEnabled, isCryptoIntelSlug } from "@/lib/crypto-intel/enabled";
 import {
   readStatusHistory,
   recordStatusHistorySample,
@@ -148,9 +149,12 @@ export async function getPublicStatus(options?: {
     : {};
 
   const aiSlugs = AI_SEARCH_MODULES.map((m) => m.slug);
-  const searchSlugs = ALL_SEARCH_MODULES.map((m) => m.slug).filter(
-    (slug) => !aiSlugs.includes(slug),
-  );
+  const searchSlugs = ALL_SEARCH_MODULES.map((m) => m.slug).filter((slug) => {
+    if (aiSlugs.includes(slug)) return false;
+    if (!isCryptoIntelEnabled() && isCryptoIntelSlug(slug)) return false;
+
+    return true;
+  });
 
   const aiStatus = aggregateModuleStatus(modules, aiSlugs);
   const searchStatus = aggregateModuleStatus(modules, searchSlugs);

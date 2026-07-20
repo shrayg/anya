@@ -19,14 +19,21 @@ export default function SearchHubPage() {
         description:
           section.title === "AI Intelligence"
             ? "Cross-source synthesis for investigator briefs."
-            : undefined,
-        featured: section.title === "AI Intelligence",
+            : section.title === "Crypto Intel"
+              ? "Wallet / tx intelligence — removable via CRYPTO_INTEL_ENABLED=0."
+              : undefined,
+        featured:
+          section.title === "AI Intelligence" ||
+          section.title === "Crypto Intel",
         items: section.items.map((item) => ({
           name: item.name,
           slug: item.slug,
           hint: item.hint,
           summary:
-            section.title === "AI Intelligence" ? item.tagline : undefined,
+            section.title === "AI Intelligence" ||
+            section.title === "Crypto Intel"
+              ? item.tagline
+              : undefined,
         })),
       })),
     [],

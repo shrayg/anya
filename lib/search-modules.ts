@@ -1,3 +1,9 @@
+import {
+  CRYPTO_INTEL_SECTION_TITLE,
+  isCryptoIntelEnabled,
+  isCryptoIntelSlug,
+} from "@/lib/crypto-intel/enabled";
+
 export type ModuleTool = {
   id: string;
   label: string;
@@ -573,6 +579,111 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
     ],
   },
   {
+    title: "Crypto Intel",
+    items: [
+      mod(
+        "Crypto Intel",
+        "Address Intel",
+        "crypto-address",
+        "crypto-address",
+        "BTC / ETH / LTC / SOL wallet address",
+        "Multi-explorer balance, recent txs, seed entity labels, and risk flags.",
+        undefined,
+        undefined,
+        {
+          lawfulUseNotice: true,
+          lawfulUseCopy:
+            "Authorized OSINT / compliance research only. Public blockchain data and a static seed label list — not commercial chain analytics. Do not use to facilitate sanctions evasion or crime.",
+        },
+      ),
+      mod(
+        "Crypto Intel",
+        "Tx Deep Dive",
+        "crypto-tx",
+        "crypto-tx",
+        "Ethereum 0x… hash, Bitcoin txid, or Solana signature",
+        "Decode status, value, fee, counterparties, and seed labels for a transaction.",
+        undefined,
+        undefined,
+        {
+          lawfulUseNotice: true,
+          lawfulUseCopy:
+            "Authorized OSINT / compliance research only. Public blockchain data — not a substitute for legal or AML advice.",
+        },
+      ),
+      mod(
+        "Crypto Intel",
+        "Risk Check",
+        "crypto-risk",
+        "crypto-risk",
+        "Wallet or ETH token contract address",
+        "Sanctions/mixer seed match + free ETH honeypot/token heuristics (GoPlus when available).",
+        undefined,
+        undefined,
+        {
+          lawfulUseNotice: true,
+          lawfulUseCopy:
+            "Authorized compliance research only. Seed lists and free token APIs are limited — confirm sanctions against official SDN sources before acting.",
+        },
+      ),
+      mod(
+        "Crypto Intel",
+        "Fund Flow",
+        "crypto-flow",
+        "crypto-flow",
+        "BTC / ETH / LTC / SOL wallet address",
+        "Basic 1-hop counterparties from recent txs — not multi-hop commercial tracing.",
+        undefined,
+        undefined,
+        {
+          lawfulUseNotice: true,
+          lawfulUseCopy:
+            "Authorized OSINT / compliance research only. Basic hop visualization from public explorers — not mixer bypass or criminal facilitation tooling.",
+        },
+      ),
+      mod(
+        "Crypto Intel",
+        "Top Holders",
+        "crypto-holders",
+        "crypto-holders",
+        "Token contract address",
+        "Holder heatmaps and concentration analysis — roadmap.",
+        undefined,
+        true,
+      ),
+      mod(
+        "Crypto Intel",
+        "CEX Flows",
+        "crypto-cex-flows",
+        "crypto-cex-flows",
+        "Exchange or wallet address",
+        "CEX deposit clustering and off-ramp signals — roadmap.",
+        undefined,
+        true,
+      ),
+      mod(
+        "Crypto Intel",
+        "Social Narrative",
+        "crypto-social",
+        "crypto-social",
+        "Token ticker or narrative keyword",
+        "KOL wallets and FUD/FOMO signals — coming soon (no aggressive social scraping).",
+        undefined,
+        true,
+      ),
+      mod(
+        "Crypto Intel",
+        "Bridge Monitor",
+        "crypto-bridge",
+        "crypto-bridge",
+        "Bridge tx or chain pair",
+        "Cross-chain bridge monitoring — roadmap.",
+        undefined,
+        true,
+      ),
+    ],
+  },
+  {
     title: "Platforms",
     items: [
       mod(
@@ -814,7 +925,18 @@ export function getSearchModuleBySlug(
 ): SearchModuleDef | undefined {
   if (!slug) return undefined;
 
-  return MODULE_BY_SLUG.get(slug.toLowerCase());
+  const moduleDef = MODULE_BY_SLUG.get(slug.toLowerCase());
+
+  if (
+    moduleDef &&
+    (moduleDef.section === CRYPTO_INTEL_SECTION_TITLE ||
+      isCryptoIntelSlug(moduleDef.slug)) &&
+    !isCryptoIntelEnabled()
+  ) {
+    return undefined;
+  }
+
+  return moduleDef;
 }
 
 export function getSearchModuleHint(
@@ -863,6 +985,10 @@ const SLUG_API_ROUTES: Record<string, string> = {
   breaches: "breaches",
   domains: "domains",
   "crypto-wallet": "crypto-wallet",
+  "crypto-address": "crypto-address",
+  "crypto-tx": "crypto-tx",
+  "crypto-risk": "crypto-risk",
+  "crypto-flow": "crypto-flow",
   "bin-lookup": "bin",
   "iban-check": "iban",
   "bank-search": "bank",
@@ -940,10 +1066,18 @@ export function resolveSearchApiType(
 }
 
 export function getHubSections(): SearchModuleSection[] {
-  return [
+  const sections: SearchModuleSection[] = [
     { title: "AI Intelligence", items: AI_SEARCH_MODULES },
     ...SEARCH_MODULE_SECTIONS,
   ];
+
+  if (!isCryptoIntelEnabled()) {
+    return sections.filter(
+      (section) => section.title !== CRYPTO_INTEL_SECTION_TITLE,
+    );
+  }
+
+  return sections;
 }
 
 /** @deprecated Use live health from /api/osint/modules/health via ModuleStatusDot. */
@@ -968,6 +1102,14 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "oathnet-roblox": true,
   "contact-enrich": true,
   "crypto-wallet": true,
+  "crypto-address": true,
+  "crypto-tx": true,
+  "crypto-risk": true,
+  "crypto-flow": true,
+  "crypto-holders": false,
+  "crypto-cex-flows": false,
+  "crypto-social": false,
+  "crypto-bridge": false,
   "bin-lookup": true,
   "iban-check": true,
   "bank-search": true,
