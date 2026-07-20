@@ -2494,11 +2494,23 @@
 .brutal-auth-page .ui-panel--auth {
   position: relative;
   overflow: hidden;
-  border-color: var(--anya-line);
-  border-left-color: var(--anya-pink);
-  background: rgba(5, 5, 6, 0.94);
-  box-shadow: 16px 16px 0 rgba(195, 211, 230, 0.055);
-  backdrop-filter: none;
+  border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 22%, rgba(255, 255, 255, 0.1));
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--anya-blush, #c3d3e6) 10%, transparent) 0%,
+      color-mix(in srgb, #ffffff 4%, transparent) 42%,
+      color-mix(in srgb, var(--anya-blush, #c3d3e6) 5%, transparent) 100%
+    ),
+    rgba(8, 10, 14, 0.72);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 48px -28px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 0 36px color-mix(in srgb, var(--anya-blush, #c3d3e6) 8%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
 }
 
 .brutal-auth-page .ui-panel--auth::after {
@@ -2507,13 +2519,13 @@
   top: 0;
   bottom: 0;
   left: 0;
-  width: 26%;
+  width: 28%;
   pointer-events: none;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(195, 211, 230, 0.1),
-    rgba(244, 241, 243, 0.13),
+    color-mix(in srgb, var(--anya-blush, #c3d3e6) 12%, transparent),
+    rgba(255, 255, 255, 0.08),
     transparent
   );
   content: "";
@@ -2535,34 +2547,71 @@
   }
 }
 
-.brutal-auth-page .ui-tabs {
-  gap: 1px;
-  padding: 1px;
-  border: 1px solid var(--anya-line);
-  background: var(--anya-line);
+.brutal-auth-page .ui-tabs,
+.brutal-auth-page .ui-tabs--auth {
+  gap: 0.2rem;
+  padding: 0.28rem;
+  border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 18%, rgba(255, 255, 255, 0.08));
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.brutal-auth-page .ui-tab {
-  background: #09090a;
+.brutal-auth-page .ui-tab,
+.brutal-auth-page .ui-tab--auth {
+  position: relative;
+  background: transparent;
+  border-radius: 9999px;
   font-family: var(--font-anya-mono), monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease;
+}
+
+.brutal-auth-page .ui-tab:hover {
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .brutal-auth-page .ui-tab--active {
-  background: var(--anya-pink);
-  color: var(--anya-black);
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+}
+
+.brutal-auth-page .auth-mode-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 35%, transparent);
+  background: color-mix(in srgb, var(--anya-blush, #c3d3e6) 14%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--anya-blush, #c3d3e6) 18%, transparent);
 }
 
 .brutal-auth-page .ui-input {
-  border-color: var(--anya-line);
-  background: #09090a;
+  border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 16%, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.035);
   font-family: var(--font-anya-mono), monospace;
 }
 
+.brutal-auth-page .ui-input:hover {
+  border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 28%, rgba(255, 255, 255, 0.14));
+}
+
 .brutal-auth-page .ui-input:focus {
-  border-color: var(--anya-pink);
+  border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 55%, transparent);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--anya-blush, #c3d3e6) 16%, transparent);
+}
+
+.brutal-auth-page .ui-link {
+  color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 78%, #fff);
+}
+
+.brutal-auth-page .ui-link:hover {
+  color: #fff;
 }
 
 .brutal-legal-page .legal-prose > section {

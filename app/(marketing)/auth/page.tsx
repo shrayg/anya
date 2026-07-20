@@ -21,6 +21,7 @@ import {
   isTurnstileEnabledOnClient,
   TurnstileWidget,
 } from "@/components/turnstile-widget";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import { apiFetch } from "@/lib/csrf-client";
@@ -310,10 +311,10 @@ function AuthForm() {
             width={64}
           />
           <div>
-            <p className="text-xl font-semibold text-white md:text-2xl">
+            <p className="font-semibold tracking-tight text-white text-[1.35rem] md:text-[1.65rem]">
               {siteConfig.name}
             </p>
-            <p className="text-sm text-zinc-500 md:text-base">
+            <p className="mt-0.5 text-sm text-zinc-400 md:text-base">
               {mode === "login" ? "Welcome back" : "Create your account"}
             </p>
           </div>
@@ -321,29 +322,43 @@ function AuthForm() {
 
         <motion.div
           animate={{ opacity: 1, y: 0 }}
-          className="ui-tabs mb-8"
+          className="ui-tabs ui-tabs--auth mb-8"
           initial={{ opacity: 0, y: 10 }}
           transition={{ delay: 0.32, duration: 0.38 }}
         >
           <button
             className={clsx(
-              "ui-tab ui-tab--lg",
+              "ui-tab ui-tab--lg ui-tab--auth",
               mode === "login" && "ui-tab--active",
             )}
             type="button"
             onClick={() => switchMode("login")}
           >
-            Login
+            {mode === "login" ? (
+              <motion.span
+                layoutId="auth-mode-pill"
+                className="auth-mode-pill"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            <span className="relative z-10">Login</span>
           </button>
           <button
             className={clsx(
-              "ui-tab ui-tab--lg",
+              "ui-tab ui-tab--lg ui-tab--auth",
               mode === "register" && "ui-tab--active",
             )}
             type="button"
             onClick={() => switchMode("register")}
           >
-            Register
+            {mode === "register" ? (
+              <motion.span
+                layoutId="auth-mode-pill"
+                className="auth-mode-pill"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            <span className="relative z-10">Register</span>
           </button>
         </motion.div>
 
@@ -505,8 +520,8 @@ function AuthForm() {
               </label>
             )}
 
-            <button
-              className="ui-btn ui-btn-primary ui-btn-primary--lg w-full"
+            <LiquidButton
+              className="liquid-glass-button--accent ui-btn-primary--lg h-12 w-full text-[0.95rem]"
               disabled={
                 isSubmitting ||
                 (mode === "register" && !acceptedLegal) ||
@@ -524,7 +539,7 @@ function AuthForm() {
                 : mode === "login"
                   ? "Log in"
                   : "Create account"}
-            </button>
+            </LiquidButton>
           </motion.form>
         </AnimatePresence>
 

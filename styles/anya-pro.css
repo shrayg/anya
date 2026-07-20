@@ -310,7 +310,7 @@ pre,
 
 /* —— Intel signal loader: no card — floats on the page background —— */
 .intel-signal-loader {
-  --isl-blush: var(--anya-blush, #f0a4b8);
+  --isl-blush: var(--anya-blush, #c3d3e6);
   position: relative;
   display: flex;
   justify-content: center;
