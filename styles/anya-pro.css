@@ -61,6 +61,13 @@ pre,
   box-shadow: 1px 0 0 rgba(255, 255, 255, 0.03);
 }
 
+.dash-sidebar.dash-sidebar--liquid-glass {
+  border-right-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
 .dash-sidebar-brand span {
   font-size: 1rem;
   letter-spacing: 0.02em;

@@ -19,6 +19,7 @@ import { useEffect, useState, type ElementType } from "react";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { LiquidGlassCard } from "@/components/ui/liquid-glass";
 import { getHubSections } from "@/lib/search-modules";
 import {
   STARTER_SEARCH_MODES,
@@ -321,90 +322,99 @@ export function HomeSearch() {
 
   return (
     <div className="home-search" data-tour="home-search" id="search">
-      <form
-        autoComplete="off"
-        className="home-search-form"
-        onSubmit={handleSearch}
+      <LiquidGlassCard
+        blurIntensity="md"
+        borderRadius="1.25rem"
+        className="home-search-glass px-4 py-4 md:px-5 md:py-5"
+        draggable={false}
+        glowIntensity="sm"
+        shadowIntensity="sm"
       >
-        <div className="home-search-module-row">
-          <div className="home-search-locked-module">
-            <button
-              aria-label={`${LOCKED_MODULE_COUNT} premium modules locked`}
-              className="home-search-locked-trigger"
-              type="button"
-            >
-              <LockKeyhole className="size-4" />
-              <strong>{LOCKED_MODULE_COUNT}</strong>
-              <span>Premium locked</span>
-            </button>
+        <form
+          autoComplete="off"
+          className="home-search-form"
+          onSubmit={handleSearch}
+        >
+          <div className="home-search-module-row">
+            <div className="home-search-locked-module">
+              <button
+                aria-label={`${LOCKED_MODULE_COUNT} premium modules locked`}
+                className="home-search-locked-trigger"
+                type="button"
+              >
+                <LockKeyhole className="size-4" />
+                <strong>{LOCKED_MODULE_COUNT}</strong>
+                <span>Premium locked</span>
+              </button>
 
-            <div className="home-search-locked-popover" role="tooltip">
-              <div className="home-search-locked-heading">
-                <span>Premium module directory</span>
-                <strong>{LOCKED_MODULE_COUNT} locked</strong>
+              <div className="home-search-locked-popover" role="tooltip">
+                <div className="home-search-locked-heading">
+                  <span>Premium module directory</span>
+                  <strong>{LOCKED_MODULE_COUNT} locked</strong>
+                </div>
+                <ul className="home-search-locked-grid">
+                  {LOCKED_MODULES.map((module) => (
+                    <li key={module.slug}>{module.name}</li>
+                  ))}
+                </ul>
+                <Link href="/pricing">Compare plans and unlock the panel</Link>
               </div>
-              <ul className="home-search-locked-grid">
-                {LOCKED_MODULES.map((module) => (
-                  <li key={module.slug}>{module.name}</li>
-                ))}
-              </ul>
-              <Link href="/pricing">Compare plans and unlock the panel</Link>
+            </div>
+
+            <div
+              aria-label="Search type"
+              className="starter-search-modes"
+              data-tour="home-search-modes"
+              role="tablist"
+            >
+              {STARTER_SEARCH_MODES.map((mode) => {
+                const Icon = MODE_ICONS[mode.id];
+
+                return (
+                  <button
+                    key={mode.id}
+                    aria-selected={starterMode === mode.id}
+                    className={clsx(
+                      "starter-search-mode",
+                      starterMode === mode.id && "starter-search-mode--active",
+                    )}
+                    role="tab"
+                    type="button"
+                    onClick={() => {
+                      setStarterMode(mode.id);
+                      setError("");
+                    }}
+                  >
+                    <Icon className="size-4" />
+                    {mode.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div
-            aria-label="Search type"
-            className="starter-search-modes"
-            data-tour="home-search-modes"
-            role="tablist"
-          >
-            {STARTER_SEARCH_MODES.map((mode) => {
-              const Icon = MODE_ICONS[mode.id];
+          {searchBar}
+        </form>
 
-              return (
-                <button
-                  key={mode.id}
-                  aria-selected={starterMode === mode.id}
-                  className={clsx(
-                    "starter-search-mode",
-                    starterMode === mode.id && "starter-search-mode--active",
-                  )}
-                  role="tab"
-                  type="button"
-                  onClick={() => {
-                    setStarterMode(mode.id);
-                    setError("");
-                  }}
-                >
-                  <Icon className="size-4" />
-                  {mode.label}
-                </button>
-              );
-            })}
-          </div>
+        <div className="home-search-foot">
+          <span>ENTRY MODULES / EMAIL / USERNAME / PHONE / DISCORD</span>
+          <span>
+            {auth.status === "guest" ? (
+              <Link href="/auth?action=login">SIGN IN TO SEARCH</Link>
+            ) : null}
+            {auth.status === "authenticated" && !hasWorkspace ? (
+              <Link href="/pricing">EXPAND ACCESS</Link>
+            ) : null}
+            {auth.status === "authenticated" && hasWorkspace ? (
+              <Link href="/dashboard/search/ai-search">OPEN WORKSPACE</Link>
+            ) : null}
+            {auth.status === "loading" ? "CHECKING ACCESS" : null}
+          </span>
+          <span>
+            <Link href="/acceptable-use">LAWFUL USE ONLY</Link>
+          </span>
         </div>
-
-        {searchBar}
-      </form>
-
-      <div className="home-search-foot">
-        <span>ENTRY MODULES / EMAIL / USERNAME / PHONE / DISCORD</span>
-        <span>
-          {auth.status === "guest" ? (
-            <Link href="/auth?action=login">SIGN IN TO SEARCH</Link>
-          ) : null}
-          {auth.status === "authenticated" && !hasWorkspace ? (
-            <Link href="/pricing">EXPAND ACCESS</Link>
-          ) : null}
-          {auth.status === "authenticated" && hasWorkspace ? (
-            <Link href="/dashboard/search/ai-search">OPEN WORKSPACE</Link>
-          ) : null}
-          {auth.status === "loading" ? "CHECKING ACCESS" : null}
-        </span>
-        <span>
-          <Link href="/acceptable-use">LAWFUL USE ONLY</Link>
-        </span>
-      </div>
+      </LiquidGlassCard>
 
       {error ? <p className="home-search-error">{error}</p> : null}
 

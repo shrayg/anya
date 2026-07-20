@@ -145,6 +145,28 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   backdrop-filter: blur(24px);
 }
 
+/* Liquid glass sidebar: chrome comes from LiquidGlassCard */
+.dash-sidebar.dash-sidebar--liquid-glass {
+  border-right: none;
+  background: transparent;
+  backdrop-filter: none;
+  padding: 0.5rem;
+  box-shadow: none;
+}
+
+.dash-sidebar-liquid-glass {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.dash-sidebar-liquid-glass > .liquid-glass-card__content {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .dash-sidebar-brand {
   display: flex;
   align-items: center;
@@ -6319,5 +6341,208 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
     inset 0 -1px 0 rgba(0, 0, 0, 0.22),
     0 10px 28px color-mix(in srgb, var(--anya-blush) 26%, transparent);
+}
+
+/* ── Liquid glass cards (trial; remove with components/ui/liquid-glass.tsx) ── */
+.liquid-glass-card {
+  position: relative;
+  display: flex;
+  isolation: isolate;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, #c3d3e6 22%, rgba(255, 255, 255, 0.1));
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, #c3d3e6 10%, transparent) 0%,
+      color-mix(in srgb, #ffffff 4%, transparent) 42%,
+      color-mix(in srgb, #c3d3e6 5%, transparent) 100%
+    ),
+    rgba(8, 10, 14, 0.52);
+  box-shadow:
+    var(--liquid-glass-card-glow, 0 4px 4px rgba(0, 0, 0, 0.15), 0 0 24px rgba(195, 211, 230, 0.08)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.liquid-glass-card--draggable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.liquid-glass-card--draggable:active {
+  cursor: grabbing;
+}
+
+.liquid-glass-card--expandable {
+  cursor: pointer;
+}
+
+.liquid-glass-card__bend {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, #c3d3e6 6%, rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(var(--liquid-glass-card-blur, 10px)) saturate(1.35)
+    var(--liquid-glass-card-filter, none);
+  -webkit-backdrop-filter: blur(var(--liquid-glass-card-blur, 10px)) saturate(1.35)
+    var(--liquid-glass-card-filter, none);
+}
+
+.liquid-glass-card__face,
+.liquid-glass-card__edge {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.liquid-glass-card__face {
+  z-index: 10;
+  box-shadow: var(--liquid-glass-card-glow, none);
+}
+
+.liquid-glass-card__edge {
+  z-index: 20;
+  box-shadow: var(--liquid-glass-card-shadow, none);
+}
+
+.liquid-glass-card__content {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.liquid-glass-card__filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.liquid-glass-card--blur-sm {
+  --liquid-glass-card-blur: 8px;
+}
+
+.liquid-glass-card--blur-md {
+  --liquid-glass-card-blur: 14px;
+}
+
+.liquid-glass-card--blur-lg {
+  --liquid-glass-card-blur: 20px;
+}
+
+.liquid-glass-card--blur-xl {
+  --liquid-glass-card-blur: 28px;
+}
+
+.liquid-glass-card--glow-none {
+  --liquid-glass-card-glow: 0 4px 4px rgba(0, 0, 0, 0.05), 0 0 12px rgba(0, 0, 0, 0.05);
+}
+
+.liquid-glass-card--glow-xs {
+  --liquid-glass-card-glow:
+    0 4px 4px rgba(0, 0, 0, 0.15),
+    0 0 12px rgba(0, 0, 0, 0.08),
+    0 0 16px color-mix(in srgb, #c3d3e6 12%, transparent);
+}
+
+.liquid-glass-card--glow-sm {
+  --liquid-glass-card-glow:
+    0 4px 4px rgba(0, 0, 0, 0.18),
+    0 0 12px rgba(0, 0, 0, 0.1),
+    0 0 28px color-mix(in srgb, #c3d3e6 14%, transparent);
+}
+
+.liquid-glass-card--glow-md {
+  --liquid-glass-card-glow:
+    0 4px 4px rgba(0, 0, 0, 0.18),
+    0 0 12px rgba(0, 0, 0, 0.1),
+    0 0 36px color-mix(in srgb, #c3d3e6 18%, transparent);
+}
+
+.liquid-glass-card--glow-lg {
+  --liquid-glass-card-glow:
+    0 4px 4px rgba(0, 0, 0, 0.2),
+    0 0 14px rgba(0, 0, 0, 0.12),
+    0 0 44px color-mix(in srgb, #c3d3e6 22%, transparent);
+}
+
+.liquid-glass-card--glow-xl {
+  --liquid-glass-card-glow:
+    0 4px 4px rgba(0, 0, 0, 0.2),
+    0 0 14px rgba(0, 0, 0, 0.12),
+    0 0 52px color-mix(in srgb, #c3d3e6 26%, transparent);
+}
+
+.liquid-glass-card--glow-2xl {
+  --liquid-glass-card-glow:
+    0 4px 4px rgba(0, 0, 0, 0.22),
+    0 0 16px rgba(0, 0, 0, 0.14),
+    0 0 64px color-mix(in srgb, #c3d3e6 30%, transparent);
+}
+
+.liquid-glass-card--shadow-none {
+  --liquid-glass-card-shadow: inset 0 0 0 0 transparent;
+}
+
+.liquid-glass-card--shadow-xs {
+  --liquid-glass-card-shadow:
+    inset 1px 1px 1px 0 rgba(255, 255, 255, 0.22),
+    inset -1px -1px 1px 0 rgba(195, 211, 230, 0.08);
+}
+
+.liquid-glass-card--shadow-sm {
+  --liquid-glass-card-shadow:
+    inset 2px 2px 2px 0 rgba(255, 255, 255, 0.28),
+    inset -2px -2px 2px 0 rgba(195, 211, 230, 0.1);
+}
+
+.liquid-glass-card--shadow-md {
+  --liquid-glass-card-shadow:
+    inset 3px 3px 3px 0 rgba(255, 255, 255, 0.32),
+    inset -3px -3px 3px 0 rgba(195, 211, 230, 0.12);
+}
+
+.liquid-glass-card--shadow-lg {
+  --liquid-glass-card-shadow:
+    inset 4px 4px 4px 0 rgba(255, 255, 255, 0.36),
+    inset -4px -4px 4px 0 rgba(195, 211, 230, 0.14);
+}
+
+.liquid-glass-card--shadow-xl {
+  --liquid-glass-card-shadow:
+    inset 6px 6px 6px 0 rgba(255, 255, 255, 0.4),
+    inset -6px -6px 6px 0 rgba(195, 211, 230, 0.16);
+}
+
+.liquid-glass-card--shadow-2xl {
+  --liquid-glass-card-shadow:
+    inset 8px 8px 8px 0 rgba(255, 255, 255, 0.44),
+    inset -8px -8px 8px 0 rgba(195, 211, 230, 0.18);
+}
+
+/* Homepage search cluster inside liquid glass */
+.home-search-glass {
+  width: 100%;
+  overflow: visible;
+}
+
+.home-search-glass > .liquid-glass-card__content {
+  overflow: visible;
+}
+
+.home-search-glass .home-search-input-wrap {
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: none;
+}
+
+.home-search-glass .home-search-foot {
+  margin-top: 0.65rem;
+  border-color: color-mix(in srgb, #c3d3e6 16%, rgba(255, 255, 255, 0.08));
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 0.75rem;
 }
 
