@@ -67,6 +67,11 @@ html.theme-mac-dashboard .dash-sidebar-brand span {
   color: var(--mac-text);
 }
 
+html.theme-mac-dashboard .dash-sidebar-utility {
+  border-color: var(--mac-border);
+  background: rgba(0, 0, 0, 0.22);
+}
+
 html.theme-mac-dashboard .dash-sidebar-minimize {
   border-radius: 0.375rem;
   border-color: transparent;

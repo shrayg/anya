@@ -9,11 +9,14 @@ import {
   useState,
 } from "react";
 
-const STORAGE_KEY = "anya-sidebar-collapsed";
+const RAIL_STORAGE_KEY = "anya-sidebar-collapsed";
+const FOOTER_STORAGE_KEY = "anya-sidebar-footer-collapsed";
 
 type DashboardSidebarContextValue = {
   collapsed: boolean;
   toggleCollapsed: () => void;
+  footerCollapsed: boolean;
+  toggleFooterCollapsed: () => void;
 };
 
 const DashboardSidebarContext =
@@ -25,13 +28,16 @@ export function DashboardSidebarProvider({
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [footerCollapsed, setFooterCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
-      setCollapsed(localStorage.getItem(STORAGE_KEY) === "true");
+      setCollapsed(localStorage.getItem(RAIL_STORAGE_KEY) === "true");
+      setFooterCollapsed(localStorage.getItem(FOOTER_STORAGE_KEY) === "true");
     } catch {
       setCollapsed(false);
+      setFooterCollapsed(false);
     } finally {
       setReady(true);
     }
@@ -42,7 +48,21 @@ export function DashboardSidebarProvider({
       const next = !current;
 
       try {
-        localStorage.setItem(STORAGE_KEY, String(next));
+        localStorage.setItem(RAIL_STORAGE_KEY, String(next));
+      } catch {
+        // ignore storage failures
+      }
+
+      return next;
+    });
+  }, []);
+
+  const toggleFooterCollapsed = useCallback(() => {
+    setFooterCollapsed((current) => {
+      const next = !current;
+
+      try {
+        localStorage.setItem(FOOTER_STORAGE_KEY, String(next));
       } catch {
         // ignore storage failures
       }
@@ -55,8 +75,16 @@ export function DashboardSidebarProvider({
     () => ({
       collapsed: ready ? collapsed : false,
       toggleCollapsed,
+      footerCollapsed: ready ? footerCollapsed : false,
+      toggleFooterCollapsed,
     }),
-    [collapsed, ready, toggleCollapsed],
+    [
+      collapsed,
+      footerCollapsed,
+      ready,
+      toggleCollapsed,
+      toggleFooterCollapsed,
+    ],
   );
 
   return (

@@ -6,8 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   ChevronDown,
+  ChevronUp,
   ChevronsLeft,
-  ChevronsRight,
   CreditCard,
   IdCard,
   LifeBuoy,
@@ -334,7 +334,12 @@ export function DashboardSidebar({ username }: { username: string }) {
   const planLabel = getPlanDisplayLabel(profile);
   const balance = profile.balance ?? 0;
   const staffMeta = getStaffRoleMeta(profile.staffRole);
-  const { collapsed, toggleCollapsed } = useDashboardSidebar();
+  const {
+    collapsed,
+    toggleCollapsed,
+    footerCollapsed,
+    toggleFooterCollapsed,
+  } = useDashboardSidebar();
   const [moduleQuery, setModuleQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState<Record<string, boolean>>({});
   const [categoriesReady, setCategoriesReady] = useState(false);
@@ -614,44 +619,80 @@ export function DashboardSidebar({ username }: { username: string }) {
         </SidebarContent>
 
         <SidebarFooter>
-          <button
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Minimize sidebar"}
+          <div
             className={clsx(
-              "dash-sidebar-minimize",
-              collapsed && "dash-sidebar-minimize--icon-only",
+              "dash-sidebar-utility",
+              footerCollapsed && "dash-sidebar-utility--collapsed",
+              collapsed && "dash-sidebar-utility--rail",
             )}
-            title={collapsed ? "Expand sidebar" : "Minimize sidebar"}
-            type="button"
-            onClick={toggleCollapsed}
           >
-            {collapsed ? (
-              <ChevronsRight className="size-4 shrink-0" />
-            ) : (
-              <>
+            <button
+              aria-controls="dash-sidebar-footer-links"
+              aria-expanded={!footerCollapsed}
+              aria-label={
+                footerCollapsed
+                  ? "Show account and more links"
+                  : "Minimize account and more links"
+              }
+              className={clsx(
+                "dash-sidebar-minimize",
+                collapsed && "dash-sidebar-minimize--icon-only",
+              )}
+              title={
+                footerCollapsed
+                  ? "Show Account, Support, and more"
+                  : "Hide Account, Support, and more"
+              }
+              type="button"
+              onClick={toggleFooterCollapsed}
+            >
+              {footerCollapsed ? (
+                collapsed ? (
+                  <ChevronUp className="size-4 shrink-0" />
+                ) : (
+                  <>
+                    <ChevronUp className="size-4 shrink-0" />
+                    <span>Account & more</span>
+                  </>
+                )
+              ) : collapsed ? (
                 <ChevronsLeft className="size-4 shrink-0" />
-                <span>Minimize</span>
-              </>
-            )}
-          </button>
+              ) : (
+                <>
+                  <ChevronsLeft className="size-4 shrink-0" />
+                  <span>Minimize</span>
+                </>
+              )}
+            </button>
 
-          <SidebarMenu>
-            {footerItems.map((item) => (
-              <SidebarLink
-                key={item.name}
-                collapsed={collapsed}
-                dataTour={
-                  item.name === "Account"
-                    ? "footer-settings"
-                    : item.name === "Admin"
-                      ? "footer-admin"
-                      : undefined
-                }
-                item={item}
-                pathname={pathname}
-              />
-            ))}
-          </SidebarMenu>
+            <div
+              className={clsx(
+                "dash-sidebar-footer-nav",
+                footerCollapsed && "dash-sidebar-footer-nav--collapsed",
+              )}
+              id="dash-sidebar-footer-links"
+            >
+              <div className="dash-sidebar-footer-nav-inner">
+                <SidebarMenu>
+                  {footerItems.map((item) => (
+                    <SidebarLink
+                      key={item.name}
+                      collapsed={collapsed}
+                      dataTour={
+                        item.name === "Account"
+                          ? "footer-settings"
+                          : item.name === "Admin"
+                            ? "footer-admin"
+                            : undefined
+                      }
+                      item={item}
+                      pathname={pathname}
+                    />
+                  ))}
+                </SidebarMenu>
+              </div>
+            </div>
+          </div>
 
           {collapsed ? (
             <div className="dash-sidebar-user dash-sidebar-user--collapsed">
