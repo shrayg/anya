@@ -41,6 +41,163 @@ function isNavActive(href: string, pathname: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function AccountMenu({
+  username,
+  planLabel,
+  onLogout,
+  align = "right",
+  onNavigate,
+}: {
+  username: string;
+  planLabel: string | null;
+  onLogout: () => void;
+  align?: "left" | "right";
+  onNavigate?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const close = useCallback(() => {
+    setOpen(false);
+  }, []);
+
+  const openMenu = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setVisible(true);
+    requestAnimationFrame(() => setOpen(true));
+  }, []);
+
+  const toggle = useCallback(() => {
+    if (open) close();
+    else openMenu();
+  }, [close, open, openMenu]);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) close();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [close, visible]);
+
+  useEffect(() => {
+    if (open) {
+      setVisible(true);
+      return;
+    }
+    if (!visible) return;
+    closeTimerRef.current = setTimeout(() => {
+      setVisible(false);
+      closeTimerRef.current = null;
+    }, 150);
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, [open, visible]);
+
+  const itemClass =
+    "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-white/75 transition hover:bg-white/[0.08] hover:text-white";
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300 transition hover:border-white/22 hover:bg-white/[0.08] hover:text-white"
+        type="button"
+        onClick={toggle}
+      >
+        {planLabel ? (
+          <span className="rounded-md bg-[var(--anya-blush-soft)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-anya-accent">
+            {planLabel}
+          </span>
+        ) : null}
+        <span className="font-medium">{username}</span>
+        <svg
+          aria-hidden
+          className={clsx(
+            "size-3.5 shrink-0 text-white/45 transition-transform duration-200",
+            open && "rotate-180",
+          )}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+          />
+        </svg>
+      </button>
+
+      {visible ? (
+        <div
+          className={clsx(
+            "absolute top-[calc(100%+8px)] z-50 min-w-[11.5rem] overflow-hidden rounded-xl border border-white/[0.1] bg-black/80 p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-[opacity,transform] duration-150 ease-out",
+            align === "right" ? "right-0" : "left-0",
+            open
+              ? "translate-y-0 opacity-100"
+              : "pointer-events-none -translate-y-1 opacity-0",
+          )}
+          role="menu"
+        >
+          <NextLink
+            className={itemClass}
+            href="/dashboard/account"
+            role="menuitem"
+            onClick={() => {
+              close();
+              onNavigate?.();
+            }}
+          >
+            Account Settings
+          </NextLink>
+          <NextLink
+            className={itemClass}
+            href="/support"
+            role="menuitem"
+            onClick={() => {
+              close();
+              onNavigate?.();
+            }}
+          >
+            Support
+          </NextLink>
+          <div className="my-1 h-px bg-white/[0.08]" />
+          <button
+            className={clsx(itemClass, "text-red-300/90 hover:text-red-200")}
+            role="menuitem"
+            type="button"
+            onClick={() => {
+              close();
+              onLogout();
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function NavPillLink({
   item,
   active,
@@ -307,18 +464,11 @@ export const Navbar = () => {
           <NavbarItem className="flex shrink-0 items-center gap-2">
             {username ? (
               <>
-                <NextLink
-                  className="flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300 transition hover:border-white/22 hover:bg-white/[0.08] hover:text-white"
-                  href="/dashboard/settings"
-                  title="Account settings"
-                >
-                  {planLabel ? (
-                    <span className="rounded-md bg-[var(--anya-blush-soft)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-anya-accent">
-                      {planLabel}
-                    </span>
-                  ) : null}
-                  <span className="font-medium">{username}</span>
-                </NextLink>
+                <AccountMenu
+                  username={username}
+                  planLabel={planLabel}
+                  onLogout={handleLogout}
+                />
                 {showWorkspace ? (
                   <Button
                     as={NextLink}
@@ -330,14 +480,6 @@ export const Navbar = () => {
                     Dashboard
                   </Button>
                 ) : null}
-                <Button
-                  className="font-medium text-white/70"
-                  radius="full"
-                  variant="light"
-                  onPress={handleLogout}
-                >
-                  Log out
-                </Button>
               </>
             ) : (
               <>
@@ -364,7 +506,15 @@ export const Navbar = () => {
           </NavbarItem>
         </NavbarContent>
 
-        <NavbarContent className="basis-1 pl-2 md:hidden" justify="end">
+        <NavbarContent className="basis-1 gap-2 pl-2 md:hidden" justify="end">
+          {username ? (
+            <AccountMenu
+              username={username}
+              planLabel={planLabel}
+              onLogout={handleLogout}
+              onNavigate={() => setMenuOpen(false)}
+            />
+          ) : null}
           <NavbarMenuToggle className="text-white/80" />
         </NavbarContent>
 
@@ -404,25 +554,18 @@ export const Navbar = () => {
             })}
             <NavbarMenuItem className="mt-4 flex flex-col gap-2">
               {username ? (
-                <>
-                  <Button as={NextLink} href="/dashboard/settings" radius="full" variant="flat">
-                    {planLabel ? `${planLabel} · ${username}` : username}
+                showWorkspace ? (
+                  <Button
+                    as={NextLink}
+                    className="font-semibold bg-anya-accent text-black"
+                    href={workspacePath}
+                    radius="full"
+                    variant="solid"
+                    onPress={() => setMenuOpen(false)}
+                  >
+                    Dashboard
                   </Button>
-                  {showWorkspace ? (
-                    <Button
-                      as={NextLink}
-                      className="font-semibold bg-anya-accent text-black"
-                      href={workspacePath}
-                      radius="full"
-                      variant="solid"
-                    >
-                      Dashboard
-                    </Button>
-                  ) : null}
-                  <Button radius="full" variant="light" onPress={handleLogout}>
-                    Log out
-                  </Button>
-                </>
+                ) : null
               ) : (
                 <>
                   <Button as={NextLink} href="/auth?action=login" radius="full" variant="light">
