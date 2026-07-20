@@ -29,6 +29,7 @@ import {
   getHubSections,
   type SearchModuleDef,
 } from "@/lib/search-modules";
+import { isCryptoIntelEnabled } from "@/lib/crypto-intel/enabled";
 import { checkModuleAccess, resolveUserPlan } from "@/lib/plans";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import {
@@ -259,11 +260,14 @@ export function DashboardSidebar({ username }: { username: string }) {
 
   const query = moduleQuery.toLowerCase();
 
-  const filteredAiItems = AI_SEARCH_MODULES.filter(
-    (item) =>
+  const filteredAiItems = AI_SEARCH_MODULES.filter((item) => {
+    if (isCryptoIntelEnabled() && item.slug === "crypto-ai") return false;
+
+    return (
       item.name.toLowerCase().includes(query) ||
-      item.hint.toLowerCase().includes(query),
-  );
+      item.hint.toLowerCase().includes(query)
+    );
+  });
 
   const hubSections = getHubSections().filter(
     (section) => section.title !== "AI Intelligence",
@@ -286,7 +290,12 @@ export function DashboardSidebar({ username }: { username: string }) {
         ...item,
         badge: AI_BADGES[item.name],
       })),
-      ...filteredSections.flatMap((section) => section.items),
+      ...filteredSections.flatMap((section) =>
+        section.items.map((item) => ({
+          ...item,
+          badge: AI_BADGES[item.name],
+        })),
+      ),
     ],
     [filteredAiItems, filteredSections],
   );
@@ -424,6 +433,7 @@ export function DashboardSidebar({ username }: { username: string }) {
                   {section.items.map((item) => (
                     <ModuleLink
                       key={item.slug}
+                      badge={AI_BADGES[item.name]}
                       hint={item.hint}
                       locked={isModuleLocked(item.slug)}
                       name={item.name}

@@ -100,6 +100,7 @@ export function hubSectionLayoutClass(title: string): string {
   switch (title) {
     case "AI Intelligence":
     case "Financial & Assets":
+    case "Crypto Intel":
     case "Stealer Intel":
     case "Breach & Leaks":
     case "Identity":

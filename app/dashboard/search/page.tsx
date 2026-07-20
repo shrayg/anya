@@ -20,7 +20,7 @@ export default function SearchHubPage() {
           section.title === "AI Intelligence"
             ? "Cross-source synthesis for investigator briefs."
             : section.title === "Crypto Intel"
-              ? "Wallet / tx intelligence — removable via CRYPTO_INTEL_ENABLED=0."
+              ? "Wallet lookup, AI analyse, labels, risk, and fund-flow — removable via CRYPTO_INTEL_ENABLED=0."
               : undefined,
         featured:
           section.title === "AI Intelligence" ||

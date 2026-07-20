@@ -44,9 +44,9 @@ const LANE_DESCRIPTION: Record<string, string> = {
     "US federal, state, sanctions, wanted, court, sex-offender, and international government registry sources.",
   Network: "IP enrichment and network-context lookups.",
   "Financial & Assets":
-    "Wallets, BINs, IBANs, bank metadata, vehicle VIN decoding, and US insurance directories.",
+    "BINs, IBANs, bank metadata, vehicle VIN decoding, and US insurance directories.",
   "Crypto Intel":
-    "Removable wallet/tx intelligence — address labels, risk checks, fund-flow hops. Authorized OSINT / compliance research on public chain data.",
+    "Wallet lookup, AI analyse, address labels, risk checks, and fund-flow hops. Authorized OSINT / compliance research on public chain data.",
   Platforms:
     "Live profile and breach-index lookups for gaming and social platforms.",
   "Dating Apps":

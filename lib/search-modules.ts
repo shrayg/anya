@@ -4,6 +4,9 @@ import {
   isCryptoIntelSlug,
 } from "@/lib/crypto-intel/enabled";
 
+const CRYPTO_WALLET_FALLBACK_SECTION = "Financial & Assets";
+const CRYPTO_AI_FALLBACK_SECTION = "AI Intelligence";
+
 export type ModuleTool = {
   id: string;
   label: string;
@@ -522,14 +525,6 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
     items: [
       mod(
         "Financial & Assets",
-        "Crypto Wallet",
-        "crypto-wallet",
-        "crypto-wallet",
-        "Bitcoin (1/3/bc1), Litecoin (L/M/ltc1), Ethereum (0x…), or Solana address — wallet only",
-        "Detects chain from address format. Live balance, tokens, and recent txs.",
-      ),
-      mod(
-        "Financial & Assets",
         "BIN Lookup",
         "bin-lookup",
         "bin",
@@ -581,6 +576,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
   {
     title: "Crypto Intel",
     items: [
+      mod(
+        "Crypto Intel",
+        "Crypto Wallet",
+        "crypto-wallet",
+        "crypto-wallet",
+        "Bitcoin (1/3/bc1), Litecoin (L/M/ltc1), Ethereum (0x…), or Solana address — wallet only",
+        "Detects chain from address format. Live balance, tokens, and recent txs.",
+      ),
       mod(
         "Crypto Intel",
         "Address Intel",
@@ -927,12 +930,7 @@ export function getSearchModuleBySlug(
 
   const moduleDef = MODULE_BY_SLUG.get(slug.toLowerCase());
 
-  if (
-    moduleDef &&
-    (moduleDef.section === CRYPTO_INTEL_SECTION_TITLE ||
-      isCryptoIntelSlug(moduleDef.slug)) &&
-    !isCryptoIntelEnabled()
-  ) {
+  if (moduleDef && isCryptoIntelSlug(moduleDef.slug) && !isCryptoIntelEnabled()) {
     return undefined;
   }
 
@@ -1066,15 +1064,71 @@ export function resolveSearchApiType(
 }
 
 export function getHubSections(): SearchModuleSection[] {
+  const cryptoEnabled = isCryptoIntelEnabled();
+  const cryptoSection = SEARCH_MODULE_SECTIONS.find(
+    (section) => section.title === CRYPTO_INTEL_SECTION_TITLE,
+  );
+  const cryptoWallet = cryptoSection?.items.find(
+    (item) => item.slug === "crypto-wallet",
+  );
+  const cryptoSuiteItems =
+    cryptoSection?.items.filter((item) => item.slug !== "crypto-wallet") ?? [];
+  const cryptoAi = AI_SEARCH_MODULES.find((item) => item.slug === "crypto-ai");
+
+  const withSection = (
+    item: SearchModuleDef,
+    section: string,
+  ): SearchModuleDef =>
+    item.section === section ? item : { ...item, section };
+
+  const aiItems = cryptoEnabled
+    ? AI_SEARCH_MODULES.filter((item) => item.slug !== "crypto-ai").map(
+        (item) => withSection(item, CRYPTO_AI_FALLBACK_SECTION),
+      )
+    : AI_SEARCH_MODULES.map((item) =>
+        withSection(item, CRYPTO_AI_FALLBACK_SECTION),
+      );
+
   const sections: SearchModuleSection[] = [
-    { title: "AI Intelligence", items: AI_SEARCH_MODULES },
-    ...SEARCH_MODULE_SECTIONS,
+    { title: "AI Intelligence", items: aiItems },
   ];
 
-  if (!isCryptoIntelEnabled()) {
-    return sections.filter(
-      (section) => section.title !== CRYPTO_INTEL_SECTION_TITLE,
-    );
+  for (const section of SEARCH_MODULE_SECTIONS) {
+    if (section.title === CRYPTO_INTEL_SECTION_TITLE) {
+      if (!cryptoEnabled) continue;
+
+      const items: SearchModuleDef[] = [];
+
+      if (cryptoWallet) {
+        items.push(withSection(cryptoWallet, CRYPTO_INTEL_SECTION_TITLE));
+      }
+      if (cryptoAi) {
+        items.push(withSection(cryptoAi, CRYPTO_INTEL_SECTION_TITLE));
+      }
+      for (const item of cryptoSuiteItems) {
+        items.push(withSection(item, CRYPTO_INTEL_SECTION_TITLE));
+      }
+
+      sections.push({ title: CRYPTO_INTEL_SECTION_TITLE, items });
+      continue;
+    }
+
+    if (section.title === CRYPTO_WALLET_FALLBACK_SECTION) {
+      if (!cryptoEnabled && cryptoWallet) {
+        sections.push({
+          title: section.title,
+          items: [
+            withSection(cryptoWallet, CRYPTO_WALLET_FALLBACK_SECTION),
+            ...section.items,
+          ],
+        });
+      } else {
+        sections.push(section);
+      }
+      continue;
+    }
+
+    sections.push(section);
   }
 
   return sections;
