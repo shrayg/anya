@@ -204,7 +204,7 @@ export function PricingPageContent({
             className={clsx(
               "flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition",
               tab === id
-                ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
+                ? "bg-[var(--anya-blush)]/85 text-white shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
             )}
             type="button"
@@ -217,12 +217,12 @@ export function PricingPageContent({
       </div>
 
       {(tab === "subscriptions" || tab === "api") && (
-        <div className="pricing-interval-strip mx-auto mt-4 border border-white/10 bg-white/[0.04] backdrop-blur-xl">
+        <div className="pricing-interval-strip mx-auto mt-4 flex w-fit rounded-2xl border border-white/10 bg-white/[0.04] p-1 backdrop-blur-xl">
           <button
             className={clsx(
-              "pricing-interval-option text-sm font-medium transition",
+              "pricing-interval-option rounded-xl px-5 py-2 text-sm font-medium transition",
               interval === "monthly"
-                ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
+                ? "bg-[var(--anya-blush)]/85 text-white shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
             )}
             type="button"
@@ -232,21 +232,16 @@ export function PricingPageContent({
           </button>
           <button
             className={clsx(
-              "pricing-interval-option text-sm font-medium transition",
+              "pricing-interval-option rounded-xl px-5 py-2 text-sm font-medium transition",
               interval === "annual"
-                ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
+                ? "bg-[var(--anya-blush)]/85 text-white shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
             )}
             type="button"
             onClick={() => setInterval("annual")}
           >
             Annual
-            <span
-              className={clsx(
-                "pricing-interval-saving text-xs font-semibold",
-                interval === "annual" ? "text-black" : "text-pink-300",
-              )}
-            >
+            <span className="pricing-interval-saving ml-2 text-xs font-semibold text-emerald-400">
               2 months free
             </span>
           </button>
@@ -300,11 +295,11 @@ export function PricingPageContent({
                     key={plan.id}
                     className={clsx(
                       "pricing-plan-shell relative h-full",
-                      plan.highlighted && "is-highlighted",
+                      plan.highlighted && "is-highlighted pt-3",
                     )}
                   >
                     {plan.highlighted ? (
-                      <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap border border-pink-300/50 bg-pink-600 px-3 py-1 text-[10px] font-semibold tracking-wide text-white shadow-lg shadow-pink-500/30">
+                      <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-[var(--anya-blush)]/45 bg-[var(--anya-blush)]/30 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-md shadow-[color-mix(in_srgb,var(--anya-blush)_20%,transparent)] backdrop-blur-md">
                         Most Popular
                       </span>
                     ) : null}
@@ -313,7 +308,7 @@ export function PricingPageContent({
                       className={clsx(
                         "pricing-option-card relative flex h-full flex-col rounded-2xl border bg-white/[0.04] p-5 backdrop-blur-md transition hover:bg-white/[0.07]",
                         plan.highlighted
-                          ? "border-pink-400/40 shadow-lg shadow-pink-500/20 ring-1 ring-pink-400/30"
+                          ? "border-[var(--anya-blush)]/40 shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_18%,transparent)] ring-1 ring-[var(--anya-blush)]/25"
                           : "border-white/10",
                       )}
                     >
@@ -370,7 +365,7 @@ export function PricingPageContent({
                       <ul className="mt-5 flex-1 space-y-2">
                         {plan.features.map((feature) => (
                           <li key={feature} className="flex items-start gap-2">
-                            <CheckCircle className="mt-0.5 size-3.5 shrink-0 text-pink-300" />
+                            <CheckCircle className="mt-0.5 size-3.5 shrink-0 text-[var(--anya-blush)]" />
                             <span className="text-xs leading-4 text-zinc-300">
                               {feature}
                             </span>
@@ -382,7 +377,7 @@ export function PricingPageContent({
                         className={clsx(
                           "mt-5 h-10 w-full border text-sm font-semibold",
                           plan.highlighted
-                            ? "border-pink-300/40 bg-pink-500 text-white"
+                            ? "border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-white"
                             : "border-white/15 bg-white/10 text-white",
                         )}
                         isDisabled={busyId === plan.id}
@@ -427,9 +422,9 @@ export function PricingPageContent({
                     <article
                       key={pack.id}
                       className={clsx(
-                        "pricing-credit-card flex h-full flex-col border bg-white/[0.04] p-5 backdrop-blur-md",
+                        "pricing-credit-card flex h-full flex-col rounded-2xl border bg-white/[0.04] p-5 backdrop-blur-md",
                         pack.highlighted
-                          ? "border-pink-400/40 shadow-lg shadow-pink-500/20"
+                          ? "border-[var(--anya-blush)]/40 shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_18%,transparent)]"
                           : "border-white/10",
                       )}
                     >
@@ -489,10 +484,10 @@ export function PricingPageContent({
                 const price = getApiPrice(interval);
 
                 return (
-                  <article className="pricing-api-card mx-auto max-w-2xl border border-pink-400/30 bg-gradient-to-br from-pink-500/10 via-white/[0.04] to-transparent p-8 backdrop-blur-md">
+                  <article className="pricing-api-card mx-auto max-w-2xl rounded-2xl border border-[var(--anya-blush)]/30 bg-gradient-to-br from-[color-mix(in_srgb,var(--anya-blush)_12%,transparent)] via-white/[0.04] to-transparent p-8 backdrop-blur-md">
                     <div className="flex items-center gap-3">
-                      <div className="rounded-xl border border-pink-400/30 bg-pink-500/20 p-3">
-                        <Code2 className="size-6 text-pink-200" />
+                      <div className="rounded-xl border border-[var(--anya-blush)]/30 bg-[var(--anya-blush)]/20 p-3">
+                        <Code2 className="size-6 text-[color-mix(in_srgb,var(--anya-blush)_70%,white)]" />
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold text-white">
@@ -525,7 +520,7 @@ export function PricingPageContent({
                     <ul className="mt-6 space-y-2">
                       {API_PRODUCT.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2">
-                          <CheckCircle className="mt-0.5 size-4 shrink-0 text-pink-300" />
+                          <CheckCircle className="mt-0.5 size-4 shrink-0 text-[var(--anya-blush)]" />
                           <span className="text-sm text-zinc-300">
                             {feature}
                           </span>
@@ -534,7 +529,7 @@ export function PricingPageContent({
                     </ul>
 
                     <Button
-                      className="mt-8 h-11 w-full border border-pink-300/40 bg-pink-500 text-sm font-semibold text-white"
+                      className="mt-8 h-11 w-full border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-white"
                       isDisabled={busyId === "api_access"}
                       isLoading={busyId === "api_access"}
                       onPress={() =>
@@ -562,7 +557,10 @@ export function PricingPageContent({
         Annual plans are billed as {ANNUAL_MONTHS_CHARGED} months upfront (2
         months free). Pay with card (Square) or crypto (OxaPay). Need help
         choosing?{" "}
-        <NextLink className="text-pink-300 hover:underline" href="/support">
+        <NextLink
+          className="text-[var(--anya-blush)] hover:underline"
+          href="/support"
+        >
           Contact support
         </NextLink>
         .
@@ -588,7 +586,7 @@ export function PricingPageContent({
             </p>
             <div className="mt-5 grid gap-3">
               <Button
-                className="h-11 w-full border border-pink-300/40 bg-pink-500 text-sm font-semibold text-white"
+                className="h-11 w-full border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-white"
                 isDisabled={busyId === pendingCheckout.id}
                 isLoading={busyId === pendingCheckout.id}
                 onPress={() =>

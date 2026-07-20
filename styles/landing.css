@@ -2229,8 +2229,9 @@
   text-transform: uppercase;
 }
 
-.pricing-control-strip,
-.pricing-interval-strip {
+/* Brutal pricing chrome — keep scoped so classic /pricing stays soft. */
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-control-strip,
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-interval-strip {
   padding: 0 !important;
   overflow: hidden;
   border-color: var(--anya-line) !important;
@@ -2239,13 +2240,13 @@
   backdrop-filter: none !important;
 }
 
-.pricing-interval-strip {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-interval-strip {
   display: grid !important;
   width: min(100%, 22rem) !important;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.pricing-interval-option {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-interval-option {
   display: flex;
   width: 100%;
   height: 2.8rem;
@@ -2255,14 +2256,18 @@
   gap: 0.55rem;
 }
 
-.pricing-interval-saving {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-interval-saving {
   margin: 0;
   font-size: 0.54rem !important;
   white-space: nowrap;
 }
 
-.pricing-control-strip > button,
-.pricing-interval-strip > button {
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-control-strip
+  > button,
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-interval-strip
+  > button {
   border-right: 1px solid var(--anya-line);
   box-shadow: none !important;
   font-family: var(--font-anya-mono), monospace;
@@ -2271,12 +2276,16 @@
   text-transform: uppercase;
 }
 
-.pricing-control-strip > button:last-child,
-.pricing-interval-strip > button:last-child {
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-control-strip
+  > button:last-child,
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-interval-strip
+  > button:last-child {
   border-right: 0;
 }
 
-.pricing-option-grid {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-grid {
   gap: 1px !important;
   padding: 1.35rem 1px 1px !important;
   overflow: visible;
@@ -2287,18 +2296,18 @@
   );
 }
 
-.pricing-option-grid > div {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-grid > div {
   padding-top: 0 !important;
   overflow: visible;
   background: var(--anya-black);
 }
 
-.pricing-popular-badge {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-popular-badge {
   top: 0 !important;
   border-radius: 0 !important;
 }
 
-.pricing-option-card {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card {
   border: 0 !important;
   border-top: 1px solid var(--anya-line) !important;
   background: #0a0a0b !important;
@@ -2306,28 +2315,30 @@
   backdrop-filter: none !important;
 }
 
-.pricing-plan-shell.is-highlighted .pricing-option-card {
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-plan-shell.is-highlighted
+  .pricing-option-card {
   border-top-color: rgba(255, 63, 157, 0.6) !important;
 }
 
-.pricing-option-card:hover {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card:hover {
   background: #101012 !important;
 }
 
-.pricing-credit-intro {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-intro {
   color: #8c878c !important;
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.64rem !important;
   letter-spacing: 0.02em;
 }
 
-.pricing-credit-grid {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-grid {
   gap: 1px !important;
   padding: 1px;
   background: var(--anya-line);
 }
 
-.pricing-credit-card {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-card {
   position: relative;
   min-height: 21rem;
   border: 0 !important;
@@ -2336,7 +2347,7 @@
   box-shadow: none !important;
 }
 
-.pricing-credit-card::before {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-card::before {
   position: absolute;
   top: 0;
   left: 0;
@@ -2346,30 +2357,34 @@
   content: "";
 }
 
-.pricing-credit-card:hover::before,
-.pricing-credit-card:has(.ui-btn:hover)::before {
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-credit-card:hover::before,
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-credit-card:has(.ui-btn:hover)::before {
   background: var(--anya-pink);
 }
 
-.pricing-credit-head > span,
-.pricing-credit-value > i,
-.pricing-credit-ledger > span {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-head > span,
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-value > i,
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-credit-ledger
+  > span {
   font-family: var(--font-anya-mono), monospace;
   font-style: normal;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.pricing-credit-head > span {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-head > span {
   color: var(--anya-pink);
   font-size: 0.5rem;
 }
 
-.pricing-credit-head h3 {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-head h3 {
   margin-top: 0.7rem;
 }
 
-.pricing-credit-value {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-value {
   display: flex;
   padding: 1rem 0;
   border-top: 1px solid var(--anya-line);
@@ -2378,18 +2393,20 @@
   justify-content: space-between;
 }
 
-.pricing-credit-value > i {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-value > i {
   padding-bottom: 0.3rem;
   color: #777277;
   font-size: 0.48rem;
 }
 
-.pricing-credit-ledger {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-ledger {
   display: grid;
   margin-bottom: 1.2rem;
 }
 
-.pricing-credit-ledger > span {
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-credit-ledger
+  > span {
   display: flex;
   padding: 0.65rem 0;
   border-bottom: 1px solid var(--anya-line);
@@ -2398,12 +2415,14 @@
   font-size: 0.48rem;
 }
 
-.pricing-credit-ledger strong {
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-credit-ledger
+  strong {
   color: var(--anya-white);
   font-weight: 500;
 }
 
-.pricing-api-card {
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-api-card {
   border-radius: 0 !important;
   box-shadow: 12px 12px 0 rgba(255, 63, 157, 0.055);
 }
@@ -2424,7 +2443,7 @@
   }
 }
 
-.pricing-option-card .ui-btn,
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .ui-btn,
 .brutal-pricing-page .ui-btn {
   box-shadow: none !important;
   font-family: var(--font-anya-mono), monospace;
