@@ -311,7 +311,7 @@ export function HomeSearch() {
         ) : (
           <>
             <span>Search</span>
-            <ArrowRight className="size-4" />
+            <ArrowRight className="size-5" />
           </>
         )}
       </button>
@@ -332,7 +332,7 @@ export function HomeSearch() {
               className="home-search-locked-trigger"
               type="button"
             >
-              <LockKeyhole className="size-3.5" />
+              <LockKeyhole className="size-4" />
               <strong>{LOCKED_MODULE_COUNT}</strong>
               <span>Premium locked</span>
             </button>
@@ -375,7 +375,7 @@ export function HomeSearch() {
                     setError("");
                   }}
                 >
-                  <Icon className="size-3.5" />
+                  <Icon className="size-4" />
                   {mode.label}
                 </button>
               );

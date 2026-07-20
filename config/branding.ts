@@ -23,7 +23,7 @@ export const siteLogoClassName = TEST_LIME_ICON_THEME
 
 /** Hero wordmark classes — splash + home must share these exactly. */
 export const brandTitleClassName =
-  "z-20 text-5xl font-extrabold tracking-normal transition-all ease-in-out md:text-8xl";
+  "z-20 text-6xl font-extrabold tracking-normal transition-all ease-in-out md:text-9xl";
 
 export const themeAccent = TEST_LIME_ICON_THEME
   ? {
