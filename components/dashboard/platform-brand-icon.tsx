@@ -1,10 +1,8 @@
 import type { IconType } from "react-icons";
 
 import Image from "next/image";
-import { BsFillTelephoneFill } from "react-icons/bs";
 import {
   SiBadoo,
-  SiBitcoin,
   SiCloudflare,
   SiDatadog,
   SiDiscord,
@@ -29,15 +27,26 @@ import {
   TbAddressBook,
   TbArrowsExchange2,
   TbBrandBumble,
+  TbBrandDiscord,
+  TbBrandGithub,
   TbBrandGrindr,
+  TbBrandInstagram,
   TbBrandMinecraft,
+  TbBrandReddit,
+  TbBrandSnapchat,
+  TbBrandSteam,
+  TbBrandTelegram,
+  TbBrandTiktok,
+  TbBrandX,
   TbBrandXbox,
   TbBug,
   TbBuildingBank,
   TbCar,
   TbChartPie,
   TbClipboardList,
+  TbCloud,
   TbCreditCard,
+  TbCurrencyBitcoin,
   TbDatabase,
   TbDatabaseExclamation,
   TbDatabaseSearch,
@@ -52,10 +61,12 @@ import {
   TbHeartRateMonitor,
   TbIdBadge,
   TbLockPassword,
+  TbMail,
   TbMailSearch,
   TbMap2,
   TbMapPin,
   TbNetwork,
+  TbPhone,
   TbRadar2,
   TbShare2,
   TbShieldCheck,
@@ -72,13 +83,15 @@ import {
 
 type BrandIconConfig = {
   Icon?: IconType;
+  /** Outline Tabler (or similar) mark preferred in muted/sidebar contexts. */
+  OutlineIcon?: IconType;
   imageSrc?: string;
   color?: string;
 };
 
 const MODULE_BRANDS: Record<string, BrandIconConfig> = {
-  Phone: { Icon: BsFillTelephoneFill, color: "#34D399" },
-  Email: { Icon: SiGmail, color: "#EA4335" },
+  Phone: { Icon: TbPhone, color: "#34D399" },
+  Email: { Icon: SiGmail, OutlineIcon: TbMail, color: "#EA4335" },
   Username: { Icon: TbUserStar, color: "#C084FC" },
   "Name Search": { Icon: TbUserSearch, color: "#38BDF8" },
   "Fraud Footprint": { Icon: TbFingerprint, color: "#FBBF24" },
@@ -90,13 +103,17 @@ const MODULE_BRANDS: Record<string, BrandIconConfig> = {
   "Password Search": { Icon: TbLockPassword, color: "#F87171" },
   "Email Analyzer": { Icon: TbMailSearch, color: "#F472B6" },
   "Breach Index": { Icon: TbDatabaseExclamation, color: "#FB7185" },
-  "Email Leak Check": { Icon: SiGmail, color: "#EA4335" },
+  "Email Leak Check": { Icon: SiGmail, OutlineIcon: TbMail, color: "#EA4335" },
   IP: { Icon: TbWorldWww, color: "#22D3EE" },
-  Domain: { Icon: SiCloudflare, color: "#F38020" },
-  Domains: { Icon: SiCloudflare, color: "#F38020" },
+  Domain: { Icon: SiCloudflare, OutlineIcon: TbCloud, color: "#F38020" },
+  Domains: { Icon: SiCloudflare, OutlineIcon: TbCloud, color: "#F38020" },
   "Host Lookup": { Icon: TbRadar2, color: "#C084FC" },
   "Site Pentest": { Icon: TbBug, color: "#F43F5E" },
-  "Crypto Wallet": { Icon: SiBitcoin, color: "#F7931A" },
+  "Crypto Wallet": {
+    Icon: TbCurrencyBitcoin,
+    OutlineIcon: TbCurrencyBitcoin,
+    color: "#F7931A",
+  },
   "Address Intel": { Icon: TbWallet, color: "#38BDF8" },
   "Tx Deep Dive": { Icon: TbFileSearch, color: "#22D3EE" },
   "Risk Check": { Icon: TbShieldExclamation, color: "#F87171" },
@@ -111,22 +128,42 @@ const MODULE_BRANDS: Record<string, BrandIconConfig> = {
   "VIN Decoder US": { Icon: TbCar, color: "#EF4444" },
   "Car Insurance US": { Icon: TbShieldCheck, color: "#F59E0B" },
   "Health Care US": { Icon: TbHeartRateMonitor, color: "#EC4899" },
-  "Discord ID": { Icon: SiDiscord, color: "#5865F2" },
+  "Discord ID": {
+    Icon: SiDiscord,
+    OutlineIcon: TbBrandDiscord,
+    color: "#5865F2",
+  },
   Roblox: { Icon: SiRoblox, color: "#00A2FF" },
   "Discord → Roblox": { Icon: TbArrowsExchange2, color: "#5865F2" },
   Minecraft: { Icon: TbBrandMinecraft, color: "#62B47A" },
-  Steam: { Icon: SiSteam, color: "#66C0F4" },
+  Steam: { Icon: SiSteam, OutlineIcon: TbBrandSteam, color: "#66C0F4" },
   Xbox: { Icon: TbBrandXbox, color: "#107C10" },
   PlayStation: { Icon: SiPlaystation, color: "#0070D1" },
-  Telegram: { Icon: SiTelegram, color: "#26A5E4" },
-  Instagram: { Icon: SiInstagram, color: "#E4405F" },
-  Snapchat: { Icon: SiSnapchat, color: "#FFFC00" },
-  TikTok: { Icon: SiTiktok, color: "#FE2C55" },
-  "TikTok Recon": { Icon: SiTiktok, color: "#FE2C55" },
+  Telegram: {
+    Icon: SiTelegram,
+    OutlineIcon: TbBrandTelegram,
+    color: "#26A5E4",
+  },
+  Instagram: {
+    Icon: SiInstagram,
+    OutlineIcon: TbBrandInstagram,
+    color: "#E4405F",
+  },
+  Snapchat: {
+    Icon: SiSnapchat,
+    OutlineIcon: TbBrandSnapchat,
+    color: "#FFFC00",
+  },
+  TikTok: { Icon: SiTiktok, OutlineIcon: TbBrandTiktok, color: "#FE2C55" },
+  "TikTok Recon": {
+    Icon: SiTiktok,
+    OutlineIcon: TbBrandTiktok,
+    color: "#FE2C55",
+  },
   "Share Resolver": { Icon: TbShare2, color: "#E4405F" },
-  Twitter: { Icon: SiX, color: "#FFFFFF" },
-  Reddit: { Icon: SiReddit, color: "#FF4500" },
-  GitHub: { Icon: SiGithub, color: "#FFFFFF" },
+  Twitter: { Icon: SiX, OutlineIcon: TbBrandX, color: "#FFFFFF" },
+  Reddit: { Icon: SiReddit, OutlineIcon: TbBrandReddit, color: "#FF4500" },
+  GitHub: { Icon: SiGithub, OutlineIcon: TbBrandGithub, color: "#FFFFFF" },
   FiveM: { Icon: SiFivem, color: "#F40552" },
   Tinder: { Icon: SiTinder, color: "#FE3C72" },
   Bumble: { Icon: TbBrandBumble, color: "#FFC629" },
@@ -138,7 +175,11 @@ const MODULE_BRANDS: Record<string, BrandIconConfig> = {
   Badoo: { Icon: SiBadoo, color: "#783BF9" },
   "AI Search": { Icon: SiGooglegemini, color: "#8E75B2" },
   "AI Deep Scan": { Icon: SiDatadog, color: "#632CA6" },
-  "Crypto AI Analyse": { Icon: SiBitcoin, color: "#F7931A" },
+  "Crypto AI Analyse": {
+    Icon: TbCurrencyBitcoin,
+    OutlineIcon: TbCurrencyBitcoin,
+    color: "#F7931A",
+  },
   "Threat Brief": { Icon: SiSnyk, color: "#4C427A" },
   "Global Public Records": { Icon: TbGlobe, color: "#38BDF8" },
   "Court Records": { Icon: TbGavel, color: "#D4A574" },
@@ -164,11 +205,18 @@ export function hasModuleBrandIcon(name: string) {
 export function PlatformBrandIcon({
   name,
   className = "size-4 shrink-0",
+  muted = false,
+  variant,
 }: {
   name: string;
   className?: string;
+  /** Grey outline mode — skips brand fill colors (sidebar / catalog). */
+  muted?: boolean;
+  /** Alias for muted when `variant="sidebar"`. */
+  variant?: "default" | "sidebar";
 }) {
   const brand = MODULE_BRANDS[name];
+  const isMuted = muted || variant === "sidebar";
 
   if (!brand) return null;
 
@@ -180,14 +228,23 @@ export function PlatformBrandIcon({
         className={className}
         height={16}
         src={brand.imageSrc}
+        style={isMuted ? { filter: "grayscale(1) opacity(0.75)" } : undefined}
         width={16}
       />
     );
   }
 
-  if (!brand.Icon) return null;
+  const Icon = isMuted
+    ? (brand.OutlineIcon ?? brand.Icon)
+    : brand.Icon;
 
-  const { Icon, color } = brand;
+  if (!Icon) return null;
+
+  if (isMuted) {
+    return <Icon aria-hidden className={className} />;
+  }
+
+  const { color } = brand;
 
   return <Icon aria-hidden className={className} style={{ color }} />;
 }

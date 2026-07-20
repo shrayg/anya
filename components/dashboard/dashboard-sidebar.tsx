@@ -137,7 +137,11 @@ function SidebarLink({
 function ModuleIcon({ name }: { name: string }) {
   if (hasPlatformBrandIcon(name)) {
     return (
-      <PlatformBrandIcon className="size-[1.15rem] shrink-0" name={name} />
+      <PlatformBrandIcon
+        muted
+        className="size-[1.15rem] shrink-0 text-zinc-400"
+        name={name}
+      />
     );
   }
 

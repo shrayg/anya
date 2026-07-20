@@ -27,7 +27,13 @@ export type ModuleCatalogSection = {
 
 function ModuleIcon({ name }: { name: string }) {
   if (hasPlatformBrandIcon(name)) {
-    return <PlatformBrandIcon className="size-5 shrink-0" name={name} />;
+    return (
+      <PlatformBrandIcon
+        muted
+        className="size-5 shrink-0 text-zinc-400"
+        name={name}
+      />
+    );
   }
 
   return <Search aria-hidden className="size-5 shrink-0 text-zinc-500" />;
