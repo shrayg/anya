@@ -55,7 +55,6 @@ html.theme-mac-dashboard .dash-sidebar-brand span {
   color: var(--mac-text);
 }
 
-html.theme-mac-dashboard .dash-sidebar-toggle,
 html.theme-mac-dashboard .dash-sidebar-minimize {
   border-radius: 9999px;
   border-color: var(--mac-border);
@@ -63,7 +62,6 @@ html.theme-mac-dashboard .dash-sidebar-minimize {
   color: var(--mac-muted);
 }
 
-html.theme-mac-dashboard .dash-sidebar-toggle:hover,
 html.theme-mac-dashboard .dash-sidebar-minimize:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--mac-text);

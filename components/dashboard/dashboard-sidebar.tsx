@@ -5,15 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
-  ChevronsLeft,
-  ChevronsRight,
+  ChevronDown,
+  ChevronUp,
   CreditCard,
   IdCard,
   LifeBuoy,
   Lock,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
   Search,
   Shield,
   UserRound,
@@ -26,11 +24,7 @@ import {
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
 } from "@/lib/search-autofill-shield";
-import {
-  AI_SEARCH_MODULES,
-  getHubSections,
-  type SearchModuleDef,
-} from "@/lib/search-modules";
+import { AI_SEARCH_MODULES, getHubSections } from "@/lib/search-modules";
 import { isCryptoIntelEnabled } from "@/lib/crypto-intel/enabled";
 import { checkModuleAccess, resolveUserPlan } from "@/lib/plans";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
@@ -111,12 +105,10 @@ function isModuleActive(pathname: string, slug: string) {
 function SidebarLink({
   item,
   pathname,
-  collapsed,
   dataTour,
 }: {
   item: NavItem;
   pathname: string;
-  collapsed?: boolean;
   dataTour?: string;
 }) {
   const isActive = isNavActive(item, pathname);
@@ -124,29 +116,19 @@ function SidebarLink({
   return (
     <Link
       prefetch
-      className={clsx(
-        "dash-nav-link",
-        collapsed && "dash-nav-link--icon-only",
-        isActive && "dash-nav-link-active",
-      )}
+      className={clsx("dash-nav-link", isActive && "dash-nav-link-active")}
       data-tour={dataTour}
       href={item.href}
       title={item.name}
     >
-      {collapsed ? (
-        <item.icon className="size-[1.15rem] shrink-0" />
-      ) : (
-        <>
-          <div className="flex items-center gap-3">
-            <item.icon className="size-4 shrink-0" />
-            <span>{item.name}</span>
-          </div>
-          {item.badge && (
-            <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-300">
-              {item.badge}
-            </span>
-          )}
-        </>
+      <div className="flex items-center gap-3">
+        <item.icon className="size-4 shrink-0" />
+        <span>{item.name}</span>
+      </div>
+      {item.badge && (
+        <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-300">
+          {item.badge}
+        </span>
       )}
     </Link>
   );
@@ -169,7 +151,6 @@ function ModuleLink({
   pathname,
   badge,
   locked,
-  collapsed,
 }: {
   name: string;
   slug: string;
@@ -177,7 +158,6 @@ function ModuleLink({
   pathname: string;
   badge?: string;
   locked?: boolean;
-  collapsed?: boolean;
 }) {
   const isActive = isModuleActive(pathname, slug);
   const title = locked ? `${name} — upgrade to unlock` : `${name} — ${hint}`;
@@ -187,38 +167,25 @@ function ModuleLink({
       prefetch
       className={clsx(
         "dash-nav-link w-full",
-        collapsed && "dash-nav-link--icon-only",
         isActive && "dash-nav-link-active",
         locked && "opacity-45",
       )}
       href={`/dashboard/search/${slug}`}
       title={title}
     >
-      {collapsed ? (
-        <div className="dash-nav-link-icon-wrap">
-          <ModuleIcon name={name} />
-          <ModuleStatusDot
-            className="dash-nav-link-status size-1.5"
-            slug={slug}
-          />
-        </div>
-      ) : (
-        <>
-          <div className="flex min-w-0 items-center gap-3">
-            <ModuleIcon name={name} />
-            <span className="truncate">{name}</span>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <ModuleStatusDot className="size-1.5" slug={slug} />
-            {locked && <Lock className="size-3 text-zinc-500" />}
-            {badge && (
-              <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-300">
-                {badge}
-              </span>
-            )}
-          </div>
-        </>
-      )}
+      <div className="flex min-w-0 items-center gap-3">
+        <ModuleIcon name={name} />
+        <span className="truncate">{name}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <ModuleStatusDot className="size-1.5" slug={slug} />
+        {locked && <Lock className="size-3 text-zinc-500" />}
+        {badge && (
+          <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-300">
+            {badge}
+          </span>
+        )}
+      </div>
     </Link>
   );
 }
@@ -230,7 +197,7 @@ export function DashboardSidebar({ username }: { username: string }) {
   const plan = resolveUserPlan(profile);
   const balance = profile.balance ?? 0;
   const staffMeta = getStaffRoleMeta(profile.staffRole);
-  const { collapsed, toggleCollapsed } = useDashboardSidebar();
+  const { footerCollapsed, toggleFooterCollapsed } = useDashboardSidebar();
   const [moduleQuery, setModuleQuery] = useState("");
 
   const footerItems = useMemo<NavItem[]>(() => {
@@ -254,8 +221,6 @@ export function DashboardSidebar({ username }: { username: string }) {
 
     return items;
   }, [profile.canAccessHelperDashboard, profile.canManageWorkspace]);
-
-  const accountHref = "/dashboard/account";
 
   const isModuleLocked = (slug: string) =>
     !checkModuleAccess(plan, slug, { balance }).allowed;
@@ -286,38 +251,17 @@ export function DashboardSidebar({ username }: { username: string }) {
     }))
     .filter((section) => section.items.length > 0);
 
-  const collapsedModules = useMemo(
-    (): Array<SearchModuleDef & { badge?: string }> => [
-      ...filteredAiItems.map((item) => ({
-        ...item,
-        badge: AI_BADGES[item.name],
-      })),
-      ...filteredSections.flatMap((section) =>
-        section.items.map((item) => ({
-          ...item,
-          badge: AI_BADGES[item.name],
-        })),
-      ),
-    ],
-    [filteredAiItems, filteredSections],
-  );
-
   const handleLogout = async () => {
     await apiFetch("/api/auth/logout", { method: "POST" });
     router.push("/");
   };
 
   return (
-    <aside
-      className={clsx("dash-sidebar", collapsed && "dash-sidebar--collapsed")}
-    >
+    <aside className="dash-sidebar">
       <div className="dash-sidebar-header">
         <Link
           prefetch
-          className={clsx(
-            "dash-sidebar-brand min-w-0",
-            !collapsed && "flex-1",
-          )}
+          className="dash-sidebar-brand min-w-0 flex-1"
           href={siteConfig.defaultWorkspacePath}
           title={`${siteConfig.name} dashboard`}
         >
@@ -329,47 +273,29 @@ export function DashboardSidebar({ username }: { username: string }) {
             src={siteLogoSrc}
             width={36}
           />
-          {!collapsed && (
-            <span className="[font-family:var(--font-bruno-ace-sc)]">
-              {siteConfig.name}
-            </span>
-          )}
+          <span className="[font-family:var(--font-bruno-ace-sc)]">
+            {siteConfig.name}
+          </span>
         </Link>
-        <button
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="dash-sidebar-toggle shrink-0"
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          type="button"
-          onClick={toggleCollapsed}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="size-4" />
-          ) : (
-            <PanelLeftClose className="size-4" />
-          )}
-        </button>
       </div>
 
-      {!collapsed && (
-        <div className="border-b border-white/6 px-4 pb-4">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-            <input
-              {...SEARCH_AUTOFILL_SHIELD}
-              readOnly
-              className="dash-input dash-input--icon py-2 pr-3"
-              data-tour="sidebar-filter"
-              name="module-filter"
-              placeholder="Filter modules..."
-              type="text"
-              value={moduleQuery}
-              onChange={(event) => setModuleQuery(event.target.value)}
-              onFocus={unlockAutofillShield}
-            />
-          </div>
+      <div className="border-b border-white/6 px-4 pb-4">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+          <input
+            {...SEARCH_AUTOFILL_SHIELD}
+            readOnly
+            className="dash-input dash-input--icon py-2 pr-3"
+            data-tour="sidebar-filter"
+            name="module-filter"
+            placeholder="Filter modules..."
+            type="text"
+            value={moduleQuery}
+            onChange={(event) => setModuleQuery(event.target.value)}
+            onFocus={unlockAutofillShield}
+          />
         </div>
-      )}
+      </div>
 
       <div
         className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
@@ -379,7 +305,6 @@ export function DashboardSidebar({ username }: { username: string }) {
           {mainNav.map((item) => (
             <SidebarLink
               key={item.name}
-              collapsed={collapsed}
               dataTour={item.name === "Case ID" ? "case-id" : undefined}
               item={item}
               pathname={pathname}
@@ -387,15 +312,16 @@ export function DashboardSidebar({ username }: { username: string }) {
           ))}
         </div>
 
-        {collapsed ? (
-          <>
-            <div className="dash-sidebar-section-divider" />
-            <div className="space-y-1">
-              {collapsedModules.map((item) => (
+        {filteredAiItems.length > 0 && (
+          <div data-tour="section-ai">
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              AI Intelligence
+            </p>
+            <div className="space-y-0.5">
+              {filteredAiItems.map((item) => (
                 <ModuleLink
                   key={item.slug}
-                  collapsed
-                  badge={item.badge}
+                  badge={AI_BADGES[item.name]}
                   hint={item.hint}
                   locked={isModuleLocked(item.slug)}
                   name={item.name}
@@ -404,79 +330,60 @@ export function DashboardSidebar({ username }: { username: string }) {
                 />
               ))}
             </div>
-          </>
-        ) : (
-          <>
-            {filteredAiItems.length > 0 && (
-              <div data-tour="section-ai">
-                <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                  AI Intelligence
-                </p>
-                <div className="space-y-0.5">
-                  {filteredAiItems.map((item) => (
-                    <ModuleLink
-                      key={item.slug}
-                      badge={AI_BADGES[item.name]}
-                      hint={item.hint}
-                      locked={isModuleLocked(item.slug)}
-                      name={item.name}
-                      pathname={pathname}
-                      slug={item.slug}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {filteredSections.map((section) => (
-              <div
-                key={section.title}
-                data-tour={SECTION_TOUR_ATTR[section.title]}
-              >
-                <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                  {section.title}
-                </p>
-                <div className="space-y-0.5">
-                  {section.items.map((item) => (
-                    <ModuleLink
-                      key={item.slug}
-                      badge={AI_BADGES[item.name]}
-                      hint={item.hint}
-                      locked={isModuleLocked(item.slug)}
-                      name={item.name}
-                      pathname={pathname}
-                      slug={item.slug}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </>
+          </div>
         )}
+
+        {filteredSections.map((section) => (
+          <div
+            key={section.title}
+            data-tour={SECTION_TOUR_ATTR[section.title]}
+          >
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              {section.title}
+            </p>
+            <div className="space-y-0.5">
+              {section.items.map((item) => (
+                <ModuleLink
+                  key={item.slug}
+                  badge={AI_BADGES[item.name]}
+                  hint={item.hint}
+                  locked={isModuleLocked(item.slug)}
+                  name={item.name}
+                  pathname={pathname}
+                  slug={item.slug}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div
-        className={clsx(
-          "border-t border-white/6 py-2",
-          collapsed ? "px-2" : "px-3",
-        )}
-      >
+      <div className="border-t border-white/6 px-3 py-2">
         <button
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Minimize sidebar"}
-          className={clsx(
-            "dash-sidebar-minimize",
-            collapsed && "dash-sidebar-minimize--icon-only",
-          )}
-          title={collapsed ? "Expand sidebar" : "Minimize sidebar"}
+          aria-controls="dash-sidebar-footer-links"
+          aria-expanded={!footerCollapsed}
+          aria-label={
+            footerCollapsed
+              ? "Show account and more links"
+              : "Minimize account and more links"
+          }
+          className="dash-sidebar-minimize"
+          title={
+            footerCollapsed
+              ? "Show Account, Support, and more"
+              : "Hide Account, Support, and more"
+          }
           type="button"
-          onClick={toggleCollapsed}
+          onClick={toggleFooterCollapsed}
         >
-          {collapsed ? (
-            <ChevronsRight className="size-4 shrink-0" />
+          {footerCollapsed ? (
+            <>
+              <ChevronUp className="size-4 shrink-0" />
+              <span>Account & more</span>
+            </>
           ) : (
             <>
-              <ChevronsLeft className="size-4 shrink-0" />
+              <ChevronDown className="size-4 shrink-0" />
               <span>Minimize</span>
             </>
           )}
@@ -485,84 +392,62 @@ export function DashboardSidebar({ username }: { username: string }) {
 
       <div
         className={clsx(
-          "space-y-1 border-t border-white/6 py-3",
-          collapsed ? "px-2" : "px-3",
+          "dash-sidebar-footer-nav",
+          footerCollapsed && "dash-sidebar-footer-nav--collapsed",
         )}
+        id="dash-sidebar-footer-links"
       >
-        {footerItems.map((item) => (
-          <SidebarLink
-            key={item.name}
-            collapsed={collapsed}
-            dataTour={
-              item.name === "Account"
-                ? "footer-settings"
-                : item.name === "Admin"
-                  ? "footer-admin"
-                  : undefined
-            }
-            item={item}
-            pathname={pathname}
-          />
-        ))}
+        <div className="dash-sidebar-footer-nav-inner">
+          <div className="space-y-1 border-t border-white/6 px-3 py-3">
+            {footerItems.map((item) => (
+              <SidebarLink
+                key={item.name}
+                dataTour={
+                  item.name === "Account"
+                    ? "footer-settings"
+                    : item.name === "Admin"
+                      ? "footer-admin"
+                      : undefined
+                }
+                item={item}
+                pathname={pathname}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div
-        className={clsx(
-          "border-t border-white/6",
-          collapsed ? "p-2" : "p-4",
-        )}
-      >
-        {collapsed ? (
-          <div className="flex flex-col items-center gap-2">
-            <Link
-              className="flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-white ring-2 ring-transparent"
-              href={accountHref}
-              title={username}
+      <div className="border-t border-white/6 p-4">
+        <div className="flex items-center justify-between rounded-xl border border-white/8 bg-black/30 px-3 py-2.5 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <div
+              className={clsx(
+                "flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-white ring-2",
+                staffMeta?.avatarRingClass ?? "ring-transparent",
+              )}
             >
               {username.charAt(0).toUpperCase()}
-            </Link>
-            <button
-              aria-label="Log out"
-              className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-              title="Log out"
-              type="button"
-              onClick={handleLogout}
-            >
-              <LogOut className="size-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between rounded-xl border border-white/8 bg-black/30 px-3 py-2.5 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div
-                className={clsx(
-                  "flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-white ring-2",
-                  staffMeta?.avatarRingClass ?? "ring-transparent",
-                )}
-              >
-                {username.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-white">{username}</p>
-                  <StaffBadge role={profile.staffRole} size="xs" />
-                </div>
-                <p className="text-[10px] text-zinc-500">
-                  {staffMeta ? `${staffMeta.label} staff` : "Investigator"}
-                </p>
-              </div>
             </div>
-            <button
-              aria-label="Log out"
-              className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-              title="Log out"
-              type="button"
-              onClick={handleLogout}
-            >
-              <LogOut className="size-4" />
-            </button>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-white">{username}</p>
+                <StaffBadge role={profile.staffRole} size="xs" />
+              </div>
+              <p className="text-[10px] text-zinc-500">
+                {staffMeta ? `${staffMeta.label} staff` : "Investigator"}
+              </p>
+            </div>
           </div>
-        )}
+          <button
+            aria-label="Log out"
+            className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+            title="Log out"
+            type="button"
+            onClick={handleLogout}
+          >
+            <LogOut className="size-4" />
+          </button>
+        </div>
       </div>
     </aside>
   );

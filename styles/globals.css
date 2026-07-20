@@ -118,10 +118,6 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 75%);
 }
 
-.dash-shell--sidebar-collapsed {
-  --dash-sidebar-width: 4.5rem;
-}
-
 .dash-main {
   position: relative;
   z-index: 1;
@@ -132,7 +128,6 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   margin-left: var(--dash-sidebar-width);
   overflow-y: auto;
   overflow-x: hidden;
-  transition: margin-left 0.22s ease;
 }
 
 .dash-sidebar {
@@ -148,7 +143,6 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(24px);
-  transition: width 0.22s ease;
 }
 
 .dash-sidebar-brand {
@@ -156,11 +150,6 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   align-items: center;
   gap: 0.75rem;
   padding: 0.35rem 0.25rem;
-}
-
-.dash-sidebar--collapsed .dash-sidebar-brand {
-  justify-content: center;
-  padding-inline: 0;
 }
 
 .dash-sidebar-brand span {
@@ -171,33 +160,6 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   color: #fff;
   overflow: hidden;
   white-space: nowrap;
-  transition: opacity 0.15s ease, width 0.22s ease;
-}
-
-.dash-sidebar--collapsed .dash-sidebar-brand span {
-  width: 0;
-  opacity: 0;
-}
-
-.dash-sidebar-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 0.4rem;
-  color: #a1a1aa;
-  transition:
-    color 0.15s ease,
-    background 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.dash-sidebar-toggle:hover {
-  border-color: color-mix(in srgb, var(--anya-blush) 35%, transparent);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
 }
 
 .dash-sidebar-header {
@@ -206,11 +168,6 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.85rem 0.75rem 0.45rem;
-}
-
-.dash-sidebar--collapsed .dash-sidebar-header {
-  flex-direction: column;
-  padding-inline: 0.55rem;
 }
 
 .dash-sidebar-minimize {
@@ -239,8 +196,19 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   color: #fff;
 }
 
-.dash-sidebar-minimize--icon-only {
-  padding: 0.5rem;
+.dash-sidebar-footer-nav {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.dash-sidebar-footer-nav--collapsed {
+  grid-template-rows: 0fr;
+}
+
+.dash-sidebar-footer-nav-inner {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dash-nav-link {
@@ -252,29 +220,6 @@ html[data-splash="active"][data-splash-phase="reveal"] [data-splash-target] {
   font-size: 0.875rem;
   color: #d1d5db;
   transition: all 0.2s ease;
-}
-
-.dash-nav-link--icon-only {
-  justify-content: center;
-  padding: 0.55rem;
-}
-
-/* Hide text/badge labels only — keep icon wrap + status dots visible. */
-.dash-sidebar--collapsed .dash-nav-link span:not(.dash-nav-link-icon-wrap):not(.dash-nav-link-status) {
-  display: none;
-}
-
-.dash-nav-link--icon-only .dash-nav-link-icon-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dash-nav-link--icon-only .dash-nav-link-status {
-  position: absolute;
-  right: -0.1rem;
-  bottom: -0.05rem;
 }
 
 .dash-sidebar-section-divider {

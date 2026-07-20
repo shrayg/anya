@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 
-import { useDashboardSidebar } from "@/components/dashboard/dashboard-sidebar-context";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import {
   DASHBOARD_TOUR_STEPS,
@@ -67,7 +66,6 @@ function measureTooltip(
 }
 
 export function DashboardTour() {
-  const { collapsed, toggleCollapsed } = useDashboardSidebar();
   const user = useDashboardUser();
   const hasWorkspace = hasWorkspaceDashboardAccess({
     ...user,
@@ -131,12 +129,6 @@ export function DashboardTour() {
 
     return () => window.clearTimeout(timer);
   }, [hasWorkspace]);
-
-  useEffect(() => {
-    if (!hasWorkspace) return;
-    if (!active || !step?.target) return;
-    if (collapsed) toggleCollapsed();
-  }, [active, collapsed, step?.target, toggleCollapsed]);
 
   useLayoutEffect(() => {
     updateLayout();
