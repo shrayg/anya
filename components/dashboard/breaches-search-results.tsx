@@ -130,7 +130,7 @@ export function BreachesSearchResults({
       ) : null}
       {result.totalMatches > result.returned ? (
         <p className="text-xs text-zinc-500">
-          Up to 100 rows returned per request. Narrow the query for more precise
+          Results merge every available breach index. Narrow the query for more precise
           hits.
         </p>
       ) : null}

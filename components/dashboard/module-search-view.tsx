@@ -1072,12 +1072,20 @@ export function ModuleSearchView({
           godseyeReport?: Record<string, unknown> | null;
           hasBreachVipResults?: boolean;
           breachVipCount?: number;
+          csintCount?: number;
+          breachHubCount?: number;
+          osintCatCount?: number;
+          godseyeSearchCount?: number;
         };
 
         if (
           breachData.returned === 0 &&
           !breachData.hasGodsEyeReport &&
-          !breachData.hasBreachVipResults
+          !breachData.hasBreachVipResults &&
+          !(breachData.csintCount && breachData.csintCount > 0) &&
+          !(breachData.breachHubCount && breachData.breachHubCount > 0) &&
+          !(breachData.osintCatCount && breachData.osintCatCount > 0) &&
+          !(breachData.godseyeSearchCount && breachData.godseyeSearchCount > 0)
         ) {
           markNoResults(breachData.message);
 
