@@ -278,6 +278,17 @@ export function flattenGodsEyeUnifiedResults(
 
     if (provider.ok === false) continue;
 
+    const err =
+      typeof provider.error === "string"
+        ? provider.error
+        : typeof provider.message === "string"
+          ? provider.message
+          : "";
+
+    if (/invalid\s+api|unauthorized|forbidden|missing\s+api/i.test(err)) {
+      continue;
+    }
+
     const inner = provider.data;
 
     if (!inner || typeof inner !== "object" || Array.isArray(inner)) continue;

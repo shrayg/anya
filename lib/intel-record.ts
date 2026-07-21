@@ -232,6 +232,89 @@ export function extractDatabank(data: Record<string, unknown>): string | null {
   return null;
 }
 
+const ERROR_FIELD_KEY =
+  /(?:^|[._-])(error|errors|err|exception|failure|failed)(?:$|[._-])/i;
+
+const USELESS_ERROR_VALUE =
+  /^(invalid\s+api\s*key|missing\s+api\s*key|unauthorized|forbidden|\[object object\]|null|undefined|n\/a|none)$/i;
+
+function isErrorFieldKey(key: string): boolean {
+  return ERROR_FIELD_KEY.test(key) || /error/i.test(key);
+}
+
+function isUselessIntelValue(value: string): boolean {
+  const trimmed = value.trim();
+
+  if (!trimmed) return true;
+  if (USELESS_ERROR_VALUE.test(trimmed)) return true;
+  if (/^\[object object\]$/i.test(trimmed)) return true;
+
+  return isBrandPlaceholderValue(trimmed);
+}
+
+function flattenNestedField(
+  key: string,
+  value: Record<string, unknown>,
+  into: Record<string, unknown>,
+) {
+  const isGeo = /geo|location|ip_/i.test(key);
+  const preferred = [
+    "ip",
+    "query",
+    "country",
+    "country_name",
+    "country_code",
+    "city",
+    "region",
+    "region_name",
+    "region_code",
+    "isp",
+    "org",
+    "asn",
+    "timezone",
+    "latitude",
+    "longitude",
+    "lat",
+    "lon",
+  ];
+
+  let wrote = false;
+
+  for (const nestedKey of preferred) {
+    const nestedVal = value[nestedKey];
+    const outKey = isGeo ? nestedKey : `${key}_${nestedKey}`;
+
+    if (outKey in into) continue;
+
+    if (typeof nestedVal === "string" && nestedVal.trim()) {
+      into[outKey] = nestedVal.trim();
+      wrote = true;
+    } else if (typeof nestedVal === "number" && Number.isFinite(nestedVal)) {
+      into[outKey] = nestedVal;
+      wrote = true;
+    }
+  }
+
+  if (wrote) return;
+
+  const parts: string[] = [];
+
+  for (const [nestedKey, nestedVal] of Object.entries(value)) {
+    if (typeof nestedVal === "string" && nestedVal.trim()) {
+      parts.push(`${nestedKey}: ${nestedVal.trim()}`);
+    } else if (
+      typeof nestedVal === "number" ||
+      typeof nestedVal === "boolean"
+    ) {
+      parts.push(`${nestedKey}: ${String(nestedVal)}`);
+    }
+  }
+
+  if (parts.length > 0) {
+    into[key] = parts.slice(0, 8).join(" · ");
+  }
+}
+
 /**
  * Strip provider ads and brand placeholders from an intel row.
  * Returns null when nothing useful remains.
@@ -258,20 +341,37 @@ export function scrubIntelRecord(
   }
 
   for (const [key, value] of Object.entries(record)) {
-    if (typeof value !== "string") continue;
-    if (!isBrandPlaceholderValue(value)) continue;
-
-    // Never keep brand placeholders on identity/secret fields.
-    if (isIdentityFieldKey(key) || DATABANK_KEYS.has(key)) {
+    if (isErrorFieldKey(key)) {
       delete record[key];
       continue;
     }
 
-    // Meta strings that collapsed to the brand are also useless.
-    if (
-      /^(source|sources|_source|provider|service|credit|credits)$/i.test(key)
-    ) {
+    if (typeof value === "string") {
+      if (isUselessIntelValue(value)) {
+        delete record[key];
+        continue;
+      }
+
+      if (!isBrandPlaceholderValue(value)) continue;
+
+      // Never keep brand placeholders on identity/secret fields.
+      if (isIdentityFieldKey(key) || DATABANK_KEYS.has(key)) {
+        delete record[key];
+        continue;
+      }
+
+      // Meta strings that collapsed to the brand are also useless.
+      if (
+        /^(source|sources|_source|provider|service|credit|credits)$/i.test(key)
+      ) {
+        delete record[key];
+      }
+      continue;
+    }
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
       delete record[key];
+      flattenNestedField(key, value as Record<string, unknown>, record);
     }
   }
 
@@ -285,8 +385,9 @@ export function scrubIntelRecord(
 export function hasUsefulIntelFields(record: Record<string, unknown>): boolean {
   for (const [key, value] of Object.entries(record)) {
     if (DATABANK_KEYS.has(key)) continue;
+    if (isErrorFieldKey(key)) continue;
     if (
-      /^(success|credits?|service|query|type|message|error|status|count|total)$/i.test(
+      /^(success|credits?|service|query|type|message|status|count|total)$/i.test(
         key,
       )
     ) {
@@ -296,7 +397,7 @@ export function hasUsefulIntelFields(record: Record<string, unknown>): boolean {
     if (typeof value === "string") {
       const trimmed = value.trim();
 
-      if (!trimmed || isBrandPlaceholderValue(trimmed)) continue;
+      if (!trimmed || isUselessIntelValue(trimmed)) continue;
 
       return true;
     }

@@ -147,6 +147,8 @@ const HIGHLIGHT_KEYS = new Set([
 const HIDDEN_RESULT_KEY =
   /^(source|sources|_source|credit|credits|service|success|provider|providers)$/i;
 
+const ERROR_RESULT_KEY = /error|exception|failure|failed/i;
+
 /** Long prose / list fields — render as full-width text blocks. */
 const BLOCK_TEXT_KEY =
   /^(ai_?summary|summary|analysis|overview|report|description|notes?|details|content|export|raw|text|message|reasoning|explanation|registered_accounts|breaches|rules|applied_rules)$/i;
@@ -154,7 +156,7 @@ const BLOCK_TEXT_KEY =
 const RECORD_TITLE_KEYS = new Set(["category", "record_title"]);
 
 function isHiddenResultKey(key: string): boolean {
-  return HIDDEN_RESULT_KEY.test(key);
+  return HIDDEN_RESULT_KEY.test(key) || ERROR_RESULT_KEY.test(key);
 }
 
 function isBlockTextField(key: string, value: string): boolean {
@@ -167,10 +169,12 @@ function isBlockTextField(key: string, value: string): boolean {
 function humanizeKey(key: string): string {
   if (FIELD_LABELS[key]) return FIELD_LABELS[key];
 
-  return key
+  const label = key
     .replace(/_/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  return sanitizePublicText(label);
 }
 
 function formatValue(value: unknown): string {
@@ -178,8 +182,14 @@ function formatValue(value: unknown): string {
 
   if (Array.isArray(value)) {
     return value
-      .map((item) => sanitizePublicText(String(item)))
-      .filter(Boolean)
+      .map((item) => {
+        if (item && typeof item === "object") {
+          return sanitizePublicText(JSON.stringify(item));
+        }
+
+        return sanitizePublicText(String(item));
+      })
+      .filter((item) => item && !/^\[object object\]$/i.test(item))
       .join(", ");
   }
 
@@ -188,10 +198,31 @@ function formatValue(value: unknown): string {
   }
 
   if (typeof value === "object") {
-    return sanitizePublicText(JSON.stringify(value));
+    const parts: string[] = [];
+
+    for (const [nestedKey, nestedVal] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
+      if (typeof nestedVal === "string" && nestedVal.trim()) {
+        parts.push(`${nestedKey}: ${nestedVal.trim()}`);
+      } else if (
+        typeof nestedVal === "number" ||
+        typeof nestedVal === "boolean"
+      ) {
+        parts.push(`${nestedKey}: ${String(nestedVal)}`);
+      }
+    }
+
+    if (parts.length === 0) return "";
+
+    return sanitizePublicText(parts.slice(0, 8).join(" · "));
   }
 
-  return sanitizePublicText(String(value));
+  const text = sanitizePublicText(String(value));
+
+  if (!text || /^\[object object\]$/i.test(text)) return "";
+
+  return text;
 }
 
 function objectFields(
@@ -206,18 +237,15 @@ function objectFields(
 
   const fields = entries
     .map(([key, value]) => {
-      if (value && typeof value === "object" && !Array.isArray(value)) {
-        return null;
-      }
-
       const formatted = formatValue(value);
 
       if (!formatted) return null;
       if (isBrandPlaceholderValue(formatted)) return null;
+      if (/invalid\s+api\s*key/i.test(formatted)) return null;
 
       const label = humanizeKey(key);
 
-      if (/^sources?$/i.test(label)) return null;
+      if (!label.trim() || /^sources?$/i.test(label)) return null;
 
       return {
         key,
