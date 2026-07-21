@@ -640,6 +640,21 @@ function buildEmailProfiler(
   partial.recommendations.push("Pivot to username variants on social modules.");
   partial.pivots.push(
     {
+      label: "Email Presence",
+      slug: "email-presence",
+      reason: "Where this mailbox is registered.",
+    },
+    {
+      label: "Index Sweep",
+      slug: "index-sweep",
+      reason: 'Google/Bing "email" site:linkedin.com operators.',
+    },
+    {
+      label: "Phone Index",
+      slug: "phone-index",
+      reason: "Strict quoted phone format variants across indexed platforms.",
+    },
+    {
       label: "Stealer Logs",
       slug: "stealer-logs",
       reason: "Raw stealer + breach rows.",
@@ -697,7 +712,12 @@ function buildUsernameGraph(
     {
       label: "Account Finder",
       slug: "account-finder",
-      reason: "Scan 200+ public profile URLs for this handle.",
+      reason: "Web Profiles + Handle Sweep in parallel.",
+    },
+    {
+      label: "Handle Sweep",
+      slug: "handle-sweep",
+      reason: "Deep public profile URL sweep.",
     },
     {
       label: "Stealer Logs",
@@ -886,7 +906,12 @@ function buildSocialPivot(
     {
       label: "Account Finder",
       slug: "account-finder",
-      reason: "Scan 200+ public profile URLs.",
+      reason: "Web Profiles + Handle Sweep.",
+    },
+    {
+      label: "Handle Sweep",
+      slug: "handle-sweep",
+      reason: "Deep public profile URL sweep.",
     },
     {
       label: "Stealer Logs",

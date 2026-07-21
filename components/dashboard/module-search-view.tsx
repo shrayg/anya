@@ -23,8 +23,11 @@ import type { DomainSearchResult } from "@/lib/domain-search";
 import type { SitePentestResult } from "@/lib/site-pentest-shared";
 import type { FivemSearchResult } from "@/lib/fivem-search";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
+import type { HingeLiveSearchResult } from "@/lib/hinge-live/types";
 import type { TinderLiveSearchResult } from "@/lib/tinder-live/types";
-import type { UsernameAccountsSearchResult } from "@/lib/username-accounts/types";
+import type { AccountPresenceSearchResult } from "@/lib/account-presence";
+import type { EmailPresenceSearchResult } from "@/lib/email-presence";
+import type { IndexSweepSearchResult } from "@/lib/index-sweep";
 import type { FormattedRecord } from "@/lib/search-utils";
 
 import Link from "next/link";
@@ -82,8 +85,13 @@ import {
   type IntelxSearchPayload,
 } from "@/components/dashboard/intelx-search-results";
 
+import { HingeLiveResults } from "@/components/dashboard/hinge-live-results";
 import { TinderLiveResults } from "@/components/dashboard/tinder-live-results";
-import { UsernameAccountsResults } from "@/components/dashboard/username-accounts-results";
+import {
+  AccountPresenceResults,
+  EmailPresenceResults,
+} from "@/components/dashboard/account-presence-results";
+import { IndexSweepResults } from "@/components/dashboard/index-sweep-results";
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
 import { AiSearchResults } from "@/components/dashboard/ai-search-results";
 import { CryptoAiChatResults } from "@/components/dashboard/crypto-ai-chat-results";
@@ -1023,8 +1031,16 @@ export function ModuleSearchView({
         activeType === "site-pentest"
           ? `&modules=${encodeURIComponent(pentestModules.join(","))}`
           : "";
+      // Phone surfaces force phone path so every format variant is searched strictly.
+      const indexSweepKindParam =
+        activeType === "index-sweep" &&
+        (moduleDef.slug === "phone" ||
+          moduleDef.slug === "phone-index" ||
+          selectedToolId === "phone-index")
+          ? "&kind=phone"
+          : "";
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${indexSweepKindParam}`,
         { signal },
       );
       const responseText = await searchResponse.text();
@@ -1782,37 +1798,112 @@ export function ModuleSearchView({
         return;
       }
 
-      if (activeType === "username-accounts") {
-        const accountsData = data as UsernameAccountsSearchResult & {
+      if (activeType === "hinge-live") {
+        const liveData = data as HingeLiveSearchResult & {
           error?: string;
           message?: string;
         };
 
-        if (!accountsData.found?.length) {
+        if (!liveData.profiles?.length) {
           markNoResults(
-            accountsData.message ||
-              accountsData.error ||
-              accountsData.warning ||
-              "No public profiles returned HTTP 200 for that username.",
+            liveData.message ||
+              liveData.error ||
+              "No Hinge recommendations returned for those filters.",
           );
 
           return;
         }
 
         commitSuccess({
-
-
-          structuredResult: {
-          kind: "username-accounts",
-          data: accountsData,
-        },
-
-
+          structuredResult: { kind: "hinge-live", data: liveData },
           rawResult: JSON.stringify(data, null, 2),
-
-
         }, serialized);
 
+        return;
+      }
+
+      if (activeType === "username-accounts" || activeType === "handle-sweep") {
+        const accountsData = data as AccountPresenceSearchResult & {
+          error?: string;
+          message?: string;
+        };
+
+        if (!accountsData.sources?.length && !accountsData.count) {
+          markNoResults(
+            accountsData.message ||
+              accountsData.error ||
+              accountsData.warning ||
+              "No public profiles returned for that username.",
+          );
+
+          return;
+        }
+
+        if (!accountsData.count) {
+          markNoResults(
+            accountsData.warning ||
+              "No public profiles returned for that username.",
+          );
+
+          return;
+        }
+
+        commitSuccess({
+          structuredResult: {
+            kind: "username-accounts",
+            data: accountsData,
+          },
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
+
+        return;
+      }
+
+      if (activeType === "email-presence") {
+        const presence = data as EmailPresenceSearchResult & {
+          error?: string;
+          message?: string;
+        };
+
+        if (!presence.found?.length) {
+          markNoResults(
+            presence.message ||
+              presence.error ||
+              presence.warning ||
+              "No registered accounts detected for that email or phone.",
+          );
+
+          return;
+        }
+
+        commitSuccess({
+          structuredResult: { kind: "email-presence", data: presence },
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
+
+        return;
+      }
+
+      if (activeType === "index-sweep") {
+        const sweep = data as IndexSweepSearchResult & {
+          error?: string;
+          message?: string;
+        };
+
+        if (!sweep.dorks?.length) {
+          markNoResults(
+            sweep.message ||
+              sweep.error ||
+              "Could not build Index Sweep operators for that query.",
+          );
+
+          return;
+        }
+
+        commitSuccess({
+          structuredResult: { kind: "index-sweep", data: sweep },
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
 
         return;
       }
@@ -2506,8 +2597,20 @@ export function ModuleSearchView({
             />
           ) : structuredResult?.kind === "tinder-live" ? (
             <TinderLiveResults data={structuredResult.data} />
+          ) : structuredResult?.kind === "hinge-live" ? (
+            <HingeLiveResults data={structuredResult.data} />
           ) : structuredResult?.kind === "username-accounts" ? (
-            <UsernameAccountsResults
+            <AccountPresenceResults
+              blurResults={blurResults}
+              data={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "email-presence" ? (
+            <EmailPresenceResults
+              blurResults={blurResults}
+              data={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "index-sweep" ? (
+            <IndexSweepResults
               blurResults={blurResults}
               data={structuredResult.data}
             />

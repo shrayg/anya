@@ -104,6 +104,10 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
     providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub"],
   },
   "account-finder": { kind: "any", providers: ["builtin"] },
+  "handle-sweep": { kind: "any", providers: ["builtin"] },
+  "email-presence": { kind: "any", providers: ["builtin"] },
+  "index-sweep": { kind: "any", providers: ["builtin"] },
+  "phone-index": { kind: "any", providers: ["builtin"] },
   ip: {
     kind: "any",
     providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub", "oathnet"],
@@ -182,6 +186,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "tinder-live": { kind: "any", providers: ["builtin"] },
   bumble: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
   hinge: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
+  "hinge-live": { kind: "any", providers: ["builtin"] },
   match: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
   okcupid: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
   pof: { kind: "any", providers: ["godseye", "csint", "breachhub"] },

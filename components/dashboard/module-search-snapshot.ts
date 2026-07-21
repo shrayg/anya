@@ -21,8 +21,11 @@ import type { DomainSearchResult } from "@/lib/domain-search";
 import type { SitePentestResult } from "@/lib/site-pentest-shared";
 import type { FivemSearchResult } from "@/lib/fivem-search";
 import type { RobloxSearchResult } from "@/lib/roblox-search";
+import type { HingeLiveSearchResult } from "@/lib/hinge-live/types";
 import type { TinderLiveSearchResult } from "@/lib/tinder-live/types";
-import type { UsernameAccountsSearchResult } from "@/lib/username-accounts/types";
+import type { AccountPresenceSearchResult } from "@/lib/account-presence";
+import type { EmailPresenceSearchResult } from "@/lib/email-presence";
+import type { IndexSweepSearchResult } from "@/lib/index-sweep";
 import type { FormattedRecord } from "@/lib/search-utils";
 import type { StealerArchiveEntry } from "@/lib/breachhub";
 import type { StealerCredentialRow } from "@/lib/stealer-logs-view";
@@ -56,7 +59,10 @@ export type StructuredSearchResult =
   | { kind: "us-intl-directory"; data: UsIdentitySearchResult }
   | { kind: "site-pentest"; data: SitePentestResult }
   | { kind: "tinder-live"; data: TinderLiveSearchResult }
-  | { kind: "username-accounts"; data: UsernameAccountsSearchResult };
+  | { kind: "hinge-live"; data: HingeLiveSearchResult }
+  | { kind: "username-accounts"; data: AccountPresenceSearchResult }
+  | { kind: "email-presence"; data: EmailPresenceSearchResult }
+  | { kind: "index-sweep"; data: IndexSweepSearchResult };
 
 export type ModuleSearchSnapshot = {
   version: 1;

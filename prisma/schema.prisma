@@ -51,6 +51,7 @@ model User {
   tickets   SupportTicket[]
   ticketMessages SupportTicketMessage[]
   safetyFlags SafetyFlag[]
+  osintEventLogs OsintEventLog[]
 }
 
 /// Unified safety / investigation case for auto underage-risk flags and helper Investigate.
@@ -98,6 +99,28 @@ model SafetyFlag {
   @@index([userId, createdAt])
   @@index([source, status])
   @@index([userId, acknowledgedAt, notifiedAt])
+}
+
+/// Staff-only OSINT action / error audit trail (never shown on user search panels).
+model OsintEventLog {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// e.g. search.us-identity, search.email-presence, route.error
+  action       String
+  /// ok | error | partial | rate_limited | info
+  status       String
+  message      String?
+  queryPreview String?
+  moduleSlug   String?
+  /// JSON blob for extra context (source ids, stack-ish details)
+  metaJson     String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 model SupportTicket {

@@ -82,7 +82,11 @@ export function resolveOsintModuleSlug(
     breachbase: "breaches",
     "oathnet-roblox": "oathnet-roblox",
     "tinder-live": "tinder-live",
+    "hinge-live": "hinge-live",
     "username-accounts": "account-finder",
+    "handle-sweep": "handle-sweep",
+    "email-presence": "email-presence",
+    "index-sweep": "index-sweep",
     breachhub: "google-docs",
     "stealer-victim": "stealer-logs",
   };

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { AccountSecurityPanel } from "@/components/dashboard/account-security-panel";
 import { AdminUsersPanel } from "@/components/dashboard/admin-users-panel";
 import { AdminWorkspaceDashboard } from "@/components/dashboard/admin-workspace-dashboard";
+import { AdminEventLogsPanel } from "@/components/dashboard/admin-event-logs-panel";
 import { HelperUsersPanel } from "@/components/dashboard/helper-users-panel";
 import { SafetyFlagsPanel } from "@/components/dashboard/safety-flags-panel";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
@@ -55,6 +56,7 @@ export default function SettingsPage() {
             </div>
           </section>
           <AdminWorkspaceDashboard />
+          <AdminEventLogsPanel />
           <SafetyFlagsPanel mode="admin" />
           <AdminUsersPanel />
 

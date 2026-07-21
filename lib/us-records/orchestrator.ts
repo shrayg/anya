@@ -65,6 +65,43 @@ import {
   searchCaRcmpSor,
   shouldSearchCaRcmpSor,
 } from "@/lib/us-records/ca-rcmp-sor";
+import {
+  searchWaDohLicense,
+  shouldSearchWaDoh,
+} from "@/lib/us-records/wa-doh-license";
+import {
+  searchCalBarLicense,
+  shouldSearchCalBar,
+} from "@/lib/us-records/calbar-license";
+import {
+  searchTxTdlrLicense,
+  shouldSearchTxTdlr,
+} from "@/lib/us-records/tx-tdlr";
+import {
+  searchDeaFugitives,
+  shouldSearchDeaFugitives,
+} from "@/lib/us-records/dea-fugitives";
+import {
+  searchFaaAircraft,
+  shouldSearchFaaAircraft,
+} from "@/lib/us-records/faa-aircraft";
+import { searchFccUls, shouldSearchFccUls } from "@/lib/us-records/fcc-uls";
+import {
+  searchUsptoPtab,
+  shouldSearchUsptoPtab,
+} from "@/lib/us-records/uspto-ptab";
+import {
+  searchNcDocInmate,
+  shouldSearchNcDoc,
+} from "@/lib/us-records/nc-doc";
+import {
+  searchIlDocInmate,
+  shouldSearchIlDoc,
+} from "@/lib/us-records/il-doc";
+import {
+  searchUsmsWanted,
+  shouldSearchUsmsWanted,
+} from "@/lib/us-records/usms-wanted";
 import { searchOkOscn, shouldSearchOkOscn } from "@/lib/us-records/ok-oscn";
 import {
   searchInMycase,
@@ -416,6 +453,22 @@ export async function searchUsIdentity(
     );
   }
 
+  if (shouldSearchNcDoc(parsed)) {
+    jobs.push(
+      settleSource("nc-doc", "NC DPS Offender Search", () =>
+        searchNcDocInmate(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchIlDoc(parsed)) {
+    jobs.push(
+      settleSource("il-doc", "Illinois DOC Inmate Search", () =>
+        searchIlDocInmate(parsed, 8),
+      ),
+    );
+  }
+
   if (shouldSearchFlSunbiz(parsed)) {
     jobs.push(
       settleSource("fl-sunbiz", "Florida Sunbiz", () =>
@@ -457,10 +510,74 @@ export async function searchUsIdentity(
     );
   }
 
+  if (shouldSearchWaDoh(parsed)) {
+    jobs.push(
+      settleSource("wa-doh-license", "WA DOH Credentials", () =>
+        searchWaDohLicense(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchCalBar(parsed)) {
+    jobs.push(
+      settleSource("calbar-license", "State Bar of California", () =>
+        searchCalBarLicense(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchTxTdlr(parsed)) {
+    jobs.push(
+      settleSource("tx-tdlr", "Texas TDLR", () =>
+        searchTxTdlrLicense(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchFaaAircraft(parsed)) {
+    jobs.push(
+      settleSource("faa-aircraft", "FAA Aircraft Registry", () =>
+        searchFaaAircraft(parsed, 6),
+      ),
+    );
+  }
+
+  if (shouldSearchFccUls(parsed)) {
+    jobs.push(
+      settleSource("fcc-uls", "FCC ULS Licenses", () =>
+        searchFccUls(parsed, 6),
+      ),
+    );
+  }
+
+  if (shouldSearchUsptoPtab(parsed)) {
+    jobs.push(
+      settleSource("uspto-ptab", "USPTO PTAB Decisions", () =>
+        searchUsptoPtab(parsed, 6),
+      ),
+    );
+  }
+
   if (shouldSearchDallasWanted(parsed)) {
     jobs.push(
       settleSource("dallas-wanted", "Dallas County Wanted", () =>
         searchDallasWanted(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchDeaFugitives(parsed)) {
+    jobs.push(
+      settleSource("dea-fugitives", "DEA Fugitives", () =>
+        searchDeaFugitives(parsed, 8),
+      ),
+    );
+  }
+
+  if (shouldSearchUsmsWanted(parsed)) {
+    jobs.push(
+      settleSource("usms-wanted", "US Marshals Most Wanted", () =>
+        searchUsmsWanted(parsed, 8),
       ),
     );
   }
@@ -824,6 +941,12 @@ export async function searchWantedPersons(
     ),
     settleSource("dallas-wanted", "Dallas County Wanted", () =>
       searchDallasWanted(parsed, 12),
+    ),
+    settleSource("dea-fugitives", "DEA Fugitives", () =>
+      searchDeaFugitives(parsed, 12),
+    ),
+    settleSource("usms-wanted", "US Marshals Most Wanted", () =>
+      searchUsmsWanted(parsed, 12),
     ),
   ]);
 

@@ -35,7 +35,6 @@ prisma/*.db-journal
 
 # local status uptime history (production lives under /var/www/anya-secrets)
 /data/status-history.json
-/data/provider-health.json
 
 # vercel
 .vercel
@@ -50,6 +49,17 @@ enkidu.tar.gz
 
 # cursor / editor
 .cursor/
+
+# local MITM / browser capture dumps (never commit — may contain session tokens)
+.tmp-charles*/
+.playwright-mcp/
+
+# one-off probe / debug scripts and session dumps
+scripts/probe-*.mts
+scripts/probe-*.out.txt
+scripts/debug-*.mts
+scripts/.linkedin-session-probe-last.json
+scripts/_tmp_*
 
 # lockfiles from other package managers (keep package-lock.json for npm)
 pnpm-lock.yaml

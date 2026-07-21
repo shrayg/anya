@@ -4,6 +4,10 @@ import {
   isCryptoIntelSlug,
 } from "@/lib/crypto-intel/enabled";
 import {
+  isHingeLiveEnabled,
+  isHingeLiveSlug,
+} from "@/lib/hinge-live/enabled";
+import {
   isTinderLiveEnabled,
   isTinderLiveSlug,
 } from "@/lib/tinder-live/enabled";
@@ -232,6 +236,27 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "email-analyze",
         "Email address",
         "AI breach brief — exposure, platforms, credential risk, and domain intel.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "ai-brief",
+              label: "AI brief",
+              apiType: "email-analyze",
+            },
+            {
+              id: "email-presence",
+              label: "Contact Profiles",
+              apiType: "email-presence",
+            },
+            {
+              id: "index-sweep",
+              label: "Index Sweep",
+              apiType: "index-sweep",
+            },
+          ],
+        },
       ),
     ],
   },
@@ -245,6 +270,22 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "auto",
         "Detected automatically — enter any phone format",
         "Drop a number — format is detected and the lookup is routed automatically.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "leak-indexes",
+              label: "Leak indexes",
+              apiType: "breach",
+            },
+            {
+              id: "phone-index",
+              label: "Phone Index",
+              apiType: "index-sweep",
+            },
+          ],
+        },
       ),
       mod(
         "Identity",
@@ -267,6 +308,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Account finder",
               apiType: "username-accounts",
             },
+            {
+              id: "handle-sweep",
+              label: "Handle Sweep",
+              apiType: "handle-sweep",
+            },
           ],
         },
       ),
@@ -275,8 +321,40 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Account Finder",
         "account-finder",
         "username-accounts",
-        "Username — scan 200+ public profile URLs",
-        "Username → accounts: check coding, social, gaming, music, and more for live public profiles.",
+        "Username — Web Profiles + Handle Sweep",
+        "Username → accounts across parallel Anya sources: Web Profiles and Handle Sweep.",
+      ),
+      mod(
+        "Identity",
+        "Handle Sweep",
+        "handle-sweep",
+        "handle-sweep",
+        "Username — deep public profile sweep",
+        "Deep username sweep across hundreds of public profile URL patterns.",
+      ),
+      mod(
+        "Identity",
+        "Contact Profiles",
+        "email-presence",
+        "email-presence",
+        "Email or phone number",
+        "Check whether an email or phone has accounts across social, dating, adult, commerce, and media sites — then surface a username/profile URL when a platform still leaks one. Dating apps (Tinder/Hinge/Bumble) no longer expose public registration checks.",
+      ),
+      mod(
+        "Identity",
+        "Index Sweep",
+        "index-sweep",
+        "index-sweep",
+        'Email or phone — strict "id" site: operators',
+        'Strict quoted search operators across LinkedIn, GitHub, and other public indexed platforms. Loose leads stay low confidence unless corroborated.',
+      ),
+      mod(
+        "Identity",
+        "Phone Index",
+        "phone-index",
+        "index-sweep",
+        "Phone — every format variant, strict quoted search",
+        "Phone Index Sweep: every format variant (202-555-0123, (202) 555-0123, +1…, etc.) searched strictly across public indexed platforms.",
       ),
       mod(
         "Identity",
@@ -298,6 +376,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               id: "seon-phone",
               label: "Phone footprint",
               apiType: "seon-phone",
+            },
+            {
+              id: "index-sweep",
+              label: "Index Sweep",
+              apiType: "index-sweep",
             },
           ],
         },
@@ -933,6 +1016,21 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
       ),
       mod(
         "Dating Apps",
+        "Hinge Live",
+        "hinge-live",
+        "hinge-live",
+        "40.7128,-74.0060 ageMin=22 ageMax=35 distanceMi=25 gender=1 q=alex",
+        "Live Hinge recommendations via operator session — set location/prefs, hydrate profiles, optional local keyword filter.",
+        undefined,
+        undefined,
+        {
+          lawfulUseNotice: true,
+          lawfulUseCopy:
+            "Hinge Live uses a company-operated Hinge session. It returns a personalized recommendation feed sample, not a full area database. Authorized investigative use only. Do not scrape, harass, or store profiles beyond case need. Hinge ToS and local law still apply.",
+        },
+      ),
+      mod(
+        "Dating Apps",
         "Match",
         "match",
         "breach",
@@ -1008,6 +1106,10 @@ export function getSearchModuleBySlug(
   }
 
   if (moduleDef && isTinderLiveSlug(moduleDef.slug) && !isTinderLiveEnabled()) {
+    return undefined;
+  }
+
+  if (moduleDef && isHingeLiveSlug(moduleDef.slug) && !isHingeLiveEnabled()) {
     return undefined;
   }
 
@@ -1102,6 +1204,10 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "tiktok-recon": "tiktok-recon",
   "share-resolver": "share-resolver",
   "account-finder": "username-accounts",
+  "handle-sweep": "handle-sweep",
+  "email-presence": "email-presence",
+  "index-sweep": "index-sweep",
+  "phone-index": "index-sweep",
   ip: "ip",
   intelx: "intelx",
   "stealer-logs": "breach",
@@ -1199,7 +1305,9 @@ export function getHubSections(): SearchModuleSection[] {
 
     if (section.title === "Dating Apps") {
       const items = section.items.filter(
-        (item) => !(isTinderLiveSlug(item.slug) && !isTinderLiveEnabled()),
+        (item) =>
+          !(isTinderLiveSlug(item.slug) && !isTinderLiveEnabled()) &&
+          !(isHingeLiveSlug(item.slug) && !isHingeLiveEnabled()),
       );
 
       sections.push({ title: section.title, items });
@@ -1244,10 +1352,15 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "password-search": true,
   "name-search": true,
   "email-analyze": true,
+  "email-presence": true,
+  "index-sweep": true,
+  "phone-index": true,
   "fraud-footprint": true,
   breachbase: true,
   "oathnet-roblox": true,
   "contact-enrich": true,
+  "account-finder": true,
+  "handle-sweep": true,
   "crypto-wallet": true,
   "crypto-address": true,
   "crypto-tx": true,
@@ -1300,6 +1413,7 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "tinder-live": true,
   bumble: true,
   hinge: true,
+  "hinge-live": true,
   match: true,
   okcupid: true,
   pof: true,

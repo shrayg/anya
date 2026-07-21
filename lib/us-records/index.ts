@@ -93,6 +93,43 @@ export {
   shouldSearchCaRcmpSor,
 } from "@/lib/us-records/ca-rcmp-sor";
 export {
+  searchWaDohLicense,
+  shouldSearchWaDoh,
+} from "@/lib/us-records/wa-doh-license";
+export {
+  searchCalBarLicense,
+  shouldSearchCalBar,
+} from "@/lib/us-records/calbar-license";
+export {
+  searchTxTdlrLicense,
+  shouldSearchTxTdlr,
+} from "@/lib/us-records/tx-tdlr";
+export {
+  searchDeaFugitives,
+  shouldSearchDeaFugitives,
+} from "@/lib/us-records/dea-fugitives";
+export {
+  searchFaaAircraft,
+  shouldSearchFaaAircraft,
+} from "@/lib/us-records/faa-aircraft";
+export { searchFccUls, shouldSearchFccUls } from "@/lib/us-records/fcc-uls";
+export {
+  searchUsptoPtab,
+  shouldSearchUsptoPtab,
+} from "@/lib/us-records/uspto-ptab";
+export {
+  searchNcDocInmate,
+  shouldSearchNcDoc,
+} from "@/lib/us-records/nc-doc";
+export {
+  searchIlDocInmate,
+  shouldSearchIlDoc,
+} from "@/lib/us-records/il-doc";
+export {
+  searchUsmsWanted,
+  shouldSearchUsmsWanted,
+} from "@/lib/us-records/usms-wanted";
+export {
   searchBopInmateLocator,
   shouldSearchBop,
 } from "@/lib/us-records/bop-inmate";
