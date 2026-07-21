@@ -8,7 +8,7 @@ import { AnimatedNumber } from "@/components/animated-price";
 import { siteLogoSrc } from "@/config/branding";
 
 const intelligenceSources = [
-  { code: "BRK", name: "Leak storage", value: "12 HITS" },
+  { code: "BRK", name: "IntelX", value: "12 HITS" },
   { code: "USR", name: "Public records", value: "4 MATCHES" },
   { code: "PLT", name: "Social graph", value: "7 ALIASES" },
   { code: "NET", name: "Network intel", value: "2 ASSETS" },

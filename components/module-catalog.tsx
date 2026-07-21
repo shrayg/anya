@@ -149,8 +149,11 @@ export function ModuleCatalog({
       <div className="mod-map" role="list">
         <div className="mod-map-hub">
           <span className="mod-map-hub-dot" />
-          <p>Investigation graph</p>
-          <strong>{sections.reduce((sum, section) => sum + section.items.length, 0)} modules</strong>
+          <p>Module lanes</p>
+          <strong>
+            {sections.reduce((sum, section) => sum + section.items.length, 0)}{" "}
+            live modules
+          </strong>
         </div>
 
         <div className="mod-map-grid">

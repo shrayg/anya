@@ -966,7 +966,7 @@ function buildStealerCorrelator(
       reason: "Raw stealer module.",
     },
     {
-      label: "Leak Storage",
+      label: "IntelX",
       slug: "intelx",
       reason:
         "Open by Storage ID (long hex). Paste URL when it includes storageid — not ?did= share links.",

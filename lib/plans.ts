@@ -143,7 +143,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Full dashboard / panel access",
       "All modules except unrestricted AI",
       "Restricted AI Intelligence",
-      "5 Leak Storage searches per day included",
+      "5 IntelX searches per day included",
     ],
   },
   {
@@ -157,7 +157,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Unlimited searches",
       "Full dashboard / panel access",
       "Full AI Intelligence access",
-      "Leak Storage & Stealer Logs included",
+      "IntelX & Stealer Logs included",
     ],
   },
   {
@@ -193,7 +193,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     name: "Starter Pack",
     credits: 10,
     price: 10,
-    description: "40 Leak Storage / Stealer searches at $0.25 each",
+    description: "40 IntelX / Stealer searches at $0.25 each",
   },
   {
     id: "credits_25",
@@ -371,7 +371,7 @@ export function checkModuleAccess(
       return {
         allowed: false,
         reason:
-          "Leak Storage is not available on the Free plan. Upgrade to Professional or higher.",
+          "IntelX is not available on the Free plan. Upgrade to Professional or higher.",
       };
     }
 
@@ -398,7 +398,7 @@ export function checkModuleAccess(
     if (PAY_PER_USE_MODULE_SLUGS.has(moduleSlug)) {
       return {
         allowed: false,
-        reason: "Leak Storage and Stealer Logs require Professional or higher.",
+        reason: "IntelX and Stealer Logs require Professional or higher.",
       };
     }
 
@@ -414,7 +414,7 @@ export function checkModuleAccess(
       if (intelxUsedToday >= PROFESSIONAL_INTELX_DAILY_LIMIT) {
         return {
           allowed: false,
-          reason: `Professional includes ${PROFESSIONAL_INTELX_DAILY_LIMIT} Leak Storage searches per day. Resets in 24h.`,
+          reason: `Professional includes ${PROFESSIONAL_INTELX_DAILY_LIMIT} IntelX searches per day. Resets in 24h.`,
           usesIntelxQuota: true,
         };
       }

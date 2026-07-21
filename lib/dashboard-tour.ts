@@ -32,7 +32,7 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
   {
     id: "stealer",
     title: "Stealer & breach intel",
-    body: "Leak storage pulls, stealer logs, email breaches, and hash or password pivots across leak indexes.",
+    body: "IntelX pulls, stealer logs, email breaches, and hash or password pivots across leak indexes.",
     target: "[data-tour='section-stealer']",
   },
   {

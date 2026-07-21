@@ -182,7 +182,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
     items: [
       mod(
         "Stealer Intel",
-        "Leak Storage",
+        "IntelX",
         "intelx",
         "breach",
         "Paste Storage ID or URL",

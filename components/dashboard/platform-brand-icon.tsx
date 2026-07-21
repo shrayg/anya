@@ -96,6 +96,7 @@ const MODULE_BRANDS: Record<string, BrandIconConfig> = {
   "Name Search": { Icon: TbUserSearch, color: "#38BDF8" },
   "Fraud Footprint": { Icon: TbFingerprint, color: "#FBBF24" },
   "Contact Enrich": { Icon: TbAddressBook, color: "#2DD4BF" },
+  IntelX: { Icon: TbDatabaseSearch, color: "#A78BFA" },
   "Leak Storage": { Icon: TbDatabaseSearch, color: "#A78BFA" },
   "Stealer Logs": { Icon: TbDatabaseSearch, color: "#FF6B35" },
   Breaches: { Icon: TbDatabaseSearch, color: "#FF6B35" },

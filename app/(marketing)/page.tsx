@@ -3,6 +3,7 @@
 import { HomeBackground } from "@/components/home-background";
 import { HomeSearch } from "@/components/home-search";
 import { IntelligenceModulesSection } from "@/components/intelligence-modules-section";
+import { StatsSection } from "@/components/stats-section";
 import ShinyText from "@/components/shiny-text";
 import { brandTitleClassName } from "@/config/branding";
 import { siteConfig } from "@/config/site";
@@ -29,6 +30,7 @@ export default function Home() {
         <HomeSearch />
       </section>
 
+      <StatsSection />
       <IntelligenceModulesSection />
     </>
   );

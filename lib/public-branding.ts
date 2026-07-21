@@ -114,7 +114,7 @@ export function sanitizePublicText(text: string): string {
 }
 
 /**
- * Sanitize multi-line export bodies (leak storage dumps, raw downloads)
+ * Sanitize multi-line export bodies (IntelX / storage dumps, raw downloads)
  * without collapsing whitespace / newlines.
  */
 export function sanitizePublicContent(text: string): string {
