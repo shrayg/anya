@@ -35,6 +35,7 @@ prisma/*.db-journal
 
 # local status uptime history (production lives under /var/www/anya-secrets)
 /data/status-history.json
+/data/provider-health.json
 
 # vercel
 .vercel

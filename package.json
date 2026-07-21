@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --fix",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "health:providers": "npx tsx scripts/check-provider-health.mts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

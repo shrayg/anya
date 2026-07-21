@@ -11,31 +11,41 @@ export function ModuleStatusDot({
   slug: string;
   className?: string;
 }) {
-  const { isOperational, loading, modules } = useModuleHealth();
-  const checking = loading && modules === null;
-  const operational = checking ? null : isOperational(slug);
+  const { levelFor, loading, levels } = useModuleHealth();
+  const checking = loading && levels === null;
+  const level = checking ? null : levelFor(slug);
+
+  const label = checking
+    ? "Checking module health"
+    : level === "ok"
+      ? "Module online"
+      : level === "degraded"
+        ? "Module degraded"
+        : "Module offline";
+
+  const title = checking
+    ? "Checking connection…"
+    : level === "ok"
+      ? "Online"
+      : level === "degraded"
+        ? "Degraded"
+        : "Offline";
 
   return (
     <span
-      aria-label={
-        checking
-          ? "Checking module health"
-          : operational
-            ? "Module online"
-            : "Module offline"
-      }
+      aria-label={label}
       className={clsx(
         "size-2 shrink-0 rounded-full transition-colors duration-300",
         checking
           ? "bg-zinc-500"
-          : operational
+          : level === "ok"
             ? "bg-emerald-400"
-            : "bg-red-500",
+            : level === "degraded"
+              ? "bg-amber-400"
+              : "bg-red-500",
         className,
       )}
-      title={
-        checking ? "Checking connection…" : operational ? "Online" : "Offline"
-      }
+      title={title}
     />
   );
 }

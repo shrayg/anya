@@ -39,14 +39,21 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "ai-deep-scan": { kind: "any", providers: ["osintcat"] },
   "crypto-ai": { kind: "any", providers: ["osintcat"] },
   "threat-brief": { kind: "any", providers: ["osintcat"] },
-  intelx: { kind: "any", providers: ["godseye-export", "csint"] },
+  intelx: { kind: "any", providers: ["godseye-export", "csint", "breachhub"] },
   "stealer-logs": {
     kind: "any",
     providers: ["osintcat", "godseye", "csint", "breachhub"],
   },
   breaches: {
     kind: "any",
-    providers: ["builtin", "godseye", "breachvip", "csint", "breachhub"],
+    providers: [
+      "builtin",
+      "godseye",
+      "breachvip",
+      "csint",
+      "breachhub",
+      "osintcat",
+    ],
   },
   domain: {
     kind: "any",
@@ -323,6 +330,40 @@ function evaluateRule(
   return rule.providers.every((provider) => providers[provider]);
 }
 
+export type ModuleHealthLevel = "ok" | "degraded" | "down";
+
+function evaluateRuleLevel(
+  rule: ModuleHealthRule,
+  providers: ProviderHealth,
+): ModuleHealthLevel {
+  if (rule.kind === "off") return "down";
+
+  const states = rule.providers.map((provider) => Boolean(providers[provider]));
+  const up = states.filter(Boolean).length;
+  const total = states.length;
+
+  if (total === 0) return "down";
+  if (rule.kind === "any") {
+    if (up === 0) return "down";
+    // Yellow when only the always-true builtin is up and paid indexes are down.
+    if (
+      up === 1 &&
+      rule.providers.includes("builtin") &&
+      providers.builtin &&
+      total > 1
+    ) {
+      return "degraded";
+    }
+
+    return "ok";
+  }
+
+  if (up === total) return "ok";
+  if (up === 0) return "down";
+
+  return "degraded";
+}
+
 export function buildModuleHealthMap(
   providers: ProviderHealth,
 ): Record<string, boolean> {
@@ -330,6 +371,18 @@ export function buildModuleHealthMap(
 
   for (const [slug, rule] of Object.entries(MODULE_HEALTH_RULES)) {
     modules[slug] = evaluateRule(rule, providers);
+  }
+
+  return modules;
+}
+
+export function buildModuleHealthLevels(
+  providers: ProviderHealth,
+): Record<string, ModuleHealthLevel> {
+  const modules: Record<string, ModuleHealthLevel> = {};
+
+  for (const [slug, rule] of Object.entries(MODULE_HEALTH_RULES)) {
+    modules[slug] = evaluateRuleLevel(rule, providers);
   }
 
   return modules;
@@ -349,4 +402,15 @@ export function isModuleOperationalFromMap(
   if (rule.kind === "off") return false;
 
   return false;
+}
+
+export function moduleLevelFromMap(
+  slug: string,
+  modules: Record<string, ModuleHealthLevel> | null | undefined,
+): ModuleHealthLevel {
+  if (modules && slug in modules) {
+    return modules[slug] ?? "down";
+  }
+
+  return "down";
 }
