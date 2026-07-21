@@ -52,6 +52,7 @@ enkidu.tar.gz
 
 # local MITM / browser capture dumps (never commit — may contain session tokens)
 .tmp-charles*/
+.tmp-hinge*
 .playwright-mcp/
 
 # one-off probe / debug scripts and session dumps

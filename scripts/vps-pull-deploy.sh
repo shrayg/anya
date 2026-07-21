@@ -199,6 +199,10 @@ if [[ -f "${SECRETS_DIR}/app.env" ]]; then
   echo "==> Restoring app secrets from ${SECRETS_DIR}/app.env"
   merge_env_file "${SECRETS_DIR}/app.env" .env.local
 fi
+if [[ -f "${SECRETS_DIR}/hinge.env" ]]; then
+  echo "==> Restoring Hinge Live secrets from ${SECRETS_DIR}/hinge.env"
+  merge_env_file "${SECRETS_DIR}/hinge.env" .env.local
+fi
 if [[ -f "${SECRETS_DIR}/oxapay.env" ]]; then
   echo "==> Restoring OxaPay secrets from ${SECRETS_DIR}/oxapay.env"
   merge_env_file "${SECRETS_DIR}/oxapay.env" .env.local
