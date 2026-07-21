@@ -267,6 +267,7 @@ export function ModuleSearchView({
     credentials: StealerCredentialRow[];
     archives: StealerArchiveEntry[];
     count?: number;
+    fallbackRecords?: ReturnType<typeof formatSearchRecords>;
   } | null>(null);
   const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(
     null,
@@ -897,9 +898,8 @@ export function ModuleSearchView({
       return;
     }
 
-    if (moduleDef.slug === "stealer-logs" && normalizeDomain(trimmed)) {
-      activeType = "domains";
-    }
+    // stealer-logs keeps email/domain/IP on /api/osint/breach so victims +
+    // machine view stay available (do not divert domains to /domains).
 
     try {
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
@@ -1340,13 +1340,11 @@ export function ModuleSearchView({
               typeof breachData.count === "number"
                 ? breachData.count
                 : credentials.length || results.length,
+            fallbackRecords:
+              results.length > 0 && credentials.length === 0
+                ? formatSearchRecords(results)
+                : [],
           });
-
-          if (results.length > 0 && credentials.length === 0) {
-            const formatted = formatSearchRecords(results);
-
-            if (formatted.length > 0) setRecords(formatted);
-          }
 
           setResultCount(
             typeof breachData.count === "number"
@@ -2178,6 +2176,7 @@ export function ModuleSearchView({
               archives={stealerResult.archives}
               blurResults={blurResults}
               credentials={stealerResult.credentials}
+              fallbackRecords={stealerResult.fallbackRecords}
               totalCredentialCount={stealerResult.count}
             />
           ) : robloxResult ? (
@@ -2303,6 +2302,7 @@ export function ModuleSearchView({
               records={records}
               selectedExportIndex={selectedExportIndex}
               totalCount={resultCount}
+              variant="premium"
               onSelectExportIndex={handleSelectExportIndex}
             />
           ) : null}

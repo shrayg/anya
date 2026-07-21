@@ -131,7 +131,7 @@ export function SearchResultCards({
   onSelectExportIndex,
   initialVisible = PAGE_SIZE,
   emptyDetail = "No results were found.",
-  variant = "auto",
+  variant = "premium",
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;

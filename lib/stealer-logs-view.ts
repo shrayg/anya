@@ -156,20 +156,31 @@ export function archivesFromStealerResults(
   for (const entry of results) {
     if (!entry || typeof entry !== "object") continue;
     const record = entry as Record<string, unknown>;
-    const logId =
-      asString(record.log_id) ||
-      asString(record.logId) ||
-      asString(record.import_id) ||
-      asString(record.importId) ||
-      asString(record.machine_id) ||
-      asString(record.hwid);
+    const candidates = [
+      asString(record.log_id),
+      asString(record.logId),
+      asString(record.doc_id),
+      asString(record.import_id),
+      asString(record.importId),
+      asString(record.id),
+    ];
+    const logId = candidates.find(
+      (value) =>
+        value.length >= 24 &&
+        /^[a-zA-Z0-9_-]+$/.test(value) &&
+        !/^DESKTOP[-_]/i.test(value) &&
+        !value.includes("."),
+    );
 
-    if (!logId || seen.has(logId) || logId.length < 8) continue;
+    if (!logId || seen.has(logId)) continue;
     seen.add(logId);
 
     archives.push({
       logId,
-      label: asString(record.machine_id) || asString(record.hostname) || undefined,
+      label:
+        asString(record.machine_id) ||
+        asString(record.hostname) ||
+        undefined,
       machineId: asString(record.machine_id) || undefined,
       os: asString(record.os) || undefined,
       date: asString(record.date) || asString(record.indexed_at) || undefined,

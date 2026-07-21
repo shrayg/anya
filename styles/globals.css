@@ -1911,6 +1911,7 @@ html[data-splash="active"] [data-splash-target] {
     rgba(22, 22, 26, 0.96) 0%,
     rgba(12, 12, 14, 0.98) 100%
   );
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 .anya-breach-card-head {
@@ -2207,11 +2208,49 @@ html[data-splash="active"] [data-splash-target] {
   color: #f4f4f5;
 }
 
+.anya-stealer-device-meta {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+}
+
 .anya-stealer-device-id {
   margin-top: 0.15rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.68rem;
   color: #71717a;
+}
+
+.anya-stealer-file-preview {
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.anya-stealer-file-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.75rem;
+  color: #d4d4d8;
+}
+
+.anya-stealer-file-preview-body {
+  margin: 0;
+  max-height: 18rem;
+  overflow: auto;
+  padding: 0.65rem 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e4e4e7;
 }
 
 .anya-stealer-device-actions {

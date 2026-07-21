@@ -19,9 +19,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
+import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { apiFetch } from "@/lib/csrf-client";
 import { countFileNodes } from "@/lib/stealer-logs-view";
+import type { FormattedRecord } from "@/lib/search-utils";
 
 const CRED_PAGE = 5;
 const DEVICE_PAGE = 4;
@@ -73,9 +75,15 @@ function PaginationBar({
 function FileTreeNode({
   node,
   depth = 0,
+  logId,
+  blurResults,
+  onOpenFile,
 }: {
   node: StealerFileNode;
   depth?: number;
+  logId: string;
+  blurResults: boolean;
+  onOpenFile: (fileId: string, name: string) => void;
 }) {
   const [open, setOpen] = useState(depth < 1);
   const isFolder = node.type === "folder";
@@ -87,7 +95,15 @@ function FileTreeNode({
         className="anya-stealer-tree-row"
         style={{ paddingLeft: `${0.55 + depth * 0.85}rem` }}
         type="button"
-        onClick={() => isFolder && setOpen((v) => !v)}
+        onClick={() => {
+          if (isFolder) {
+            setOpen((v) => !v);
+
+            return;
+          }
+
+          if (node.id) onOpenFile(node.id, node.name);
+        }}
       >
         <span className="anya-stealer-tree-icon">
           {isFolder ? (
@@ -109,7 +125,9 @@ function FileTreeNode({
             <FileText className="size-3.5 text-zinc-500" />
           )}
         </span>
-        <span className="anya-stealer-tree-name">{node.name}</span>
+        <span className="anya-stealer-tree-name">
+          <BlurredValue forceBlur={blurResults} text={node.name} />
+        </span>
         {count !== undefined && isFolder ? (
           <span className="anya-stealer-tree-count">{count}</span>
         ) : null}
@@ -119,8 +137,11 @@ function FileTreeNode({
           {node.children.map((child) => (
             <FileTreeNode
               key={`${child.path ?? child.name}-${child.id ?? ""}`}
+              blurResults={blurResults}
               depth={depth + 1}
+              logId={logId}
               node={child}
+              onOpenFile={onOpenFile}
             />
           ))}
         </div>
@@ -150,6 +171,11 @@ function DeviceBrowser({
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<{
+    name: string;
+    content: string;
+  } | null>(null);
+  const [fileLoading, setFileLoading] = useState(false);
 
   const loadManifest = useCallback(async () => {
     if (manifest?.files?.length) return;
@@ -186,13 +212,53 @@ function DeviceBrowser({
     void loadManifest();
   }, [loadManifest]);
 
+  const openFile = useCallback(
+    async (fileId: string, name: string) => {
+      setFileLoading(true);
+      setFilePreview(null);
+
+      try {
+        const res = await apiFetch(
+          `/api/osint/stealer-victim?logId=${encodeURIComponent(device.logId)}&fileId=${encodeURIComponent(fileId)}&action=file&moduleSlug=stealer-logs`,
+        );
+        const data = (await res.json()) as {
+          available?: boolean;
+          content?: string;
+          filename?: string;
+          message?: string;
+        };
+
+        if (!res.ok || !data.content) {
+          setError(data.message || "File content unavailable.");
+
+          return;
+        }
+
+        setFilePreview({
+          name: data.filename || name,
+          content: data.content,
+        });
+      } catch {
+        setError("Could not open file.");
+      } finally {
+        setFileLoading(false);
+      }
+    },
+    [device.logId],
+  );
+
   const files = manifest?.files ?? device.files ?? [];
-  const rootCount = files.length
-    ? countFileNodes(files)
-    : 0;
+  const rootCount = files.length ? countFileNodes(files) : 0;
   const summary = manifest?.summary ?? device.summary;
   const properties = manifest?.properties ?? device.properties;
   const cookies = manifest?.cookies ?? device.cookies;
+  const metaBits = [
+    device.label || device.machineId,
+    device.os,
+    device.malware,
+    device.country,
+    device.date?.slice(0, 10),
+  ].filter(Boolean);
 
   const tabs: { id: DeviceTab; label: string; show: boolean }[] = [
     { id: "files", label: "Files", show: true },
@@ -221,7 +287,13 @@ function DeviceBrowser({
           <div className="min-w-0">
             <p className="anya-stealer-device-title">
               Infected device #{index}
+              {device.label || device.machineId
+                ? ` · ${device.label || device.machineId}`
+                : ""}
             </p>
+            {metaBits.length > 0 ? (
+              <p className="anya-stealer-device-meta">{metaBits.join(" · ")}</p>
+            ) : null}
             <div className="flex items-center gap-1.5 min-w-0">
               <p className="anya-stealer-device-id truncate">
                 <BlurredValue forceBlur={blurResults} text={device.logId} />
@@ -252,6 +324,28 @@ function DeviceBrowser({
         </button>
         <span className="anya-stealer-file-manager-label">File manager</span>
       </div>
+
+      {filePreview ? (
+        <div className="anya-stealer-file-preview">
+          <div className="anya-stealer-file-preview-head">
+            <p>{filePreview.name}</p>
+            <button
+              className="anya-stealer-btn anya-stealer-btn--ghost"
+              type="button"
+              onClick={() => setFilePreview(null)}
+            >
+              Close
+            </button>
+          </div>
+          <pre className="anya-stealer-file-preview-body">
+            <BlurredValue forceBlur={blurResults} text={filePreview.content} />
+          </pre>
+        </div>
+      ) : null}
+
+      {fileLoading ? (
+        <p className="mb-2 text-xs text-zinc-500">Loading file…</p>
+      ) : null}
 
       <div className="anya-stealer-tabs" role="tablist">
         {tabs
@@ -296,8 +390,11 @@ function DeviceBrowser({
               {files.map((node) => (
                 <FileTreeNode
                   key={`${node.path ?? node.name}-${node.id ?? ""}`}
+                  blurResults={blurResults}
                   depth={1}
+                  logId={device.logId}
                   node={node}
+                  onOpenFile={(fileId, name) => void openFile(fileId, name)}
                 />
               ))}
             </div>
@@ -370,11 +467,13 @@ export function StealerLogsSearchResults({
   archives,
   blurResults = false,
   totalCredentialCount,
+  fallbackRecords,
 }: {
   credentials: StealerCredentialRow[];
   archives: StealerArchiveEntry[];
   blurResults?: boolean;
   totalCredentialCount?: number;
+  fallbackRecords?: FormattedRecord[];
 }) {
   const [credPage, setCredPage] = useState(1);
   const [devicePage, setDevicePage] = useState(1);
@@ -406,6 +505,27 @@ export function StealerLogsSearchResults({
       const res = await apiFetch(
         `/api/osint/stealer-victim?logId=${encodeURIComponent(logId)}&action=archive&moduleSlug=stealer-logs`,
       );
+      const contentType = res.headers.get("content-type") || "";
+
+      if (
+        res.ok &&
+        (contentType.includes("zip") ||
+          contentType.includes("octet-stream") ||
+          contentType.includes("application/x-zip"))
+      ) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+
+        a.href = url;
+        a.download = `stealer-${logId.slice(0, 12)}.zip`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setArchiveMsg("Archive download started.");
+
+        return;
+      }
+
       const data = (await res.json()) as {
         downloadUrl?: string | null;
         available?: boolean;
@@ -430,7 +550,11 @@ export function StealerLogsSearchResults({
     }
   };
 
-  if (credentials.length === 0 && archives.length === 0) {
+  if (
+    credentials.length === 0 &&
+    archives.length === 0 &&
+    !(fallbackRecords && fallbackRecords.length > 0)
+  ) {
     return <SearchEmptyState detail="No stealer credentials or archives found." />;
   }
 
@@ -537,7 +661,29 @@ export function StealerLogsSearchResults({
                         <div className="min-w-0">
                           <p className="anya-stealer-device-title">
                             Infected device #{globalIndex}
+                            {device.label || device.machineId
+                              ? ` · ${device.label || device.machineId}`
+                              : ""}
                           </p>
+                          {[
+                            device.os,
+                            device.malware,
+                            device.country,
+                            device.date?.slice(0, 10),
+                          ]
+                            .filter(Boolean)
+                            .length > 0 ? (
+                            <p className="anya-stealer-device-meta">
+                              {[
+                                device.os,
+                                device.malware,
+                                device.country,
+                                device.date?.slice(0, 10),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          ) : null}
                           <div className="flex items-center gap-1.5 min-w-0">
                             <p className="anya-stealer-device-id truncate">
                               <BlurredValue
@@ -586,6 +732,22 @@ export function StealerLogsSearchResults({
               setDevicePage((p) => Math.min(devicePageCount, p + 1))
             }
             onPrev={() => setDevicePage((p) => Math.max(1, p - 1))}
+          />
+        </section>
+      ) : null}
+
+      {fallbackRecords && fallbackRecords.length > 0 ? (
+        <section className="anya-stealer-card">
+          <header className="anya-stealer-archives-head">
+            <p className="anya-stealer-archives-label">Related intel records</p>
+            <p className="anya-stealer-archives-sub">
+              Additional rows from linked indexes.
+            </p>
+          </header>
+          <SearchResultCards
+            blurResults={blurResults}
+            records={fallbackRecords}
+            variant="premium"
           />
         </section>
       ) : null}

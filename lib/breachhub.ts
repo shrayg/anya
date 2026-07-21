@@ -2651,15 +2651,102 @@ export type StealerFileNode = {
   path?: string;
 };
 
+function looksLikeVictimLogId(value: string): boolean {
+  const v = value.trim();
+
+  if (!v || v.length < 16) return false;
+  // Hostnames / DESKTOP-… are never OathNet log ids.
+  if (/^DESKTOP[-_]/i.test(v)) return false;
+  if (/[\s\\/]/.test(v)) return false;
+  if (/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(
+    v,
+  )) {
+    return false;
+  }
+  // Prefer hex / uuid-ish ids used by victim manifests.
+  if (/^[a-f0-9]{32,128}$/i.test(v)) return true;
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+  ) {
+    return true;
+  }
+  // Long opaque tokens (no spaces, mostly alnum)
+  if (v.length >= 24 && /^[a-zA-Z0-9_-]+$/.test(v) && !/^[A-Z]+-\w+$/.test(v)) {
+    return true;
+  }
+
+  return false;
+}
+
 function asLogId(record: Record<string, unknown>): string {
-  return (
-    asString(record.log_id) ||
-    asString(record.logId) ||
-    asString(record.id) ||
-    asString(record.machine_id) ||
-    asString(record.machineId) ||
-    asString(record.hwid) ||
-    ""
+  const candidates = [
+    asString(record.log_id),
+    asString(record.logId),
+    asString(record.doc_id),
+    asString(record.docId),
+    asString(record.import_id),
+    asString(record.importId),
+    asString(record.id),
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && looksLikeVictimLogId(candidate)) return candidate;
+  }
+
+  return "";
+}
+
+function unwrapVictimPayload(payload: unknown): Record<string, unknown>[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) {
+    return payload.filter(
+      (item): item is Record<string, unknown> =>
+        Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+  if (typeof payload !== "object") return [];
+
+  const data = payload as Record<string, unknown>;
+  const buckets: unknown[] = [];
+
+  for (const key of [
+    "logs",
+    "victims",
+    "archives",
+    "devices",
+    "results",
+    "items",
+    "data",
+  ]) {
+    const value = data[key];
+
+    if (Array.isArray(value)) {
+      buckets.push(...value);
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+      const nested = value as Record<string, unknown>;
+
+      for (const nestedKey of [
+        "logs",
+        "victims",
+        "archives",
+        "devices",
+        "results",
+        "items",
+      ]) {
+        if (Array.isArray(nested[nestedKey])) {
+          buckets.push(...(nested[nestedKey] as unknown[]));
+        }
+      }
+    }
+  }
+
+  if (buckets.length === 0 && asLogId(data)) {
+    return [data];
+  }
+
+  return buckets.filter(
+    (item): item is Record<string, unknown> =>
+      Boolean(item) && typeof item === "object" && !Array.isArray(item),
   );
 }
 
@@ -2701,8 +2788,8 @@ function normalizeCredentialRows(
   return out;
 }
 
-function normalizeFileTree(input: unknown): StealerFileNode[] {
-  if (!input) return [];
+function normalizeFileTree(input: unknown, depth = 0): StealerFileNode[] {
+  if (!input || depth > 12) return [];
 
   if (Array.isArray(input)) {
     return input
@@ -2721,13 +2808,24 @@ function normalizeFileTree(input: unknown): StealerFileNode[] {
           asString(node.id);
         if (!name) return null;
         const children = normalizeFileTree(
-          node.children ?? node.files ?? node.entries ?? node.items,
+          node.children ??
+            node.files ??
+            node.entries ??
+            node.items ??
+            node.nodes,
+          depth + 1,
         );
+        const typeRaw = asString(node.type).toLowerCase();
+        const kindRaw = asString(node.kind).toLowerCase();
         const isFolder =
           children.length > 0 ||
-          asString(node.type).toLowerCase() === "folder" ||
-          asString(node.kind).toLowerCase() === "dir" ||
-          Boolean(node.is_dir || node.isDir);
+          typeRaw === "folder" ||
+          typeRaw === "directory" ||
+          typeRaw === "dir" ||
+          kindRaw === "folder" ||
+          kindRaw === "directory" ||
+          kindRaw === "dir" ||
+          Boolean(node.is_dir || node.isDir || node.is_directory);
         const count =
           typeof node.count === "number"
             ? node.count
@@ -2739,7 +2837,9 @@ function normalizeFileTree(input: unknown): StealerFileNode[] {
           name,
           type: isFolder ? "folder" : "file",
           ...(asString(node.id) ? { id: asString(node.id) } : {}),
-          ...(asString(node.path) ? { path: asString(node.path) } : {}),
+          ...(asString(node.path) || asString(node.full_path)
+            ? { path: asString(node.path) || asString(node.full_path) }
+            : {}),
           ...(count !== undefined ? { count } : {}),
           ...(children.length ? { children } : {}),
         };
@@ -2750,16 +2850,44 @@ function normalizeFileTree(input: unknown): StealerFileNode[] {
   if (typeof input === "object") {
     const obj = input as Record<string, unknown>;
 
-    if (Array.isArray(obj.tree)) return normalizeFileTree(obj.tree);
-    if (Array.isArray(obj.files)) return normalizeFileTree(obj.files);
-    if (Array.isArray(obj.manifest)) return normalizeFileTree(obj.manifest);
+    for (const key of [
+      "victim_tree",
+      "tree",
+      "files",
+      "manifest",
+      "file_tree",
+      "nodes",
+      "entries",
+      "children",
+    ]) {
+      if (Array.isArray(obj[key])) {
+        return normalizeFileTree(obj[key], depth + 1);
+      }
+    }
 
-    // Flat map of folder → files
+    // Flat map of folder → files (avoid treating API envelopes as folders)
+    const metaKeys = new Set([
+      "success",
+      "query",
+      "message",
+      "error",
+      "status",
+      "count",
+      "total",
+      "logs",
+      "results",
+      "data",
+      "credits",
+      "credit",
+      "service",
+    ]);
     const nodes: StealerFileNode[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
+      if (metaKeys.has(key)) continue;
+
       if (Array.isArray(value)) {
-        const children = normalizeFileTree(value);
+        const children = normalizeFileTree(value, depth + 1);
 
         nodes.push({
           name: key,
@@ -2768,15 +2896,16 @@ function normalizeFileTree(input: unknown): StealerFileNode[] {
           children,
         });
       } else if (value && typeof value === "object") {
-        const children = normalizeFileTree(value);
+        const children = normalizeFileTree(value, depth + 1);
 
-        nodes.push({
-          name: key,
-          type: children.length ? "folder" : "file",
-          ...(children.length
-            ? { count: children.length, children }
-            : {}),
-        });
+        if (children.length > 0) {
+          nodes.push({
+            name: key,
+            type: "folder",
+            count: children.length,
+            children,
+          });
+        }
       }
     }
 
@@ -2789,25 +2918,11 @@ function normalizeFileTree(input: unknown): StealerFileNode[] {
 export function extractStealerArchives(
   payload: unknown,
 ): StealerArchiveEntry[] {
-  if (!payload || typeof payload !== "object") return [];
-
-  const data = payload as Record<string, unknown>;
-  const lists: unknown[] = [];
-
-  for (const key of ["logs", "victims", "archives", "devices", "results"]) {
-    if (Array.isArray(data[key])) lists.push(...(data[key] as unknown[]));
-  }
-
-  if (lists.length === 0 && Array.isArray(payload)) {
-    lists.push(...payload);
-  }
-
+  const rows = unwrapVictimPayload(payload);
   const archives: StealerArchiveEntry[] = [];
   const seen = new Set<string>();
 
-  for (const item of lists) {
-    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
-    const row = item as Record<string, unknown>;
+  for (const row of rows) {
     const logId = asLogId(row);
 
     if (!logId || seen.has(logId)) continue;
@@ -2817,17 +2932,40 @@ export function extractStealerArchives(
       ? normalizeCredentialRows(row.credentials)
       : undefined;
     const files = normalizeFileTree(
-      row.files ?? row.tree ?? row.manifest ?? row.file_tree,
+      row.victim_tree ??
+        row.files ??
+        row.tree ??
+        row.manifest ??
+        row.file_tree,
     );
 
     archives.push({
       logId,
-      label: asString(row.machine_id) || asString(row.label) || undefined,
-      machineId: asString(row.machine_id) || asString(row.machineId) || undefined,
-      os: asString(row.os) || undefined,
-      date: asString(row.date) || asString(row.indexed_at) || undefined,
-      malware: asString(row.malware) || asString(row.stealer) || undefined,
-      country: asString(row.country) || undefined,
+      label:
+        asString(row.machine_id) ||
+        asString(row.machineId) ||
+        asString(row.hostname) ||
+        asString(row.label) ||
+        undefined,
+      machineId:
+        asString(row.machine_id) || asString(row.machineId) || undefined,
+      os: asString(row.os) || asString(row.operating_system) || undefined,
+      date:
+        asString(row.date) ||
+        asString(row.indexed_at) ||
+        asString(row.pwned_at) ||
+        asString(row.created_at) ||
+        undefined,
+      malware:
+        asString(row.malware) ||
+        asString(row.stealer) ||
+        asString(row.stealer_name) ||
+        undefined,
+      country:
+        asString(row.country) ||
+        asString(row.device_country) ||
+        asString(row.geo) ||
+        undefined,
       ...(creds?.length ? { credentials: creds } : {}),
       ...(files.length ? { files } : {}),
       ...(row.summary && typeof row.summary === "object"
@@ -2862,11 +3000,40 @@ export async function fetchBreachHubStealerVictims(
   }
 }
 
+function pickManifestTree(data: Record<string, unknown>): StealerFileNode[] {
+  const direct = normalizeFileTree(
+    data.victim_tree ??
+      data.files ??
+      data.tree ??
+      data.manifest ??
+      data.file_tree,
+  );
+
+  if (direct.length > 0) return direct;
+
+  if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) {
+    const nested = data.data as Record<string, unknown>;
+
+    return normalizeFileTree(
+      nested.victim_tree ??
+        nested.files ??
+        nested.tree ??
+        nested.manifest ??
+        nested.file_tree,
+    );
+  }
+
+  const fromLogs = extractStealerArchives(data);
+
+  return fromLogs[0]?.files ?? [];
+}
+
 export async function fetchBreachHubVictimManifest(
   logId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<StealerArchiveEntry | null> {
   if (!isBreachHubEnabled() || !logId.trim()) return null;
+  if (!looksLikeVictimLogId(logId)) return null;
 
   try {
     const data = await breachHubGet(
@@ -2876,20 +3043,23 @@ export async function fetchBreachHubVictimManifest(
       { log_id: logId.trim() },
     );
     const archives = extractStealerArchives(data);
-
-    if (archives[0]) return { ...archives[0], logId: logId.trim() };
-
-    const files = normalizeFileTree(
-      data.files ?? data.tree ?? data.manifest ?? data.file_tree ?? data,
-    );
+    const files = pickManifestTree(data);
+    const base = archives[0];
 
     return {
       logId: logId.trim(),
+      label: base?.label,
+      machineId: base?.machineId,
+      os: base?.os || asString(data.os) || undefined,
+      date: base?.date || asString(data.date) || undefined,
+      malware: base?.malware || asString(data.malware) || undefined,
+      country: base?.country || asString(data.country) || undefined,
+      ...(base?.credentials?.length ? { credentials: base.credentials } : {}),
       ...(files.length ? { files } : {}),
       summary:
         data.summary && typeof data.summary === "object"
           ? (data.summary as Record<string, unknown>)
-          : stripMetaFields(data),
+          : undefined,
       properties:
         data.properties && typeof data.properties === "object"
           ? (data.properties as Record<string, unknown>)
@@ -2901,11 +3071,90 @@ export async function fetchBreachHubVictimManifest(
   }
 }
 
+export async function fetchBreachHubVictimArchiveBinary(
+  logId: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{
+  bytes: ArrayBuffer;
+  contentType: string;
+  filename: string;
+} | null> {
+  const apiKey = getBreachHubApiKey();
+
+  if (!apiKey || !logId.trim() || !looksLikeVictimLogId(logId)) return null;
+
+  const url = new URL(
+    `${BREACHHUB_BASE}/api/oathnet/victims/${encodeURIComponent(logId.trim())}/archive`,
+  );
+
+  url.searchParams.set("key", apiKey);
+
+  const res = await fetchWithTimeout(url.toString(), {
+    method: "GET",
+    headers: {
+      Accept: "application/zip, application/octet-stream, application/json",
+      "User-Agent": "AnyaInt-BreachHub/1.0",
+    },
+    cache: "no-store",
+    timeoutMs,
+  });
+
+  if (!res.ok) return null;
+
+  const contentType = res.headers.get("content-type") || "";
+
+  if (
+    contentType.includes("application/json") ||
+    contentType.includes("text/json")
+  ) {
+    const text = await readResponseText(res, 8_000);
+    let data: Record<string, unknown> = {};
+
+    try {
+      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      return null;
+    }
+
+    const downloadUrl =
+      asString(data.download_url) ||
+      asString(data.url) ||
+      asString(data.archive_url) ||
+      asString(data.link);
+
+    if (!downloadUrl) return null;
+
+    const fileRes = await fetchWithTimeout(downloadUrl, {
+      method: "GET",
+      headers: { "User-Agent": "AnyaInt-BreachHub/1.0" },
+      cache: "no-store",
+      timeoutMs,
+    });
+
+    if (!fileRes.ok) return null;
+
+    return {
+      bytes: await fileRes.arrayBuffer(),
+      contentType:
+        fileRes.headers.get("content-type") || "application/zip",
+      filename: `stealer-${logId.trim().slice(0, 12)}.zip`,
+    };
+  }
+
+  return {
+    bytes: await res.arrayBuffer(),
+    contentType: contentType || "application/zip",
+    filename: `stealer-${logId.trim().slice(0, 12)}.zip`,
+  };
+}
+
+/** @deprecated Prefer fetchBreachHubVictimArchiveBinary for ZIP streams. */
 export async function fetchBreachHubVictimArchiveUrl(
   logId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<{ downloadUrl?: string; payload?: Record<string, unknown> } | null> {
   if (!isBreachHubEnabled() || !logId.trim()) return null;
+  if (!looksLikeVictimLogId(logId)) return null;
 
   try {
     const data = await breachHubGet(
@@ -2923,6 +3172,57 @@ export async function fetchBreachHubVictimArchiveUrl(
     return {
       ...(downloadUrl ? { downloadUrl } : {}),
       payload: stripMetaFields(data),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchBreachHubVictimFile(
+  logId: string,
+  fileId: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ content: string; filename?: string } | null> {
+  if (!isBreachHubEnabled() || !logId.trim() || !fileId.trim()) return null;
+  if (!looksLikeVictimLogId(logId)) return null;
+
+  try {
+    const data = await breachHubGet(
+      "/api/oathnet/victims/:log_id/files/:file_id",
+      {},
+      timeoutMs,
+      { log_id: logId.trim(), file_id: fileId.trim() },
+    );
+    const content =
+      asString(data.content) ||
+      asString(data.data) ||
+      asString(data.text) ||
+      asString(data.file) ||
+      (typeof data.body === "string" ? data.body : "");
+
+    if (!content) {
+      // Some APIs nest file body
+      const nested = data.file;
+
+      if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+        const n = nested as Record<string, unknown>;
+        const nestedContent =
+          asString(n.content) || asString(n.data) || asString(n.text);
+
+        if (nestedContent) {
+          return {
+            content: nestedContent,
+            filename: asString(n.name) || asString(n.filename) || undefined,
+          };
+        }
+      }
+
+      return null;
+    }
+
+    return {
+      content,
+      filename: asString(data.name) || asString(data.filename) || undefined,
     };
   } catch {
     return null;

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 import {
-  fetchBreachHubVictimArchiveUrl,
+  fetchBreachHubVictimArchiveBinary,
+  fetchBreachHubVictimFile,
   fetchBreachHubVictimManifest,
   isBreachHubEnabled,
 } from "@/lib/breachhub";
@@ -26,6 +27,7 @@ export async function GET(req: NextRequest) {
   }
 
   const logId = req.nextUrl.searchParams.get("logId")?.trim();
+  const fileId = req.nextUrl.searchParams.get("fileId")?.trim();
   const action = req.nextUrl.searchParams.get("action")?.trim() || "manifest";
 
   if (!logId) {
@@ -35,8 +37,8 @@ export async function GET(req: NextRequest) {
   try {
     if (action === "archive") {
       const archive = await withDeadline(
-        fetchBreachHubVictimArchiveUrl(logId, 25_000),
-        OSINT_ROUTE_DEADLINE_MS,
+        fetchBreachHubVictimArchiveBinary(logId, 45_000),
+        Math.max(OSINT_ROUTE_DEADLINE_MS, 50_000),
       );
 
       if (!archive) {
@@ -47,11 +49,41 @@ export async function GET(req: NextRequest) {
         });
       }
 
+      return new NextResponse(new Uint8Array(archive.bytes), {
+        status: 200,
+        headers: {
+          "Content-Type": archive.contentType || "application/zip",
+          "Content-Disposition": `attachment; filename="${archive.filename}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    if (action === "file") {
+      if (!fileId) {
+        return NextResponse.json({ error: "Missing fileId" }, { status: 400 });
+      }
+
+      const file = await withDeadline(
+        fetchBreachHubVictimFile(logId, fileId, 25_000),
+        OSINT_ROUTE_DEADLINE_MS,
+      );
+
+      if (!file) {
+        return NextResponse.json({
+          logId,
+          fileId,
+          available: false,
+          message: "File content is not available.",
+        });
+      }
+
       return NextResponse.json({
-        logId,
         available: true,
-        downloadUrl: archive.downloadUrl ?? null,
-        payload: archive.payload ?? null,
+        logId,
+        fileId,
+        filename: file.filename ?? null,
+        content: file.content,
       });
     }
 
