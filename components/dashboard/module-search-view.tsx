@@ -28,10 +28,21 @@ import type { UsernameAccountsSearchResult } from "@/lib/username-accounts/types
 import type { FormattedRecord } from "@/lib/search-utils";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, FolderPlus, Home } from "lucide-react";
 import dynamic from "next/dynamic";
+import {
+  useSearchJobs,
+} from "@/components/dashboard/search-jobs-context";
+import {
+  emptyModuleSearchSnapshot,
+  formatResultSummary,
+  payloadToSnapshot,
+  snapshotToPayload,
+  type ModuleSearchSnapshot,
+  type StructuredSearchResult,
+} from "@/components/dashboard/module-search-snapshot";
 
 import { apiFetch } from "@/lib/csrf-client";
 import { SearchBarTour } from "@/components/search-bar-tour";
@@ -146,32 +157,7 @@ const SitePentestResults = dynamic(
   { ssr: false },
 );
 
-type StructuredResult =
-  | { kind: "crypto-wallet"; data: CryptoWalletResult }
-  | { kind: "crypto-address"; data: CryptoAddressIntelResult }
-  | { kind: "crypto-tx"; data: CryptoTxDeepDiveResult }
-  | { kind: "crypto-risk"; data: CryptoRiskCheckResult }
-  | { kind: "crypto-flow"; data: CryptoFundFlowResult }
-  | { kind: "bin"; data: BinLookupResult }
-  | { kind: "iban"; data: IbanLookupResult }
-  | { kind: "bank"; data: BankSearchResult }
-  | { kind: "vin"; data: VinDecodeResult }
-  | { kind: "car-insurance"; data: UsProviderSearchResult }
-  | { kind: "healthcare"; data: UsProviderSearchResult }
-  | { kind: "us-court"; data: UsCourtSearchResult }
-  | { kind: "us-identity"; data: UsIdentitySearchResult }
-  | { kind: "us-npd"; data: UsIdentitySearchResult }
-  | { kind: "us-va-sor"; data: UsVaSorSearchResult }
-  | { kind: "us-global"; data: UsIdentitySearchResult }
-  | { kind: "us-sanctions"; data: UsIdentitySearchResult }
-  | { kind: "us-wanted"; data: UsIdentitySearchResult }
-  | { kind: "us-sor-national"; data: UsVaSorSearchResult }
-  | { kind: "us-state-directory"; data: UsIdentitySearchResult }
-  | { kind: "us-portal-backlog"; data: UsIdentitySearchResult }
-  | { kind: "us-intl-directory"; data: UsIdentitySearchResult }
-  | { kind: "site-pentest"; data: SitePentestResult }
-  | { kind: "tinder-live"; data: TinderLiveSearchResult }
-  | { kind: "username-accounts"; data: UsernameAccountsSearchResult };
+type StructuredResult = StructuredSearchResult;
 const PUBLIC_RECORDS_COMPOSE_KINDS = new Set([
   "us-identity",
   "us-npd",
@@ -208,6 +194,16 @@ export function ModuleSearchView({
   const profile = useDashboardUser();
   const plan = resolveUserPlan(profile);
   const balance = profile.balance ?? 0;
+  const {
+    jobs,
+    selectedJobId,
+    beginJob,
+    completeJob,
+    failJob,
+    getJob,
+    getLatestJobForModule,
+  } = useSearchJobs();
+  const boundJobIdRef = useRef<string | null>(null);
 
   const isAi = moduleDef.module === "ai";
   const aiMode = (() => {
@@ -335,6 +331,137 @@ export function ModuleSearchView({
       isMountedRef.current = false;
     };
   }, []);
+
+  const applySnapshot = useCallback((snap: ModuleSearchSnapshot) => {
+    setQuery(snap.query);
+    setError(snap.error);
+    setEmptyResult(snap.emptyResult);
+    setRecords(snap.records);
+    setResultCount(snap.resultCount);
+    setAiResult(snap.aiResult);
+    setCombResult(snap.combResult);
+    setDomainResult(snap.domainResult);
+    setDiscordResult(snap.discordResult);
+    setIntelxResult(snap.intelxResult);
+    setFivemResult(snap.fivemResult);
+    setStealerResult(snap.stealerResult);
+    setRobloxResult(snap.robloxResult);
+    setInstagramResult(snap.instagramResult);
+    setStructuredResult(snap.structuredResult);
+    setRawResult(snap.rawResult);
+    setLastSearchLabel(snap.lastSearchLabel);
+    setBlurResults(snap.blurResults);
+    setSelectedExportIndex(null);
+  }, []);
+
+  const clearResultState = useCallback(() => {
+    setError("");
+    setEmptyResult("");
+    setRecords([]);
+    setResultCount(undefined);
+    setAiResult(null);
+    setCombResult(null);
+    setDomainResult(null);
+    setDiscordResult(null);
+    setIntelxResult(null);
+    setFivemResult(null);
+    setStealerResult(null);
+    setRobloxResult(null);
+    setInstagramResult(null);
+    setInstagramEnriching(false);
+    setInstagramLoadingMore(false);
+    setInstagramProgressLabel("");
+    setStructuredResult(null);
+    setRawResult("");
+    setLastSearchLabel("");
+    setSaveMessage("");
+    setSelectedExportIndex(null);
+  }, []);
+
+  // Restore / bind the latest (or selected) job for this module when navigating back.
+  useEffect(() => {
+    const selected = selectedJobId ? getJob(selectedJobId) : undefined;
+    const job =
+      selected && selected.moduleId === moduleDef.slug
+        ? selected
+        : getLatestJobForModule(moduleDef.slug);
+
+    boundJobIdRef.current = job?.id ?? null;
+
+    if (!job) return;
+
+    if (job.query) {
+      setQuery(job.query);
+    }
+
+    if (job.status === "running") {
+      setIsSearching(true);
+      clearResultState();
+
+      return;
+    }
+
+    if (job.status === "done") {
+      const snap = payloadToSnapshot(job.payload);
+
+      if (snap) applySnapshot(snap);
+      setIsSearching(false);
+
+      return;
+    }
+
+    if (job.status === "error") {
+      clearResultState();
+      setError(job.error || "Search failed.");
+      setLastSearchLabel(`${moduleDef.name} · ${job.query}`);
+      setIsSearching(false);
+    }
+  }, [
+    applySnapshot,
+    clearResultState,
+    getJob,
+    getLatestJobForModule,
+    moduleDef.name,
+    moduleDef.slug,
+    selectedJobId,
+  ]);
+
+  // Apply updates when the bound background job finishes while this view is open.
+  useEffect(() => {
+    const id = boundJobIdRef.current;
+
+    if (!id) return;
+
+    const job = jobs.find((entry) => entry.id === id);
+
+    if (!job) return;
+
+    if (job.status === "running") {
+      setIsSearching(true);
+
+      return;
+    }
+
+    if (job.status === "done") {
+      const snap = payloadToSnapshot(job.payload);
+
+      if (snap) applySnapshot(snap);
+      setIsSearching(false);
+
+      return;
+    }
+
+    if (job.status === "error") {
+      setError(job.error || "Search failed.");
+      setIsSearching(false);
+
+      return;
+    }
+
+    if (job.status === "cancelled") {
+      setIsSearching(false);
+    }
+  }, [applySnapshot, jobs]);
 
   const moduleLocked = useMemo(() => {
     const access = checkModuleAccess(plan, moduleDef.slug, { balance });
@@ -651,40 +778,15 @@ export function ModuleSearchView({
       ? normalizeDatingQuery(trimmed, moduleDef.slug)
       : trimmed;
 
-    if (!trimmed || isSearching) return;
+    if (!trimmed) return;
 
     setIsSearching(true);
-    setError("");
-    setEmptyResult("");
-    setRecords([]);
-    setResultCount(undefined);
-    setAiResult(null);
-    setCombResult(null);
-    setDomainResult(null);
-    setDiscordResult(null);
-    setIntelxResult(null);
-    setFivemResult(null);
-    setStealerResult(null);
-    setRobloxResult(null);
-    setInstagramResult(null);
-    setInstagramEnriching(false);
-    setInstagramLoadingMore(false);
-    setInstagramProgressLabel("");
-    instagramLoadGenRef.current += 1;
-    setStructuredResult(null);
-    setRawResult("");
-    setSaveMessage("");
+    clearResultState();
     setCasesLoaded(false);
-    setBlurResults(shouldBlurResults(plan));
-    setSelectedExportIndex(null);
+    const initialBlur = shouldBlurResults(plan);
 
-    const markNoResults = (message?: string | null) => {
-      setEmptyResult(
-        (typeof message === "string" && message.trim()) ||
-          "No results were found.",
-      );
-      setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-    };
+    setBlurResults(initialBlur);
+    instagramLoadGenRef.current += 1;
 
     if (moduleLocked) {
       setError(moduleLocked);
@@ -695,48 +797,202 @@ export function ModuleSearchView({
 
     const access = await authorizeSearch();
 
-    if (!isMountedRef.current) return;
-
     if (!access.allowed) {
-      setError(access.reason || "This search is not available on your plan.");
+      if (isMountedRef.current) {
+        setError(access.reason || "This search is not available on your plan.");
+        setIsSearching(false);
+      }
+
+      return;
+    }
+
+    let blurFlag = initialBlur;
+
+    if (access.allowed && "blurResults" in access && access.blurResults) {
+      blurFlag = true;
+      if (isMountedRef.current) setBlurResults(true);
+    }
+
+    // Client-side validation before registering a background job.
+    const validationError = (() => {
+      if (isAi) return null;
+
+      let activeType = resolveSearchApiType(moduleDef, trimmed);
+      const selectedTool = moduleDef.tools?.find(
+        (tool) => tool.id === selectedToolId,
+      );
+
+      if (selectedTool?.apiType) {
+        activeType = selectedTool.apiType;
+      }
+
+      if (activeType === "breaches" && !normalizeEmail(trimmed)) {
+        return "Enter a valid email address.";
+      }
+      if (activeType === "crypto-wallet" && !detectCryptoChain(trimmed)) {
+        return CRYPTO_WALLET_INVALID_MESSAGE;
+      }
+      if (
+        (activeType === "crypto-address" ||
+          activeType === "crypto-risk" ||
+          activeType === "crypto-flow") &&
+        !detectCryptoChain(trimmed)
+      ) {
+        return CRYPTO_WALLET_INVALID_MESSAGE;
+      }
+      if (
+        activeType === "crypto-tx" &&
+        !/^0x[a-fA-F0-9]{64}$/.test(trimmed) &&
+        !/^[a-fA-F0-9]{64}$/.test(trimmed) &&
+        !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(trimmed)
+      ) {
+        return "Paste an Ethereum 0x…64 hash, Bitcoin 64-hex txid, or Solana signature.";
+      }
+      if (moduleDef.slug === "phone" && !isPhoneQuery(trimmed)) {
+        return "Enter a valid phone number (10–15 digits).";
+      }
+      if (moduleDef.slug === "username" && trimmed.length < 2) {
+        return "Enter a username (at least 2 characters).";
+      }
+      if (moduleDef.slug === "stealer-logs" && isDiscordSnowflake(trimmed)) {
+        return "Discord IDs are not supported here. Use the Discord ID module.";
+      }
+      if (moduleDef.slug === "discord-id" && !isDiscordSnowflake(trimmed)) {
+        return "Enter a valid Discord ID (17–20 digits).";
+      }
+      if (moduleDef.slug === "oathnet-roblox" && !isDiscordSnowflake(trimmed)) {
+        return "Enter a valid Discord ID (17–20 digits).";
+      }
+      if (moduleDef.slug === "fraud-footprint") {
+        const tool = moduleDef.tools?.find((t) => t.id === selectedToolId);
+        const api = tool?.apiType || "seon-email";
+
+        if (api === "seon-email" && !normalizeEmail(trimmed)) {
+          return "Enter a valid email address.";
+        }
+        if (api === "seon-phone" && !isPhoneQuery(trimmed)) {
+          return "Enter a valid phone number (10–15 digits).";
+        }
+      }
+      if (moduleDef.slug === "fivem" && !isDiscordSnowflake(trimmed)) {
+        return "FiveM lookups require a Discord ID (17–20 digits).";
+      }
+      if (
+        moduleDef.slug === "instagram" &&
+        !normalizeInstagramUsername(trimmed)
+      ) {
+        return "Enter a valid Instagram username or profile URL.";
+      }
+      if (moduleDef.slug === "domain" && !normalizeDomain(trimmed)) {
+        return "Enter a valid domain name (e.g. example.com).";
+      }
+      if (moduleDef.slug === "site-pentest" && !parseSitePentestTarget(trimmed)) {
+        return "Enter a valid domain or http(s) URL (e.g. example.com).";
+      }
+      if (moduleDef.slug === "hash-lookup" && trimmed.length < 8) {
+        return "Enter a valid hash (at least 8 characters).";
+      }
+      if (moduleDef.slug === "password-search" && trimmed.length < 3) {
+        return "Enter a password to search (at least 3 characters).";
+      }
+      if (moduleDef.slug === "name-search" && trimmed.length < 2) {
+        return "Enter a name to search (at least 2 characters).";
+      }
+
+      return null;
+    })();
+
+    if (validationError) {
+      setError(validationError);
       setIsSearching(false);
 
       return;
     }
 
-    if (access.allowed && "blurResults" in access && access.blurResults) {
-      setBlurResults(true);
-    }
+    const { jobId, signal } = beginJob({
+      moduleId: moduleDef.slug,
+      moduleName: moduleDef.name,
+      query: trimmed,
+    });
+
+    boundJobIdRef.current = jobId;
+
+    const commitSuccess = (
+      partial: Partial<ModuleSearchSnapshot>,
+      persistData?: string,
+    ) => {
+      const snap: ModuleSearchSnapshot = {
+        ...emptyModuleSearchSnapshot(trimmed, blurFlag),
+        ...partial,
+        query: trimmed,
+        lastSearchLabel:
+          partial.lastSearchLabel ?? `${moduleDef.name} · ${trimmed}`,
+        blurResults: partial.blurResults ?? blurFlag,
+      };
+
+      completeJob(jobId, {
+        payload: snapshotToPayload(snap),
+        resultSummary: formatResultSummary(snap),
+      });
+
+      if (persistData) {
+        persistSearch(trimmed, moduleDef.slug, persistData);
+      }
+
+      if (isMountedRef.current) {
+        applySnapshot(snap);
+        setIsSearching(false);
+      }
+    };
+
+    const commitEmpty = (message?: string | null) => {
+      commitSuccess({
+        emptyResult:
+          (typeof message === "string" && message.trim()) ||
+          "No results were found.",
+      });
+    };
+
+    const commitFail = (message: string) => {
+      failJob(jobId, message);
+      if (isMountedRef.current) {
+        setError(message);
+        setIsSearching(false);
+      }
+    };
 
     if (isAi) {
       try {
         const searchResponse = await fetch(
           `/api/osint/ai?query=${encodeURIComponent(trimmed)}&mode=${aiMode}&moduleSlug=${encodeURIComponent(moduleDef.slug)}`,
+          { signal },
         );
         const data = (await searchResponse.json()) as AiIntelResult & {
           error?: string;
         };
 
-        if (!isMountedRef.current) return;
+        if (signal.aborted) return;
 
         if (!searchResponse.ok) {
-          setError(data.error || "AI analysis failed.");
+          commitFail(data.error || "AI analysis failed.");
 
           return;
         }
 
-        setAiResult(data);
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, JSON.stringify(data));
-      } catch {
-        if (isMountedRef.current) {
-          setError("Could not complete AI analysis.");
-        }
-      } finally {
-        if (isMountedRef.current) {
-          setIsSearching(false);
-        }
+        commitSuccess(
+          {
+            aiResult: data,
+            rawResult: JSON.stringify(data, null, 2),
+          },
+          JSON.stringify(data),
+        );
+      } catch (err) {
+        if (signal.aborted) return;
+        commitFail(
+          err instanceof Error && err.message
+            ? sanitizePublicText(err.message)
+            : "Could not complete AI analysis.",
+        );
       }
 
       return;
@@ -749,153 +1005,6 @@ export function ModuleSearchView({
 
     if (selectedTool?.apiType) {
       activeType = selectedTool.apiType;
-    }
-
-    if (activeType === "breaches" && !normalizeEmail(trimmed)) {
-      setError("Enter a valid email address.");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (activeType === "crypto-wallet" && !detectCryptoChain(trimmed)) {
-      setError(CRYPTO_WALLET_INVALID_MESSAGE);
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (
-      (activeType === "crypto-address" ||
-        activeType === "crypto-risk" ||
-        activeType === "crypto-flow") &&
-      !detectCryptoChain(trimmed)
-    ) {
-      setError(CRYPTO_WALLET_INVALID_MESSAGE);
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (
-      activeType === "crypto-tx" &&
-      !/^0x[a-fA-F0-9]{64}$/.test(trimmed) &&
-      !/^[a-fA-F0-9]{64}$/.test(trimmed) &&
-      !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(trimmed)
-    ) {
-      setError(
-        "Paste an Ethereum 0x…64 hash, Bitcoin 64-hex txid, or Solana signature.",
-      );
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "phone" && !isPhoneQuery(trimmed)) {
-      setError("Enter a valid phone number (10–15 digits).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "username" && trimmed.length < 2) {
-      setError("Enter a username (at least 2 characters).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "stealer-logs" && isDiscordSnowflake(trimmed)) {
-      setError(
-        "Discord IDs are not supported here. Use the Discord ID module.",
-      );
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "discord-id" && !isDiscordSnowflake(trimmed)) {
-      setError("Enter a valid Discord ID (17–20 digits).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "oathnet-roblox" && !isDiscordSnowflake(trimmed)) {
-      setError("Enter a valid Discord ID (17–20 digits).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "fraud-footprint") {
-      const tool = moduleDef.tools?.find((t) => t.id === selectedToolId);
-      const api = tool?.apiType || "seon-email";
-
-      if (api === "seon-email" && !normalizeEmail(trimmed)) {
-        setError("Enter a valid email address.");
-        setIsSearching(false);
-
-        return;
-      }
-      if (api === "seon-phone" && !isPhoneQuery(trimmed)) {
-        setError("Enter a valid phone number (10–15 digits).");
-        setIsSearching(false);
-
-        return;
-      }
-    }
-
-    if (moduleDef.slug === "fivem" && !isDiscordSnowflake(trimmed)) {
-      setError("FiveM lookups require a Discord ID (17–20 digits).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (
-      moduleDef.slug === "instagram" &&
-      !normalizeInstagramUsername(trimmed)
-    ) {
-      setError("Enter a valid Instagram username or profile URL.");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "domain" && !normalizeDomain(trimmed)) {
-      setError("Enter a valid domain name (e.g. example.com).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "site-pentest" && !parseSitePentestTarget(trimmed)) {
-      setError("Enter a valid domain or http(s) URL (e.g. example.com).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "hash-lookup" && trimmed.length < 8) {
-      setError("Enter a valid hash (at least 8 characters).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "password-search" && trimmed.length < 3) {
-      setError("Enter a password to search (at least 3 characters).");
-      setIsSearching(false);
-
-      return;
-    }
-
-    if (moduleDef.slug === "name-search" && trimmed.length < 2) {
-      setError("Enter a name to search (at least 2 characters).");
-      setIsSearching(false);
-
-      return;
     }
 
     // stealer-logs keeps email/domain/IP on /api/osint/breach so victims +
@@ -916,6 +1025,7 @@ export function ModuleSearchView({
           : "";
       const searchResponse = await fetch(
         `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}`,
+        { signal },
       );
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
@@ -925,7 +1035,8 @@ export function ModuleSearchView({
           ? (JSON.parse(responseText) as Record<string, unknown>)
           : {};
       } catch {
-        setError(
+        if (signal.aborted) return;
+        commitFail(
           searchResponse.ok
             ? "Search returned an unexpected response. Try again."
             : searchResponse.status === 502 ||
@@ -938,10 +1049,10 @@ export function ModuleSearchView({
         return;
       }
 
-      if (!isMountedRef.current) return;
+      if (signal.aborted) return;
 
       if (!searchResponse.ok) {
-        setError(
+        commitFail(
           sanitizePublicText(
             typeof data.error === "string" ? data.error : "Search failed.",
           ),
@@ -951,6 +1062,7 @@ export function ModuleSearchView({
       }
 
       const serialized = JSON.stringify(data);
+      const markNoResults = commitEmpty;
 
       if (activeType === "breaches") {
         const breachData = data as CombSearchResult & {
@@ -972,10 +1084,17 @@ export function ModuleSearchView({
           return;
         }
 
-        setCombResult(breachData);
-        setRawResult(JSON.stringify(breachData, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          combResult: breachData,
+
+
+          rawResult: JSON.stringify(breachData, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -995,10 +1114,17 @@ export function ModuleSearchView({
           return;
         }
 
-        setDomainResult(domainData);
-        setRawResult(JSON.stringify(domainData, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          domainResult: domainData,
+
+
+          rawResult: JSON.stringify(domainData, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1023,10 +1149,17 @@ export function ModuleSearchView({
           return;
         }
 
-        setFivemResult(fivemData);
-        setRawResult(JSON.stringify(fivemData, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          fivemResult: fivemData,
+
+
+          rawResult: JSON.stringify(fivemData, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1052,7 +1185,7 @@ export function ModuleSearchView({
         );
 
         if (robloxData.error) {
-          setError(robloxData.error);
+          commitFail(robloxData.error);
 
           return;
         }
@@ -1063,10 +1196,17 @@ export function ModuleSearchView({
           return;
         }
 
-        setRobloxResult(robloxData);
-        setRawResult(JSON.stringify(robloxData, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          robloxResult: robloxData,
+
+
+          rawResult: JSON.stringify(robloxData, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1088,13 +1228,12 @@ export function ModuleSearchView({
 
         const formatted = formatSearchRecords(results);
 
-        setRecords(formatted);
-        setResultCount(
-          typeof linkData.count === "number" ? linkData.count : results.length,
-        );
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+          records: formatted,
+          resultCount:
+            typeof linkData.count === "number" ? linkData.count : results.length,
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
 
         return;
       }
@@ -1106,7 +1245,7 @@ export function ModuleSearchView({
         };
 
         if (instagramData.error) {
-          setError(instagramData.error);
+          commitFail(instagramData.error);
 
           return;
         }
@@ -1128,13 +1267,16 @@ export function ModuleSearchView({
           return;
         }
 
-        setInstagramResult({
-          ...instagramData,
-          mutuals: instagramData.mutuals ?? [],
-        });
-        setRawResult(JSON.stringify(instagramData, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess(
+          {
+            instagramResult: {
+              ...instagramData,
+              mutuals: instagramData.mutuals ?? [],
+            },
+            rawResult: JSON.stringify(instagramData, null, 2),
+          },
+          serialized,
+        );
 
         // Background paced batches — UI already shows first ~100.
         const loadGen = ++instagramLoadGenRef.current;
@@ -1143,6 +1285,8 @@ export function ModuleSearchView({
         void (async () => {
           const chill = (ms: number) =>
             new Promise((resolve) => setTimeout(resolve, ms));
+
+          if (!isMountedRef.current) return;
 
           setInstagramLoadingMore(true);
           setInstagramProgressLabel(
@@ -1245,10 +1389,17 @@ export function ModuleSearchView({
           return;
         }
 
-        setDiscordResult(discordData);
-        setRawResult(JSON.stringify(discordData, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          discordResult: discordData,
+
+
+          rawResult: JSON.stringify(discordData, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1290,15 +1441,19 @@ export function ModuleSearchView({
         const storageId = intelxData.storageId ?? trimmed;
         const bucketId = intelxData.bucket ?? "leaks.public";
 
-        setIntelxResult({
-          storageId,
-          bucket: bucketId,
-          content: exportBody,
-        });
-        setResultCount(1);
-        setRawResult(exportBody || serialized);
-        setLastSearchLabel(`${moduleDef.name} · ${storageId}`);
-        persistSearch(trimmed, moduleDef.slug, exportBody || serialized);
+        commitSuccess(
+          {
+            intelxResult: {
+              storageId,
+              bucket: bucketId,
+              content: exportBody,
+            },
+            resultCount: 1,
+            rawResult: exportBody || serialized,
+            lastSearchLabel: `${moduleDef.name} · ${storageId}`,
+          },
+          exportBody || serialized,
+        );
 
         return;
       }
@@ -1333,27 +1488,32 @@ export function ModuleSearchView({
             return;
           }
 
-          setStealerResult({
-            credentials,
-            archives,
-            count:
-              typeof breachData.count === "number"
-                ? breachData.count
-                : credentials.length || results.length,
-            fallbackRecords:
-              results.length > 0 && credentials.length === 0
-                ? formatSearchRecords(results)
-                : [],
-          });
-
-          setResultCount(
-            typeof breachData.count === "number"
-              ? breachData.count
-              : Math.max(credentials.length, results.length, archives.length),
+          commitSuccess(
+            {
+              stealerResult: {
+                credentials,
+                archives,
+                count:
+                  typeof breachData.count === "number"
+                    ? breachData.count
+                    : credentials.length || results.length,
+                fallbackRecords:
+                  results.length > 0 && credentials.length === 0
+                    ? formatSearchRecords(results)
+                    : [],
+              },
+              resultCount:
+                typeof breachData.count === "number"
+                  ? breachData.count
+                  : Math.max(
+                      credentials.length,
+                      results.length,
+                      archives.length,
+                    ),
+              rawResult: JSON.stringify(data, null, 2),
+            },
+            serialized,
           );
-          setRawResult(JSON.stringify(data, null, 2));
-          setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-          persistSearch(trimmed, moduleDef.slug, serialized);
 
           return;
         }
@@ -1374,15 +1534,14 @@ export function ModuleSearchView({
           return;
         }
 
-        setRecords(formatted);
-        setResultCount(
-          typeof breachData.count === "number"
-            ? breachData.count
-            : results.length,
-        );
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+          records: formatted,
+          resultCount:
+            typeof breachData.count === "number"
+              ? breachData.count
+              : results.length,
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
 
         return;
       }
@@ -1402,11 +1561,11 @@ export function ModuleSearchView({
           return;
         }
 
-        setRecords(formatted);
-        setResultCount(formatted.length);
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+          records: formatted,
+          resultCount: formatted.length,
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
 
         return;
       }
@@ -1415,7 +1574,7 @@ export function ModuleSearchView({
         const pentest = data as SitePentestResult & { error?: string };
 
         if (!pentest.findings && !pentest.results) {
-          setError(
+          commitFail(
             sanitizePublicText(pentest.error || "Site pentest audit failed."),
           );
 
@@ -1427,14 +1586,23 @@ export function ModuleSearchView({
           pentest.count ??
           (Array.isArray(pentest.findings) ? pentest.findings.length : 0);
 
-        setStructuredResult({ kind: "site-pentest", data: pentest });
-        setResultCount(findingCount);
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        if (findingCount === 0) {
-          setEmptyResult("No results were found.");
-        }
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          structuredResult: { kind: "site-pentest", data: pentest },
+
+
+          resultCount: findingCount,
+
+
+          emptyResult: findingCount === 0 ? "No results were found." : "",
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1452,11 +1620,11 @@ export function ModuleSearchView({
           const formattedProfile = formatSearchRecords([profile]);
 
           if (formattedProfile.length > 0) {
-            setRecords(formattedProfile);
-            setResultCount(formattedProfile.length);
-            setRawResult(JSON.stringify(data, null, 2));
-            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-            persistSearch(trimmed, moduleDef.slug, serialized);
+            commitSuccess({
+              records: formattedProfile,
+              resultCount: formattedProfile.length,
+              rawResult: JSON.stringify(data, null, 2),
+            }, serialized);
 
             return;
           }
@@ -1480,73 +1648,87 @@ export function ModuleSearchView({
           return;
         }
 
-        setRecords(formatted);
-        setResultCount(
-          typeof data.count === "number" ? data.count : results.length,
-        );
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+          records: formatted,
+          resultCount:
+            typeof data.count === "number" ? data.count : results.length,
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
 
         return;
       }
 
       if (activeType === "crypto-wallet") {
-        setStructuredResult({
+        commitSuccess({
+
+          structuredResult: {
           kind: "crypto-wallet",
           data: data as CryptoWalletResult,
-        });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        },
+
+          rawResult: JSON.stringify(data, null, 2),
+
+        }, serialized);
 
         return;
       }
 
       if (activeType === "crypto-address") {
-        setStructuredResult({
+        commitSuccess({
+
+          structuredResult: {
           kind: "crypto-address",
           data: data as CryptoAddressIntelResult,
-        });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        },
+
+          rawResult: JSON.stringify(data, null, 2),
+
+        }, serialized);
 
         return;
       }
 
       if (activeType === "crypto-tx") {
-        setStructuredResult({
+        commitSuccess({
+
+          structuredResult: {
           kind: "crypto-tx",
           data: data as CryptoTxDeepDiveResult,
-        });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        },
+
+          rawResult: JSON.stringify(data, null, 2),
+
+        }, serialized);
 
         return;
       }
 
       if (activeType === "crypto-risk") {
-        setStructuredResult({
+        commitSuccess({
+
+          structuredResult: {
           kind: "crypto-risk",
           data: data as CryptoRiskCheckResult,
-        });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        },
+
+          rawResult: JSON.stringify(data, null, 2),
+
+        }, serialized);
 
         return;
       }
 
       if (activeType === "crypto-flow") {
-        setStructuredResult({
+        commitSuccess({
+
+          structuredResult: {
           kind: "crypto-flow",
           data: data as CryptoFundFlowResult,
-        });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        },
+
+          rawResult: JSON.stringify(data, null, 2),
+
+        }, serialized);
 
         return;
       }
@@ -1567,10 +1749,17 @@ export function ModuleSearchView({
           return;
         }
 
-        setStructuredResult({ kind: "tinder-live", data: liveData });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          structuredResult: { kind: "tinder-live", data: liveData },
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1592,22 +1781,32 @@ export function ModuleSearchView({
           return;
         }
 
-        setStructuredResult({
+        commitSuccess({
+
+
+          structuredResult: {
           kind: "username-accounts",
           data: accountsData,
-        });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        },
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
 
       if (activeType === "bin") {
-        setStructuredResult({ kind: "bin", data: data as BinLookupResult });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+          structuredResult: { kind: "bin", data: data as BinLookupResult },
+
+          rawResult: JSON.stringify(data, null, 2),
+
+        }, serialized);
 
         return;
       }
@@ -1615,10 +1814,17 @@ export function ModuleSearchView({
       if (activeType === "iban") {
         const ibanData = data as IbanLookupResult;
 
-        setStructuredResult({ kind: "iban", data: ibanData });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          structuredResult: { kind: "iban", data: ibanData },
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1634,19 +1840,29 @@ export function ModuleSearchView({
           return;
         }
 
-        setStructuredResult({ kind: "bank", data: bankData });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          structuredResult: { kind: "bank", data: bankData },
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
 
       if (activeType === "vin") {
-        setStructuredResult({ kind: "vin", data: data as VinDecodeResult });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+          structuredResult: { kind: "vin", data: data as VinDecodeResult },
+
+          rawResult: JSON.stringify(data, null, 2),
+
+        }, serialized);
 
         return;
       }
@@ -1667,13 +1883,20 @@ export function ModuleSearchView({
           return;
         }
 
-        setStructuredResult({
+        commitSuccess({
+
+
+          structuredResult: {
           kind: activeType,
           data: providerData,
-        });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        },
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1685,9 +1908,10 @@ export function ModuleSearchView({
 
         if (!hitCount) {
           if (courtData.errors?.length) {
-            setStructuredResult({ kind: "us-court", data: courtData });
-            setRawResult(JSON.stringify(data, null, 2));
-            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+            commitSuccess({
+              structuredResult: { kind: "us-court", data: courtData },
+              rawResult: JSON.stringify(data, null, 2),
+            });
           } else {
             markNoResults(
               courtData.message ||
@@ -1699,10 +1923,17 @@ export function ModuleSearchView({
           return;
         }
 
-        setStructuredResult({ kind: "us-court", data: courtData });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          structuredResult: { kind: "us-court", data: courtData },
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1723,9 +1954,10 @@ export function ModuleSearchView({
 
         if (!identityData.count) {
           if (identityData.errors?.length || identityData.portals?.length) {
-            setStructuredResult({ kind, data: identityData });
-            setRawResult(JSON.stringify(data, null, 2));
-            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+            commitSuccess({
+              structuredResult: { kind, data: identityData },
+              rawResult: JSON.stringify(data, null, 2),
+            });
           } else {
             markNoResults(
               identityData.message ||
@@ -1737,10 +1969,17 @@ export function ModuleSearchView({
           return;
         }
 
-        setStructuredResult({ kind, data: identityData });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        commitSuccess({
+
+
+          structuredResult: { kind, data: identityData },
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1750,15 +1989,16 @@ export function ModuleSearchView({
 
         if (!sorData.count) {
           if (sorData.errors?.length) {
-            setStructuredResult({
-              kind:
-                activeType === "us-sor-national"
-                  ? "us-sor-national"
-                  : "us-va-sor",
-              data: sorData,
+            commitSuccess({
+              structuredResult: {
+                kind:
+                  activeType === "us-sor-national"
+                    ? "us-sor-national"
+                    : "us-va-sor",
+                data: sorData,
+              },
+              rawResult: JSON.stringify(data, null, 2),
             });
-            setRawResult(JSON.stringify(data, null, 2));
-            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
           } else {
             markNoResults(
               sorData.message ||
@@ -1770,14 +2010,21 @@ export function ModuleSearchView({
           return;
         }
 
-        setStructuredResult({
+        commitSuccess({
+
+
+          structuredResult: {
           kind:
             activeType === "us-sor-national" ? "us-sor-national" : "us-va-sor",
           data: sorData,
-        });
-        setRawResult(JSON.stringify(data, null, 2));
-        setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-        persistSearch(trimmed, moduleDef.slug, serialized);
+        },
+
+
+          rawResult: JSON.stringify(data, null, 2),
+
+
+        }, serialized);
+
 
         return;
       }
@@ -1790,28 +2037,26 @@ export function ModuleSearchView({
         return;
       }
 
-      setRecords(formatted);
-      setResultCount(
-        typeof (data as { count?: number }).count === "number"
-          ? (data as { count: number }).count
-          : formatted.length,
+      commitSuccess(
+        {
+          records: formatted,
+          resultCount:
+            typeof (data as { count?: number }).count === "number"
+              ? (data as { count: number }).count
+              : formatted.length,
+          rawResult: JSON.stringify(data, null, 2),
+        },
+        serialized,
       );
-      setRawResult(JSON.stringify(data, null, 2));
-      setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
-      persistSearch(trimmed, moduleDef.slug, serialized);
     } catch (err) {
-      if (isMountedRef.current) {
-        const message =
-          err instanceof Error && err.message
-            ? sanitizePublicText(err.message)
-            : "Could not complete the search.";
+      if (signal.aborted) return;
 
-        setError(message);
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setIsSearching(false);
-      }
+      const message =
+        err instanceof Error && err.message
+          ? sanitizePublicText(err.message)
+          : "Could not complete the search.";
+
+      commitFail(message);
     }
   };
 

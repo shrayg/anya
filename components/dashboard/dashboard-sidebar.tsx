@@ -37,6 +37,9 @@ import { checkModuleAccess, resolveUserPlan } from "@/lib/plans";
 import { getPlanDisplayLabel } from "@/lib/account-plan";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import {
+  SearchJobsSidebarButton,
+} from "@/components/dashboard/search-jobs-context";
+import {
   hasPlatformBrandIcon,
   PlatformBrandIcon,
 } from "@/components/dashboard/platform-brand-icon";
@@ -536,6 +539,9 @@ export function DashboardSidebar({ username }: { username: string }) {
                   onChange={(event) => setModuleQuery(event.target.value)}
                   onFocus={unlockAutofillShield}
                 />
+              </div>
+              <div className="px-0.5 pb-1">
+                <SearchJobsSidebarButton collapsed={collapsed} />
               </div>
             </div>
           </div>

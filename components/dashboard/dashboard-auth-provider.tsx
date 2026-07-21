@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { DashboardModuleProvider } from "@/components/dashboard/dashboard-module-context";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ModuleHealthProvider } from "@/components/dashboard/module-status-provider";
+import { SearchJobsProvider } from "@/components/dashboard/search-jobs-context";
 import { HomeBackground } from "@/components/home-background";
 import {
   hasHelperDashboardAccess,
@@ -199,9 +200,11 @@ export function DashboardAuthProvider({
       >
         <DashboardModuleProvider>
           <ModuleHealthProvider>
-            <DashboardShell username={value.user.username}>
-              {children}
-            </DashboardShell>
+            <SearchJobsProvider>
+              <DashboardShell username={value.user.username}>
+                {children}
+              </DashboardShell>
+            </SearchJobsProvider>
           </ModuleHealthProvider>
         </DashboardModuleProvider>
       </Suspense>
