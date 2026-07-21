@@ -46,6 +46,7 @@ export const PLATFORM_SEARCH_BY_SLUG: Record<string, PlatformSearchConfig> = {
   "hash-lookup": { godseyeType: "hash" },
   "password-search": { godseyeType: "password", breachVipField: "password" },
   "name-search": { godseyeType: "name", breachVipField: "name" },
+  // Dating modules stay GodsEye/CSINT unless a BreachHub specialty exists.
   tinder: { godseyeType: "username" },
   bumble: { godseyeType: "username" },
   hinge: { godseyeType: "username" },

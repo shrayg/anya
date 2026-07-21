@@ -105,55 +105,85 @@ async function fetchOptionalBreachVip(
   return data.count > 0 ? data : null;
 }
 
+const BREACHHUB_SPECIALTY_SCOPES = new Set([
+  "steam",
+  "roblox",
+  "minecraft",
+  "discord",
+  "discord-roblox",
+  "telegram",
+  "snapchat",
+  "tiktok",
+  "twitter",
+  "reddit",
+  "github",
+  "instagram",
+  "fivem",
+  "xbox",
+  "phone",
+  "email",
+  "domain",
+  "hwid",
+  "facebook",
+  "passport",
+]);
+
+/** Social / gaming modules that should prefer BreachHub specialty over GodsEye/CSINT noise. */
+const BREACHHUB_PRIMARY_SCOPES = new Set([
+  "snapchat",
+  "telegram",
+  "twitter",
+  "tiktok",
+  "instagram",
+  "reddit",
+  "github",
+  "steam",
+  "xbox",
+  "roblox",
+  "minecraft",
+  "phone",
+  "hwid",
+  "facebook",
+  "passport",
+  "discord-roblox",
+  "fivem",
+]);
+
 async function fetchOptionalBreachHubUniversal(
   query: string,
   godseyeType: GodsEyeSearchType | string,
   breachHubScope?: string | null,
+  options?: { specialtyOnly?: boolean },
 ): Promise<SanitizedBreachResponse | null> {
   if (!isBreachHubEnabled()) return null;
 
-  const specialtyScopes = new Set([
-    "steam",
-    "roblox",
-    "minecraft",
-    "discord",
-    "discord-roblox",
-    "telegram",
-    "snapchat",
-    "tiktok",
-    "twitter",
-    "reddit",
-    "github",
-    "instagram",
-    "fivem",
-    "xbox",
-    "phone",
-    "email",
-    "domain",
-    "hwid",
-    "facebook",
-    "passport",
-  ]);
-
-  const tasks: Promise<SanitizedBreachResponse | null>[] = [
-    fetchBreachHubAdditiveBreachSearch(
-      query,
-      mapGodsEyeTypeToBreachHub(godseyeType),
-      COMBINED_BREACHHUB_TIMEOUT_MS,
-    ),
-  ];
-
   const specialty =
-    (breachHubScope && specialtyScopes.has(breachHubScope)
+    (breachHubScope && BREACHHUB_SPECIALTY_SCOPES.has(breachHubScope)
       ? breachHubScope
       : null) ||
-    (specialtyScopes.has(godseyeType) ? godseyeType : null);
+    (BREACHHUB_SPECIALTY_SCOPES.has(String(godseyeType))
+      ? String(godseyeType)
+      : null);
+
+  const tasks: Promise<SanitizedBreachResponse | null>[] = [];
+
+  if (!options?.specialtyOnly) {
+    tasks.push(
+      fetchBreachHubAdditiveBreachSearch(
+        query,
+        mapGodsEyeTypeToBreachHub(godseyeType),
+        COMBINED_BREACHHUB_TIMEOUT_MS,
+      ),
+    );
+  }
 
   if (specialty) {
     tasks.push(
       fetchBreachHubSpecialty(specialty, query, COMBINED_BREACHHUB_TIMEOUT_MS),
     );
   }
+
+  if (tasks.length === 0) return null;
 
   const settled = await Promise.allSettled(tasks);
   const parts: SanitizedBreachResponse[] = [];
@@ -259,6 +289,13 @@ export async function fetchCombinedStealerLogs(
   );
 }
 
+function shouldPreferBreachHub(breachHubScope?: string | null): boolean {
+  return (
+    isBreachHubEnabled() &&
+    Boolean(breachHubScope && BREACHHUB_PRIMARY_SCOPES.has(breachHubScope))
+  );
+}
+
 export async function fetchCombinedPlatformSearch(
   query: string,
   osintCatEndpoint: string | undefined,
@@ -266,6 +303,25 @@ export async function fetchCombinedPlatformSearch(
   breachVipField?: BreachVipField,
   breachHubScope?: string | null,
 ): Promise<SanitizedBreachResponse> {
+  // Snapchat / social modules: BreachHub specialty first so GodsEye/CSINT
+  // error junk (Invalid API key, [object Object]) never becomes "results".
+  if (shouldPreferBreachHub(breachHubScope)) {
+    const preferred: SanitizedBreachResponse[] = [];
+    const [breachHubResult, breachVipResult] = await Promise.allSettled([
+      fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope, {
+        specialtyOnly: true,
+      }),
+      fetchOptionalBreachVip(query, breachVipField),
+    ]);
+
+    pushSettledSanitized(preferred, breachHubResult);
+    pushSettledSanitized(preferred, breachVipResult);
+
+    if (preferred.length > 0) {
+      return mergeSanitizedResponses(...preferred);
+    }
+  }
+
   const parts: SanitizedBreachResponse[] = [];
   const [
     osintcatResult,
@@ -311,6 +367,24 @@ export async function fetchGodsEyeOnlySearch(
   const hasGodsEye = Boolean(getGodsEyeApiKey());
   const hasCsint = isCsintEnabled();
   const hasBreachHub = isBreachHubEnabled();
+
+  if (shouldPreferBreachHub(breachHubScope)) {
+    const preferred: SanitizedBreachResponse[] = [];
+    const [breachHubResult, breachVipResult] = await Promise.allSettled([
+      fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope, {
+        specialtyOnly: true,
+      }),
+      fetchOptionalBreachVip(query, breachVipField),
+    ]);
+
+    pushSettledSanitized(preferred, breachHubResult);
+    pushSettledSanitized(preferred, breachVipResult);
+
+    if (preferred.length > 0) {
+      return mergeSanitizedResponses(...preferred);
+    }
+  }
+
   const parts: SanitizedBreachResponse[] = [];
 
   const [godseyeResult, breachVipResult, csintResult, breachHubResult] =
