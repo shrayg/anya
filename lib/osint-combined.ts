@@ -248,34 +248,8 @@ export async function fetchCombinedStealerLogs(
   const searchType = resolveGodsEyeSearchType(query, scope);
   const parts: SanitizedBreachResponse[] = [];
 
-  // BreachHub-first path: skip slow GodsEye/CSINT unless BreachHub is empty.
-  if (isBreachHubEnabled()) {
-    const [breachHubResult, osintCatResult] = await Promise.allSettled([
-      fetchOptionalBreachHubStealer(query, searchType),
-      fetchOsintCatStealerLogs(query).catch(() => ({
-        count: 0,
-        results: [] as unknown[],
-      })),
-    ]);
-
-    pushSettledSanitized(parts, breachHubResult);
-    if (
-      osintCatResult.status === "fulfilled" &&
-      osintCatResult.value.count > 0
-    ) {
-      parts.push(osintCatResult.value);
-    }
-
-    if (parts.length > 0) {
-      const merged = mergeSanitizedResponses(...parts);
-      const filtered = filterIntelResultsForQuery(query, merged.results);
-
-      if (filtered.length > 0) {
-        return { count: filtered.length, results: filtered };
-      }
-    }
-  }
-
+  // Coverage-first: BreachHub + OsintCat + GodsEye + CSINT in parallel.
+  // GodsEye/CSINT stay additive even when BreachHub already has hits.
   const [stealerResult, godseyeResult, csintResult, breachHubResult] =
     await Promise.allSettled([
       fetchOsintCatStealerLogs(query),
