@@ -53,15 +53,17 @@ export function StatCard({
   hint,
   icon: Icon,
   accent = "teal",
+  className,
 }: {
   label: string;
   value: React.ReactNode;
   hint?: string;
   icon: LucideIcon;
   accent?: "teal" | "amber" | "violet" | "rose";
+  className?: string;
 }) {
   return (
-    <div className={clsx("dash-stat", `dash-stat-${accent}`)}>
+    <div className={clsx("dash-stat", `dash-stat-${accent}`, className)}>
       <div className="dash-stat-top">
         <p className="dash-stat-label">{label}</p>
         <div className="dash-stat-icon">

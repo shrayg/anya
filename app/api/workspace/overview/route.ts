@@ -24,6 +24,7 @@ export async function GET() {
     const now = new Date();
     const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fortnightAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const [
@@ -87,11 +88,11 @@ export async function GET() {
         },
       }),
       prisma.user.findMany({
-        where: { createdAt: { gte: weekAgo } },
+        where: { createdAt: { gte: fortnightAgo } },
         select: { createdAt: true },
       }),
       prisma.searchHistory.findMany({
-        where: { createdAt: { gte: weekAgo } },
+        where: { createdAt: { gte: fortnightAgo } },
         select: { createdAt: true, searchType: true },
       }),
       prisma.user.groupBy({
@@ -106,10 +107,10 @@ export async function GET() {
       }),
     ]);
 
-    const dailyKeys = Array.from({ length: 7 }, (_, index) => {
+    const dailyKeys = Array.from({ length: 14 }, (_, index) => {
       const date = new Date(startOfDay(now));
 
-      date.setDate(date.getDate() - (6 - index));
+      date.setDate(date.getDate() - (13 - index));
 
       return formatDayKey(date);
     });

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { AccountSecurityPanel } from "@/components/dashboard/account-security-panel";
 import { AdminApiStatusPanel } from "@/components/dashboard/admin-api-status-panel";
+import { AdminCollapsible } from "@/components/dashboard/admin-collapsible";
 import { AdminUsersPanel } from "@/components/dashboard/admin-users-panel";
 import { AdminWorkspaceDashboard } from "@/components/dashboard/admin-workspace-dashboard";
 import { AdminEventLogsPanel } from "@/components/dashboard/admin-event-logs-panel";
@@ -37,8 +38,8 @@ export default function SettingsPage() {
   if (canManageWorkspace) {
     return (
       <div className="anya-desk px-4 py-4 md:px-6 md:py-5">
-        <section className="mb-6 space-y-5" id="admin">
-          <header className="flex flex-wrap items-end justify-between gap-3 border-b border-white/[0.06] pb-4">
+        <section className="mb-5 space-y-3" id="admin">
+          <header className="flex flex-wrap items-end justify-between gap-3 border-b border-white/[0.06] pb-3">
             <div>
               <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
                 admin workspace
@@ -57,6 +58,12 @@ export default function SettingsPage() {
               </Link>
               <Link
                 className="rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-300 hover:bg-white/[0.06]"
+                href="#overview"
+              >
+                Overview
+              </Link>
+              <Link
+                className="rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-300 hover:bg-white/[0.06]"
                 href="#members"
               >
                 Members
@@ -70,25 +77,63 @@ export default function SettingsPage() {
             </div>
           </header>
 
-          {/* Full endpoint catalog first — every gateway + BreachHub/CSINT path */}
-          <AdminApiStatusPanel />
+          <AdminCollapsible
+            defaultOpen
+            id="api-status"
+            subtitle="Gateways, endpoints, latency"
+            title="API status"
+          >
+            <AdminApiStatusPanel embedded />
+          </AdminCollapsible>
 
-          <AdminWorkspaceDashboard />
+          <AdminCollapsible
+            defaultOpen
+            id="overview"
+            subtitle="14-day activity, payments, live searches"
+            title="Overview"
+          >
+            <AdminWorkspaceDashboard />
+          </AdminCollapsible>
 
-          <div id="members">
-            <AdminUsersPanel />
-          </div>
+          <AdminCollapsible
+            defaultOpen
+            id="members"
+            subtitle="Plans, passwords, freeze / ban / flag"
+            title="Members"
+          >
+            <AdminUsersPanel embedded />
+          </AdminCollapsible>
 
-          <AdminEventLogsPanel />
-          <SafetyFlagsPanel mode="admin" />
+          <AdminCollapsible
+            defaultOpen={false}
+            id="event-logs"
+            subtitle="Searches, failures, rate limits"
+            title="Event logs"
+          >
+            <AdminEventLogsPanel embedded />
+          </AdminCollapsible>
 
-          <section className="space-y-2" id="account">
-            <h2 className="text-sm font-semibold text-white">Your account</h2>
+          <AdminCollapsible
+            defaultOpen={false}
+            id="safety"
+            subtitle="Investigate flags and underage-risk cases"
+            title="Safety"
+          >
+            <SafetyFlagsPanel embedded mode="admin" />
+          </AdminCollapsible>
+
+          <AdminCollapsible
+            defaultOpen={false}
+            id="account"
+            subtitle="Recovery email and password"
+            title="Account"
+          >
             <AccountSecurityPanel
+              embedded
               initialRecoveryEmail={dashboardUser.recoveryEmail}
               username={dashboardUser.username}
             />
-          </section>
+          </AdminCollapsible>
         </section>
       </div>
     );

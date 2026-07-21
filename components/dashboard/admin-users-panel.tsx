@@ -81,7 +81,11 @@ function StatusBadge({ status }: { status: AccountStatus }) {
   );
 }
 
-export function AdminUsersPanel() {
+export function AdminUsersPanel({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -319,10 +323,11 @@ export function AdminUsersPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           accent="violet"
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
           hint="Registered accounts"
           icon={Users}
           label="Total users"
@@ -330,6 +335,7 @@ export function AdminUsersPanel() {
         />
         <StatCard
           accent="teal"
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
           hint="Paid or trial plans"
           icon={Shield}
           label="Subscribed"
@@ -339,6 +345,7 @@ export function AdminUsersPanel() {
         />
         <StatCard
           accent="violet"
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
           hint="Frozen accounts"
           icon={Snowflake}
           label="Frozen"
@@ -346,6 +353,7 @@ export function AdminUsersPanel() {
         />
         <StatCard
           accent="rose"
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
           hint="Banned accounts"
           icon={Ban}
           label="Banned"
@@ -353,6 +361,7 @@ export function AdminUsersPanel() {
         />
         <StatCard
           accent="amber"
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
           hint="Awaiting admin review"
           icon={Flag}
           label="Flagged"
@@ -360,19 +369,26 @@ export function AdminUsersPanel() {
         />
       </div>
 
-      <DashPanel glow="violet">
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-white">Members</h2>
-            <p className="text-xs text-zinc-500">
-              Plans, passwords, freeze / ban / flag / delete
+      <DashPanel className="!p-3" glow="violet">
+        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          {!embedded ? (
+            <div>
+              <h2 className="text-base font-semibold text-white">Members</h2>
+              <p className="text-xs text-zinc-500">
+                Plans, passwords, freeze / ban / flag / delete
+                {flaggedCount > 0 ? ` · ${flaggedCount} flagged` : ""}
+              </p>
+            </div>
+          ) : (
+            <p className="text-[11px] text-zinc-500">
+              {users.length} members
               {flaggedCount > 0 ? ` · ${flaggedCount} flagged` : ""}
             </p>
-          </div>
+          )}
 
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row">
             <select
-              className="h-8 rounded-md border border-white/10 bg-zinc-950/80 px-2 text-xs text-zinc-200 outline-none transition focus:border-violet-400/40"
+              className="h-7 rounded-md border border-white/10 bg-zinc-950/80 px-2 text-[11px] text-zinc-200 outline-none transition focus:border-violet-400/40"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as StatusFilter)
@@ -385,18 +401,18 @@ export function AdminUsersPanel() {
               <option value="investigate">Flagged / Investigate</option>
             </select>
             <DashInput
-              className="h-8 sm:w-52"
+              className="h-7 sm:w-48 text-[11px]"
               placeholder="Search username..."
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
             <DashButton
-              className="inline-flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs"
+              className="inline-flex h-7 items-center justify-center gap-1.5 px-2 text-[11px]"
               variant="secondary"
               onClick={loadUsers}
             >
               <RefreshCw
-                className={clsx("size-3.5", loading && "animate-spin")}
+                className={clsx("size-3", loading && "animate-spin")}
               />
               Refresh
             </DashButton>
@@ -404,34 +420,34 @@ export function AdminUsersPanel() {
         </div>
 
         {error && (
-          <p className="mb-3 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-200">
+          <p className="mb-2 rounded-md border border-rose-500/20 bg-rose-500/10 px-2.5 py-1.5 text-[11px] text-rose-200">
             {error}
           </p>
         )}
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-xs">
+          <table className="min-w-full text-left text-[11px]">
             <thead>
               <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em] text-zinc-500">
-                <th className="px-2 py-2 font-semibold">User</th>
-                <th className="px-2 py-2 font-semibold">Status</th>
-                <th className="px-2 py-2 font-semibold">Staff</th>
-                <th className="px-2 py-2 font-semibold">Plan</th>
-                <th className="px-2 py-2 font-semibold">Password</th>
-                <th className="px-2 py-2 font-semibold">Activity</th>
-                <th className="px-2 py-2 font-semibold">Actions</th>
+                <th className="px-1.5 py-1.5 font-semibold">User</th>
+                <th className="px-1.5 py-1.5 font-semibold">Status</th>
+                <th className="px-1.5 py-1.5 font-semibold">Staff</th>
+                <th className="px-1.5 py-1.5 font-semibold">Plan</th>
+                <th className="px-1.5 py-1.5 font-semibold">Password</th>
+                <th className="px-1.5 py-1.5 font-semibold">Activity</th>
+                <th className="px-1.5 py-1.5 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-zinc-500" colSpan={7}>
+                  <td className="px-2 py-4 text-zinc-500" colSpan={7}>
                     Loading users...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-8 text-zinc-500" colSpan={7}>
+                  <td className="px-2 py-4 text-zinc-500" colSpan={7}>
                     No users found.
                   </td>
                 </tr>
@@ -451,14 +467,14 @@ export function AdminUsersPanel() {
                         rowClass,
                       )}
                     >
-                      <td className="px-2 py-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-[11px] font-semibold text-white">
+                      <td className="px-1.5 py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded border border-white/10 bg-white/[0.06] text-[10px] font-semibold text-white">
                             {user.username.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <p className="truncate text-sm font-medium text-white">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <p className="truncate text-xs font-medium text-white">
                                 {user.username}
                               </p>
                               <StaffBadge role={user.staffRole} size="xs" />
@@ -469,7 +485,7 @@ export function AdminUsersPanel() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-1.5 py-1.5">
                         <StatusBadge status={status} />
                         {status === "investigate" &&
                         user.investigationFlaggedByUsername ? (
@@ -478,7 +494,7 @@ export function AdminUsersPanel() {
                           </p>
                         ) : null}
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-1.5 py-1.5">
                         <StaffRolePicker
                           disabled={busy}
                           value={parseStaffRole(user.staffRole)}
@@ -505,7 +521,7 @@ export function AdminUsersPanel() {
                           {isWorkspaceAdmin ? "Revoke admin" : "Grant admin"}
                         </button>
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-1.5 py-1.5">
                         <PlanPicker
                           disabled={busy || isWorkspaceAdmin}
                           value={currentPlan}
@@ -515,7 +531,7 @@ export function AdminUsersPanel() {
                           ${user.balance.toFixed(2)}
                         </p>
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-1.5 py-1.5">
                         <div className="flex max-w-[160px] flex-col gap-1">
                           <DashInput
                             className="h-7 font-mono text-[11px]"
@@ -547,13 +563,13 @@ export function AdminUsersPanel() {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-2 py-2 text-[11px] text-zinc-400">
+                      <td className="px-1.5 py-1.5 text-[11px] text-zinc-400">
                         <p>{user._count?.searches ?? 0} s</p>
                         <p className="text-zinc-500">
                           {user._count?.payments ?? 0} $
                         </p>
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-1.5 py-1.5">
                         {!isWorkspaceAdmin ? (
                           <div className="flex flex-wrap gap-1">
                             <button

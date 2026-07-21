@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   CreditCard,
   RefreshCw,
   Search,
-  TrendingUp,
   Users,
 } from "lucide-react";
 import clsx from "clsx";
@@ -17,6 +16,8 @@ import {
   StatCard,
 } from "@/components/dashboard/dashboard-ui";
 import { formatDate, formatTime } from "@/lib/format-datetime";
+
+type DayTraffic = { date: string; signups: number; searches: number };
 
 type OverviewResponse = {
   summary: {
@@ -34,7 +35,7 @@ type OverviewResponse = {
     revenue30d: number;
   };
   trafficByType: Array<{ type: string; count: number }>;
-  trafficByDay: Array<{ date: string; signups: number; searches: number }>;
+  trafficByDay: DayTraffic[];
   payments: Array<{
     id: number;
     amount: number;
@@ -57,6 +58,163 @@ type OverviewResponse = {
 
 function formatMoney(value: number) {
   return `$${value.toFixed(2)}`;
+}
+
+function shortDay(date: string) {
+  const parts = date.split("-");
+
+  if (parts.length !== 3) return date;
+
+  return `${parts[1]}/${parts[2]}`;
+}
+
+function TrafficChart({ days }: { days: DayTraffic[] }) {
+  const width = 560;
+  const height = 160;
+  const padX = 28;
+  const padY = 16;
+  const chartW = width - padX * 2;
+  const chartH = height - padY * 2 - 18;
+  const max = Math.max(
+    1,
+    ...days.map((d) => Math.max(d.searches, d.signups)),
+  );
+  const n = Math.max(days.length, 1);
+  const groupW = chartW / n;
+  const barW = Math.max(3, groupW * 0.32);
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <svg
+        aria-label="Searches and signups over the last 14 days"
+        className="min-w-full"
+        role="img"
+        viewBox={`0 0 ${width} ${height}`}
+      >
+        {[0.25, 0.5, 0.75, 1].map((ratio) => {
+          const y = padY + chartH * (1 - ratio);
+
+          return (
+            <g key={ratio}>
+              <line
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth="1"
+                x1={padX}
+                x2={width - padX}
+                y1={y}
+                y2={y}
+              />
+              <text
+                fill="rgba(161,161,170,0.7)"
+                fontSize="8"
+                textAnchor="end"
+                x={padX - 4}
+                y={y + 3}
+              >
+                {Math.round(max * ratio)}
+              </text>
+            </g>
+          );
+        })}
+
+        {days.map((day, index) => {
+          const x0 = padX + index * groupW + groupW * 0.18;
+          const searchH = (day.searches / max) * chartH;
+          const signupH = (day.signups / max) * chartH;
+          const base = padY + chartH;
+
+          return (
+            <g key={day.date}>
+              <rect
+                fill="rgba(45,212,191,0.75)"
+                height={Math.max(searchH, day.searches > 0 ? 2 : 0)}
+                rx="1.5"
+                width={barW}
+                x={x0}
+                y={base - searchH}
+              >
+                <title>
+                  {day.date}: {day.searches} searches
+                </title>
+              </rect>
+              <rect
+                fill="rgba(251,191,36,0.8)"
+                height={Math.max(signupH, day.signups > 0 ? 2 : 0)}
+                rx="1.5"
+                width={barW}
+                x={x0 + barW + 2}
+                y={base - signupH}
+              >
+                <title>
+                  {day.date}: {day.signups} signups
+                </title>
+              </rect>
+              <text
+                fill="rgba(113,113,122,0.95)"
+                fontSize="7"
+                textAnchor="middle"
+                x={x0 + barW}
+                y={height - 4}
+              >
+                {shortDay(day.date)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="mt-1 flex flex-wrap items-center gap-3 text-[10px] text-zinc-500">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-2 rounded-sm bg-teal-400/80" />
+          Searches
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-2 rounded-sm bg-amber-400/80" />
+          Signups
+        </span>
+        <span className="text-zinc-600">14-day platform activity</span>
+      </div>
+    </div>
+  );
+}
+
+function ModuleShareChart({
+  rows,
+}: {
+  rows: Array<{ type: string; count: number }>;
+}) {
+  const total = Math.max(
+    1,
+    rows.reduce((sum, row) => sum + row.count, 0),
+  );
+  const top = rows.slice(0, 8);
+
+  return (
+    <div className="space-y-1.5">
+      {top.map((row) => {
+        const pct = (row.count / total) * 100;
+
+        return (
+          <div key={row.type} className="grid grid-cols-[88px_1fr_36px] gap-2">
+            <p className="truncate text-[10px] text-zinc-400" title={row.type}>
+              {row.type}
+            </p>
+            <div className="h-1.5 self-center overflow-hidden rounded-full bg-white/[0.06]">
+              <div
+                className="h-full rounded-full bg-teal-400/70"
+                style={{ width: `${Math.max(pct, 2)}%` }}
+              />
+            </div>
+            <p className="text-right text-[10px] tabular-nums text-zinc-500">
+              {row.count}
+            </p>
+          </div>
+        );
+      })}
+      {top.length === 0 ? (
+        <p className="text-[11px] text-zinc-600">No module traffic yet.</p>
+      ) : null}
+    </div>
+  );
 }
 
 export function AdminWorkspaceDashboard() {
@@ -92,164 +250,141 @@ export function AdminWorkspaceDashboard() {
     loadOverview();
   }, [loadOverview]);
 
-  const maxTraffic = Math.max(
-    ...(overview?.trafficByDay.map((entry) => entry.searches) ?? [1]),
-    1,
+  const days = overview?.trafficByDay ?? [];
+  const searches14d = useMemo(
+    () => days.reduce((sum, day) => sum + day.searches, 0),
+    [days],
+  );
+  const signups14d = useMemo(
+    () => days.reduce((sum, day) => sum + day.signups, 0),
+    [days],
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-white">Overview</h2>
-          <p className="text-xs text-zinc-500">
-            Traffic, payments, and moderation at a glance.
-          </p>
-        </div>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-zinc-500">
+          {loading
+            ? "Loading…"
+            : `${searches14d} searches · ${signups14d} signups · last 14 days`}
+        </p>
         <DashButton
-          className="inline-flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs"
+          className="inline-flex h-7 items-center justify-center gap-1.5 px-2 text-[11px]"
           variant="secondary"
           onClick={loadOverview}
         >
-          <RefreshCw className={clsx("size-3.5", loading && "animate-spin")} />
+          <RefreshCw className={clsx("size-3", loading && "animate-spin")} />
           Refresh
         </DashButton>
       </div>
 
-      {error && (
-        <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-200">
+      {error ? (
+        <p className="rounded-md border border-rose-500/20 bg-rose-500/10 px-2.5 py-1.5 text-[11px] text-rose-200">
           {error}
         </p>
-      )}
+      ) : null}
 
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           accent="teal"
-          hint={`${overview?.summary.signups24h ?? 0} new in 24h`}
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
+          hint={`${overview?.summary.signups24h ?? 0} new · 24h`}
           icon={Users}
-          label="Total users"
+          label="Users"
           value={overview?.summary.totalUsers ?? "—"}
         />
         <StatCard
           accent="violet"
-          hint={`${overview?.summary.searches7d ?? 0} in 7 days`}
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
+          hint={`${overview?.summary.searches7d ?? 0} · 7d`}
           icon={Search}
-          label="Search traffic"
+          label="Searches 24h"
           value={overview?.summary.searches24h ?? "—"}
         />
         <StatCard
           accent="amber"
-          hint="Completed payments"
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
+          hint="Completed"
           icon={CreditCard}
-          label="Revenue (30d)"
+          label="Revenue 30d"
           value={overview ? formatMoney(overview.summary.revenue30d) : "—"}
         />
         <StatCard
           accent="rose"
-          hint={
-            overview
-              ? `${overview.summary.openSafetyFlags} open · ${overview.summary.investigateUsers} flagged`
-              : "Open safety cases and flagged accounts"
-          }
+          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
+          hint={`${overview?.summary.investigateUsers ?? 0} flagged`}
           icon={Activity}
-          label="Moderation"
+          label="Open flags"
           value={overview ? overview.summary.openSafetyFlags : "—"}
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <DashPanel glow="teal">
-          <div className="mb-4 flex items-center gap-2">
-            <TrendingUp className="size-4 text-teal-300" />
-            <h3 className="text-base font-semibold text-white">
-              Traffic (7 days)
+      <div className="grid gap-3 xl:grid-cols-5">
+        <DashPanel className="!bg-[#141417] !border-white/[0.07] !p-3 xl:col-span-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h3 className="text-xs font-semibold text-zinc-200">
+              Activity graph
             </h3>
-          </div>
-
-          <div className="space-y-3">
-            {(overview?.trafficByDay ?? []).map((entry) => (
-              <div key={entry.date}>
-                <div className="mb-1 flex items-center justify-between text-xs text-zinc-400">
-                  <span>{entry.date}</span>
-                  <span>
-                    {entry.searches} searches · {entry.signups} signups
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/5">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-teal-400/70 to-cyan-300/70"
-                    style={{
-                      width: `${Math.max((entry.searches / maxTraffic) * 100, 4)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 border-t border-white/8 pt-4">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-              Traffic by module
+            <p className="text-[10px] text-zinc-600">
+              searches vs signups (site growth proxy)
             </p>
-            <div className="flex flex-wrap gap-2">
-              {(overview?.trafficByType ?? []).map((entry) => (
-                <span
-                  key={entry.type}
-                  className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300"
-                >
-                  {entry.type}: {entry.count}
-                </span>
-              ))}
-            </div>
           </div>
+          <TrafficChart days={days} />
         </DashPanel>
 
-        <DashPanel glow="amber">
-          <div className="mb-4 flex items-center gap-2">
-            <CreditCard className="size-4 text-amber-300" />
-            <h3 className="text-base font-semibold text-white">
-              Recent payments
-            </h3>
-          </div>
+        <DashPanel className="!bg-[#141417] !border-white/[0.07] !p-3 xl:col-span-2">
+          <h3 className="mb-2 text-xs font-semibold text-zinc-200">
+            Top modules
+          </h3>
+          <ModuleShareChart rows={overview?.trafficByType ?? []} />
+        </DashPanel>
+      </div>
 
+      <div className="grid gap-3 xl:grid-cols-2">
+        <DashPanel className="!bg-[#141417] !border-white/[0.07] !p-3">
+          <h3 className="mb-2 text-xs font-semibold text-zinc-200">
+            Recent payments
+          </h3>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="min-w-full text-left text-[11px]">
               <thead>
-                <tr className="border-b border-white/10 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
-                  <th className="px-2 py-2 font-semibold">User</th>
-                  <th className="px-2 py-2 font-semibold">Amount</th>
-                  <th className="px-2 py-2 font-semibold">Type</th>
-                  <th className="px-2 py-2 font-semibold">When</th>
+                <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-wide text-zinc-600">
+                  <th className="px-1.5 py-1.5 font-medium">User</th>
+                  <th className="px-1.5 py-1.5 font-medium">Amount</th>
+                  <th className="px-1.5 py-1.5 font-medium">Type</th>
+                  <th className="px-1.5 py-1.5 font-medium">When</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="px-2 py-6 text-zinc-500" colSpan={4}>
-                      Loading payments...
+                    <td className="px-1.5 py-4 text-zinc-600" colSpan={4}>
+                      Loading…
                     </td>
                   </tr>
                 ) : (overview?.payments.length ?? 0) === 0 ? (
                   <tr>
-                    <td className="px-2 py-6 text-zinc-500" colSpan={4}>
-                      No payments recorded yet.
+                    <td className="px-1.5 py-4 text-zinc-600" colSpan={4}>
+                      No payments yet.
                     </td>
                   </tr>
                 ) : (
-                  overview?.payments.map((payment) => (
-                    <tr key={payment.id} className="border-b border-white/5">
-                      <td className="px-2 py-3 text-white">
+                  overview?.payments.slice(0, 8).map((payment) => (
+                    <tr
+                      key={payment.id}
+                      className="border-b border-white/[0.04]"
+                    >
+                      <td className="px-1.5 py-1.5 text-zinc-200">
                         {payment.username}
                       </td>
-                      <td className="px-2 py-3 text-emerald-200">
+                      <td className="px-1.5 py-1.5 text-emerald-300">
                         {formatMoney(payment.amount)}
                       </td>
-                      <td className="px-2 py-3 text-zinc-400">
+                      <td className="px-1.5 py-1.5 text-zinc-500">
                         {payment.type}
                       </td>
-                      <td className="px-2 py-3 text-zinc-500">
-                        {formatDate(payment.createdAt)} ·{" "}
-                        {formatTime(payment.createdAt)}
+                      <td className="px-1.5 py-1.5 text-zinc-600">
+                        {formatDate(payment.createdAt)}
                       </td>
                     </tr>
                   ))
@@ -258,36 +393,38 @@ export function AdminWorkspaceDashboard() {
             </table>
           </div>
         </DashPanel>
+
+        <DashPanel className="!bg-[#141417] !border-white/[0.07] !p-3">
+          <h3 className="mb-2 text-xs font-semibold text-zinc-200">
+            Live searches
+          </h3>
+          <div className="max-h-48 space-y-1 overflow-y-auto">
+            {(overview?.recentActivity ?? []).slice(0, 10).map((entry) => (
+              <div
+                key={entry.id}
+                className="grid grid-cols-[1fr_auto] gap-2 rounded-md border border-white/[0.05] bg-[#0c0c0e] px-2 py-1.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] text-zinc-200">
+                    {entry.username}
+                    <span className="text-zinc-600"> · </span>
+                    <span className="text-zinc-500">{entry.query}</span>
+                  </p>
+                </div>
+                <div className="shrink-0 text-right text-[10px] text-zinc-600">
+                  <span className="mr-1 rounded border border-white/10 px-1 py-0.5 text-zinc-500">
+                    {entry.searchType}
+                  </span>
+                  {formatTime(entry.createdAt)}
+                </div>
+              </div>
+            ))}
+            {!loading && (overview?.recentActivity.length ?? 0) === 0 ? (
+              <p className="text-[11px] text-zinc-600">No recent searches.</p>
+            ) : null}
+          </div>
+        </DashPanel>
       </div>
-
-      <DashPanel glow="violet">
-        <div className="mb-4 flex items-center gap-2">
-          <Activity className="size-4 text-violet-300" />
-          <h3 className="text-base font-semibold text-white">Live activity</h3>
-        </div>
-
-        <div className="space-y-2">
-          {(overview?.recentActivity ?? []).map((entry) => (
-            <div
-              key={entry.id}
-              className="flex flex-col gap-1 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="text-sm text-white">{entry.username}</p>
-                <p className="truncate text-xs text-zinc-500">{entry.query}</p>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <span className="rounded-full border border-white/10 px-2 py-0.5">
-                  {entry.searchType}
-                </span>
-                <span>
-                  {formatDate(entry.createdAt)} · {formatTime(entry.createdAt)}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </DashPanel>
     </div>
   );
 }

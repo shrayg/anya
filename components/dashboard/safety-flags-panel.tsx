@@ -84,7 +84,13 @@ function parseRules(raw: string): string[] {
   }
 }
 
-export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
+export function SafetyFlagsPanel({
+  mode,
+  embedded = false,
+}: {
+  mode: "helper" | "admin";
+  embedded?: boolean;
+}) {
   const [flags, setFlags] = useState<SafetyFlagRow[]>([]);
   const [summary, setSummary] = useState<FlagsSummary>({
     open: 0,
@@ -206,10 +212,15 @@ export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+    <div className={clsx(embedded ? "space-y-3" : "space-y-6")}>
+      <div className="grid gap-2 sm:grid-cols-3">
         <StatCard
           accent="amber"
+          className={
+            embedded
+              ? "!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
+              : undefined
+          }
           hint="Needs first look"
           icon={AlertTriangle}
           label="Open"
@@ -217,6 +228,11 @@ export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
         />
         <StatCard
           accent="violet"
+          className={
+            embedded
+              ? "!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
+              : undefined
+          }
           hint="In progress"
           icon={ClipboardList}
           label="Reviewing"
@@ -224,6 +240,11 @@ export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
         />
         <StatCard
           accent="teal"
+          className={
+            embedded
+              ? "!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
+              : undefined
+          }
           hint="Helpers must clear this queue"
           icon={CheckCircle2}
           label="Needs review"
@@ -231,20 +252,36 @@ export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
         />
       </div>
 
-      <DashPanel glow="amber">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Flags to check</h2>
-            <p className="text-sm text-zinc-400">
-              Auto-detected underage-risk searches and helper Investigate flags.
-              Open a case, mark reviewing, send a message to the user, then
-              resolve with a note.
+      <DashPanel className={embedded ? "!p-3" : undefined} glow="amber">
+        <div
+          className={clsx(
+            "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between",
+            embedded ? "mb-2" : "mb-5 gap-3",
+          )}
+        >
+          {!embedded ? (
+            <div>
+              <h2 className="text-lg font-semibold text-white">Flags to check</h2>
+              <p className="text-sm text-zinc-400">
+                Auto-detected underage-risk searches and helper Investigate
+                flags. Open a case, mark reviewing, send a message to the user,
+                then resolve with a note.
+              </p>
+            </div>
+          ) : (
+            <p className="text-[11px] text-zinc-500">
+              {summary.needsReview} need review · {visibleFlags.length} shown
             </p>
-          </div>
+          )}
 
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row">
             <select
-              className="rounded-md border border-white/10 bg-zinc-950/80 px-3 py-2 text-sm text-zinc-200 outline-none transition focus:border-amber-400/40"
+              className={clsx(
+                "rounded-md border border-white/10 bg-zinc-950/80 text-zinc-200 outline-none transition focus:border-amber-400/40",
+                embedded
+                  ? "h-7 px-2 text-[11px]"
+                  : "px-3 py-2 text-sm",
+              )}
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
@@ -255,12 +292,18 @@ export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
               {mode === "admin" && <option value="all">All</option>}
             </select>
             <DashButton
-              className="inline-flex items-center justify-center gap-2"
+              className={clsx(
+                "inline-flex items-center justify-center gap-1.5",
+                embedded && "h-7 px-2 text-[11px]",
+              )}
               variant="secondary"
               onClick={loadFlags}
             >
               <RefreshCw
-                className={clsx("size-4", loading && "animate-spin")}
+                className={clsx(
+                  loading && "animate-spin",
+                  embedded ? "size-3" : "size-4",
+                )}
               />
               Refresh
             </DashButton>
@@ -268,38 +311,73 @@ export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
         </div>
 
         {error && (
-          <p className="mb-4 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p
+            className={clsx(
+              "rounded-md border border-rose-500/20 bg-rose-500/10 text-rose-200",
+              embedded
+                ? "mb-2 px-2.5 py-1.5 text-[11px]"
+                : "mb-4 px-3 py-2 text-sm",
+            )}
+          >
             {error}
           </p>
         )}
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+          <table
+            className={clsx(
+              "min-w-full text-left",
+              embedded ? "text-[11px]" : "text-sm",
+            )}
+          >
             <thead>
-              <tr className="border-b border-white/10 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
-                <th className="px-3 py-3 font-semibold">Case</th>
-                <th className="px-3 py-3 font-semibold">User</th>
-                <th className="px-3 py-3 font-semibold">Status</th>
-                <th className="px-3 py-3 font-semibold">Signal</th>
-                <th className="px-3 py-3 font-semibold">When</th>
+              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                <th className={clsx(embedded ? "px-1.5 py-1.5" : "px-3 py-3", "font-semibold")}>
+                  Case
+                </th>
+                <th className={clsx(embedded ? "px-1.5 py-1.5" : "px-3 py-3", "font-semibold")}>
+                  User
+                </th>
+                <th className={clsx(embedded ? "px-1.5 py-1.5" : "px-3 py-3", "font-semibold")}>
+                  Status
+                </th>
+                <th className={clsx(embedded ? "px-1.5 py-1.5" : "px-3 py-3", "font-semibold")}>
+                  Signal
+                </th>
+                <th className={clsx(embedded ? "px-1.5 py-1.5" : "px-3 py-3", "font-semibold")}>
+                  When
+                </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-zinc-500" colSpan={5}>
+                  <td
+                    className={clsx(
+                      "text-zinc-500",
+                      embedded ? "px-2 py-4" : "px-3 py-8",
+                    )}
+                    colSpan={5}
+                  >
                     Loading flags...
                   </td>
                 </tr>
               ) : visibleFlags.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-8 text-zinc-500" colSpan={5}>
+                  <td
+                    className={clsx(
+                      "text-zinc-500",
+                      embedded ? "px-2 py-4" : "px-3 py-8",
+                    )}
+                    colSpan={5}
+                  >
                     No flags in this filter.
                   </td>
                 </tr>
               ) : (
                 visibleFlags.map((flag) => {
                   const meta = STATUS_META[flag.status];
+                  const cell = embedded ? "px-1.5 py-1.5" : "px-3 py-3";
 
                   return (
                     <tr
@@ -313,33 +391,36 @@ export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
                         setDeliveryNote("");
                       }}
                     >
-                      <td className="px-3 py-3">
+                      <td className={cell}>
                         <p className="font-medium text-white">
                           #{flag.id} · {flag.reasonCode || flag.source}
                         </p>
-                        <p className="max-w-xs truncate text-xs text-zinc-500">
+                        <p className="max-w-xs truncate text-[10px] text-zinc-500">
                           {flag.moduleSlug || flag.searchType || "manual"}
                         </p>
                       </td>
-                      <td className="px-3 py-3 text-zinc-200">
+                      <td className={clsx(cell, "text-zinc-200")}>
                         {flag.user.username}
                       </td>
-                      <td className="px-3 py-3">
+                      <td className={cell}>
                         <span
                           className={clsx(
-                            "rounded-full border px-2.5 py-1 text-xs font-semibold",
+                            "rounded-full border font-semibold",
+                            embedded
+                              ? "px-1.5 py-0.5 text-[10px]"
+                              : "px-2.5 py-1 text-xs",
                             meta.className,
                           )}
                         >
                           {meta.label}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-zinc-400">
+                      <td className={clsx(cell, "text-zinc-400")}>
                         <p className="max-w-sm truncate">
                           {flag.reason || "—"}
                         </p>
                       </td>
-                      <td className="px-3 py-3 text-zinc-500">
+                      <td className={clsx(cell, "text-zinc-500")}>
                         {formatDate(flag.createdAt)}{" "}
                         <span className="text-zinc-600">
                           {formatTime(flag.createdAt)}
@@ -355,18 +436,27 @@ export function SafetyFlagsPanel({ mode }: { mode: "helper" | "admin" }) {
       </DashPanel>
 
       {selected && (
-        <DashPanel glow="violet">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <DashPanel className={embedded ? "!p-3" : undefined} glow="violet">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-white">
+              <h3
+                className={clsx(
+                  "font-semibold text-white",
+                  embedded ? "text-sm" : "text-lg",
+                )}
+              >
                 Case #{selected.id}
               </h3>
-              <p className="text-sm text-zinc-400">
+              <p className={clsx(embedded ? "text-[11px]" : "text-sm", "text-zinc-400")}>
                 {selected.reasonCode} · {selected.source} · user{" "}
                 {selected.user.username}
               </p>
             </div>
-            <DashButton variant="secondary" onClick={() => setSelectedId(null)}>
+            <DashButton
+              className={embedded ? "h-7 px-2 text-[11px]" : undefined}
+              variant="secondary"
+              onClick={() => setSelectedId(null)}
+            >
               Close
             </DashButton>
           </div>

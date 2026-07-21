@@ -51,7 +51,11 @@ function statusClass(status: string): string {
   return "text-zinc-400";
 }
 
-export function AdminEventLogsPanel() {
+export function AdminEventLogsPanel({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const [logs, setLogs] = useState<EventLogRow[]>([]);
   const [actions, setActions] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
@@ -103,46 +107,54 @@ export function AdminEventLogsPanel() {
     void loadLogs();
   }, [loadLogs]);
 
-  return (
-    <section className="space-y-4" id="event-logs">
-    <DashPanel className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-white">
-            <ScrollText className="size-4 text-zinc-400" />
-            <h2 className="text-lg font-semibold">OSINT event logs</h2>
+  const body = (
+    <div className="space-y-2.5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        {!embedded ? (
+          <div>
+            <div className="flex items-center gap-2 text-white">
+              <ScrollText className="size-4 text-zinc-400" />
+              <h2 className="text-lg font-semibold">OSINT event logs</h2>
+            </div>
+            <p className="mt-1 text-sm text-zinc-500">
+              Staff-only trail of searches, partial failures, and rate limits.
+              Users never see these messages on the search panel.
+            </p>
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
-            Staff-only trail of searches, partial failures, and rate limits.
-            Users never see these messages on the search panel.
+        ) : (
+          <p className="text-[11px] text-zinc-500">
+            Showing {logs.length} of {total.toLocaleString()} matching events
           </p>
-        </div>
+        )}
         <DashButton
+          className="inline-flex h-7 items-center gap-1.5 px-2 text-[11px]"
           disabled={loading}
           onClick={() => void loadLogs()}
           type="button"
           variant="ghost"
         >
-          <RefreshCw className={clsx("size-3.5", loading && "animate-spin")} />
+          <RefreshCw className={clsx("size-3", loading && "animate-spin")} />
           Refresh
         </DashButton>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-4">
+      <div className="grid gap-1.5 md:grid-cols-4">
         <DashInput
+          className="h-7 text-[11px]"
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Filter by username"
           value={username}
         />
         <DashInput
+          className="h-7 text-[11px]"
           onChange={(e) => setUserId(e.target.value)}
           placeholder="Filter by user id"
           value={userId}
         />
         <div className="relative">
-          <Filter className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-500" />
+          <Filter className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-zinc-500" />
           <DashSelect
-            className="w-full appearance-none pl-9"
+            className="h-7 w-full appearance-none pl-8 text-[11px]"
             onChange={(e) => setAction(e.target.value)}
             value={action}
           >
@@ -155,7 +167,7 @@ export function AdminEventLogsPanel() {
           </DashSelect>
         </div>
         <DashSelect
-          className="w-full"
+          className="h-7 w-full text-[11px]"
           onChange={(e) => setStatus(e.target.value)}
           value={status}
         >
@@ -167,51 +179,53 @@ export function AdminEventLogsPanel() {
         </DashSelect>
       </div>
 
-      <p className="text-xs text-zinc-500">
-        Showing {logs.length} of {total.toLocaleString()} matching events
-      </p>
-
-      {error ? (
-        <p className="text-sm text-rose-300">{error}</p>
+      {!embedded ? (
+        <p className="text-xs text-zinc-500">
+          Showing {logs.length} of {total.toLocaleString()} matching events
+        </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border border-white/10">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/5 text-[11px] uppercase tracking-wide text-zinc-500">
+      {error ? <p className="text-[11px] text-rose-300">{error}</p> : null}
+
+      <div className="overflow-x-auto rounded-lg border border-white/10">
+        <table className="min-w-full text-left text-[11px]">
+          <thead className="border-b border-white/10 bg-white/5 text-[10px] uppercase tracking-wide text-zinc-500">
             <tr>
-              <th className="px-3 py-2 font-medium">When</th>
-              <th className="px-3 py-2 font-medium">User</th>
-              <th className="px-3 py-2 font-medium">Action</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Detail</th>
+              <th className="px-2 py-1.5 font-medium">When</th>
+              <th className="px-2 py-1.5 font-medium">User</th>
+              <th className="px-2 py-1.5 font-medium">Action</th>
+              <th className="px-2 py-1.5 font-medium">Status</th>
+              <th className="px-2 py-1.5 font-medium">Detail</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {loading && logs.length === 0 ? (
               <tr>
-                <td className="px-3 py-4 text-zinc-500" colSpan={5}>
+                <td className="px-2 py-3 text-zinc-500" colSpan={5}>
                   Loading logs…
                 </td>
               </tr>
             ) : null}
             {!loading && logs.length === 0 ? (
               <tr>
-                <td className="px-3 py-4 text-zinc-500" colSpan={5}>
+                <td className="px-2 py-3 text-zinc-500" colSpan={5}>
                   No events match these filters yet.
                 </td>
               </tr>
             ) : null}
             {logs.map((row) => (
               <tr key={row.id} className="align-top text-zinc-300">
-                <td className="whitespace-nowrap px-3 py-2 text-xs text-zinc-500">
+                <td className="whitespace-nowrap px-2 py-1.5 text-[10px] text-zinc-500">
                   <div>{formatDate(row.createdAt)}</div>
                   <div>{formatTime(row.createdAt)}</div>
                 </td>
-                <td className="px-3 py-2">
-                  <div className="font-medium text-white">{row.username}</div>
-                  <div className="text-[11px] text-zinc-500">#{row.userId}</div>
+                <td className="px-2 py-1.5">
+                  <div className="text-xs font-medium text-white">
+                    {row.username}
+                  </div>
+                  <div className="text-[10px] text-zinc-500">#{row.userId}</div>
                 </td>
-                <td className="px-3 py-2 font-mono text-[11px] text-zinc-400">
+                <td className="px-2 py-1.5 font-mono text-[10px] text-zinc-400">
                   <div>{row.action}</div>
                   {row.moduleSlug ? (
                     <div className="text-zinc-600">{row.moduleSlug}</div>
@@ -219,13 +233,13 @@ export function AdminEventLogsPanel() {
                 </td>
                 <td
                   className={clsx(
-                    "px-3 py-2 font-mono text-[11px] uppercase",
+                    "px-2 py-1.5 font-mono text-[10px] uppercase",
                     statusClass(row.status),
                   )}
                 >
                   {row.status}
                 </td>
-                <td className="max-w-md px-3 py-2 text-xs">
+                <td className="max-w-md px-2 py-1.5 text-[11px]">
                   {row.queryPreview ? (
                     <p className="truncate text-zinc-400">
                       q: {row.queryPreview}
@@ -242,7 +256,12 @@ export function AdminEventLogsPanel() {
           </tbody>
         </table>
       </div>
-    </DashPanel>
-    </section>
+    </div>
   );
+
+  if (embedded) {
+    return body;
+  }
+
+  return <DashPanel className="!p-3">{body}</DashPanel>;
 }

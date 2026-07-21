@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { KeyRound, Mail, Shield } from "lucide-react";
+import clsx from "clsx";
 
 import { apiFetch } from "@/lib/csrf-client";
 import { passwordRequirementsHint } from "@/lib/password-policy";
@@ -9,9 +10,11 @@ import { passwordRequirementsHint } from "@/lib/password-policy";
 export function AccountSecurityPanel({
   username,
   initialRecoveryEmail = null,
+  embedded = false,
 }: {
   username: string;
   initialRecoveryEmail?: string | null;
+  embedded?: boolean;
 }) {
   const [recoveryEmail, setRecoveryEmail] = useState(
     initialRecoveryEmail ?? "",
@@ -94,8 +97,14 @@ export function AccountSecurityPanel({
   }
 
   return (
-    <div className="rounded-[0.85rem] border border-white/[0.07] bg-[#141417] p-4">
-      <div className="grid gap-4 lg:grid-cols-3">
+    <div
+      className={clsx(
+        embedded
+          ? "p-0"
+          : "rounded-[0.85rem] border border-white/[0.07] bg-[#141417] p-3",
+      )}
+    >
+      <div className="grid gap-3 lg:grid-cols-3">
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <Shield className="size-3.5 text-zinc-400" />

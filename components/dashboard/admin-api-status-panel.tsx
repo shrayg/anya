@@ -126,28 +126,28 @@ function formatLatency(ms: number | null) {
 function ApiRowCard({ row }: { row: ApiStatusRow }) {
   return (
     <article
-      className="rounded-[0.85rem] border border-white/[0.07] bg-[#141417] p-4 transition-colors hover:bg-[#16161a]"
+      className="rounded-lg border border-white/[0.07] bg-[#141417] p-2.5 transition-colors hover:bg-[#16161a]"
       title={row.error || row.note || undefined}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-sm font-medium text-zinc-100">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 space-y-0.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <h3 className="truncate text-xs font-medium text-zinc-100">
               {row.name}
             </h3>
             <StatusPill status={row.status} />
             {row.role === "fallback" ? (
-              <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+              <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
                 Fallback
               </span>
             ) : null}
             {row.section ? (
-              <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-zinc-500">
+              <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-zinc-500">
                 {row.section}
               </span>
             ) : null}
           </div>
-          <p className="text-xs leading-relaxed text-zinc-500">
+          <p className="text-[11px] leading-snug text-zinc-500">
             {row.description}
           </p>
         </div>
@@ -155,11 +155,11 @@ function ApiRowCard({ row }: { row: ApiStatusRow }) {
           <p className="text-[10px] uppercase tracking-wide text-zinc-600">
             Version
           </p>
-          <p className="font-mono text-xs text-zinc-300">{row.version}</p>
+          <p className="font-mono text-[11px] text-zinc-300">{row.version}</p>
         </div>
       </div>
 
-      <div className="mt-3 grid gap-2 border-t border-white/[0.05] pt-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-2 grid gap-1.5 border-t border-white/[0.05] pt-2 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="text-[10px] uppercase tracking-wide text-zinc-600">
             Vendor / Gateway
@@ -221,18 +221,18 @@ function ApiRowCard({ row }: { row: ApiStatusRow }) {
 
 function ApiTable({ rows }: { rows: ApiStatusRow[] }) {
   return (
-    <div className="overflow-x-auto rounded-[0.85rem] border border-white/[0.07] bg-[#141417]">
-      <table className="w-full min-w-[960px] border-collapse text-left text-xs">
+    <div className="overflow-x-auto rounded-lg border border-white/[0.07] bg-[#141417]">
+      <table className="w-full min-w-[960px] border-collapse text-left text-[11px]">
         <thead>
           <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-wide text-zinc-600">
-            <th className="px-3 py-2.5 font-medium">API Name</th>
-            <th className="px-3 py-2.5 font-medium">Description</th>
-            <th className="px-3 py-2.5 font-medium">Version</th>
-            <th className="px-3 py-2.5 font-medium">Status</th>
-            <th className="px-3 py-2.5 font-medium">Method</th>
-            <th className="px-3 py-2.5 font-medium">Endpoint</th>
-            <th className="px-3 py-2.5 font-medium">Last request</th>
-            <th className="px-3 py-2.5 font-medium">Response</th>
+            <th className="px-2 py-1.5 font-medium">API Name</th>
+            <th className="px-2 py-1.5 font-medium">Description</th>
+            <th className="px-2 py-1.5 font-medium">Version</th>
+            <th className="px-2 py-1.5 font-medium">Status</th>
+            <th className="px-2 py-1.5 font-medium">Method</th>
+            <th className="px-2 py-1.5 font-medium">Endpoint</th>
+            <th className="px-2 py-1.5 font-medium">Last request</th>
+            <th className="px-2 py-1.5 font-medium">Response</th>
           </tr>
         </thead>
         <tbody>
@@ -242,40 +242,40 @@ function ApiTable({ rows }: { rows: ApiStatusRow[] }) {
               className="border-b border-white/[0.04] align-top last:border-0 hover:bg-white/[0.02]"
               title={row.error || row.note || undefined}
             >
-              <td className="px-3 py-2.5">
+              <td className="px-2 py-1.5">
                 <p className="font-medium text-zinc-200">{row.name}</p>
                 <p className="text-[10px] text-zinc-600">
                   {row.vendor} · {row.gateway}
                 </p>
               </td>
-              <td className="max-w-[220px] px-3 py-2.5 text-zinc-500">
+              <td className="max-w-[220px] px-2 py-1.5 text-zinc-500">
                 <p className="line-clamp-2">{row.description}</p>
                 {row.error ? (
-                  <p className="mt-1 line-clamp-2 text-rose-300/80">
+                  <p className="mt-0.5 line-clamp-2 text-rose-300/80">
                     {row.error}
                   </p>
                 ) : null}
               </td>
-              <td className="px-3 py-2.5 font-mono text-zinc-400">
+              <td className="px-2 py-1.5 font-mono text-zinc-400">
                 {row.version}
               </td>
-              <td className="px-3 py-2.5">
+              <td className="px-2 py-1.5">
                 <StatusPill status={row.status} />
               </td>
-              <td className="px-3 py-2.5">
+              <td className="px-2 py-1.5">
                 <span className="rounded bg-[#0c0c0e] px-1.5 py-0.5 font-mono text-[10px] text-sky-300/80">
                   {row.method}
                 </span>
               </td>
-              <td className="max-w-[200px] truncate px-3 py-2.5 font-mono text-[11px] text-zinc-400">
+              <td className="max-w-[200px] truncate px-2 py-1.5 font-mono text-[11px] text-zinc-400">
                 {row.endpoint}
               </td>
-              <td className="whitespace-nowrap px-3 py-2.5 text-zinc-500">
+              <td className="whitespace-nowrap px-2 py-1.5 text-zinc-500">
                 {formatLastRequest(row.lastRequest)}
               </td>
               <td
                 className={clsx(
-                  "whitespace-nowrap px-3 py-2.5",
+                  "whitespace-nowrap px-2 py-1.5",
                   row.lastResponseMs != null && row.lastResponseMs >= 4000
                     ? "text-amber-200"
                     : "text-zinc-400",
@@ -291,7 +291,14 @@ function ApiTable({ rows }: { rows: ApiStatusRow[] }) {
   );
 }
 
-export function AdminApiStatusPanel() {
+const COMPACT_STAT =
+  "!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7";
+
+export function AdminApiStatusPanel({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const dashboardUser = useDashboardUser();
   const isAdmin =
     dashboardUser.canManageWorkspace ||
@@ -389,24 +396,34 @@ export function AdminApiStatusPanel() {
   }
 
   return (
-    <section className="space-y-4" id="api-status">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
-            Admin · API visibility
+    <div className={clsx("space-y-3", !embedded && "space-y-4")}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {!embedded ? (
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+              Admin · API visibility
+            </p>
+            <h2 className="text-lg font-semibold text-white">API status</h2>
+            <p className="mt-1 max-w-2xl text-sm text-zinc-500">
+              Admin-only. Gateways and endpoints from BreachHub OpenAPI +
+              CSINT.pro — what each API does, live status, last request,
+              response time, and errors.
+            </p>
+          </div>
+        ) : (
+          <p className="text-[11px] text-zinc-500">
+            {data?.checkedAt
+              ? `Last check ${formatTime(data.checkedAt)}`
+              : loading
+                ? "Probing…"
+                : "Live gateway + endpoint health"}
           </p>
-          <h2 className="text-lg font-semibold text-white">API status</h2>
-          <p className="mt-1 max-w-2xl text-sm text-zinc-500">
-            Admin-only. Gateways and endpoints from BreachHub OpenAPI +
-            CSINT.pro — what each API does, live status, last request, response
-            time, and errors.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-white/[0.07] bg-[#0c0c0e] p-0.5">
+        )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="inline-flex rounded-md border border-white/[0.07] bg-[#0c0c0e] p-0.5">
             <button
               className={clsx(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px]",
+                "inline-flex items-center gap-1 rounded px-2 py-1 text-[11px]",
                 view === "cards"
                   ? "bg-[#1a1a1e] text-zinc-100"
                   : "text-zinc-500 hover:text-zinc-300",
@@ -414,12 +431,12 @@ export function AdminApiStatusPanel() {
               onClick={() => setView("cards")}
               type="button"
             >
-              <LayoutGrid className="size-3.5" />
+              <LayoutGrid className="size-3" />
               Cards
             </button>
             <button
               className={clsx(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px]",
+                "inline-flex items-center gap-1 rounded px-2 py-1 text-[11px]",
                 view === "table"
                   ? "bg-[#1a1a1e] text-zinc-100"
                   : "text-zinc-500 hover:text-zinc-300",
@@ -427,26 +444,27 @@ export function AdminApiStatusPanel() {
               onClick={() => setView("table")}
               type="button"
             >
-              <Table2 className="size-3.5" />
+              <Table2 className="size-3" />
               Table
             </button>
           </div>
           <DashButton
-            className="inline-flex items-center gap-2"
+            className="inline-flex h-7 items-center gap-1.5 px-2 text-[11px]"
             disabled={loading}
             onClick={load}
             type="button"
             variant="secondary"
           >
-            <RefreshCw className={clsx("size-3.5", loading && "animate-spin")} />
+            <RefreshCw className={clsx("size-3", loading && "animate-spin")} />
             Refresh
           </DashButton>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           accent="teal"
+          className={COMPACT_STAT}
           hint="Healthy latency"
           icon={Activity}
           label="🟢 Online"
@@ -454,6 +472,7 @@ export function AdminApiStatusPanel() {
         />
         <StatCard
           accent="amber"
+          className={COMPACT_STAT}
           hint="≥ 4s response"
           icon={Cable}
           label="🟡 Slow"
@@ -461,6 +480,7 @@ export function AdminApiStatusPanel() {
         />
         <StatCard
           accent="rose"
+          className={COMPACT_STAT}
           hint="Probe / request failed"
           icon={Server}
           label="🔴 Offline"
@@ -468,6 +488,7 @@ export function AdminApiStatusPanel() {
         />
         <StatCard
           accent="violet"
+          className={COMPACT_STAT}
           hint="Disabled or skipped"
           icon={Filter}
           label="🟠 Maintenance"
@@ -475,11 +496,11 @@ export function AdminApiStatusPanel() {
         />
       </div>
 
-      <DashPanel className="!bg-[#0c0c0e] !border-white/[0.07]">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <DashPanel className="!bg-[#0c0c0e] !border-white/[0.07] !p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-sm font-medium text-zinc-200">Gateways</p>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs font-medium text-zinc-200">Gateways</p>
+            <p className="text-[11px] text-zinc-500">
               {data?.openapiFetched
                 ? `BreachHub OpenAPI v${data.openapiVersion ?? "—"} loaded`
                 : "BreachHub OpenAPI unavailable — using catalog fallbacks"}
@@ -491,35 +512,36 @@ export function AdminApiStatusPanel() {
         </div>
 
         {error ? (
-          <p className="mb-3 text-sm text-rose-300">{error}</p>
+          <p className="mb-2 text-[11px] text-rose-300">{error}</p>
         ) : null}
 
         {view === "table" ? (
           <ApiTable rows={data?.gateways ?? []} />
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-2 lg:grid-cols-2">
             {(data?.gateways ?? []).map((row) => (
               <ApiRowCard key={row.id} row={row} />
             ))}
             {loading && !data ? (
-              <p className="text-sm text-zinc-500">Probing gateways…</p>
+              <p className="text-[11px] text-zinc-500">Probing gateways…</p>
             ) : null}
           </div>
         )}
       </DashPanel>
 
-      <DashPanel className="!bg-[#0c0c0e] !border-white/[0.07]">
-        <div className="mb-4 flex flex-wrap items-end gap-3">
-          <div className="relative min-w-[200px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-600" />
+      <DashPanel className="!bg-[#0c0c0e] !border-white/[0.07] !p-3">
+        <div className="mb-2 flex flex-wrap items-end gap-2">
+          <div className="relative min-w-[180px] flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-zinc-600" />
             <DashInput
-              className="pl-9"
+              className="h-8 pl-8 text-xs"
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Filter by name, vendor, endpoint, error…"
               value={query}
             />
           </div>
           <DashSelect
+            className="h-8 text-xs"
             onChange={(event) => setGateway(event.target.value)}
             value={gateway}
           >
@@ -531,6 +553,7 @@ export function AdminApiStatusPanel() {
             ))}
           </DashSelect>
           <DashSelect
+            className="h-8 text-xs"
             onChange={(event) =>
               setStatus(event.target.value as "" | ApiHealthStatus)
             }
@@ -542,7 +565,7 @@ export function AdminApiStatusPanel() {
             <option value="offline">🔴 Offline</option>
             <option value="maintenance">🟠 Maintenance</option>
           </DashSelect>
-          <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-zinc-500">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-zinc-500">
             <input
               checked={hideSkipped}
               className="rounded border-white/10 bg-[#141417]"
@@ -553,19 +576,19 @@ export function AdminApiStatusPanel() {
           </label>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {view === "table" ? (
             <ApiTable rows={filteredEndpoints} />
           ) : (
             grouped.map(([group, rows]) => (
-              <div key={group} className="space-y-3">
+              <div key={group} className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-medium text-zinc-200">{group}</h3>
-                  <p className="text-[11px] text-zinc-600">
+                  <h3 className="text-xs font-medium text-zinc-200">{group}</h3>
+                  <p className="text-[10px] text-zinc-600">
                     {rows.length} endpoint{rows.length === 1 ? "" : "s"}
                   </p>
                 </div>
-                <div className="grid gap-3">
+                <div className="grid gap-2">
                   {rows.map((row) => (
                     <ApiRowCard key={row.id} row={row} />
                   ))}
@@ -575,10 +598,10 @@ export function AdminApiStatusPanel() {
           )}
 
           {!loading && filteredEndpoints.length === 0 ? (
-            <p className="text-sm text-zinc-500">No endpoints match filters.</p>
+            <p className="text-[11px] text-zinc-500">No endpoints match filters.</p>
           ) : null}
         </div>
       </DashPanel>
-    </section>
+    </div>
   );
 }
