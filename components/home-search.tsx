@@ -35,7 +35,6 @@ import {
 import {
   checkDailySearchQuota,
   checkModuleAccess,
-  hasWorkspaceDashboardAccess,
   resolveUserPlan,
   shouldBlurResults,
   STARTER_MODULE_SLUGS,
@@ -277,13 +276,6 @@ export function HomeSearch() {
     }
   };
 
-  const hasWorkspace =
-    auth.status === "authenticated" &&
-    hasWorkspaceDashboardAccess({
-      ...auth.user,
-      canManageWorkspace: auth.canManageWorkspace,
-    });
-
   const searchBar = (
     <div
       className="home-search-input-wrap relative"
@@ -395,25 +387,6 @@ export function HomeSearch() {
 
           {searchBar}
         </form>
-
-        <div className="home-search-foot">
-          <span>ENTRY MODULES / EMAIL / USERNAME / PHONE / DISCORD</span>
-          <span>
-            {auth.status === "guest" ? (
-              <Link href="/auth?action=login">SIGN IN TO SEARCH</Link>
-            ) : null}
-            {auth.status === "authenticated" && !hasWorkspace ? (
-              <Link href="/pricing">EXPAND ACCESS</Link>
-            ) : null}
-            {auth.status === "authenticated" && hasWorkspace ? (
-              <Link href="/dashboard/search/ai-search">OPEN WORKSPACE</Link>
-            ) : null}
-            {auth.status === "loading" ? "CHECKING ACCESS" : null}
-          </span>
-          <span>
-            <Link href="/acceptable-use">LAWFUL USE ONLY</Link>
-          </span>
-        </div>
       </LiquidGlassCard>
 
       {error ? <p className="home-search-error">{error}</p> : null}

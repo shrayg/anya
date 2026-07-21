@@ -7207,28 +7207,6 @@ html[data-splash="active"] [data-splash-target] {
   color: var(--anya-blush);
 }
 
-.home-search-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin-top: 0.75rem;
-  color: rgba(113, 113, 122, 0.95);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.home-search-foot a {
-  color: rgba(212, 212, 216, 0.95);
-}
-
-.home-search-foot a:hover {
-  color: var(--anya-blush);
-}
-
 @media (max-width: 720px) {
   .home-search-locked-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -8582,13 +8560,5 @@ html[data-splash="active"] [data-splash-target] {
 .home-search-glass .home-search-input-wrap {
   background: rgba(0, 0, 0, 0.35);
   box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.05);
-}
-
-.home-search-glass .home-search-foot {
-  margin-top: 0.65rem;
-  border-color: color-mix(in srgb, #c3d3e6 12%, rgba(255, 255, 255, 0.06));
-  background: rgba(0, 0, 0, 0.28);
-  border-radius: 0.75rem;
-  box-shadow: none;
 }
 
