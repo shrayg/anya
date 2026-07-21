@@ -139,27 +139,6 @@ const BREACHHUB_SPECIALTY_SCOPES = new Set([
   "passport",
 ]);
 
-/** Social / gaming modules that should prefer BreachHub specialty over GodsEye/CSINT noise. */
-const BREACHHUB_PRIMARY_SCOPES = new Set([
-  "snapchat",
-  "telegram",
-  "twitter",
-  "tiktok",
-  "instagram",
-  "reddit",
-  "github",
-  "steam",
-  "xbox",
-  "roblox",
-  "minecraft",
-  "phone",
-  "hwid",
-  "facebook",
-  "passport",
-  "discord-roblox",
-  "fivem",
-]);
-
 async function fetchOptionalBreachHubUniversal(
   query: string,
   godseyeType: GodsEyeSearchType | string,
@@ -325,13 +304,6 @@ export async function fetchCombinedStealerLogs(
   );
 }
 
-function shouldPreferBreachHub(breachHubScope?: string | null): boolean {
-  return (
-    isBreachHubEnabled() &&
-    Boolean(breachHubScope && BREACHHUB_PRIMARY_SCOPES.has(breachHubScope))
-  );
-}
-
 export async function fetchCombinedPlatformSearch(
   query: string,
   osintCatEndpoint: string | undefined,
@@ -350,34 +322,7 @@ export async function fetchCombinedPlatformSearch(
 
   if (cached) return cached;
 
-  // Snapchat / social modules: BreachHub specialty first so GodsEye/CSINT
-  // error junk (Invalid API key, [object Object]) never becomes "results".
-  if (shouldPreferBreachHub(breachHubScope)) {
-    const preferred: SanitizedBreachResponse[] = [];
-    const [breachHubResult, breachVipResult] = await settleWithinBudget(
-      [
-        fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope, {
-          specialtyOnly: true,
-        }),
-        fetchOptionalBreachVip(query, breachVipField),
-      ],
-      COMBINED_PLATFORM_BUDGET_MS,
-    );
-
-    pushSettledSanitized(preferred, breachHubResult);
-    pushSettledSanitized(preferred, breachVipResult);
-
-    if (preferred.length > 0) {
-      const merged = mergeSanitizedResponses(...preferred);
-
-      if (merged.count > 0) {
-        setProviderCached(cacheKey, merged, COMBINED_RESULT_CACHE_TTL_MS);
-      }
-
-      return merged;
-    }
-  }
-
+  // Full fan-out across every related provider for this module.
   const parts: SanitizedBreachResponse[] = [];
   const [
     osintcatResult,
@@ -432,26 +377,6 @@ export async function fetchGodsEyeOnlySearch(
   const hasGodsEye = Boolean(getGodsEyeApiKey());
   const hasCsint = isCsintEnabled();
   const hasBreachHub = isBreachHubEnabled();
-
-  if (shouldPreferBreachHub(breachHubScope)) {
-    const preferred: SanitizedBreachResponse[] = [];
-    const [breachHubResult, breachVipResult] = await settleWithinBudget(
-      [
-        fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope, {
-          specialtyOnly: true,
-        }),
-        fetchOptionalBreachVip(query, breachVipField),
-      ],
-      COMBINED_PLATFORM_BUDGET_MS,
-    );
-
-    pushSettledSanitized(preferred, breachHubResult);
-    pushSettledSanitized(preferred, breachVipResult);
-
-    if (preferred.length > 0) {
-      return mergeSanitizedResponses(...preferred);
-    }
-  }
 
   const parts: SanitizedBreachResponse[] = [];
 

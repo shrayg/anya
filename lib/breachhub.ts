@@ -27,6 +27,7 @@ import {
 import {
   publicSearchError,
   publicServiceUnavailable,
+  sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
 import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
@@ -2860,12 +2861,43 @@ export async function fetchBreachHubByIds(
     idSet.has(endpoint.id),
   );
 
-  // Specialty / by-ids: shorter budgets; allow large specialty payloads.
-  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 14_000), {
+  // Specialty / by-ids: enough budget for full related catalog, large payloads.
+  const perCall = Math.min(Math.max(timeoutMs, 14_000), 24_000);
+  const budget = Math.min(Math.max(timeoutMs, 20_000), 36_000);
+
+  return fanOutEndpoints(endpoints, query, kind, perCall, {
     minResults: 0,
-    budgetMs: Math.min(timeoutMs, 20_000),
-    concurrency: 7,
+    budgetMs: budget,
+    concurrency: 10,
   });
+}
+
+/** Expand seed specialty IDs with every catalog endpoint matching the scope. */
+function expandSpecialtyIds(scope: string, seed: string[]): string[] {
+  const tokens = scope
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 3);
+  const extras =
+    scope === "discord-roblox"
+      ? ["discord", "roblox"]
+      : scope === "google-docs"
+        ? ["google", "docs"]
+        : [];
+  const keys = [...new Set([...tokens, ...extras])];
+
+  const discovered = BREACHHUB_ENDPOINTS.filter((endpoint) => {
+    if (!endpoint.modes.includes("specialty") && !endpoint.modes.includes("additive")) {
+      return false;
+    }
+
+    const id = endpoint.id.toLowerCase();
+    const path = endpoint.path.toLowerCase();
+
+    return keys.some((key) => id.includes(key) || path.includes(`/${key}`));
+  }).map((endpoint) => endpoint.id);
+
+  return [...new Set([...seed, ...discovered])];
 }
 
 export async function fetchBreachHubSpecialty(
@@ -2993,9 +3025,11 @@ export async function fetchBreachHubSpecialty(
     vin: ["vin", "intelbase-vin", "intelbase-bmw"],
   };
 
-  const ids = map[scope];
+  const seed = map[scope];
 
-  if (!ids) return null;
+  if (!seed) return null;
+
+  const ids = expandSpecialtyIds(scope, seed);
 
   const kindHint =
     scope === "steam"

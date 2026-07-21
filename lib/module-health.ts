@@ -174,6 +174,56 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
 
 export type ProviderHealth = Record<ProviderId, boolean>;
 
+export type ProviderProbeResult = {
+  id: ProviderId;
+  label: string;
+  ok: boolean;
+  latencyMs: number;
+  error?: string;
+  /** Cheap ping skipped (no key / not applicable). */
+  unprobed?: boolean;
+};
+
+const PROVIDER_LABELS: Record<ProviderId, string> = {
+  osintcat: "OsintCat",
+  godseye: "GodsEye",
+  "godseye-export": "GodsEye Export",
+  breachvip: "BreachVIP",
+  breachhub: "BreachHub",
+  csint: "CSINT",
+  cordcat: "CordCat",
+  builtin: "Built-in",
+  courtlistener: "CourtListener",
+  instagram: "Instagram",
+};
+
+async function timedProbe(
+  id: ProviderId,
+  run: () => Promise<boolean>,
+): Promise<ProviderProbeResult> {
+  const started = Date.now();
+
+  try {
+    const ok = await run();
+
+    return {
+      id,
+      label: PROVIDER_LABELS[id],
+      ok,
+      latencyMs: Date.now() - started,
+      ...(ok ? {} : { error: "Probe failed" }),
+    };
+  } catch (err) {
+    return {
+      id,
+      label: PROVIDER_LABELS[id],
+      ok: false,
+      latencyMs: Date.now() - started,
+      error: err instanceof Error ? err.message : "Probe failed",
+    };
+  }
+}
+
 async function probeOsintCat(): Promise<boolean> {
   const apiKey = getOsintCatApiKey();
 
@@ -280,7 +330,7 @@ async function probeInstagram(): Promise<boolean> {
   return probeInstagramAvailability();
 }
 
-export async function probeProviders(): Promise<ProviderHealth> {
+export async function probeProvidersDetailed(): Promise<ProviderProbeResult[]> {
   const [
     osintcat,
     godseye,
@@ -292,29 +342,54 @@ export async function probeProviders(): Promise<ProviderHealth> {
     courtlistener,
     instagram,
   ] = await Promise.all([
-    probeOsintCat(),
-    probeGodsEye(),
-    probeGodsEyeExport(),
-    probeBreachVip(),
-    probeBreachHub(),
-    probeCsint(),
-    isCordCatConfigured() ? probeCordCat() : Promise.resolve(false),
-    probeCourtListenerHealth(),
-    probeInstagram(),
+    timedProbe("osintcat", probeOsintCat),
+    timedProbe("godseye", probeGodsEye),
+    timedProbe("godseye-export", probeGodsEyeExport),
+    timedProbe("breachvip", probeBreachVip),
+    timedProbe("breachhub", probeBreachHub),
+    timedProbe("csint", probeCsint),
+    isCordCatConfigured()
+      ? timedProbe("cordcat", probeCordCat)
+      : Promise.resolve({
+          id: "cordcat" as const,
+          label: PROVIDER_LABELS.cordcat,
+          ok: false,
+          latencyMs: 0,
+          unprobed: true,
+          error: "Not configured",
+        }),
+    timedProbe("courtlistener", probeCourtListenerHealth),
+    timedProbe("instagram", probeInstagram),
   ]);
 
-  return {
+  return [
     osintcat,
     godseye,
-    "godseye-export": godseyeExport,
+    godseyeExport,
     breachvip,
     breachhub,
     csint,
     cordcat,
-    builtin: true,
+    {
+      id: "builtin",
+      label: PROVIDER_LABELS.builtin,
+      ok: true,
+      latencyMs: 0,
+    },
     courtlistener,
     instagram,
-  };
+  ];
+}
+
+export async function probeProviders(): Promise<ProviderHealth> {
+  const detailed = await probeProvidersDetailed();
+  const out = {} as ProviderHealth;
+
+  for (const row of detailed) {
+    out[row.id] = row.ok;
+  }
+
+  return out;
 }
 
 function evaluateRule(
