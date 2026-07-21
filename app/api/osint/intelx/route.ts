@@ -226,10 +226,21 @@ export async function GET(req: NextRequest) {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean)
-      .filter(
-        (line) =>
-          !isBrandPlaceholderValue(line) && !/^powered\s+by\b/i.test(line),
-      )
+      .filter((line) => {
+        if (/^powered\s+by\b/i.test(line)) return false;
+        // Strip rewritten brand tokens; keep the line if anything else remains.
+        // Do not use isBrandPlaceholderValue(line) — short credential lines that
+        // still mention Anya.Int after URL scrub would be wiped incorrectly.
+        const withoutBrand = line
+          .replace(new RegExp(PUBLIC_BRAND.replace(/\./g, "\\."), "gi"), "")
+          .replace(/anya\.int/gi, "")
+          .replace(/enkidu\.int/gi, "")
+          .trim();
+
+        if (!withoutBrand) return false;
+
+        return !isBrandPlaceholderValue(withoutBrand);
+      })
       .join("\n")
       .trim();
 

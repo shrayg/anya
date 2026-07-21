@@ -171,10 +171,13 @@ export function isInternalSourceLabel(value: string): boolean {
   const isShortField = trimmed.length <= 96 && !/[\r\n]/.test(trimmed);
 
   if (isShortField) {
-    if (lower.includes("csint")) return true;
     if (lower.includes("powered by")) return true;
-    if (lower.includes("anya.int") && !lower.includes(" · ")) return true;
-    if (lower.includes("enkidu.int") && !lower.includes(" · ")) return true;
+    // Exact brand labels only — substring "anya.int" would wipe dump lines
+    // that still mention the product after intelx.io URL scrubbing.
+    if (lower === "csint" || lower === "csint tools" || lower === "csint.pro")
+      return true;
+    if (lower === "anya.int" || lower === "@anya.int") return true;
+    if (lower === "enkidu.int" || lower === "@enkidu.int") return true;
   }
 
   return false;
