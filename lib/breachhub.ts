@@ -2,6 +2,7 @@
  * BreachHub.org unified intelligence client — full coverage of the public API.
  *
  * Docs: https://breachhub.org/docs · OpenAPI: https://breachhub.org/openapi.json
+ * (Scalar also loads https://breachhub.org/api/openapi — fuller path catalog.)
  * Auth: query param `key` (ApiKeyAuth). Disable with BREACHHUB_ENABLED=false.
  *
  * Vendor policy (lib/provider-dedupe.ts): BreachHub is primary for mirrored
@@ -410,6 +411,32 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query) => ({ email: query }),
   },
   {
+    id: "intelvault-breaches",
+    path: "/api/intelvault/breaches",
+    section: "data_breach",
+    modes: ["additive"],
+    kinds: ["email", "username", "phone", "ip", "domain", "password"],
+    buildParams: (query, kind): Record<string, string> | null => {
+      if (kind === "email") return { email: query };
+      if (kind === "username") return { username: query };
+      if (kind === "phone") return { phone: query };
+      if (kind === "ip") return { ip: query };
+      if (kind === "domain") return { domain: query };
+      if (kind === "password") return { password: query };
+
+      return null;
+    },
+  },
+  {
+    id: "intelvault-stealer-logs",
+    path: "/api/intelvault/stealer-logs",
+    section: "data_breach",
+    modes: ["additive", "specialty"],
+    kinds: ["email", "username", "domain", "ip"],
+    buildParams: (query): Record<string, string> | null =>
+      query.trim().length >= 4 ? q(query) : null,
+  },
+  {
     id: "breachdirectory",
     path: "/api/breachdirectory",
     section: "data_breach",
@@ -485,6 +512,14 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     modes: ["additive", "specialty"],
     kinds: ["ip"],
     buildParams: (query) => ({ ip: query }),
+  },
+  {
+    id: "cordcat-user",
+    path: "/api/cordcat/user",
+    section: "data_breach",
+    modes: ["specialty"],
+    kinds: ["discord"],
+    buildParams: (query) => ({ id: query }),
   },
   {
     id: "intelx",
@@ -1357,6 +1392,22 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query) => q(query),
   },
   {
+    id: "seekria-discord-profile",
+    path: "/api/seekria/discord-profile",
+    section: "social_osint",
+    modes: ["specialty"],
+    kinds: ["discord"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "seekria-discord-to-rat",
+    path: "/api/seekria/discord-to-rat",
+    section: "social_osint",
+    modes: ["specialty", "additive"],
+    kinds: ["discord"],
+    buildParams: (query) => q(query),
+  },
+  {
     id: "seekria-roblox",
     path: "/api/seekria/roblox",
     section: "social_osint",
@@ -1370,6 +1421,46 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "social_osint",
     modes: ["specialty", "additive"],
     kinds: ["username"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "seekria-minecraft-osint",
+    path: "/api/seekria/minecraft-osint",
+    section: "social_osint",
+    modes: ["specialty"],
+    kinds: ["username"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "seekria-name-history",
+    path: "/api/seekria/name-history",
+    section: "social_osint",
+    modes: ["specialty"],
+    kinds: ["username"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "seekria-minecraft-texture",
+    path: "/api/seekria/minecraft-texture",
+    section: "social_osint",
+    modes: ["specialty"],
+    kinds: ["username"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "seekria-laby-stats",
+    path: "/api/seekria/laby-stats",
+    section: "social_osint",
+    modes: ["specialty"],
+    kinds: ["username"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "seekria-fivem",
+    path: "/api/seekria/fivem",
+    section: "social_osint",
+    modes: ["specialty"],
+    kinds: ["discord", "username", "ip"],
     buildParams: (query) => q(query),
   },
   {
@@ -1815,6 +1906,42 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     }),
   },
   {
+    id: "datavoid-roblox",
+    path: "/api/datavoid/roblox",
+    section: "specialized_tools",
+    modes: ["specialty", "additive"],
+    kinds: ["username"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "datavoid-twitter",
+    path: "/api/datavoid/twitter",
+    section: "specialized_tools",
+    modes: ["specialty", "additive"],
+    kinds: ["username"],
+    buildParams: (query): Record<string, string> | null => {
+      const cleaned = query.trim().replace(/^@/, "");
+
+      return cleaned ? { q: cleaned } : null;
+    },
+  },
+  {
+    id: "datavoid-discord",
+    path: "/api/datavoid/discord",
+    section: "specialized_tools",
+    modes: ["specialty", "additive"],
+    kinds: ["discord"],
+    buildParams: (query) => ({ id: query }),
+  },
+  {
+    id: "datavoid-fivem",
+    path: "/api/datavoid/fivem",
+    section: "specialized_tools",
+    modes: ["specialty"],
+    kinds: ["discord", "username", "ip"],
+    buildParams: (query) => q(query),
+  },
+  {
     id: "indicia-whois",
     path: "/api/indicia/whois",
     section: "specialized_tools",
@@ -1924,6 +2051,30 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query) => q(query),
   },
   {
+    id: "discord-user",
+    path: "/api/discord/user",
+    section: "user_lookup",
+    modes: ["specialty", "additive"],
+    kinds: ["discord"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "discord-history",
+    path: "/api/discord/history",
+    section: "user_lookup",
+    modes: ["specialty"],
+    kinds: ["discord"],
+    buildParams: (query) => ({ id: query }),
+  },
+  {
+    id: "discord-snowflake",
+    path: "/api/discord/snowflake",
+    section: "user_lookup",
+    modes: ["specialty"],
+    kinds: ["discord"],
+    buildParams: (query) => ({ id: query }),
+  },
+  {
     id: "telegram-username",
     path: "/api/telegram/username",
     section: "user_lookup",
@@ -1955,6 +2106,38 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
   {
     id: "telegram-phone",
     path: "/api/telegram/phone",
+    section: "user_lookup",
+    modes: ["specialty", "additive"],
+    kinds: ["phone"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "notalivex-tg-username",
+    path: "/api/notalivex/tg/username",
+    section: "user_lookup",
+    modes: ["specialty", "additive"],
+    kinds: ["username"],
+    buildParams: (query): Record<string, string> | null => {
+      const cleaned = query.trim().replace(/^@/, "");
+
+      return cleaned && !/^\d+$/.test(cleaned) ? q(cleaned) : null;
+    },
+  },
+  {
+    id: "notalivex-tg-id",
+    path: "/api/notalivex/tg/id",
+    section: "user_lookup",
+    modes: ["specialty"],
+    kinds: ["username"],
+    buildParams: (query): Record<string, string> | null => {
+      const cleaned = query.trim().replace(/^@/, "");
+
+      return cleaned && /^\d+$/.test(cleaned) ? q(cleaned) : null;
+    },
+  },
+  {
+    id: "notalivex-tg-phone",
+    path: "/api/notalivex/tg/telefono",
     section: "user_lookup",
     modes: ["specialty", "additive"],
     kinds: ["phone"],
@@ -2723,6 +2906,8 @@ const STEALER_ONLY_PRIMARY_IDS = [
   "seeknow-stealer",
   "seeknow-stealer-legacy",
   "datavoid-stealer",
+  "intelvault-stealer-logs",
+  "seekria-discord-to-rat",
   "inf0sec-leaks",
   "oathnet-stealer-subdomain",
 ] as const;
@@ -2739,6 +2924,7 @@ const STEALER_BREACH_OVERLAP_IDS = [
   "leakcheck-v2",
   "leaksight",
   "intelvault",
+  "intelvault-breaches",
   "hackcheck",
   "infodra",
   "cypherdynamics",
@@ -2972,7 +3158,7 @@ function expandSpecialtyIds(scope: string, seed: string[]): string[] {
     scope === "google-docs"
       ? ["google", "docs"]
       : scope === "minecraft"
-        ? ["mc-history", "hypixel"]
+        ? ["mc-history", "hypixel", "laby", "name-history", "minecraft-texture"]
         : scope === "twitter"
           ? ["twitter-osint"]
           : scope === "telegram"
@@ -3038,10 +3224,15 @@ export async function fetchBreachHubSpecialty(
       "osintbat-roblox",
       "intelbase-roblox",
       "indicia-roblox",
+      "datavoid-roblox",
     ],
     minecraft: [
       "oathnet-mc",
       "seekria-minecraft",
+      "seekria-minecraft-osint",
+      "seekria-name-history",
+      "seekria-minecraft-texture",
+      "seekria-laby-stats",
       "seeknow-minecraft",
       "osintbat-minecraft",
       "intelbase-minecraft",
@@ -3052,21 +3243,35 @@ export async function fetchBreachHubSpecialty(
       "reconly",
       "discord-lookup",
       "discord-stalker",
+      "discord-user",
+      "discord-history",
+      "discord-snowflake",
       "cordcat",
+      "cordcat-user",
       "oathnet-discord-userinfo",
       "oathnet-discord-history",
       "seekria-discord",
+      "seekria-discord-profile",
+      "seekria-discord-to-rat",
       "osintbat-discord",
       "intelbase-discord",
       "intelfetch-discord",
       "indicia-discord",
+      "datavoid-discord",
     ],
     "discord-roblox": [
       "seeknow-discord-roblox",
       "oathnet-discord-roblox",
       "intelbase-roblox",
     ],
-    telegram: ["telegram-username", "telegram-id", "telegram-phone"],
+    telegram: [
+      "telegram-username",
+      "telegram-id",
+      "telegram-phone",
+      "notalivex-tg-username",
+      "notalivex-tg-id",
+      "notalivex-tg-phone",
+    ],
     snapchat: ["snapchat", "seeknow-social"],
     tiktok: [
       "tiktok",
@@ -3080,6 +3285,7 @@ export async function fetchBreachHubSpecialty(
       "seeknow-social",
       "osintcat-twitter",
       "osintbat-twitter",
+      "datavoid-twitter",
       "seeknow-history",
     ],
     reddit: [
@@ -3098,7 +3304,12 @@ export async function fetchBreachHubSpecialty(
       "intelbase-github",
     ],
     instagram: ["instagram", "instagram-id", "datavoid-instagram", "seeknow-social"],
-    fivem: ["breachhub-fivem", "reconly-fivem"],
+    fivem: [
+      "breachhub-fivem",
+      "reconly-fivem",
+      "seekria-fivem",
+      "datavoid-fivem",
+    ],
     phone: [
       "seeknow-phone",
       "nosint-search",
@@ -3107,6 +3318,7 @@ export async function fetchBreachHubSpecialty(
       "osintbat-phone",
       "intelbase-phone",
       "telegram-phone",
+      "notalivex-tg-phone",
     ],
     ip: [
       "ipinfo",
