@@ -393,12 +393,6 @@ export function DashboardSidebar({ username }: { username: string }) {
 
     if (profile.canManageWorkspace) {
       items.unshift({
-        name: "API status",
-        href: "/dashboard/settings#api-status",
-        icon: Activity,
-        badge: "ADMIN",
-      });
-      items.unshift({
         name: "Admin",
         href: "/dashboard/settings#admin",
         icon: Shield,

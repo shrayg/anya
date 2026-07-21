@@ -20,7 +20,9 @@ import {
   DashSelect,
   StatCard,
 } from "@/components/dashboard/dashboard-ui";
+import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { formatDate, formatTime } from "@/lib/format-datetime";
+import { hasWorkspaceAdminAccess } from "@/lib/workspace-admin";
 
 type ApiHealthStatus = "online" | "slow" | "offline" | "maintenance";
 
@@ -290,6 +292,14 @@ function ApiTable({ rows }: { rows: ApiStatusRow[] }) {
 }
 
 export function AdminApiStatusPanel() {
+  const dashboardUser = useDashboardUser();
+  const isAdmin =
+    dashboardUser.canManageWorkspace ||
+    hasWorkspaceAdminAccess({
+      isAdmin: dashboardUser.isAdmin,
+      staffRole: dashboardUser.staffRole,
+    });
+
   const [data, setData] = useState<ApiStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -300,6 +310,8 @@ export function AdminApiStatusPanel() {
   const [view, setView] = useState<"cards" | "table">("cards");
 
   const load = useCallback(async () => {
+    if (!isAdmin) return;
+
     setLoading(true);
     setError("");
 
@@ -323,7 +335,7 @@ export function AdminApiStatusPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     load();
@@ -372,18 +384,22 @@ export function AdminApiStatusPanel() {
     return [...map.entries()];
   }, [filteredEndpoints]);
 
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <section className="space-y-4" id="api-status">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
-            API visibility
+            Admin · API visibility
           </p>
           <h2 className="text-lg font-semibold text-white">API status</h2>
           <p className="mt-1 max-w-2xl text-sm text-zinc-500">
-            Gateways and endpoints from BreachHub OpenAPI + CSINT.pro — what
-            each API does, live status (online / slow / offline / maintenance),
-            last request, and response time. Errors show on the card or row.
+            Admin-only. Gateways and endpoints from BreachHub OpenAPI +
+            CSINT.pro — what each API does, live status, last request, response
+            time, and errors.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
