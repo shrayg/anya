@@ -32,7 +32,7 @@ import {
 const CSINT_BASE = "https://csint.pro/api";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
 const SHODAN_TIMEOUT_MS = 18_000;
-const MAX_ROWS = 10_000;
+const MAX_ROWS = 100_000;
 const MAX_SHODAN_SERVICES = 48;
 const MAX_SHODAN_BANNER_CHARS = 1_500;
 
