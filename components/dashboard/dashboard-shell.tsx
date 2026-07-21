@@ -34,7 +34,7 @@ function DashboardShellInner({ children, username }: DashboardShellProps) {
         isFrozen && "dash-shell--frozen",
       )}
     >
-      {!TEST_MAC_DASHBOARD_THEME ? <HomeBackground /> : null}
+      {!TEST_MAC_DASHBOARD_THEME ? <HomeBackground mode="lite" /> : null}
       <DashboardSidebar username={username} />
       <main
         className={clsx("dash-main", isFrozen && "dash-main--frozen")}
