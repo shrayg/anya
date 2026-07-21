@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
     );
 
     const results = Array.isArray(data.results) ? data.results : [];
-    const credentials = extractStealerCredentialRows(results);
+    const credentials = extractStealerCredentialRows(results, searchQuery);
     const archives = mergeStealerArchives(
       victims,
       extractStealerArchives({ results }),

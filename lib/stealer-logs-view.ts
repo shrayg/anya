@@ -34,9 +34,30 @@ function clean(value: string): string {
 /** Flatten breach/stealer result rows into SITE / USERNAME / PASSWORD / DATE. */
 export function extractStealerCredentialRows(
   results: unknown[],
+  query?: string,
 ): StealerCredentialRow[] {
   const rows: StealerCredentialRow[] = [];
   const seen = new Set<string>();
+  const needle = query?.trim().toLowerCase() || "";
+  const isEmail = Boolean(needle && /^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(needle));
+
+  const matchesQuery = (site: string, username: string) => {
+    if (!needle) return true;
+    const blob = `${site} ${username}`.toLowerCase();
+
+    if (blob.includes(needle)) return true;
+    if (!isEmail) return blob.includes(needle);
+
+    const [local, domain] = needle.split("@");
+
+    return (
+      username.toLowerCase() === needle ||
+      (local.length >= 3 &&
+        blob.includes(local) &&
+        Boolean(domain) &&
+        blob.includes(domain))
+    );
+  };
 
   for (const entry of results) {
     if (!entry || typeof entry !== "object") continue;
@@ -46,10 +67,15 @@ export function extractStealerCredentialRows(
       for (const cred of record.credentials) {
         if (!cred || typeof cred !== "object") continue;
         const c = cred as Record<string, unknown>;
+        const site = asString(c.url) || asString(c.site) || asString(c.domain);
+        const username =
+          asString(c.username) || asString(c.login) || asString(c.email);
+
+        if (!matchesQuery(site, username)) continue;
+
         pushCredential(rows, seen, {
-          site: asString(c.url) || asString(c.site) || asString(c.domain),
-          username:
-            asString(c.username) || asString(c.login) || asString(c.email),
+          site,
+          username,
           password: asString(c.password) || asString(c.pass),
           date: asString(c.date) || asString(record.date),
         });
@@ -57,17 +83,22 @@ export function extractStealerCredentialRows(
       continue;
     }
 
+    const site =
+      asString(record.url) ||
+      asString(record.site) ||
+      asString(record.domain) ||
+      asString(record.host);
+    const username =
+      asString(record.username) ||
+      asString(record.login) ||
+      asString(record.email) ||
+      asString(record.user);
+
+    if (!matchesQuery(site, username)) continue;
+
     pushCredential(rows, seen, {
-      site:
-        asString(record.url) ||
-        asString(record.site) ||
-        asString(record.domain) ||
-        asString(record.host),
-      username:
-        asString(record.username) ||
-        asString(record.login) ||
-        asString(record.email) ||
-        asString(record.user),
+      site,
+      username,
       password:
         asString(record.password) ||
         asString(record.pass) ||

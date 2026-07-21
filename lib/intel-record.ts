@@ -426,4 +426,100 @@ export function scrubIntelResults(results: unknown[]): unknown[] {
   return scrubbed;
 }
 
+/**
+ * Keep only rows that clearly relate to the searched query.
+ * Email searches must not return unrelated logins/passwords from the same dump.
+ */
+export function filterIntelResultsForQuery(
+  query: string,
+  results: unknown[],
+): unknown[] {
+  const trimmed = query.trim();
+
+  if (!trimmed || results.length === 0) return results;
+
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(trimmed);
+  const needle = trimmed.toLowerCase();
+  const localPart = isEmail ? needle.split("@")[0] : "";
+  const domainPart = isEmail ? needle.split("@")[1] : "";
+
+  const filtered: unknown[] = [];
+
+  for (const entry of results) {
+    if (!entry || typeof entry !== "object") continue;
+    const record = { ...(entry as Record<string, unknown>) };
+
+    if (Array.isArray(record.credentials)) {
+      const creds = (record.credentials as unknown[]).filter((cred) => {
+        if (!cred || typeof cred !== "object") return false;
+        const c = cred as Record<string, unknown>;
+        const blob = [
+          c.email,
+          c.username,
+          c.login,
+          c.user,
+          c.url,
+          c.site,
+          c.domain,
+        ]
+          .map((v) => (typeof v === "string" ? v.toLowerCase() : ""))
+          .join(" ");
+
+        if (isEmail) {
+          return (
+            blob.includes(needle) ||
+            (localPart.length >= 3 &&
+              blob.includes(localPart) &&
+              Boolean(domainPart) &&
+              blob.includes(domainPart))
+          );
+        }
+
+        return blob.includes(needle);
+      });
+
+      if (creds.length > 0) {
+        filtered.push({ ...record, credentials: creds });
+        continue;
+      }
+    }
+
+    const identity = [
+      record.email,
+      record.username,
+      record.login,
+      record.user,
+      record.identifier,
+      record.query,
+      record.phone,
+      record.ip,
+      record.domain,
+      record.url,
+      record.site,
+      record.host,
+    ]
+      .map((v) => (typeof v === "string" ? v.toLowerCase() : ""))
+      .filter(Boolean);
+
+    const haystack = identity.join(" ");
+
+    if (isEmail) {
+      if (
+        haystack.includes(needle) ||
+        identity.some((v) => v === needle) ||
+        (haystack.includes(localPart) && haystack.includes(domainPart))
+      ) {
+        filtered.push(record);
+      }
+      continue;
+    }
+
+    if (haystack.includes(needle) || JSON.stringify(record).toLowerCase().includes(needle)) {
+      filtered.push(record);
+    }
+  }
+
+  return filtered;
+}
+
 export const DATABANK_KEYS = new Set<string>(DATABANK_FIELD_KEYS);

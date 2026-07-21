@@ -15,6 +15,7 @@ import {
   isCsintEnabled,
   mapGodsEyeTypeToCsint,
 } from "@/lib/csint";
+import { filterIntelResultsForQuery } from "@/lib/intel-record";
 import {
   publicSearchError,
   publicServiceUnavailable,
@@ -39,7 +40,7 @@ import {
 const COMBINED_GODSEYE_TIMEOUT_MS = 12_000;
 const COMBINED_BREACHVIP_TIMEOUT_MS = 12_000;
 const COMBINED_CSINT_TIMEOUT_MS = 15_000;
-const COMBINED_BREACHHUB_TIMEOUT_MS = 18_000;
+const COMBINED_BREACHHUB_TIMEOUT_MS = 22_000;
 
 async function fetchOptionalCsintUniversal(
   query: string,
@@ -267,7 +268,13 @@ export async function fetchCombinedStealerLogs(
   pushSettledSanitized(parts, breachHubResult);
 
   if (parts.length > 0) {
-    return mergeSanitizedResponses(...parts);
+    const merged = mergeSanitizedResponses(...parts);
+    const filtered = filterIntelResultsForQuery(query, merged.results);
+
+    return {
+      count: filtered.length,
+      results: filtered,
+    };
   }
 
   const stealerError =

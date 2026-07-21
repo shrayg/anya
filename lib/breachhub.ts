@@ -22,6 +22,7 @@ import {
   isBrandPlaceholderValue,
   scrubIntelRecord,
   scrubIntelResults,
+  filterIntelResultsForQuery,
 } from "@/lib/intel-record";
 import {
   publicSearchError,
@@ -492,7 +493,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     id: "osintcat-machine-search",
     path: "/api/osintcat/machine-viewer/search",
     section: "data_breach",
-    modes: ["specialty"],
+    modes: ["additive", "specialty"],
     kinds: ["email", "username", "domain", "ip"],
     buildParams: (query) => q(query),
   },
@@ -558,11 +559,20 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
   },
   {
     id: "seeknow-stealer",
+    // Live OpenAPI exposes /api/seeknow/search (stealer-specific path is often absent).
+    path: "/api/seeknow/search",
+    section: "data_breach",
+    modes: ["additive"],
+    kinds: ["email", "username", "domain"],
+    buildParams: (query) => ({ query, type: "stealer", limit: "100" }),
+  },
+  {
+    id: "seeknow-stealer-legacy",
     path: "/api/seeknow/stealer",
     section: "data_breach",
     modes: ["additive"],
     kinds: ["email", "username", "domain"],
-    buildParams: (query) => ({ query, limit: "50" }),
+    buildParams: (query) => ({ query, limit: "100" }),
   },
   {
     id: "seekria-email-breach",
@@ -2190,6 +2200,16 @@ export function extractBreachHubRows(
     }
   }
 
+  // OsintCat machine-viewer / OathNet victims often use `logs` / `victims`.
+  if (rows.length === 0) {
+    for (const key of ["logs", "victims", "archives", "devices", "items"]) {
+      if (Array.isArray(data[key])) {
+        pushLimited(data[key] as unknown[]);
+        break;
+      }
+    }
+  }
+
   if (rows.length === 0 && Array.isArray(data.data)) {
     pushLimited(data.data);
   }
@@ -2242,8 +2262,14 @@ function reportedCount(payload: Record<string, unknown>): number | undefined {
 function toSanitized(
   payload: unknown,
   reported?: number,
+  query?: string,
 ): SanitizedBreachResponse {
-  const results = scrubIntelResults(extractBreachHubRows(payload));
+  let results = scrubIntelResults(extractBreachHubRows(payload));
+
+  if (query?.trim()) {
+    results = scrubIntelResults(filterIntelResultsForQuery(query, results));
+  }
+
   const count =
     typeof reported === "number" && reported > results.length
       ? reported
@@ -2265,7 +2291,7 @@ async function fetchEndpointSafe(
   try {
     const data = await breachHubGet(endpoint.path, params, timeoutMs);
 
-    return toSanitized(data, reportedCount(data));
+    return toSanitized(data, reportedCount(data), query);
   } catch {
     return null;
   }
@@ -2318,11 +2344,14 @@ function additiveForKind(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
 }
 
 function stealerLikeEndpoints(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
+  // Every BreachHub stealer / infection / machine-viewer source we can hit.
   const stealerIds = new Set([
     "oathnet-stealer",
     "oathnet-stealer-subdomain",
     "oathnet-victims",
+    "osintcat-machine-search",
     "seeknow-stealer",
+    "seeknow-stealer-legacy",
     "hudsonrock-email",
     "hudsonrock-username",
     "hudsonrock-domain",
@@ -2331,14 +2360,47 @@ function stealerLikeEndpoints(kind: BreachHubQueryKind): BreachHubEndpointDef[] 
     "wentyn",
     "intelbase-intelvault-stealer",
     "datavoid-stealer",
+    "breachhub-search",
+    "leakosint",
+    "leakcheck-v2",
+    "leaksight",
+    "intelvault",
+    "hackcheck",
+    "infodra",
+    "cypherdynamics",
+    "osintbat-email-breach",
+    "osintcat-database",
+    "snusbase",
+    "snusbase-combo",
+    "intelbase-intelvault-breaches",
+    "intelbase-intelvault-email",
+    "intelbase-akula",
+    "seekria-email-breach",
+    "inf0sec",
   ]);
 
-  return BREACHHUB_ENDPOINTS.filter(
-    (endpoint) =>
-      stealerIds.has(endpoint.id) &&
-      endpoint.kinds.includes(kind) &&
-      endpoint.modes.includes("additive"),
-  );
+  return BREACHHUB_ENDPOINTS.filter((endpoint) => {
+    if (!stealerIds.has(endpoint.id)) return false;
+    if (!endpoint.modes.includes("additive")) return false;
+
+    // Domain-only stealer helpers (subdomain extract) stay domain-scoped.
+    if (
+      endpoint.id === "oathnet-stealer-subdomain" &&
+      kind !== "domain"
+    ) {
+      return false;
+    }
+
+    return (
+      endpoint.kinds.includes(kind) ||
+      (kind !== "auto" && endpoint.kinds.includes("auto")) ||
+      // Email stealer searches should still hit username-capable indexes with
+      // the email string (many stealer rows store the address as login).
+      (kind === "email" &&
+        (endpoint.kinds.includes("username") ||
+          endpoint.kinds.includes("email")))
+    );
+  });
 }
 
 /** Full additive fan-out across Data Breach + overlapping Social/Intel indexes. */
