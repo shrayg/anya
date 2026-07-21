@@ -5,10 +5,12 @@ import {
   buildModuleHealthLevels,
   buildModuleHealthMap,
   probeProvidersDetailed,
+  uniqueHealthProviderIds,
   type ProviderHealth,
   type ProviderProbeResult,
 } from "@/lib/module-health";
 import { writePersistedProviderHealth } from "@/lib/provider-health-store";
+import { getSkippedBreachHubEndpointIds } from "@/lib/provider-dedupe";
 
 type CachedProviderHealth = {
   expiresAt: number;
@@ -17,6 +19,7 @@ type CachedProviderHealth = {
   map: ProviderHealth;
   modules: Record<string, boolean>;
   levels: Record<string, string>;
+  skippedBreachHubIds: string[];
 };
 
 let cache: CachedProviderHealth | null = null;
@@ -36,18 +39,25 @@ export async function GET() {
       providers: cache.providers,
       modules: cache.modules,
       levels: cache.levels,
+      skippedBreachHubIds: cache.skippedBreachHubIds,
     });
   }
 
-  const providers = await probeProvidersDetailed();
+  const detailed = await probeProvidersDetailed();
+  const uniqueIds = new Set(uniqueHealthProviderIds(detailed));
+  // Health strip: configured unique gateways only (no double-count of mirrored vendors).
+  const providers = detailed.filter(
+    (row) => row.id === "builtin" || uniqueIds.has(row.id),
+  );
   const map = {} as ProviderHealth;
 
-  for (const row of providers) {
+  for (const row of detailed) {
     map[row.id] = row.ok;
   }
 
   const modules = buildModuleHealthMap(map);
   const levels = buildModuleHealthLevels(map);
+  const skippedBreachHubIds = [...getSkippedBreachHubEndpointIds()].sort();
   const persisted = writePersistedProviderHealth(map, levels);
 
   cache = {
@@ -57,6 +67,7 @@ export async function GET() {
     map,
     modules,
     levels,
+    skippedBreachHubIds,
   };
 
   return NextResponse.json({
@@ -65,5 +76,6 @@ export async function GET() {
     providers: cache.providers,
     modules: cache.modules,
     levels: cache.levels,
+    skippedBreachHubIds: cache.skippedBreachHubIds,
   });
 }

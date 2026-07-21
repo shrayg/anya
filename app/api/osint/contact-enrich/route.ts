@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-import { fetchCsintMelissaLookup } from "@/lib/csint";
+import {
+  fetchBreachHubByIds,
+  isBreachHubEnabled,
+} from "@/lib/breachhub";
+import { fetchCsintMelissaLookup, isCsintEnabled } from "@/lib/csint";
 import { publicSearchError } from "@/lib/public-branding";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
 
@@ -59,9 +63,30 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchCsintMelissaLookup(body);
+    // Primary: CSINT Melissa. BreachHub melissa only when CSINT is off.
+    if (isCsintEnabled()) {
+      const data = await fetchCsintMelissaLookup(body);
 
-    return NextResponse.json(data);
+      return NextResponse.json(data);
+    }
+
+    if (isBreachHubEnabled()) {
+      const input =
+        body.input ||
+        body.email ||
+        body.phone ||
+        [body.first, body.last].filter(Boolean).join(" ") ||
+        Object.values(body).join(" ");
+      const bh = await fetchBreachHubByIds(["melissa"], input, "auto", 18_000);
+
+      if (bh && bh.count > 0) {
+        return NextResponse.json({ count: bh.count, results: bh.results });
+      }
+
+      return NextResponse.json({ count: 0, results: [] });
+    }
+
+    throw new Error(publicSearchError());
   } catch (err) {
     const message = err instanceof Error ? err.message : publicSearchError();
 
