@@ -2670,11 +2670,31 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .mod-catalog {
+  position: relative;
   display: grid;
-  gap: 1.5rem;
+  gap: 1rem;
+  padding-left: 1.2rem;
+}
+
+.mod-catalog::before {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  left: 0;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--anya-blush) 22%, rgba(255, 255, 255, 0.14)) 12%,
+    color-mix(in srgb, var(--anya-blush) 16%, rgba(255, 255, 255, 0.1)) 88%,
+    transparent
+  );
+  opacity: 0.9;
 }
 
 .mod-section {
+  position: relative;
   padding: 1.25rem;
   border: 1px solid color-mix(in srgb, var(--anya-blush) 10%, rgba(255, 255, 255, 0.06));
   border-radius: 1.15rem;
@@ -2684,7 +2704,32 @@ html[data-splash="active"] [data-splash-target] {
       color-mix(in srgb, var(--anya-blush) 4%, rgba(255, 255, 255, 0.03)),
       rgba(255, 255, 255, 0.02) 55%
     );
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 26px rgba(0, 0, 0, 0.2);
+}
+
+.mod-section::before {
+  content: "";
+  position: absolute;
+  top: 2rem;
+  left: -1.2rem;
+  width: 1.2rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--anya-blush) 26%, rgba(255, 255, 255, 0.12));
+}
+
+.mod-section::after {
+  content: "";
+  position: absolute;
+  top: 1.7rem;
+  left: -1.45rem;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 48%, rgba(255, 255, 255, 0.4));
+  background: rgba(9, 12, 18, 0.92);
+  box-shadow: 0 0 0 3px rgba(9, 12, 18, 0.9);
 }
 
 .mod-section--featured {
@@ -2739,7 +2784,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .mod-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.7rem;
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -2767,14 +2812,20 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .mod-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  min-height: 8.5rem;
-  padding: 1rem;
+  gap: 0.75rem;
+  min-height: 7.7rem;
+  padding: 0.9rem 0.95rem 0.95rem;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--anya-blush) 5%, rgba(255, 255, 255, 0.03)),
+      rgba(255, 255, 255, 0.02) 52%
+    );
   text-decoration: none;
   transition:
     border-color 0.15s ease,
@@ -2783,11 +2834,22 @@ html[data-splash="active"] [data-splash-target] {
     box-shadow 0.15s ease;
 }
 
+.mod-tile::before {
+  content: "";
+  position: absolute;
+  top: 1.25rem;
+  left: -0.72rem;
+  width: 0.72rem;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.09);
+  opacity: 0.8;
+}
+
 .mod-tile:hover {
   border-color: color-mix(in srgb, var(--anya-blush) 28%, rgba(255, 255, 255, 0.1));
   background: color-mix(in srgb, var(--anya-blush) 6%, rgba(255, 255, 255, 0.04));
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
 }
 
 .mod-tile--featured {
@@ -2848,7 +2910,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .mod-tile-title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 650;
   line-height: 1.25;
   color: #fff;
@@ -2856,7 +2918,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .mod-tile-hint {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   line-height: 1.45;
   color: rgba(161, 161, 170, 1);
 }
@@ -2874,6 +2936,28 @@ html[data-splash="active"] [data-splash-target] {
   border-radius: 1rem;
   text-align: center;
   color: rgba(161, 161, 170, 1);
+}
+
+@media (max-width: 900px) {
+  .mod-catalog {
+    padding-left: 0.8rem;
+    gap: 0.85rem;
+  }
+
+  .mod-catalog::before {
+    left: 0.1rem;
+  }
+
+  .mod-section::before {
+    left: -0.9rem;
+    width: 0.9rem;
+  }
+
+  .mod-section::after {
+    left: -1.08rem;
+    width: 0.38rem;
+    height: 0.38rem;
+  }
 }
 
 .module-hub-layout,
