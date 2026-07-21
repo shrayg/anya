@@ -307,7 +307,7 @@ export function AdminApiStatusPanel() {
   const [gateway, setGateway] = useState("");
   const [status, setStatus] = useState<"" | ApiHealthStatus>("");
   const [hideSkipped, setHideSkipped] = useState(true);
-  const [view, setView] = useState<"cards" | "table">("cards");
+  const [view, setView] = useState<"cards" | "table">("table");
 
   const load = useCallback(async () => {
     if (!isAdmin) return;

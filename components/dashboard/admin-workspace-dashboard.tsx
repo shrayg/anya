@@ -98,33 +98,31 @@ export function AdminWorkspaceDashboard() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">
-            Workspace overview
-          </h2>
-          <p className="text-sm text-zinc-400">
-            Payments, traffic, and platform activity in one place.
+          <h2 className="text-base font-semibold text-white">Overview</h2>
+          <p className="text-xs text-zinc-500">
+            Traffic, payments, and moderation at a glance.
           </p>
         </div>
         <DashButton
-          className="inline-flex items-center justify-center gap-2"
+          className="inline-flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs"
           variant="secondary"
           onClick={loadOverview}
         >
-          <RefreshCw className={clsx("size-4", loading && "animate-spin")} />
+          <RefreshCw className={clsx("size-3.5", loading && "animate-spin")} />
           Refresh
         </DashButton>
       </div>
 
       {error && (
-        <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+        <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-200">
           {error}
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           accent="teal"
           hint={`${overview?.summary.signups24h ?? 0} new in 24h`}
@@ -150,7 +148,7 @@ export function AdminWorkspaceDashboard() {
           accent="rose"
           hint={
             overview
-              ? `${overview.summary.openSafetyFlags} open safety case${overview.summary.openSafetyFlags === 1 ? "" : "s"} · ${overview.summary.investigateUsers} account${overview.summary.investigateUsers === 1 ? "" : "s"} flagged`
+              ? `${overview.summary.openSafetyFlags} open · ${overview.summary.investigateUsers} flagged`
               : "Open safety cases and flagged accounts"
           }
           icon={Activity}

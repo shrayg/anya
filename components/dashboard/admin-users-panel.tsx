@@ -72,7 +72,7 @@ function StatusBadge({ status }: { status: AccountStatus }) {
   return (
     <span
       className={clsx(
-        "rounded-full border px-2.5 py-1 text-xs font-semibold",
+        "rounded border px-1.5 py-0.5 text-[10px] font-semibold",
         meta.badgeClass,
       )}
     >
@@ -319,8 +319,8 @@ export function AdminUsersPanel() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div className="space-y-4">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           accent="violet"
           hint="Registered accounts"
@@ -361,21 +361,18 @@ export function AdminUsersPanel() {
       </div>
 
       <DashPanel glow="violet">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Member control</h2>
-            <p className="text-sm text-zinc-400">
-              Assign plans, reset passwords, freeze, ban, flag for
-              investigation, or delete accounts.
-              {flaggedCount > 0
-                ? ` ${flaggedCount} account${flaggedCount === 1 ? "" : "s"} flagged for investigation.`
-                : ""}
+            <h2 className="text-base font-semibold text-white">Members</h2>
+            <p className="text-xs text-zinc-500">
+              Plans, passwords, freeze / ban / flag / delete
+              {flaggedCount > 0 ? ` · ${flaggedCount} flagged` : ""}
             </p>
           </div>
 
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <select
-              className="rounded-md border border-white/10 bg-zinc-950/80 px-3 py-2 text-sm text-zinc-200 outline-none transition focus:border-violet-400/40"
+              className="h-8 rounded-md border border-white/10 bg-zinc-950/80 px-2 text-xs text-zinc-200 outline-none transition focus:border-violet-400/40"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as StatusFilter)
@@ -388,18 +385,18 @@ export function AdminUsersPanel() {
               <option value="investigate">Flagged / Investigate</option>
             </select>
             <DashInput
-              className="sm:w-64"
+              className="h-8 sm:w-52"
               placeholder="Search username..."
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
             <DashButton
-              className="inline-flex items-center justify-center gap-2"
+              className="inline-flex h-8 items-center justify-center gap-1.5 px-2.5 text-xs"
               variant="secondary"
               onClick={loadUsers}
             >
               <RefreshCw
-                className={clsx("size-4", loading && "animate-spin")}
+                className={clsx("size-3.5", loading && "animate-spin")}
               />
               Refresh
             </DashButton>
@@ -407,22 +404,22 @@ export function AdminUsersPanel() {
         </div>
 
         {error && (
-          <p className="mb-4 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <p className="mb-3 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-200">
             {error}
           </p>
         )}
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+          <table className="min-w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/10 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
-                <th className="px-3 py-3 font-semibold">User</th>
-                <th className="px-3 py-3 font-semibold">Status</th>
-                <th className="px-3 py-3 font-semibold">Staff badge</th>
-                <th className="px-3 py-3 font-semibold">Plan</th>
-                <th className="px-3 py-3 font-semibold">Password</th>
-                <th className="px-3 py-3 font-semibold">Activity</th>
-                <th className="px-3 py-3 font-semibold">Actions</th>
+              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+                <th className="px-2 py-2 font-semibold">User</th>
+                <th className="px-2 py-2 font-semibold">Status</th>
+                <th className="px-2 py-2 font-semibold">Staff</th>
+                <th className="px-2 py-2 font-semibold">Plan</th>
+                <th className="px-2 py-2 font-semibold">Password</th>
+                <th className="px-2 py-2 font-semibold">Activity</th>
+                <th className="px-2 py-2 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -454,58 +451,34 @@ export function AdminUsersPanel() {
                         rowClass,
                       )}
                     >
-                      <td className="px-3 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-sm font-semibold text-white">
+                      <td className="px-2 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-[11px] font-semibold text-white">
                             {user.username.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-medium text-white">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="truncate text-sm font-medium text-white">
                                 {user.username}
                               </p>
                               <StaffBadge role={user.staffRole} size="xs" />
                             </div>
-                            <p className="text-xs text-zinc-500">
-                              ID {user.id} · joined {formatDate(user.createdAt)}
+                            <p className="text-[10px] text-zinc-500">
+                              #{user.id} · {formatDate(user.createdAt)}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-4">
+                      <td className="px-2 py-2">
                         <StatusBadge status={status} />
-                        {status === "investigate" && (
-                          <div className="mt-2 space-y-1 text-xs text-yellow-200/85">
-                            <p>
-                              {user.investigationStatus
-                                ? INVESTIGATION_STATUS_META[
-                                    user.investigationStatus
-                                  ]?.label
-                                : "Flagged"}
-                              {user.investigationFlaggedByUsername
-                                ? ` · by ${user.investigationFlaggedByUsername}`
-                                : ""}
-                            </p>
-                            {user.investigationFlaggedAt && (
-                              <p className="text-zinc-500">
-                                Flagged{" "}
-                                {formatDate(user.investigationFlaggedAt)}
-                              </p>
-                            )}
-                            {user.investigationNote && (
-                              <p className="text-zinc-400">
-                                Note: {user.investigationNote}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        {isWorkspaceAdmin && (
-                          <p className="mt-2 text-xs text-zinc-500">
-                            Admin dashboard access
+                        {status === "investigate" &&
+                        user.investigationFlaggedByUsername ? (
+                          <p className="mt-0.5 text-[10px] text-yellow-200/70">
+                            by {user.investigationFlaggedByUsername}
                           </p>
-                        )}
+                        ) : null}
                       </td>
-                      <td className="px-3 py-4">
+                      <td className="px-2 py-2">
                         <StaffRolePicker
                           disabled={busy}
                           value={parseStaffRole(user.staffRole)}
@@ -515,9 +488,9 @@ export function AdminUsersPanel() {
                         />
                         <button
                           className={clsx(
-                            "mt-2 w-full rounded-md border px-2.5 py-1.5 text-xs font-semibold transition",
+                            "mt-1 w-full rounded border px-1.5 py-0.5 text-[10px] font-medium transition",
                             isWorkspaceAdmin
-                              ? "border-zinc-500/30 bg-white/5 text-zinc-300 hover:bg-white/10"
+                              ? "border-zinc-500/30 bg-white/5 text-zinc-400 hover:bg-white/10"
                               : "border-rose-400/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20",
                           )}
                           disabled={busy}
@@ -529,81 +502,63 @@ export function AdminUsersPanel() {
                             )
                           }
                         >
-                          {isWorkspaceAdmin
-                            ? "Revoke admin dashboard"
-                            : "Grant admin dashboard"}
+                          {isWorkspaceAdmin ? "Revoke admin" : "Grant admin"}
                         </button>
-                        <p className="mt-2 text-[10px] text-zinc-500">
-                          Admin unlocks the sidebar Admin Dashboard
-                        </p>
                       </td>
-                      <td className="px-3 py-4">
+                      <td className="px-2 py-2">
                         <PlanPicker
                           disabled={busy || isWorkspaceAdmin}
                           value={currentPlan}
                           onChange={(plan) => handlePlanChange(user.id, plan)}
                         />
-                        <p className="mt-2 text-xs text-zinc-500">
-                          Balance ${user.balance.toFixed(2)}
+                        <p className="mt-0.5 text-[10px] text-zinc-500">
+                          ${user.balance.toFixed(2)}
                         </p>
                       </td>
-                      <td className="px-3 py-4">
-                        <p className="mb-1 font-mono text-xs text-zinc-300">
-                          ••••••••{" "}
-                          <span className="text-zinc-500">
-                            (hashed, not recoverable)
-                          </span>
-                        </p>
-                        {user.passwordHashPreview ? (
-                          <p className="mb-2 break-all font-mono text-[10px] text-zinc-500">
-                            Hash: {user.passwordHashPreview}
-                          </p>
-                        ) : (
-                          <p className="mb-2 text-xs text-amber-200/80">
-                            No password hash on file
-                          </p>
-                        )}
-                        {resetPasswords[user.id] ? (
-                          <p className="mb-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-2 font-mono text-xs text-emerald-100">
-                            New password: {resetPasswords[user.id]}
-                          </p>
-                        ) : null}
-                        <DashInput
-                          className="mb-2 font-mono text-xs"
-                          disabled={busy}
-                          minLength={MIN_PASSWORD_LENGTH}
-                          placeholder={`New password (min ${MIN_PASSWORD_LENGTH})`}
-                          type="text"
-                          value={passwordDrafts[user.id] ?? ""}
-                          onChange={(event) =>
-                            setPasswordDrafts((current) => ({
-                              ...current,
-                              [user.id]: event.target.value,
-                            }))
-                          }
-                        />
-                        <button
-                          className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-violet-400/30 bg-violet-500/10 px-2.5 py-1.5 text-xs font-semibold text-violet-100 transition hover:bg-violet-500/20"
-                          disabled={busy}
-                          type="button"
-                          onClick={() => handlePasswordReset(user.id)}
-                        >
-                          <KeyRound className="size-3.5" />
-                          Reset password
-                        </button>
+                      <td className="px-2 py-2">
+                        <div className="flex max-w-[160px] flex-col gap-1">
+                          <DashInput
+                            className="h-7 font-mono text-[11px]"
+                            disabled={busy}
+                            minLength={MIN_PASSWORD_LENGTH}
+                            placeholder={`New pw (min ${MIN_PASSWORD_LENGTH})`}
+                            type="text"
+                            value={passwordDrafts[user.id] ?? ""}
+                            onChange={(event) =>
+                              setPasswordDrafts((current) => ({
+                                ...current,
+                                [user.id]: event.target.value,
+                              }))
+                            }
+                          />
+                          <button
+                            className="inline-flex items-center justify-center gap-1 rounded border border-violet-400/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-100 transition hover:bg-violet-500/20"
+                            disabled={busy}
+                            type="button"
+                            onClick={() => handlePasswordReset(user.id)}
+                          >
+                            <KeyRound className="size-3" />
+                            Reset
+                          </button>
+                          {resetPasswords[user.id] ? (
+                            <p className="break-all font-mono text-[10px] text-emerald-200">
+                              {resetPasswords[user.id]}
+                            </p>
+                          ) : null}
+                        </div>
                       </td>
-                      <td className="px-3 py-4 text-zinc-400">
-                        <p>{user._count?.searches ?? 0} searches</p>
-                        <p className="text-xs text-zinc-500">
-                          {user._count?.payments ?? 0} payments
+                      <td className="px-2 py-2 text-[11px] text-zinc-400">
+                        <p>{user._count?.searches ?? 0} s</p>
+                        <p className="text-zinc-500">
+                          {user._count?.payments ?? 0} $
                         </p>
                       </td>
-                      <td className="px-3 py-4">
+                      <td className="px-2 py-2">
                         {!isWorkspaceAdmin ? (
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1">
                             <button
                               className={clsx(
-                                "rounded-md border px-2.5 py-1.5 text-xs font-semibold transition",
+                                "rounded border px-1.5 py-0.5 text-[10px] font-semibold transition",
                                 ACCOUNT_STATUS_META.frozen.actionClass,
                               )}
                               disabled={busy}
@@ -616,7 +571,7 @@ export function AdminUsersPanel() {
                             </button>
                             <button
                               className={clsx(
-                                "rounded-md border px-2.5 py-1.5 text-xs font-semibold transition",
+                                "rounded border px-1.5 py-0.5 text-[10px] font-semibold transition",
                                 ACCOUNT_STATUS_META.banned.actionClass,
                               )}
                               disabled={busy}
@@ -629,7 +584,7 @@ export function AdminUsersPanel() {
                             </button>
                             <button
                               className={clsx(
-                                "rounded-md border px-2.5 py-1.5 text-xs font-semibold transition",
+                                "rounded border px-1.5 py-0.5 text-[10px] font-semibold transition",
                                 ACCOUNT_STATUS_META.investigate.actionClass,
                               )}
                               disabled={busy}
@@ -642,27 +597,10 @@ export function AdminUsersPanel() {
                             >
                               Flag
                             </button>
-                            {status === "investigate" &&
-                              user.investigationStatus !==
-                                "under_investigation" && (
-                                <button
-                                  className="rounded-md border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/20"
-                                  disabled={busy}
-                                  type="button"
-                                  onClick={() =>
-                                    handleStatusChange(user.id, "investigate", {
-                                      investigationStatus:
-                                        "under_investigation",
-                                    })
-                                  }
-                                >
-                                  Under investigation
-                                </button>
-                              )}
                             {status !== "active" && (
                               <button
                                 className={clsx(
-                                  "rounded-md border px-2.5 py-1.5 text-xs font-semibold transition",
+                                  "rounded border px-1.5 py-0.5 text-[10px] font-semibold transition",
                                   ACCOUNT_STATUS_META.active.actionClass,
                                 )}
                                 disabled={busy}
@@ -672,23 +610,23 @@ export function AdminUsersPanel() {
                                 }
                               >
                                 {status === "investigate"
-                                  ? "Clear flag"
+                                  ? "Clear"
                                   : "Restore"}
                               </button>
                             )}
                             <button
-                              className="inline-flex items-center gap-1 rounded-md border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/20"
+                              className="inline-flex items-center gap-0.5 rounded border border-rose-400/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-100 transition hover:bg-rose-500/20"
                               disabled={busy}
                               type="button"
                               onClick={() => handleDelete(user)}
                             >
-                              <Trash2 className="size-3.5" />
-                              Delete
+                              <Trash2 className="size-3" />
+                              Del
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs text-zinc-500">
-                            Protected staff account
+                          <span className="text-[10px] text-zinc-500">
+                            Protected
                           </span>
                         )}
                       </td>

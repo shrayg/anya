@@ -36,37 +36,54 @@ export default function SettingsPage() {
 
   if (canManageWorkspace) {
     return (
-      <div className="anya-desk px-6 py-6 md:px-8 md:py-8">
-        <section className="mb-10 space-y-8" id="admin">
-          <section className="anya-hero">
-            <div className="anya-hero-main">
-              <span className="anya-hero-kicker">admin workspace</span>
-              <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
-                Admin
-              </h1>
-              <p className="anya-hero-lede">
-                Manage users, plans, account status, API health, and workspace
-                activity for {siteConfig.name}. This surface stays inside the
-                panel — there is no public admin endpoint.
+      <div className="anya-desk px-4 py-4 md:px-6 md:py-5">
+        <section className="mb-6 space-y-5" id="admin">
+          <header className="flex flex-wrap items-end justify-between gap-3 border-b border-white/[0.06] pb-4">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                admin workspace
               </p>
-              <div className="anya-hero-actions">
-                <Link className="anya-pill" href="/dashboard/account">
-                  Your account
-                </Link>
-                <Link className="anya-pill" href="#api-status">
-                  API status
-                </Link>
-              </div>
+              <h1 className="text-xl font-semibold text-white">Admin</h1>
+              <p className="mt-0.5 max-w-xl text-xs text-zinc-500">
+                APIs, members, and activity for {siteConfig.name}. Admin-only.
+              </p>
             </div>
-          </section>
-          <AdminWorkspaceDashboard />
+            <div className="flex flex-wrap gap-1.5">
+              <Link
+                className="rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-300 hover:bg-white/[0.06]"
+                href="#api-status"
+              >
+                APIs
+              </Link>
+              <Link
+                className="rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-300 hover:bg-white/[0.06]"
+                href="#members"
+              >
+                Members
+              </Link>
+              <Link
+                className="rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-300 hover:bg-white/[0.06]"
+                href="#account"
+              >
+                Account
+              </Link>
+            </div>
+          </header>
+
+          {/* Full endpoint catalog first — every gateway + BreachHub/CSINT path */}
           <AdminApiStatusPanel />
+
+          <AdminWorkspaceDashboard />
+
+          <div id="members">
+            <AdminUsersPanel />
+          </div>
+
           <AdminEventLogsPanel />
           <SafetyFlagsPanel mode="admin" />
-          <AdminUsersPanel />
 
-          <section className="space-y-4" id="account">
-            <h2 className="text-lg font-semibold text-white">Your account</h2>
+          <section className="space-y-2" id="account">
+            <h2 className="text-sm font-semibold text-white">Your account</h2>
             <AccountSecurityPanel
               initialRecoveryEmail={dashboardUser.recoveryEmail}
               username={dashboardUser.username}
@@ -78,25 +95,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="anya-desk px-6 py-6 md:px-8 md:py-8">
-      <section className="mb-10 space-y-8" id="helper">
-        <section className="anya-hero">
-          <div className="anya-hero-main">
-            <span className="anya-hero-kicker">helper workspace</span>
-            <h1 className="anya-hero-title font-[family-name:var(--font-bruno-ace-sc)]">
-              Helper
-            </h1>
-            <p className="anya-hero-lede">
-              Check safety flags, message flagged users, investigate accounts,
-              and view member cases. Payments and passwords stay hidden.
-            </p>
-            <div className="anya-hero-actions">
-              <Link className="anya-pill" href="/dashboard/account">
-                Your account
-              </Link>
-            </div>
-          </div>
-        </section>
+    <div className="anya-desk px-4 py-4 md:px-6 md:py-5">
+      <section className="mb-6 space-y-5" id="helper">
+        <header className="border-b border-white/[0.06] pb-4">
+          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+            helper workspace
+          </p>
+          <h1 className="text-xl font-semibold text-white">Helper</h1>
+          <p className="mt-0.5 max-w-xl text-xs text-zinc-500">
+            Flags, investigations, and member cases. Payments stay hidden.
+          </p>
+        </header>
         <SafetyFlagsPanel mode="helper" />
         <HelperUsersPanel />
       </section>
