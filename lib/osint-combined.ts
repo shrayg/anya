@@ -38,15 +38,22 @@ import {
 } from "@/lib/osintcat";
 import { settleWithinBudget } from "@/lib/osint-search-guard";
 import {
+  hasOsintCatDirect,
+  isBreachHubPrimaryActive,
+  shouldUseDirectBreachVip,
+  shouldUseDirectOsintCatInParallel,
+  withPrimaryFallback,
+} from "@/lib/provider-dedupe";
+import {
   getProviderCached,
   providerCacheKey,
   setProviderCached,
 } from "@/lib/provider-result-cache";
 
 /**
- * Combined fan-out: direct CSINT / OsintCat / BreachVIP / GodsEye run in
- * parallel with BreachHub. BreachHub internally skips endpoints that mirror
- * those directs (see lib/provider-dedupe.ts) so the same vendor is not hit twice.
+ * Combined fan-out: BreachHub is primary for mirrored vendors; CSINT / direct
+ * OsintCat / Breach.vip run only as sequential fallbacks when BH misses
+ * (see lib/provider-dedupe.ts). GodsEye stays parallel (distinct gateway).
  */
 
 const COMBINED_GODSEYE_TIMEOUT_MS = 18_000;
@@ -100,6 +107,7 @@ async function fetchOptionalOsintCatPlatformSearch(
   endpoint: string | undefined,
   query: string,
 ): Promise<SanitizedBreachResponse | null> {
+  if (!shouldUseDirectOsintCatInParallel()) return null;
   if (!endpoint || !isOsintCatEndpointSupported(endpoint)) {
     return null;
   }
@@ -114,12 +122,42 @@ async function fetchOptionalBreachVip(
   field: BreachVipField | undefined,
 ): Promise<SanitizedBreachResponse | null> {
   if (!field) return null;
+  // When BreachHub is primary it already catalogs Breach.vip — skip parallel direct.
+  if (!shouldUseDirectBreachVip()) return null;
 
   const data = await fetchBreachVipSanitized(query, field, {
     timeoutMs: COMBINED_BREACHVIP_TIMEOUT_MS,
   });
 
   return data.count > 0 ? data : null;
+}
+
+/** BreachHub primary, then CSINT additive — never parallel for the same vendors. */
+async function fetchBreachHubThenCsintBreach(
+  query: string,
+  godseyeType: GodsEyeSearchType | string,
+  breachHubScope?: string | null,
+): Promise<SanitizedBreachResponse | null> {
+  const { value } = await withPrimaryFallback(
+    () => fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope),
+    () => fetchOptionalCsintUniversal(query, godseyeType),
+    (row) => Boolean(row && row.count > 0),
+  );
+
+  return value;
+}
+
+async function fetchBreachHubThenCsintStealer(
+  query: string,
+  godseyeType: GodsEyeSearchType | string,
+): Promise<SanitizedBreachResponse | null> {
+  const { value } = await withPrimaryFallback(
+    () => fetchOptionalBreachHubStealer(query, godseyeType),
+    () => fetchOptionalCsintStealer(query, godseyeType),
+    (row) => Boolean(row && row.count > 0),
+  );
+
+  return value;
 }
 
 const BREACHHUB_SPECIALTY_SCOPES = new Set([
@@ -252,29 +290,33 @@ export async function fetchCombinedStealerLogs(
 
   const parts: SanitizedBreachResponse[] = [];
 
-  // Coverage-first: BreachHub (unique vendors only) + OsintCat + GodsEye + CSINT.
-  // Overlapping BreachHub mirrors are skipped in lib/breachhub via provider-dedupe.
-  const [stealerResult, godseyeResult, csintResult, breachHubResult] =
-    await settleWithinBudget(
-      [
-        fetchOsintCatStealerLogs(query),
-        fetchGodsEyeSearchResult(searchType, query, COMBINED_GODSEYE_TIMEOUT_MS),
-        fetchOptionalCsintStealer(query, searchType),
-        fetchOptionalBreachHubStealer(query, searchType),
-      ],
-      COMBINED_STEALER_BUDGET_MS,
-    );
+  // GodsEye parallel (distinct). BreachHub primary → CSINT, then OsintCat fallback.
+  const [godseyeResult, gatewayResult] = await settleWithinBudget(
+    [
+      fetchGodsEyeSearchResult(searchType, query, COMBINED_GODSEYE_TIMEOUT_MS),
+      (async () => {
+        const bhThenCsint = await fetchBreachHubThenCsintStealer(
+          query,
+          searchType,
+        );
 
-  if (stealerResult.status === "fulfilled") {
-    parts.push(stealerResult.value);
-  }
+        if (bhThenCsint && bhThenCsint.count > 0) return bhThenCsint;
+
+        if (hasOsintCatDirect()) {
+          return fetchOsintCatStealerLogs(query).catch(() => null);
+        }
+
+        return null;
+      })(),
+    ],
+    COMBINED_STEALER_BUDGET_MS,
+  );
 
   if (godseyeResult.status === "fulfilled" && godseyeResult.value.count > 0) {
     parts.push(godseyeResult.value);
   }
 
-  pushSettledSanitized(parts, csintResult);
-  pushSettledSanitized(parts, breachHubResult);
+  pushSettledSanitized(parts, gatewayResult);
 
   if (parts.length > 0) {
     const merged = mergeSanitizedResponses(...parts);
@@ -291,9 +333,9 @@ export async function fetchCombinedStealerLogs(
     return payload;
   }
 
-  const stealerError =
-    stealerResult.status === "rejected" && stealerResult.reason instanceof Error
-      ? stealerResult.reason
+  const gatewayError =
+    gatewayResult.status === "rejected" && gatewayResult.reason instanceof Error
+      ? gatewayResult.reason
       : null;
 
   const godseyeError =
@@ -305,7 +347,7 @@ export async function fetchCombinedStealerLogs(
 
   throw (
     godseyeError ??
-    stealerError ??
+    gatewayError ??
     new Error(publicSearchError("No results from intelligence indexes."))
   );
 }
@@ -328,30 +370,39 @@ export async function fetchCombinedPlatformSearch(
 
   if (cached) return cached;
 
-  // Full fan-out across every related provider for this module.
+  // GodsEye + optional direct BreachVIP; BH→CSINT sequential for mirrored vendors.
   const parts: SanitizedBreachResponse[] = [];
-  const [
-    osintcatResult,
-    godseyeResult,
-    breachVipResult,
-    csintResult,
-    breachHubResult,
-  ] = await settleWithinBudget(
-    [
-      fetchOptionalOsintCatPlatformSearch(osintCatEndpoint, query),
-      fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS),
-      fetchOptionalBreachVip(query, breachVipField),
-      fetchOptionalCsintUniversal(query, godseyeType),
-      fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope),
-    ],
-    COMBINED_PLATFORM_BUDGET_MS,
-  );
+  const [osintcatResult, godseyeResult, breachVipResult, gatewayResult] =
+    await settleWithinBudget(
+      [
+        fetchOptionalOsintCatPlatformSearch(osintCatEndpoint, query),
+        fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS),
+        fetchOptionalBreachVip(query, breachVipField),
+        fetchBreachHubThenCsintBreach(query, godseyeType, breachHubScope),
+      ],
+      COMBINED_PLATFORM_BUDGET_MS,
+    );
 
   pushSettledSanitized(parts, osintcatResult);
   pushSettledSanitized(parts, godseyeResult);
   pushSettledSanitized(parts, breachVipResult);
-  pushSettledSanitized(parts, csintResult);
-  pushSettledSanitized(parts, breachHubResult);
+  pushSettledSanitized(parts, gatewayResult);
+
+  // OsintCat direct fallback when BH primary returned nothing.
+  if (
+    parts.length === 0 &&
+    isBreachHubPrimaryActive() &&
+    hasOsintCatDirect() &&
+    osintCatEndpoint &&
+    isOsintCatEndpointSupported(osintCatEndpoint)
+  ) {
+    const fallback = await fetchOsintCatEndpoint(osintCatEndpoint, query).catch(
+      () => null,
+    );
+    const sanitized = fallback ? sanitizeBreachResponse(fallback) : null;
+
+    if (sanitized && sanitized.count > 0) parts.push(sanitized);
+  }
 
   if (parts.length > 0) {
     const merged = mergeSanitizedResponses(...parts);
@@ -386,7 +437,7 @@ export async function fetchGodsEyeOnlySearch(
 
   const parts: SanitizedBreachResponse[] = [];
 
-  const [godseyeResult, breachVipResult, csintResult, breachHubResult] =
+  const [godseyeResult, breachVipResult, gatewayResult] =
     await settleWithinBudget(
       [
         hasGodsEye
@@ -397,16 +448,14 @@ export async function fetchGodsEyeOnlySearch(
             )
           : Promise.resolve(null),
         fetchOptionalBreachVip(query, breachVipField),
-        fetchOptionalCsintUniversal(query, godseyeType),
-        fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope),
+        fetchBreachHubThenCsintBreach(query, godseyeType, breachHubScope),
       ],
       COMBINED_PLATFORM_BUDGET_MS,
     );
 
   pushSettledSanitized(parts, godseyeResult);
   pushSettledSanitized(parts, breachVipResult);
-  pushSettledSanitized(parts, csintResult);
-  pushSettledSanitized(parts, breachHubResult);
+  pushSettledSanitized(parts, gatewayResult);
 
   if (parts.length > 0) {
     return mergeSanitizedResponses(...parts);
@@ -465,13 +514,12 @@ export async function fetchCombinedOsintCatEndpoint(
     }
   }
 
-  const [godseyeResult, breachVipResult, csintResult, breachHubResult] =
+  const [godseyeResult, breachVipResult, gatewayResult] =
     await settleWithinBudget(
       [
         fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS),
         fetchOptionalBreachVip(query, breachVipField),
-        fetchOptionalCsintUniversal(query, godseyeType),
-        fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope),
+        fetchBreachHubThenCsintBreach(query, godseyeType, breachHubScope),
       ],
       COMBINED_PLATFORM_BUDGET_MS,
     );
@@ -496,19 +544,11 @@ export async function fetchCombinedOsintCatEndpoint(
   }
 
   if (
-    csintResult.status === "fulfilled" &&
-    csintResult.value &&
-    csintResult.value.count > 0
+    gatewayResult.status === "fulfilled" &&
+    gatewayResult.value &&
+    gatewayResult.value.count > 0
   ) {
-    mergedParts.push(csintResult.value);
-  }
-
-  if (
-    breachHubResult.status === "fulfilled" &&
-    breachHubResult.value &&
-    breachHubResult.value.count > 0
-  ) {
-    mergedParts.push(breachHubResult.value);
+    mergedParts.push(gatewayResult.value);
   }
 
   if (mergedParts.length > 0) {
@@ -552,31 +592,46 @@ export async function fetchCombinedDomainOsint(domain: string): Promise<{
   let osintcat: OsintCatResponse | null = null;
   let godseye: SanitizedBreachResponse | null = null;
 
-  const [
-    osintcatResult,
-    godseyeResult,
-    breachVipResult,
-    csintResult,
-    breachHubResult,
-  ] = await settleWithinBudget(
-    [
-      fetchOsintCatEndpoint("database-search", domain, {
-        type: "domain",
-      }),
-      fetchGodsEyeSearchResult("domain", domain, COMBINED_GODSEYE_TIMEOUT_MS),
-      fetchOptionalBreachVip(domain, "domain"),
-      fetchCsintAdditiveBreachSearch(
-        domain,
-        "username",
-        COMBINED_CSINT_TIMEOUT_MS,
-      ),
-      fetchOptionalBreachHubUniversal(domain, "domain"),
-    ],
-    COMBINED_PLATFORM_BUDGET_MS,
-  );
+  // GodsEye + BreachVIP (when BH off) parallel; BH→CSINT sequential for overlaps.
+  // OsintCat direct only when BH is not the primary (else BH covers osintcat-*).
+  const [osintcatResult, godseyeResult, breachVipResult, gatewayResult] =
+    await settleWithinBudget(
+      [
+        shouldUseDirectOsintCatInParallel()
+          ? fetchOsintCatEndpoint("database-search", domain, {
+              type: "domain",
+            })
+          : Promise.resolve(null),
+        fetchGodsEyeSearchResult("domain", domain, COMBINED_GODSEYE_TIMEOUT_MS),
+        fetchOptionalBreachVip(domain, "domain"),
+        fetchBreachHubThenCsintBreach(domain, "domain"),
+      ],
+      COMBINED_PLATFORM_BUDGET_MS,
+    );
 
-  if (osintcatResult.status === "fulfilled") {
+  if (osintcatResult.status === "fulfilled" && osintcatResult.value) {
     osintcat = osintcatResult.value;
+  }
+
+  // When BH is primary and direct OsintCat is configured, use it only if the
+  // BH→CSINT gateway path returned nothing (sequential OsintCat fallback).
+  if (
+    !osintcat &&
+    isBreachHubPrimaryActive() &&
+    hasOsintCatDirect() &&
+    !(
+      gatewayResult.status === "fulfilled" &&
+      gatewayResult.value &&
+      gatewayResult.value.count > 0
+    )
+  ) {
+    try {
+      osintcat = await fetchOsintCatEndpoint("database-search", domain, {
+        type: "domain",
+      });
+    } catch {
+      osintcat = null;
+    }
   }
 
   const mergedParts: SanitizedBreachResponse[] = [];
@@ -594,19 +649,11 @@ export async function fetchCombinedDomainOsint(domain: string): Promise<{
   }
 
   if (
-    csintResult.status === "fulfilled" &&
-    csintResult.value &&
-    csintResult.value.count > 0
+    gatewayResult.status === "fulfilled" &&
+    gatewayResult.value &&
+    gatewayResult.value.count > 0
   ) {
-    mergedParts.push(csintResult.value);
-  }
-
-  if (
-    breachHubResult.status === "fulfilled" &&
-    breachHubResult.value &&
-    breachHubResult.value.count > 0
-  ) {
-    mergedParts.push(breachHubResult.value);
+    mergedParts.push(gatewayResult.value);
   }
 
   if (mergedParts.length > 0) {

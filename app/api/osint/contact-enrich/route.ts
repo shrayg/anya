@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-import {
-  fetchBreachHubByIds,
-  isBreachHubEnabled,
-} from "@/lib/breachhub";
-import { fetchCsintMelissaLookup, isCsintEnabled } from "@/lib/csint";
+import { isBreachHubEnabled } from "@/lib/breachhub";
+import { isCsintEnabled } from "@/lib/csint";
+import { fetchMelissaWithFallback } from "@/lib/gateway-fallback";
 import { publicSearchError } from "@/lib/public-branding";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
 
@@ -62,31 +60,19 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  if (!isBreachHubEnabled() && !isCsintEnabled()) {
+    return NextResponse.json({ error: publicSearchError() }, { status: 503 });
+  }
+
   try {
-    // Primary: CSINT Melissa. BreachHub melissa only when CSINT is off.
-    if (isCsintEnabled()) {
-      const data = await fetchCsintMelissaLookup(body);
+    // BreachHub Melissa primary → CSINT fallback (never parallel).
+    const data = await fetchMelissaWithFallback(body);
 
-      return NextResponse.json(data);
-    }
-
-    if (isBreachHubEnabled()) {
-      const input =
-        body.input ||
-        body.email ||
-        body.phone ||
-        [body.first, body.last].filter(Boolean).join(" ") ||
-        Object.values(body).join(" ");
-      const bh = await fetchBreachHubByIds(["melissa"], input, "auto", 18_000);
-
-      if (bh && bh.count > 0) {
-        return NextResponse.json({ count: bh.count, results: bh.results });
-      }
-
+    if (!data) {
       return NextResponse.json({ count: 0, results: [] });
     }
 
-    throw new Error(publicSearchError());
+    return NextResponse.json(data);
   } catch (err) {
     const message = err instanceof Error ? err.message : publicSearchError();
 

@@ -4,7 +4,6 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 import { fetchBreachVipSanitized } from "@/lib/breachvip";
 import {
   fetchBreachHubDiscord,
-  fetchBreachHubDiscordToRoblox,
   fetchBreachHubRaw,
   fetchBreachHubSpecialty,
 } from "@/lib/breachhub";
@@ -13,8 +12,8 @@ import {
   extractCsintDiscordLookupLeaks,
   fetchCsintDiscordLookup,
   fetchCsintDiscordOsint,
-  fetchCsintOathnetDiscordToRoblox,
 } from "@/lib/csint";
+import { fetchOathnetDiscordToRoblox } from "@/lib/gateway-fallback";
 import { mergeDiscordOsintEnrichment } from "@/lib/discord-enrichment";
 import {
   parseDiscordDsaFromStatements,
@@ -160,8 +159,7 @@ export async function GET(req: NextRequest) {
       breachVipLeaks,
       csintOsint,
       csintLookup,
-      robloxLinkCsint,
-      robloxLinkBh,
+      robloxLink,
       fivemIntel,
       cordQuery,
       breachHubLeaks,
@@ -187,8 +185,7 @@ export async function GET(req: NextRequest) {
         })),
         fetchCsintDiscordOsint(query).catch(() => null),
         fetchCsintDiscordLookup(query).catch(() => null),
-        fetchCsintOathnetDiscordToRoblox(query).catch(() => null),
-        fetchBreachHubDiscordToRoblox(query).catch(() => null),
+        fetchOathnetDiscordToRoblox(query).catch(() => null),
         fetchFivemIntel(query).catch(() => ({
           searchData: null,
           records: [] as unknown[],
@@ -278,7 +275,7 @@ export async function GET(req: NextRequest) {
       },
       dsa,
       enrichment: csintLookup,
-      robloxLink: normalizeRobloxLink(robloxLinkBh ?? robloxLinkCsint, query),
+      robloxLink: normalizeRobloxLink(robloxLink, query),
       guilds: {
         count: osintEnrichment.mutualServersCount,
         items: osintEnrichment.guilds,

@@ -1415,7 +1415,6 @@ function seonBreachSummary(
 
   if (Array.isArray(breach.breaches) && breach.breaches.length > 0) {
     out.breaches = breach.breaches
-      .slice(0, 50)
       .map((entry) => {
         if (!entry || typeof entry !== "object") return String(entry ?? "");
         const row = entry as Record<string, unknown>;

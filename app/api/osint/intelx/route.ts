@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-import {
-  fetchBreachHubIntelx,
-  fetchBreachHubIntelxWithBuckets,
-  isBreachHubEnabled,
-} from "@/lib/breachhub";
-import {
-  fetchCsintIntelx,
-  fetchCsintIntelxWithBuckets,
-  isCsintEnabled,
-} from "@/lib/csint";
+import { isBreachHubEnabled } from "@/lib/breachhub";
+import { isCsintEnabled } from "@/lib/csint";
+import { fetchIntelxExportWithFallback } from "@/lib/gateway-fallback";
 import { DEFAULT_INTELX_BUCKET, isIntelxBucket } from "@/lib/intelx-buckets";
 import {
   PUBLIC_BRAND,
@@ -178,51 +171,20 @@ export async function GET(req: NextRequest) {
   let bucket = preferredBucket;
   let lastError = "";
 
-  // System IDs (UUID): BreachHub `/api/intelx?system_id=` is the native path.
-  // Storage IDs (long hex): CSINT `storageid`+bucket first, then BreachHub, then GodsEye.
-  if (idKind === "uuid" && hasBreachHub) {
-    const breachHub = await fetchBreachHubIntelx(storageId, preferredBucket);
+  // BreachHub primary → CSINT fallback (never both in parallel). GodsEye last.
+  const exported = await fetchIntelxExportWithFallback(
+    storageId,
+    idKind,
+    preferredBucket,
+  );
 
-    if (breachHub.content.trim()) {
-      content = breachHub.content;
-      bucket = isIntelxBucket(breachHub.bucket)
-        ? breachHub.bucket
-        : preferredBucket;
-    } else if (breachHub.error) {
-      lastError = breachHub.error;
-    }
-  }
-
-  if (!content && hasCsint) {
-    const csint =
-      idKind === "uuid"
-        ? await fetchCsintIntelx(storageId, preferredBucket)
-        : await fetchCsintIntelxWithBuckets(storageId, preferredBucket);
-
-    if (csint.content.trim()) {
-      content = csint.content;
-      bucket = isIntelxBucket(csint.bucket) ? csint.bucket : preferredBucket;
-      lastError = "";
-    } else if (csint.error) {
-      lastError = csint.error;
-    }
-  }
-
-  if (!content && hasBreachHub && idKind !== "uuid") {
-    const breachHub = await fetchBreachHubIntelxWithBuckets(
-      storageId,
-      preferredBucket,
-    );
-
-    if (breachHub.content.trim()) {
-      content = breachHub.content;
-      bucket = isIntelxBucket(breachHub.bucket)
-        ? breachHub.bucket
-        : preferredBucket;
-      lastError = "";
-    } else if (breachHub.error) {
-      lastError = breachHub.error;
-    }
+  if (exported.content.trim()) {
+    content = exported.content;
+    bucket = isIntelxBucket(exported.bucket)
+      ? exported.bucket
+      : preferredBucket;
+  } else if (exported.error) {
+    lastError = exported.error;
   }
 
   if (!content && hasGodsEyeExport) {

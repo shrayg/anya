@@ -1,59 +1,37 @@
 /**
  * Cross-gateway vendor dedupe for OSINT fan-out.
  *
- * Prefer a configured direct client over the same vendor via BreachHub proxy.
- * BreachHub endpoints that are unique (no direct client) stay in the fan-out.
+ * Exact policy:
+ * 1. One underlying vendor = one call path at a time (never CSINT ∥ BreachHub).
+ * 2. Prefer BreachHub first for every mirrored vendor.
+ * 3. If BreachHub fails / errors / returns empty for that vendor, fall back to
+ *    CSINT.pro (or the direct client: OsintCat / Breach.vip / CordCat).
+ * 4. Sequential primary → fallback only — never fire both at once.
  *
- * Overlap table (vendor → primary → skipped BreachHub ids):
- * | Vendor              | Primary                         | Skipped when primary configured      |
- * |---------------------|---------------------------------|--------------------------------------|
- * | OsintCat DB/breach  | OSINTCAT_API_KEY (lib/osintcat) | osintcat-database, discord-stalker   |
- * | OsintCat twitter/MV | BreachHub (no direct client)    | (none — keep unique BH paths)        |
- * | Breach.vip          | breach.vip (lib/breachvip)      | breachvip, intelbase-breachvip       |
- * | Snusbase            | CSINT /snusbase/*               | snusbase, snusbase-combo, snusbase-hash |
- * | BreachBase          | CSINT /breachbase               | breachbase                           |
- * | Shodan host         | CSINT /shodan/host              | shodan-host                          |
- * | Melissa             | CSINT /melissa/lookup           | melissa                              |
- * | SEON email/phone    | CSINT /seon/*                   | seon-email, seon-phone               |
- * | CordCat             | CORDCAT_API_KEY (lib/cordcat)   | cordcat, cordcat-ip                  |
- * | OathNet Discord→RBX | CSINT /oathnet/discord-to-roblox| oathnet-discord-roblox               |
- * | IntelX export       | CSINT storage / BH system UUID  | (export routes pick one path; not additive) |
- * | IntelBase mirrors   | direct BH vendor endpoints      | always skip listed intelbase-* mirrors     |
+ * Vendor map (primary → fallback):
+ * | Vendor                      | Primary     | Fallback                         |
+ * |-----------------------------|-------------|----------------------------------|
+ * | OathNet                     | BreachHub   | CSINT /oathnet/*                 |
+ * | Snusbase                    | BreachHub   | CSINT /snusbase/* + /search      |
+ * | LeakCheck                   | BreachHub   | CSINT /search (+ /leakcheck/v2)  |
+ * | HackCheck                   | BreachHub   | CSINT /search (+ /hackcheck)     |
+ * | Breach.vip                  | BreachHub   | direct breach.vip → CSINT /search|
+ * | BreachBase                  | BreachHub   | CSINT /breachbase                |
+ * | Shodan host                 | BreachHub   | CSINT /shodan/host               |
+ * | Melissa                     | BreachHub   | CSINT /melissa/lookup            |
+ * | SEON email / phone          | BreachHub   | CSINT /seon/*                    |
+ * | OsintCat database / stalker | BreachHub   | direct OSINTCAT_API_KEY          |
+ * | OsintCat twitter / machine  | BreachHub   | (no CSINT equivalent)            |
+ * | CordCat                     | BreachHub   | direct CORDCAT_API_KEY           |
+ * | IntelX export               | BreachHub   | CSINT → GodsEye                  |
  *
- * Kept via BreachHub even when CSINT/OsintCat are on: snusbase-ip-whois,
- * shodan-dns*, shodan-search, seon-ip/bin, osintcat-machine-*, osintcat-twitter,
- * seeknow-discord-roblox, and every other catalog id not listed below.
+ * Within BreachHub only: always skip IntelBase * mirrors of direct BH vendors.
  */
 
 import { isBreachVipEnabled } from "@/lib/breachvip";
 import { isCordCatConfigured } from "@/lib/cordcat";
 import { isCsintEnabled } from "@/lib/csint";
 import { getOsintCatApiKey } from "@/lib/osintcat";
-
-/** BreachHub endpoint ids that mirror a configured direct vendor. */
-const SKIP_WHEN_OSINTCAT = [
-  "osintcat-database",
-  "discord-stalker",
-] as const;
-
-const SKIP_WHEN_BREACHVIP = [
-  "breachvip",
-  "intelbase-breachvip",
-] as const;
-
-const SKIP_WHEN_CSINT = [
-  "snusbase",
-  "snusbase-combo",
-  "snusbase-hash",
-  "breachbase",
-  "shodan-host",
-  "melissa",
-  "seon-email",
-  "seon-phone",
-  "oathnet-discord-roblox",
-] as const;
-
-const SKIP_WHEN_CORDCAT = ["cordcat", "cordcat-ip"] as const;
 
 /** Always skip — mirrors a direct BreachHub catalog vendor in the same fan-out. */
 const SKIP_INTELBASE_MIRRORS = [
@@ -69,79 +47,171 @@ const SKIP_INTELBASE_MIRRORS = [
 ] as const;
 
 export type ProviderDedupePrimary =
-  | "osintcat"
-  | "breachvip"
-  | "csint"
-  | "cordcat";
+  | "breachhub"
+  | "csint-fallback"
+  | "osintcat-fallback"
+  | "breachvip-fallback"
+  | "cordcat-fallback";
 
+export type VendorGatewayRow = {
+  vendor: string;
+  primary: "breachhub";
+  fallback: "csint" | "direct-osintcat" | "direct-breachvip" | "direct-cordcat" | "none";
+  notes?: string;
+};
+
+/** Static primary/fallback map for docs / health UI. */
+export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
+  {
+    vendor: "OathNet",
+    primary: "breachhub",
+    fallback: "csint",
+    notes: "BH first; CSINT only after BH fail/empty",
+  },
+  { vendor: "Snusbase", primary: "breachhub", fallback: "csint" },
+  { vendor: "LeakCheck", primary: "breachhub", fallback: "csint" },
+  { vendor: "HackCheck", primary: "breachhub", fallback: "csint" },
+  {
+    vendor: "Breach.vip",
+    primary: "breachhub",
+    fallback: "direct-breachvip",
+    notes: "Then CSINT /search if direct also unavailable",
+  },
+  { vendor: "BreachBase", primary: "breachhub", fallback: "csint" },
+  { vendor: "Shodan host", primary: "breachhub", fallback: "csint" },
+  { vendor: "Melissa", primary: "breachhub", fallback: "csint" },
+  { vendor: "SEON email/phone", primary: "breachhub", fallback: "csint" },
+  {
+    vendor: "OsintCat database/stalker",
+    primary: "breachhub",
+    fallback: "direct-osintcat",
+  },
+  {
+    vendor: "OsintCat twitter/machine-viewer",
+    primary: "breachhub",
+    fallback: "none",
+  },
+  {
+    vendor: "CordCat",
+    primary: "breachhub",
+    fallback: "direct-cordcat",
+  },
+  {
+    vendor: "IntelX export",
+    primary: "breachhub",
+    fallback: "csint",
+    notes: "GodsEye last resort after both",
+  },
+];
+
+/** @deprecated Prefer VENDOR_GATEWAY_PRIMARIES — kept for older status tooling. */
 export type ProviderOverlapRow = {
   vendor: string;
   primary: string;
   skippedBreachHubIds: readonly string[];
 };
 
-/** Static overlap map for docs / status tooling. */
-export const PROVIDER_OVERLAP_TABLE: ProviderOverlapRow[] = [
-  {
-    vendor: "OsintCat (database / stalker)",
-    primary: "direct OSINTCAT_API_KEY",
-    skippedBreachHubIds: SKIP_WHEN_OSINTCAT,
-  },
-  {
-    vendor: "Breach.vip",
-    primary: "direct breach.vip (lib/breachvip)",
-    skippedBreachHubIds: SKIP_WHEN_BREACHVIP,
-  },
-  {
-    vendor: "Snusbase / BreachBase / Shodan host / Melissa / SEON email·phone / OathNet D→R",
-    primary: "CSINT_API_KEY (lib/csint)",
-    skippedBreachHubIds: SKIP_WHEN_CSINT,
-  },
-  {
-    vendor: "CordCat",
-    primary: "CORDCAT_API_KEY (lib/cordcat)",
-    skippedBreachHubIds: SKIP_WHEN_CORDCAT,
-  },
-  {
-    vendor: "IntelBase mirrors",
-    primary: "direct BreachHub vendor endpoints (always)",
-    skippedBreachHubIds: SKIP_INTELBASE_MIRRORS,
-  },
-  {
-    vendor: "IntelX export",
-    primary: "CSINT storageid; BreachHub system_id (UUID); GodsEye fallback",
+export const PROVIDER_OVERLAP_TABLE: ProviderOverlapRow[] =
+  VENDOR_GATEWAY_PRIMARIES.map((row) => ({
+    vendor: row.vendor,
+    primary: `BreachHub → ${row.fallback}`,
     skippedBreachHubIds: [],
-  },
-];
+  }));
 
-function hasOsintCatDirect(): boolean {
+/** Env-only — avoid importing lib/breachhub (circular with this module). */
+export function isBreachHubKeyConfigured(): boolean {
+  if (process.env.BREACHHUB_ENABLED === "false") return false;
+
+  return Boolean(process.env.BREACHHUB_API_KEY?.trim());
+}
+
+export function hasOsintCatDirect(): boolean {
   return Boolean(getOsintCatApiKey()?.trim());
 }
 
 /**
- * BreachHub endpoint ids to skip for the current env (configured primaries).
- * Empty when no overlapping direct clients are configured.
+ * True when BreachHub is the live primary — CSINT additive / directs must not
+ * run in parallel for mirrored vendors (use sequential fallback instead).
+ */
+export function isBreachHubPrimaryActive(): boolean {
+  return isBreachHubKeyConfigured();
+}
+
+/**
+ * CSINT additive fan-out should not run beside BreachHub for the same vendors.
+ * Call CSINT only as fallback after BH fails/returns empty (see wrappers).
+ */
+export function shouldDeferCsintAdditive(): boolean {
+  return isBreachHubPrimaryActive() && isCsintEnabled();
+}
+
+/** Direct OsintCat — only when BH is off (else BH primary, direct = fallback). */
+export function shouldUseDirectOsintCatInParallel(): boolean {
+  return hasOsintCatDirect() && !isBreachHubPrimaryActive();
+}
+
+/** Direct breach.vip — only when BH is off. */
+export function shouldUseDirectBreachVip(): boolean {
+  return isBreachVipEnabled() && !isBreachHubPrimaryActive();
+}
+
+/** Direct CordCat — only when BH is off. */
+export function shouldUseDirectCordCatInParallel(): boolean {
+  return isCordCatConfigured() && !isBreachHubPrimaryActive();
+}
+
+/**
+ * Sequential primary → fallback. Never runs both at once.
+ * Treats null / undefined / empty-count sanitized payloads as failure.
+ */
+export async function withPrimaryFallback<T>(
+  primary: () => Promise<T | null | undefined>,
+  fallback: () => Promise<T | null | undefined>,
+  isSuccess: (value: T) => boolean = defaultIsSuccess,
+): Promise<{ value: T | null; used: "primary" | "fallback" | "none" }> {
+  try {
+    const first = await primary();
+
+    if (first != null && isSuccess(first)) {
+      return { value: first, used: "primary" };
+    }
+  } catch {
+    // fall through
+  }
+
+  try {
+    const second = await fallback();
+
+    if (second != null && isSuccess(second)) {
+      return { value: second, used: "fallback" };
+    }
+
+    return { value: second ?? null, used: second != null ? "fallback" : "none" };
+  } catch {
+    return { value: null, used: "none" };
+  }
+}
+
+function defaultIsSuccess(value: unknown): boolean {
+  if (value == null) return false;
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+
+    if (typeof record.count === "number") return record.count > 0;
+    if (typeof record.content === "string") return record.content.trim().length > 0;
+    if (Array.isArray(record.results)) return record.results.length > 0;
+  }
+
+  return true;
+}
+
+/**
+ * BreachHub endpoint ids to skip for the current env.
+ * Only IntelBase intra-BH mirrors — never drop BH vendors that CSINT also has.
  */
 export function getSkippedBreachHubEndpointIds(): Set<string> {
-  const skipped = new Set<string>(SKIP_INTELBASE_MIRRORS);
-
-  if (hasOsintCatDirect()) {
-    for (const id of SKIP_WHEN_OSINTCAT) skipped.add(id);
-  }
-
-  if (isBreachVipEnabled()) {
-    for (const id of SKIP_WHEN_BREACHVIP) skipped.add(id);
-  }
-
-  if (isCsintEnabled()) {
-    for (const id of SKIP_WHEN_CSINT) skipped.add(id);
-  }
-
-  if (isCordCatConfigured()) {
-    for (const id of SKIP_WHEN_CORDCAT) skipped.add(id);
-  }
-
-  return skipped;
+  return new Set<string>(SKIP_INTELBASE_MIRRORS);
 }
 
 export function shouldSkipBreachHubEndpoint(endpointId: string): boolean {
@@ -153,27 +223,24 @@ export function filterBreachHubEndpoints<T extends { id: string }>(
 ): T[] {
   const skipped = getSkippedBreachHubEndpointIds();
 
-  if (skipped.size === 0) return endpoints;
-
   return endpoints.filter((endpoint) => !skipped.has(endpoint.id));
 }
 
 export function filterBreachHubEndpointIds(ids: string[]): string[] {
   const skipped = getSkippedBreachHubEndpointIds();
 
-  if (skipped.size === 0) return ids;
-
   return ids.filter((id) => !skipped.has(id));
 }
 
-/** Which direct primaries are active (for health / diagnostics). */
+/** Active gateway roles for health / diagnostics. */
 export function activeProviderPrimaries(): ProviderDedupePrimary[] {
   const out: ProviderDedupePrimary[] = [];
 
-  if (hasOsintCatDirect()) out.push("osintcat");
-  if (isBreachVipEnabled()) out.push("breachvip");
-  if (isCsintEnabled()) out.push("csint");
-  if (isCordCatConfigured()) out.push("cordcat");
+  if (isBreachHubPrimaryActive()) out.push("breachhub");
+  if (isCsintEnabled()) out.push("csint-fallback");
+  if (hasOsintCatDirect()) out.push("osintcat-fallback");
+  if (isBreachVipEnabled()) out.push("breachvip-fallback");
+  if (isCordCatConfigured()) out.push("cordcat-fallback");
 
   return out;
 }

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-import { fetchBreachHubSpecialty } from "@/lib/breachhub";
-import { fetchCsintSeonPhone } from "@/lib/csint";
+import { fetchSeonPhoneWithFallback } from "@/lib/gateway-fallback";
 import { publicSearchError } from "@/lib/public-branding";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
 
@@ -27,23 +26,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [csint, breachHub] = await Promise.all([
-      fetchCsintSeonPhone(query).catch(() => null),
-      fetchBreachHubSpecialty("phone", query).catch(() => null),
-    ]);
+    // BreachHub SEON primary → CSINT fallback (never parallel).
+    const data = await fetchSeonPhoneWithFallback(query);
 
-    if (csint) {
-      return NextResponse.json({
-        ...csint,
-        ...(breachHub && breachHub.count > 0 ? { indexHits: breachHub } : {}),
-      });
+    if (!data) {
+      throw new Error(publicSearchError());
     }
 
-    if (breachHub && breachHub.count > 0) {
-      return NextResponse.json({ query, indexHits: breachHub });
-    }
-
-    throw new Error(publicSearchError());
+    return NextResponse.json(data);
   } catch (err) {
     const message = err instanceof Error ? err.message : publicSearchError();
 

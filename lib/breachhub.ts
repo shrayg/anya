@@ -4,9 +4,9 @@
  * Docs: https://breachhub.org/docs · OpenAPI: https://breachhub.org/openapi.json
  * Auth: query param `key` (ApiKeyAuth). Disable with BREACHHUB_ENABLED=false.
  *
- * Fan-out skips endpoints that mirror a configured direct client (CSINT /
- * OsintCat / BreachVIP / CordCat) — see lib/provider-dedupe.ts. Unique BH
- * vendors remain in additive / specialty searches.
+ * Vendor policy (lib/provider-dedupe.ts): BreachHub is primary for mirrored
+ * vendors; CSINT / direct clients are sequential fallbacks — never parallel
+ * double-hits. IntelBase * mirrors of direct BH catalog ids are always skipped.
  *
  * Sidebar sections mirrored here:
  * 1. Data Breach APIs

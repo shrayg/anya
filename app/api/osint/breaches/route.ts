@@ -4,12 +4,16 @@ import { requireOsintAccess } from "@/lib/osint-api-auth";
 import {
   breachHubRowsToCredentials,
   fetchBreachHubAdditiveBreachSearch,
+  isBreachHubEnabled,
 } from "@/lib/breachhub";
-import { searchBreachVipForEmail } from "@/lib/breachvip";
+import {
+  searchBreachVipForEmail,
+} from "@/lib/breachvip";
 import {
   csintRowsToCredentials,
   detectCsintSearchType,
   fetchCsintAdditiveBreachSearch,
+  isCsintEnabled,
 } from "@/lib/csint";
 import {
   fetchGodsEyeEmailReport,
@@ -20,7 +24,14 @@ import {
   fetchOsintCatBreach,
   getOsintCatApiKey,
   sanitizeBreachResponse,
+  type SanitizedBreachResponse,
 } from "@/lib/osintcat";
+import {
+  hasOsintCatDirect,
+  isBreachHubPrimaryActive,
+  shouldUseDirectBreachVip,
+  withPrimaryFallback,
+} from "@/lib/provider-dedupe";
 import {
   OSINT_ROUTE_DEADLINE_MS,
   osintFailureResponse,
@@ -33,7 +44,7 @@ import {
   type CombSearchResult,
 } from "@/lib/proxynova-comb";
 
-/** Keep high ceilings — do not reintroduce 50/100 result caps on paid indexes. */
+/** Memory-safety ceiling only — never reintroduce 50/100 caps on paid indexes. */
 const BREACH_FANOUT_MAX_ROWS = 100_000;
 const COMBINED_GODSEYE_TIMEOUT_MS = 18_000;
 const COMBINED_CSINT_TIMEOUT_MS = 22_000;
@@ -85,6 +96,47 @@ async function fetchGodsEyeSearchSafe(query: string, typeHint?: string) {
   }
 }
 
+/** BreachHub additive first; CSINT only after BH miss. */
+async function fetchBreachThenCsint(
+  query: string,
+  type: string,
+): Promise<{
+  breachHub: SanitizedBreachResponse | null;
+  csint: SanitizedBreachResponse | null;
+}> {
+  const { value, used } = await withPrimaryFallback(
+    async () => {
+      if (!isBreachHubEnabled()) return null;
+
+      return fetchBreachHubAdditiveBreachSearch(
+        query,
+        type,
+        COMBINED_BREACHHUB_TIMEOUT_MS,
+      );
+    },
+    async () => {
+      if (!isCsintEnabled()) return null;
+
+      return fetchCsintAdditiveBreachSearch(
+        query,
+        type as "email" | "phone" | "username" | "ip" | "auto",
+        COMBINED_CSINT_TIMEOUT_MS,
+      );
+    },
+    (row) => Boolean(row && row.count > 0),
+  );
+
+  if (used === "primary") {
+    return { breachHub: value, csint: null };
+  }
+
+  if (used === "fallback") {
+    return { breachHub: null, csint: value };
+  }
+
+  return { breachHub: null, csint: null };
+}
+
 function emptyComb(query: string, start: number): CombSearchResult {
   return {
     query,
@@ -119,41 +171,35 @@ export async function GET(req: NextRequest) {
 
   const email = normalizeEmail(query);
   const start = Number(req.nextUrl.searchParams.get("start") ?? 0);
-  const limit = Number(req.nextUrl.searchParams.get("limit") ?? 100);
+  const limit = Number(req.nextUrl.searchParams.get("limit") ?? BREACH_FANOUT_MAX_ROWS);
 
   try {
     if (email) {
-      // CSINT additive already includes BreachBase + Snusbase when CSINT is on.
-      // BreachHub fan-out skips those (and OsintCat/BreachVIP/CordCat) via
-      // lib/provider-dedupe when the direct primary is configured.
+      // Parallel: Comb + GodsEye (+ BreachVIP only when BH is off).
+      // Sequential: BreachHub → CSINT; OsintCat direct only after BH miss.
       const [
         combSettled,
         godseyeReportSettled,
         godseyeSearchSettled,
         breachVipSettled,
-        csintSettled,
-        breachHubSettled,
-        osintCatSettled,
+        gatewaySettled,
       ] = await withDeadline(
         Promise.allSettled([
           searchProxynovaCombForEmail(email, {
             start,
-            limit: Math.min(Math.max(1, limit), 100),
+            limit: Math.min(
+              Math.max(1, limit),
+              BREACH_FANOUT_MAX_ROWS,
+            ),
           }),
           fetchGodsEyeEmailReport(email),
           fetchGodsEyeSearchSafe(email, "email"),
-          searchBreachVipForEmail(email, { maxRows: BREACH_FANOUT_MAX_ROWS }),
-          fetchCsintAdditiveBreachSearch(
-            email,
-            "email",
-            COMBINED_CSINT_TIMEOUT_MS,
-          ),
-          fetchBreachHubAdditiveBreachSearch(
-            email,
-            "email",
-            COMBINED_BREACHHUB_TIMEOUT_MS,
-          ),
-          fetchOsintCatBreachSafe(email),
+          shouldUseDirectBreachVip()
+            ? searchBreachVipForEmail(email, {
+                maxRows: BREACH_FANOUT_MAX_ROWS,
+              })
+            : Promise.resolve(null),
+          fetchBreachThenCsint(email, "email"),
         ]),
         OSINT_ROUTE_DEADLINE_MS,
       );
@@ -162,9 +208,23 @@ export async function GET(req: NextRequest) {
       const godseyeReport = settledValue(godseyeReportSettled);
       const godseyeSearch = settledValue(godseyeSearchSettled);
       const breachVip = settledValue(breachVipSettled);
-      const csint = settledValue(csintSettled);
-      const breachHub = settledValue(breachHubSettled);
-      const osintCat = settledValue(osintCatSettled);
+      const gateway = settledValue(gatewaySettled);
+      const breachHub = gateway?.breachHub ?? null;
+      let csint = gateway?.csint ?? null;
+      let osintCat: SanitizedBreachResponse | null = null;
+
+      // OsintCat: BH primary already includes osintcat-* when BH is up.
+      // Direct OsintCat only when BH is off, or as fallback after empty BH+CSINT.
+      if (shouldUseDirectOsintCatParallelSafe()) {
+        osintCat = await fetchOsintCatBreachSafe(email);
+      } else if (
+        isBreachHubPrimaryActive() &&
+        hasOsintCatDirect() &&
+        !(breachHub && breachHub.count > 0) &&
+        !(csint && csint.count > 0)
+      ) {
+        osintCat = await fetchOsintCatBreachSafe(email);
+      }
 
       const mergedCredentials = [
         combResult.credentials,
@@ -218,28 +278,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(response);
     }
 
-    // Username / free-text — former Breach Index module + full breach fan-out.
+    // Username / free-text — BH→CSINT sequential + GodsEye.
     const csintType = detectCsintSearchType(query);
-    const [csintSettled, breachHubSettled, godseyeSearchSettled] =
-      await withDeadline(
-        Promise.allSettled([
-          fetchCsintAdditiveBreachSearch(
-            query,
-            csintType,
-            COMBINED_CSINT_TIMEOUT_MS,
-          ),
-          fetchBreachHubAdditiveBreachSearch(
-            query,
-            csintType,
-            COMBINED_BREACHHUB_TIMEOUT_MS,
-          ),
-          fetchGodsEyeSearchSafe(query),
-        ]),
-        OSINT_ROUTE_DEADLINE_MS,
-      );
+    const [gatewaySettled, godseyeSearchSettled] = await withDeadline(
+      Promise.allSettled([
+        fetchBreachThenCsint(query, csintType),
+        fetchGodsEyeSearchSafe(query),
+      ]),
+      OSINT_ROUTE_DEADLINE_MS,
+    );
 
-    const csint = settledValue(csintSettled);
-    const breachHub = settledValue(breachHubSettled);
+    const gateway = settledValue(gatewaySettled);
+    const breachHub = gateway?.breachHub ?? null;
+    const csint = gateway?.csint ?? null;
     const godseyeSearch = settledValue(godseyeSearchSettled);
 
     const mergedCredentials = [
@@ -297,4 +348,8 @@ export async function GET(req: NextRequest) {
       },
     });
   }
+}
+
+function shouldUseDirectOsintCatParallelSafe(): boolean {
+  return hasOsintCatDirect() && !isBreachHubPrimaryActive();
 }
