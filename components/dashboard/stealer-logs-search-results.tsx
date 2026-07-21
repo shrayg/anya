@@ -2,19 +2,22 @@
 
 import type { StealerArchiveEntry, StealerFileNode } from "@/lib/breachhub";
 import type { StealerCredentialRow } from "@/lib/stealer-logs-view";
+import type { FormattedRecord } from "@/lib/search-utils";
 
 import clsx from "clsx";
 import {
   Archive,
-  ChevronDown,
   ChevronRight,
   Download,
   FileText,
   Folder,
   FolderOpen,
+  Home,
   Monitor,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
@@ -23,7 +26,6 @@ import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { apiFetch } from "@/lib/csrf-client";
 import { countFileNodes } from "@/lib/stealer-logs-view";
-import type { FormattedRecord } from "@/lib/search-utils";
 
 const CRED_PAGE = 5;
 const DEVICE_PAGE = 4;
@@ -72,96 +74,18 @@ function PaginationBar({
   );
 }
 
-function FileTreeNode({
-  node,
-  depth = 0,
-  logId,
-  blurResults,
-  onOpenFile,
-}: {
-  node: StealerFileNode;
-  depth?: number;
-  logId: string;
-  blurResults: boolean;
-  onOpenFile: (fileId: string, name: string) => void;
-}) {
-  const [open, setOpen] = useState(depth < 1);
-  const isFolder = node.type === "folder";
-  const count = node.count ?? (node.children ? countFileNodes(node.children) : undefined);
-
-  return (
-    <div className="anya-stealer-tree-node">
-      <button
-        className="anya-stealer-tree-row"
-        style={{ paddingLeft: `${0.55 + depth * 0.85}rem` }}
-        type="button"
-        onClick={() => {
-          if (isFolder) {
-            setOpen((v) => !v);
-
-            return;
-          }
-
-          if (node.id) onOpenFile(node.id, node.name);
-        }}
-      >
-        <span className="anya-stealer-tree-icon">
-          {isFolder ? (
-            open ? (
-              <ChevronDown className="size-3.5" />
-            ) : (
-              <ChevronRight className="size-3.5" />
-            )
-          ) : (
-            <span className="w-3.5" />
-          )}
-          {isFolder ? (
-            open ? (
-              <FolderOpen className="size-3.5 text-anya-accent" />
-            ) : (
-              <Folder className="size-3.5 text-anya-accent" />
-            )
-          ) : (
-            <FileText className="size-3.5 text-zinc-500" />
-          )}
-        </span>
-        <span className="anya-stealer-tree-name">
-          <BlurredValue forceBlur={blurResults} text={node.name} />
-        </span>
-        {count !== undefined && isFolder ? (
-          <span className="anya-stealer-tree-count">{count}</span>
-        ) : null}
-      </button>
-      {isFolder && open && node.children?.length ? (
-        <div>
-          {node.children.map((child) => (
-            <FileTreeNode
-              key={`${child.path ?? child.name}-${child.id ?? ""}`}
-              blurResults={blurResults}
-              depth={depth + 1}
-              logId={logId}
-              node={child}
-              onOpenFile={onOpenFile}
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function DeviceBrowser({
+function DeviceFileExplorerModal({
   device,
   index,
   blurResults,
-  onHide,
+  onClose,
   onArchive,
   archiving,
 }: {
   device: StealerArchiveEntry;
   index: number;
   blurResults: boolean;
-  onHide: () => void;
+  onClose: () => void;
   onArchive: () => void;
   archiving: boolean;
 }) {
@@ -171,11 +95,33 @@ function DeviceBrowser({
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pathStack, setPathStack] = useState<StealerFileNode[]>([]);
   const [filePreview, setFilePreview] = useState<{
     name: string;
     content: string;
   } | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", onKey);
+
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const loadManifest = useCallback(async () => {
     if (manifest?.files?.length) return;
@@ -212,6 +158,12 @@ function DeviceBrowser({
     void loadManifest();
   }, [loadManifest]);
 
+  const rootFiles = manifest?.files ?? device.files ?? [];
+  const currentNodes =
+    pathStack.length === 0
+      ? rootFiles
+      : pathStack[pathStack.length - 1]?.children ?? [];
+
   const openFile = useCallback(
     async (fileId: string, name: string) => {
       setFileLoading(true);
@@ -247,13 +199,14 @@ function DeviceBrowser({
     [device.logId],
   );
 
-  const files = manifest?.files ?? device.files ?? [];
-  const rootCount = files.length ? countFileNodes(files) : 0;
   const summary = manifest?.summary ?? device.summary;
   const properties = manifest?.properties ?? device.properties;
   const cookies = manifest?.cookies ?? device.cookies;
-  const metaBits = [
+  const titleBits = [
+    `Infected device #${index}`,
     device.label || device.machineId,
+  ].filter(Boolean);
+  const metaBits = [
     device.os,
     device.malware,
     device.country,
@@ -279,186 +232,335 @@ function DeviceBrowser({
     },
   ];
 
-  return (
-    <div className="anya-stealer-device-panel">
-      <div className="anya-stealer-device-panel-head">
-        <div className="flex items-start gap-2 min-w-0">
-          <Monitor className="mt-0.5 size-4 shrink-0 text-anya-accent" />
-          <div className="min-w-0">
-            <p className="anya-stealer-device-title">
-              Infected device #{index}
-              {device.label || device.machineId
-                ? ` · ${device.label || device.machineId}`
-                : ""}
-            </p>
-            {metaBits.length > 0 ? (
-              <p className="anya-stealer-device-meta">{metaBits.join(" · ")}</p>
-            ) : null}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <p className="anya-stealer-device-id truncate">
-                <BlurredValue forceBlur={blurResults} text={device.logId} />
-              </p>
-              <ResultCopyButton compact text={device.logId} />
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="anya-explorer-overlay" role="presentation">
+      <button
+        aria-label="Close file explorer"
+        className="anya-explorer-backdrop"
+        type="button"
+        onClick={onClose}
+      />
+      <div
+        aria-labelledby="anya-explorer-title"
+        aria-modal="true"
+        className="anya-explorer-window"
+        role="dialog"
+      >
+        <header className="anya-explorer-titlebar">
+          <div className="anya-explorer-titlebar-main">
+            <Monitor className="size-4 shrink-0 text-anya-accent" />
+            <div className="min-w-0">
+              <h2 className="anya-explorer-title" id="anya-explorer-title">
+                {titleBits.join(" · ")}
+              </h2>
+              {metaBits.length > 0 ? (
+                <p className="anya-explorer-subtitle">{metaBits.join(" · ")}</p>
+              ) : null}
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="anya-stealer-device-actions">
-        <button
-          className="anya-stealer-btn anya-stealer-btn--ghost"
-          type="button"
-          onClick={onHide}
-        >
-          <FolderOpen className="size-3.5" />
-          Hide files
-        </button>
-        <button
-          className="anya-stealer-btn anya-stealer-btn--solid"
-          disabled={archiving}
-          type="button"
-          onClick={onArchive}
-        >
-          <Download className="size-3.5" />
-          {archiving ? "Preparing…" : "Archive"}
-        </button>
-        <span className="anya-stealer-file-manager-label">File manager</span>
-      </div>
-
-      {filePreview ? (
-        <div className="anya-stealer-file-preview">
-          <div className="anya-stealer-file-preview-head">
-            <p>{filePreview.name}</p>
+          <div className="anya-explorer-titlebar-actions">
             <button
-              className="anya-stealer-btn anya-stealer-btn--ghost"
+              className="anya-stealer-btn anya-stealer-btn--solid"
+              disabled={archiving}
               type="button"
-              onClick={() => setFilePreview(null)}
+              onClick={onArchive}
             >
-              Close
+              <Download className="size-3.5" />
+              {archiving ? "Preparing…" : "Archive"}
+            </button>
+            <button
+              aria-label="Close"
+              className="anya-explorer-close"
+              type="button"
+              onClick={onClose}
+            >
+              <X className="size-4" />
             </button>
           </div>
-          <pre className="anya-stealer-file-preview-body">
-            <BlurredValue forceBlur={blurResults} text={filePreview.content} />
-          </pre>
+        </header>
+
+        <div className="anya-explorer-idrow">
+          <span className="anya-explorer-idlabel">Log ID</span>
+          <code className="anya-explorer-idvalue">
+            <BlurredValue forceBlur={blurResults} text={device.logId} />
+          </code>
+          <ResultCopyButton compact text={device.logId} />
         </div>
-      ) : null}
 
-      {fileLoading ? (
-        <p className="mb-2 text-xs text-zinc-500">Loading file…</p>
-      ) : null}
+        <div className="anya-explorer-tabs" role="tablist">
+          {tabs
+            .filter((t) => t.show)
+            .map((t) => (
+              <button
+                key={t.id}
+                aria-selected={tab === t.id}
+                className={clsx(
+                  "anya-explorer-tab",
+                  tab === t.id && "anya-explorer-tab--active",
+                )}
+                role="tab"
+                type="button"
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+        </div>
 
-      <div className="anya-stealer-tabs" role="tablist">
-        {tabs
-          .filter((t) => t.show)
-          .map((t) => (
-            <button
-              key={t.id}
-              aria-selected={tab === t.id}
-              className={clsx(
-                "anya-stealer-tab",
-                tab === t.id && "anya-stealer-tab--active",
-              )}
-              role="tab"
-              type="button"
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-      </div>
-
-      <div className="anya-stealer-tab-panel">
         {tab === "files" ? (
-          loading ? (
-            <p className="text-xs text-zinc-500">Loading file tree…</p>
-          ) : error && files.length === 0 ? (
-            <p className="text-xs text-zinc-500">{error}</p>
-          ) : files.length === 0 ? (
-            <p className="text-xs text-zinc-500">
-              No file tree available for this device.
-            </p>
-          ) : (
-            <div className="anya-stealer-tree">
-              <div className="anya-stealer-tree-row anya-stealer-tree-root">
-                <span className="anya-stealer-tree-icon">
-                  <ChevronDown className="size-3.5" />
-                  <FolderOpen className="size-3.5 text-anya-accent" />
+          <>
+            <nav aria-label="Path" className="anya-explorer-breadcrumb">
+              <button
+                className="anya-explorer-crumb"
+                type="button"
+                onClick={() => {
+                  setPathStack([]);
+                  setFilePreview(null);
+                }}
+              >
+                <Home className="size-3.5" />
+                Root
+              </button>
+              {pathStack.map((folder, i) => (
+                <span key={`${folder.name}-${i}`} className="anya-explorer-crumb-wrap">
+                  <ChevronRight className="size-3 text-zinc-600" />
+                  <button
+                    className="anya-explorer-crumb"
+                    type="button"
+                    onClick={() => {
+                      setPathStack((stack) => stack.slice(0, i + 1));
+                      setFilePreview(null);
+                    }}
+                  >
+                    {folder.name}
+                  </button>
                 </span>
-                <span className="anya-stealer-tree-name">/</span>
-                <span className="anya-stealer-tree-count">{rootCount}</span>
-              </div>
-              {files.map((node) => (
-                <FileTreeNode
-                  key={`${node.path ?? node.name}-${node.id ?? ""}`}
-                  blurResults={blurResults}
-                  depth={1}
-                  logId={device.logId}
-                  node={node}
-                  onOpenFile={(fileId, name) => void openFile(fileId, name)}
-                />
               ))}
+            </nav>
+
+            <div className="anya-explorer-body">
+              <div className="anya-explorer-list-pane">
+                {loading ? (
+                  <p className="anya-explorer-empty">Loading file tree…</p>
+                ) : error && rootFiles.length === 0 ? (
+                  <p className="anya-explorer-empty">{error}</p>
+                ) : currentNodes.length === 0 ? (
+                  <p className="anya-explorer-empty">This folder is empty.</p>
+                ) : (
+                  <ul className="anya-explorer-list">
+                    <li className="anya-explorer-list-head">
+                      <span>Name</span>
+                      <span>Type</span>
+                      <span>Items</span>
+                    </li>
+                    {pathStack.length > 0 ? (
+                      <li>
+                        <button
+                          className="anya-explorer-row"
+                          type="button"
+                          onClick={() => {
+                            setPathStack((stack) => stack.slice(0, -1));
+                            setFilePreview(null);
+                          }}
+                        >
+                          <span className="anya-explorer-row-name">
+                            <FolderOpen className="size-4 text-anya-accent" />
+                            ..
+                          </span>
+                          <span className="anya-explorer-row-type">Up</span>
+                          <span className="anya-explorer-row-meta">—</span>
+                        </button>
+                      </li>
+                    ) : null}
+                    {[...currentNodes]
+                      .sort((a, b) => {
+                        if (a.type !== b.type) {
+                          return a.type === "folder" ? -1 : 1;
+                        }
+
+                        return a.name.localeCompare(b.name);
+                      })
+                      .map((node) => {
+                        const isFolder = node.type === "folder";
+                        const count =
+                          node.count ??
+                          (node.children
+                            ? countFileNodes(node.children)
+                            : undefined);
+
+                        return (
+                          <li key={`${node.path ?? node.name}-${node.id ?? ""}`}>
+                            <button
+                              className={clsx(
+                                "anya-explorer-row",
+                                filePreview?.name === node.name &&
+                                  !isFolder &&
+                                  "anya-explorer-row--active",
+                              )}
+                              type="button"
+                              onDoubleClick={() => {
+                                if (isFolder) {
+                                  setPathStack((stack) => [...stack, node]);
+                                  setFilePreview(null);
+                                } else if (node.id) {
+                                  void openFile(node.id, node.name);
+                                }
+                              }}
+                              onClick={() => {
+                                if (isFolder) {
+                                  setPathStack((stack) => [...stack, node]);
+                                  setFilePreview(null);
+
+                                  return;
+                                }
+
+                                if (node.id) void openFile(node.id, node.name);
+                                else {
+                                  setFilePreview({
+                                    name: node.name,
+                                    content:
+                                      "No file id available for preview.",
+                                  });
+                                }
+                              }}
+                            >
+                              <span className="anya-explorer-row-name">
+                                {isFolder ? (
+                                  <Folder className="size-4 text-anya-accent" />
+                                ) : (
+                                  <FileText className="size-4 text-zinc-500" />
+                                )}
+                                <BlurredValue
+                                  forceBlur={blurResults}
+                                  text={node.name}
+                                />
+                              </span>
+                              <span className="anya-explorer-row-type">
+                                {isFolder ? "Folder" : "File"}
+                              </span>
+                              <span className="anya-explorer-row-meta">
+                                {isFolder
+                                  ? count !== undefined
+                                    ? String(count)
+                                    : "—"
+                                  : "—"}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                )}
+              </div>
+
+              <aside className="anya-explorer-preview-pane">
+                <div className="anya-explorer-preview-head">
+                  <p>{filePreview?.name || "Preview"}</p>
+                  {filePreview ? (
+                    <button
+                      className="anya-stealer-btn anya-stealer-btn--ghost"
+                      type="button"
+                      onClick={() => setFilePreview(null)}
+                    >
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+                <div className="anya-explorer-preview-body">
+                  {fileLoading ? (
+                    <p className="anya-explorer-empty">Loading file…</p>
+                  ) : filePreview ? (
+                    <pre>
+                      <BlurredValue
+                        forceBlur={blurResults}
+                        text={filePreview.content}
+                      />
+                    </pre>
+                  ) : (
+                    <p className="anya-explorer-empty">
+                      Select a file to preview its contents.
+                    </p>
+                  )}
+                </div>
+              </aside>
             </div>
-          )
+          </>
         ) : null}
 
         {tab === "summary" && summary ? (
-          <dl className="anya-stealer-kv">
-            {Object.entries(summary).map(([key, value]) => (
-              <div key={key}>
-                <dt>{key}</dt>
-                <dd>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={
-                      typeof value === "string"
-                        ? value
-                        : JSON.stringify(value)
-                    }
-                  />
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <div className="anya-explorer-meta-pane">
+            <dl className="anya-stealer-kv">
+              {Object.entries(summary).map(([key, value]) => (
+                <div key={key}>
+                  <dt>{key}</dt>
+                  <dd>
+                    <BlurredValue
+                      forceBlur={blurResults}
+                      text={
+                        typeof value === "string"
+                          ? value
+                          : JSON.stringify(value)
+                      }
+                    />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         ) : null}
 
         {tab === "properties" && properties ? (
-          <dl className="anya-stealer-kv">
-            {Object.entries(properties).map(([key, value]) => (
-              <div key={key}>
-                <dt>{key}</dt>
-                <dd>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={
-                      typeof value === "string"
-                        ? value
-                        : JSON.stringify(value)
-                    }
-                  />
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <div className="anya-explorer-meta-pane">
+            <dl className="anya-stealer-kv">
+              {Object.entries(properties).map(([key, value]) => (
+                <div key={key}>
+                  <dt>{key}</dt>
+                  <dd>
+                    <BlurredValue
+                      forceBlur={blurResults}
+                      text={
+                        typeof value === "string"
+                          ? value
+                          : JSON.stringify(value)
+                      }
+                    />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         ) : null}
 
         {tab === "cookies" && cookies?.length ? (
-          <ul className="anya-stealer-cookie-list">
-            {cookies.slice(0, 40).map((cookie, i) => (
-              <li key={i}>
-                <BlurredValue
-                  forceBlur={blurResults}
-                  text={
-                    typeof cookie === "string"
-                      ? cookie
-                      : JSON.stringify(cookie)
-                  }
-                />
-              </li>
-            ))}
-          </ul>
+          <div className="anya-explorer-meta-pane">
+            <ul className="anya-stealer-cookie-list">
+              {cookies.slice(0, 80).map((cookie, i) => (
+                <li key={i}>
+                  <BlurredValue
+                    forceBlur={blurResults}
+                    text={
+                      typeof cookie === "string"
+                        ? cookie
+                        : JSON.stringify(cookie)
+                    }
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
+
+        <footer className="anya-explorer-status">
+          {rootFiles.length > 0
+            ? `${countFileNodes(rootFiles)} items in archive · ${currentNodes.length} in this folder`
+            : "No files loaded"}
+          {error ? ` · ${error}` : ""}
+        </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -496,6 +598,18 @@ export function StealerLogsSearchResults({
 
     return archives.slice(start, start + DEVICE_PAGE);
   }, [archives, devicePage]);
+
+  const openDeviceEntry = useMemo(
+    () => archives.find((device) => device.logId === openDevice) ?? null,
+    [archives, openDevice],
+  );
+
+  const openDeviceIndex = useMemo(() => {
+    if (!openDeviceEntry) return 1;
+    const idx = archives.findIndex((d) => d.logId === openDeviceEntry.logId);
+
+    return idx >= 0 ? idx + 1 : 1;
+  }, [archives, openDeviceEntry]);
 
   const handleArchive = async (logId: string) => {
     setArchivingId(logId);
@@ -555,7 +669,9 @@ export function StealerLogsSearchResults({
     archives.length === 0 &&
     !(fallbackRecords && fallbackRecords.length > 0)
   ) {
-    return <SearchEmptyState detail="No stealer credentials or archives found." />;
+    return (
+      <SearchEmptyState detail="No stealer credentials or archives found." />
+    );
   }
 
   return (
@@ -589,7 +705,10 @@ export function StealerLogsSearchResults({
                 {visibleCreds.map((row, i) => (
                   <tr key={`${row.site}-${row.username}-${i}`}>
                     <td>
-                      <BlurredValue forceBlur={blurResults} text={row.site || "—"} />
+                      <BlurredValue
+                        forceBlur={blurResults}
+                        text={row.site || "—"}
+                      />
                     </td>
                     <td>
                       <BlurredValue
@@ -614,9 +733,7 @@ export function StealerLogsSearchResults({
             page={credPage}
             pageCount={credPageCount}
             pageSize={CRED_PAGE}
-            onNext={() =>
-              setCredPage((p) => Math.min(credPageCount, p + 1))
-            }
+            onNext={() => setCredPage((p) => Math.min(credPageCount, p + 1))}
             onPrev={() => setCredPage((p) => Math.max(1, p - 1))}
           />
         </section>
@@ -639,86 +756,68 @@ export function StealerLogsSearchResults({
 
           <ul className="anya-stealer-device-list">
             {visibleDevices.map((device, i) => {
-              const globalIndex =
-                (devicePage - 1) * DEVICE_PAGE + i + 1;
-              const isOpen = openDevice === device.logId;
+              const globalIndex = (devicePage - 1) * DEVICE_PAGE + i + 1;
 
               return (
                 <li key={device.logId} className="anya-stealer-device-item">
-                  {isOpen ? (
-                    <DeviceBrowser
-                      archiving={archivingId === device.logId}
-                      blurResults={blurResults}
-                      device={device}
-                      index={globalIndex}
-                      onArchive={() => void handleArchive(device.logId)}
-                      onHide={() => setOpenDevice(null)}
-                    />
-                  ) : (
-                    <div className="anya-stealer-device-row">
-                      <div className="flex min-w-0 items-start gap-2">
-                        <Monitor className="mt-0.5 size-4 shrink-0 text-anya-accent" />
-                        <div className="min-w-0">
-                          <p className="anya-stealer-device-title">
-                            Infected device #{globalIndex}
-                            {device.label || device.machineId
-                              ? ` · ${device.label || device.machineId}`
-                              : ""}
+                  <div className="anya-stealer-device-row">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <Monitor className="mt-0.5 size-4 shrink-0 text-anya-accent" />
+                      <div className="min-w-0">
+                        <p className="anya-stealer-device-title">
+                          Infected device #{globalIndex}
+                          {device.label || device.machineId
+                            ? ` · ${device.label || device.machineId}`
+                            : ""}
+                        </p>
+                        {[
+                          device.os,
+                          device.malware,
+                          device.country,
+                          device.date?.slice(0, 10),
+                        ].filter(Boolean).length > 0 ? (
+                          <p className="anya-stealer-device-meta">
+                            {[
+                              device.os,
+                              device.malware,
+                              device.country,
+                              device.date?.slice(0, 10),
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </p>
-                          {[
-                            device.os,
-                            device.malware,
-                            device.country,
-                            device.date?.slice(0, 10),
-                          ]
-                            .filter(Boolean)
-                            .length > 0 ? (
-                            <p className="anya-stealer-device-meta">
-                              {[
-                                device.os,
-                                device.malware,
-                                device.country,
-                                device.date?.slice(0, 10),
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </p>
-                          ) : null}
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <p className="anya-stealer-device-id truncate">
-                              <BlurredValue
-                                forceBlur={blurResults}
-                                text={device.logId}
-                              />
-                            </p>
-                            <ResultCopyButton compact text={device.logId} />
-                          </div>
+                        ) : null}
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <p className="anya-stealer-device-id truncate">
+                            <BlurredValue
+                              forceBlur={blurResults}
+                              text={device.logId}
+                            />
+                          </p>
+                          <ResultCopyButton compact text={device.logId} />
                         </div>
                       </div>
-                      <div className="anya-stealer-device-actions">
-                        <button
-                          className="anya-stealer-btn anya-stealer-btn--ghost"
-                          type="button"
-                          onClick={() => setOpenDevice(device.logId)}
-                        >
-                          <Folder className="size-3.5" />
-                          Browse files
-                        </button>
-                        <button
-                          className="anya-stealer-btn anya-stealer-btn--solid"
-                          disabled={archivingId === device.logId}
-                          type="button"
-                          onClick={() => void handleArchive(device.logId)}
-                        >
-                          <Archive className="size-3.5" />
-                          Archive
-                        </button>
-                        <span className="anya-stealer-file-manager-label">
-                          File manager
-                        </span>
-                      </div>
                     </div>
-                  )}
+                    <div className="anya-stealer-device-actions">
+                      <button
+                        className="anya-stealer-btn anya-stealer-btn--ghost"
+                        type="button"
+                        onClick={() => setOpenDevice(device.logId)}
+                      >
+                        <Folder className="size-3.5" />
+                        Browse files
+                      </button>
+                      <button
+                        className="anya-stealer-btn anya-stealer-btn--solid"
+                        disabled={archivingId === device.logId}
+                        type="button"
+                        onClick={() => void handleArchive(device.logId)}
+                      >
+                        <Archive className="size-3.5" />
+                        Archive
+                      </button>
+                    </div>
+                  </div>
                 </li>
               );
             })}
@@ -734,6 +833,17 @@ export function StealerLogsSearchResults({
             onPrev={() => setDevicePage((p) => Math.max(1, p - 1))}
           />
         </section>
+      ) : null}
+
+      {openDeviceEntry ? (
+        <DeviceFileExplorerModal
+          archiving={archivingId === openDeviceEntry.logId}
+          blurResults={blurResults}
+          device={openDeviceEntry}
+          index={openDeviceIndex}
+          onArchive={() => void handleArchive(openDeviceEntry.logId)}
+          onClose={() => setOpenDevice(null)}
+        />
       ) : null}
 
       {fallbackRecords && fallbackRecords.length > 0 ? (
