@@ -4414,7 +4414,10 @@ export async function fetchBreachHubIntelx(
       const text = await readResponseText(res, 60_000);
 
       if (contentType.includes("text/plain") && res.ok && text.trim()) {
-        return { content: text, bucket: resolvedBucket };
+        return {
+          content: sanitizePublicContent(text),
+          bucket: resolvedBucket,
+        };
       }
 
       let data: Record<string, unknown> = {};
@@ -4423,7 +4426,10 @@ export async function fetchBreachHubIntelx(
         data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
       } catch {
         if (res.ok && text.trim()) {
-          return { content: text, bucket: resolvedBucket };
+          return {
+            content: sanitizePublicContent(text),
+            bucket: resolvedBucket,
+          };
         }
         lastError = sanitizeBreachHubError(`HTTP ${res.status}`);
         continue;
@@ -4445,7 +4451,10 @@ export async function fetchBreachHubIntelx(
       const content = extractIntelxExportContent(data);
 
       if (content.trim()) {
-        return { content, bucket: resolvedBucket };
+        return {
+          content: sanitizePublicContent(content),
+          bucket: resolvedBucket,
+        };
       }
     } catch (err) {
       lastError = sanitizeBreachHubError(
