@@ -12,7 +12,7 @@ export const PUBLIC_INTEL_SOURCE = siteConfig.name;
  * Keep in sync with INTERNAL_SOURCE_LABELS in intel-record.ts.
  */
 const PROVIDER_PATTERN =
-  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|breachhub|breach\s*hub|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|hudsonrock|hudson\s*rock|xosint|seekria|seeknow|see-?know|anya\.search|anya search|anya crypto ai|anya /gi;
+  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|breachhub|breach\s*hub|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|hudsonrock|hudson\s*rock|xosint|seekria|seeknow|see-?know|room\s*101|room101|anya\.search|anya search|anya crypto ai|anya /gi;
 
 const POWERED_BY_PROVIDER =
   /powered\s+by\s+(?:csint(?:\.pro)?(?:\s+tools)?|godseye|osintcat|shodan|intelx|oathnet|snusbase|breachvip|breachhub|breachbase|seon|cordcat|leakcheck|hackcheck)[^,.\n]*/gi;
@@ -72,6 +72,7 @@ function stripProviderNames(text: string): string {
     .replace(/intelx\.io(?:\/[^\s,;)\]}]*)?/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Infostealer[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Info\s*stealer[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Room\s*101[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Anya\.search/gi, PUBLIC_BRAND)
     .replace(/Anya [A-Za-z ]+/gi, PUBLIC_AI_LABEL)
     // Keep Anya.Int intact — bare "Anya" only.
@@ -82,6 +83,7 @@ function stripProviderNames(text: string): string {
     .replace(/BREACH_VIP_API_KEY/gi, "intelligence API key")
     .replace(/BREACHHUB_API_KEY/gi, "intelligence API key")
     .replace(/SNUSBASE_API_KEY/gi, "intelligence API key")
+    .replace(/ROOM101_API_KEY/gi, "intelligence API key")
     .replace(/OATHNET_API_KEY/gi, "intelligence API key")
     .replace(/SHODAN_API_KEY/gi, "intelligence API key")
     .replace(/INTELX_API_KEY/gi, "intelligence API key")

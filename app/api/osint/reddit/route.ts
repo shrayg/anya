@@ -5,6 +5,11 @@ import { fetchCsintReddit, flattenCsintEntity } from "@/lib/csint";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
 import { mergeSanitizedResponses } from "@/lib/osintcat";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
+import { withPrimaryFallback } from "@/lib/provider-dedupe";
+import {
+  fetchRoom101Sanitized,
+  isRoom101Enabled,
+} from "@/lib/room101";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "reddit");
@@ -18,15 +23,39 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [indexData, profilePayload] = await Promise.all([
+    const [indexData, profile] = await Promise.all([
       fetchGodsEyeOnlySearch(query, "reddit").catch(() => ({
         count: 0,
         results: [] as unknown[],
       })),
-      fetchCsintReddit(query),
+      // Room101 (BH or direct) first for Reddit username profile; CSINT only after miss.
+      (async () => {
+        const { value } = await withPrimaryFallback(
+          async () => {
+            if (!isRoom101Enabled()) return null;
+
+            const data = await fetchRoom101Sanitized("user", {
+              username: query,
+            });
+
+            if (data.count <= 0) return null;
+
+            const first = data.results[0];
+
+            if (first && typeof first === "object" && !Array.isArray(first)) {
+              return first as Record<string, unknown>;
+            }
+
+            return { results: data.results, count: data.count };
+          },
+          async () => flattenCsintEntity(await fetchCsintReddit(query)),
+          (row) => Boolean(row && Object.keys(row).length > 0),
+        );
+
+        return value;
+      })(),
     ]);
 
-    const profile = flattenCsintEntity(profilePayload);
     const parts = [indexData];
 
     if (profile) {
@@ -41,7 +70,7 @@ export async function GET(req: NextRequest) {
         count: 0,
         results: [],
         message: "No results were found.",
-        ...(profilePayload && !profile ? {} : profile ? { profile } : {}),
+        ...(profile ? { profile } : {}),
       });
     }
 

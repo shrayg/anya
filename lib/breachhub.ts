@@ -1320,7 +1320,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "social_osint",
     modes: ["specialty", "additive"],
     kinds: ["username", "name", "email"],
-    buildParams: (query) => ({ terms: query }),
+    buildParams: (query) => ({ query }),
   },
   {
     id: "room101-search",
@@ -1328,7 +1328,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "social_osint",
     modes: ["specialty", "additive"],
     kinds: ["username", "name"],
-    buildParams: (query) => ({ terms: query }),
+    buildParams: (query) => ({ query }),
   },
   {
     id: "room101-subreddit",
@@ -3376,6 +3376,8 @@ export async function fetchBreachHubSpecialty(
     reddit: [
       "room101-user",
       "room101-analyze",
+      "room101-search",
+      "room101-subreddit",
       "seeknow-reddit",
       "seeknow-social",
       "intelbase-reddit",

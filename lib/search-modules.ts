@@ -1320,6 +1320,26 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           tools: [
             { id: "reddit-indexes", label: "Leak indexes", apiType: "reddit" },
             {
+              id: "room101-user",
+              label: "Room101 user",
+              apiType: "room101/user",
+            },
+            {
+              id: "room101-analyze",
+              label: "Room101 analyze",
+              apiType: "room101/analyze",
+            },
+            {
+              id: "room101-search",
+              label: "Room101 search",
+              apiType: "room101/v2/search",
+            },
+            {
+              id: "room101-subreddit",
+              label: "Room101 subreddit",
+              apiType: "room101/subreddit",
+            },
+            {
               id: "seeknow-reddit",
               label: "SeekNow Reddit",
               apiType: "seeknow/username/reddit",
@@ -1822,6 +1842,8 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType.startsWith("seekria/") ||
     apiType === "seeknow" ||
     apiType.startsWith("seeknow/") ||
+    apiType === "room101" ||
+    apiType.startsWith("room101/") ||
     apiType === "notalivex" ||
     apiType.startsWith("notalivex/")
   ) {

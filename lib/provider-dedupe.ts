@@ -29,10 +29,12 @@
  * | IntelX Storage ID (hex)     | CSINT       | BreachHub → GodsEye              |
  * | IntelVault                  | Direct key  | BreachHub /api/intelvault*       |
  * | SeekNow                     | Direct key  | BreachHub /api/seeknow/*         |
+ * | Room101                     | Direct key  | BreachHub /api/room101/*         |
  *
  * Within BreachHub only: always skip IntelBase * mirrors of direct BH vendors.
  * When INTELVAULT_API_KEY is set, also skip BH IntelVault catalog ids.
  * When SEEKNOW_API_KEY is set, skip BH SeekNow catalog ids (direct owns vendor).
+ * When ROOM101_API_KEY is set, skip BH Room101 catalog ids (direct owns vendor).
  */
 
 import { isBreachVipEnabled } from "@/lib/breachvip";
@@ -46,6 +48,13 @@ function hasDirectSeekNowKeyEnv(): boolean {
   if (process.env.SEEKNOW_ENABLED === "false") return false;
 
   return Boolean(process.env.SEEKNOW_API_KEY?.trim());
+}
+
+/** Env-only — avoid importing lib/room101 (pulls breachhub → circular). */
+function hasDirectRoom101KeyEnv(): boolean {
+  if (process.env.ROOM101_ENABLED === "false") return false;
+
+  return Boolean(process.env.ROOM101_API_KEY?.trim());
 }
 
 const SKIP_SEEKNOW_WHEN_DIRECT = [
@@ -68,6 +77,14 @@ const SKIP_SEEKNOW_WHEN_DIRECT = [
   "seeknow-xbox",
   "seeknow-roblox",
   "seeknow-minecraft",
+] as const;
+
+const SKIP_ROOM101_WHEN_DIRECT = [
+  "room101-user",
+  "room101-analyze",
+  "room101-search-legacy",
+  "room101-search",
+  "room101-subreddit",
 ] as const;
 
 /** Always skip — mirrors a direct BreachHub catalog vendor in the same fan-out. */
@@ -153,6 +170,13 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     primary: "breachhub",
     fallback: "none",
     notes: "Direct SEEKNOW_API_KEY owns vendor; else BreachHub /api/seeknow/*",
+  },
+  {
+    vendor: "Room101",
+    primary: "breachhub",
+    fallback: "csint",
+    notes:
+      "Direct ROOM101_API_KEY owns vendor; else BreachHub /api/room101/*; CSINT /reddit after BH miss",
   },
 ];
 
@@ -265,7 +289,8 @@ function defaultIsSuccess(value: unknown): boolean {
 
 /**
  * BreachHub endpoint ids to skip for the current env.
- * IntelBase intra-BH mirrors always; SeekNow catalog when SEEKNOW_API_KEY is set.
+ * IntelBase intra-BH mirrors always; SeekNow catalog when SEEKNOW_API_KEY is set;
+ * Room101 when ROOM101_API_KEY is set.
  * OathNet `/api/oathnet/*` ids are never skipped (BH is primary; CSINT is fallback).
  */
 export function getSkippedBreachHubEndpointIds(): Set<string> {
@@ -273,6 +298,10 @@ export function getSkippedBreachHubEndpointIds(): Set<string> {
 
   if (hasDirectSeekNowKeyEnv()) {
     for (const id of SKIP_SEEKNOW_WHEN_DIRECT) skipped.add(id);
+  }
+
+  if (hasDirectRoom101KeyEnv()) {
+    for (const id of SKIP_ROOM101_WHEN_DIRECT) skipped.add(id);
   }
 
   return skipped;

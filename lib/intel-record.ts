@@ -48,6 +48,8 @@ const INTERNAL_SOURCE_LABELS = new Set([
   "melissa",
   "infostealer",
   "info stealer",
+  "room101",
+  "room 101",
   "index",
 ]);
 
