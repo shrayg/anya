@@ -178,9 +178,22 @@ export async function GET(req: NextRequest) {
   let bucket = preferredBucket;
   let lastError = "";
 
-  // Prefer CSINT first (dedicated /api/intelx, text/plain handling, IntelX daily quota).
-  // UUIDs: one bucket only — bare website did UUIDs 404 everywhere and must not burn quota.
-  if (hasCsint) {
+  // System IDs (UUID): BreachHub `/api/intelx?system_id=` is the native path.
+  // Storage IDs (long hex): CSINT `storageid`+bucket first, then BreachHub, then GodsEye.
+  if (idKind === "uuid" && hasBreachHub) {
+    const breachHub = await fetchBreachHubIntelx(storageId, preferredBucket);
+
+    if (breachHub.content.trim()) {
+      content = breachHub.content;
+      bucket = isIntelxBucket(breachHub.bucket)
+        ? breachHub.bucket
+        : preferredBucket;
+    } else if (breachHub.error) {
+      lastError = breachHub.error;
+    }
+  }
+
+  if (!content && hasCsint) {
     const csint =
       idKind === "uuid"
         ? await fetchCsintIntelx(storageId, preferredBucket)
@@ -189,17 +202,17 @@ export async function GET(req: NextRequest) {
     if (csint.content.trim()) {
       content = csint.content;
       bucket = isIntelxBucket(csint.bucket) ? csint.bucket : preferredBucket;
+      lastError = "";
     } else if (csint.error) {
       lastError = csint.error;
     }
   }
 
-  // BreachHub IntelX specialty — covers System/Storage IDs when CSINT is down/empty.
-  if (!content && hasBreachHub) {
-    const breachHub =
-      idKind === "uuid"
-        ? await fetchBreachHubIntelx(storageId, preferredBucket)
-        : await fetchBreachHubIntelxWithBuckets(storageId, preferredBucket);
+  if (!content && hasBreachHub && idKind !== "uuid") {
+    const breachHub = await fetchBreachHubIntelxWithBuckets(
+      storageId,
+      preferredBucket,
+    );
 
     if (breachHub.content.trim()) {
       content = breachHub.content;

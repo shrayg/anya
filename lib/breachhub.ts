@@ -36,6 +36,11 @@ import {
   providerCacheKey,
   withProviderCache,
 } from "@/lib/provider-result-cache";
+import {
+  filterBreachHubEndpointIds,
+  filterBreachHubEndpoints,
+  shouldSkipBreachHubEndpoint,
+} from "@/lib/provider-dedupe";
 
 const BREACHHUB_BASE = "https://breachhub.org";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
@@ -930,80 +935,9 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
       return null;
     },
   },
+  // OpenAPI only exposes GET /api/hudsonrock?email= — older subpaths 404.
   {
-    id: "hudsonrock-email",
-    path: "/api/hudsonrock/search-by-login/emails",
-    section: "intelligence_platform",
-    modes: ["additive"],
-    kinds: ["email"],
-    buildParams: (query) => ({ email: query }),
-  },
-  {
-    id: "hudsonrock-username",
-    path: "/api/hudsonrock/search-by-login/usernames",
-    section: "intelligence_platform",
-    modes: ["additive"],
-    kinds: ["username"],
-    buildParams: (query) => ({ username: query }),
-  },
-  {
-    id: "hudsonrock-domain",
-    path: "/api/hudsonrock/search-by-domain",
-    section: "intelligence_platform",
-    modes: ["additive"],
-    kinds: ["domain"],
-    buildParams: (query) => ({ domain: query }),
-  },
-  {
-    id: "hudsonrock-domain-overview",
-    path: "/api/hudsonrock/search-by-domain/overview",
-    section: "intelligence_platform",
-    modes: ["specialty"],
-    kinds: ["domain"],
-    buildParams: (query) => ({ domain: query }),
-  },
-  {
-    id: "hudsonrock-domain-assessment",
-    path: "/api/hudsonrock/search-by-domain/assessment",
-    section: "intelligence_platform",
-    modes: ["specialty"],
-    kinds: ["domain"],
-    buildParams: (query) => ({ domain: query }),
-  },
-  {
-    id: "hudsonrock-domain-discovery",
-    path: "/api/hudsonrock/search-by-domain/discovery",
-    section: "intelligence_platform",
-    modes: ["specialty"],
-    kinds: ["domain"],
-    buildParams: (query) => ({ domain: query }),
-  },
-  {
-    id: "hudsonrock-ip",
-    path: "/api/hudsonrock/search-by-ip",
-    section: "intelligence_platform",
-    modes: ["additive"],
-    kinds: ["ip"],
-    buildParams: (query) => ({ ip: query }),
-  },
-  {
-    id: "hudsonrock-keyword",
-    path: "/api/hudsonrock/search-by-keyword",
-    section: "intelligence_platform",
-    modes: ["specialty"],
-    kinds: ["username", "name", "domain"],
-    buildParams: (query) => ({ keyword: query }),
-  },
-  {
-    id: "hudsonrock-keyword-urls",
-    path: "/api/hudsonrock/search-by-keyword/urls",
-    section: "intelligence_platform",
-    modes: ["specialty"],
-    kinds: ["username", "domain", "url"],
-    buildParams: (query) => ({ keyword: query }),
-  },
-  {
-    id: "hudsonrock-legacy",
+    id: "hudsonrock",
     path: "/api/hudsonrock",
     section: "intelligence_platform",
     modes: ["additive"],
@@ -1283,10 +1217,18 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query) => ({ username: query }),
   },
   {
+    id: "room101-search-legacy",
+    path: "/api/room101/search",
+    section: "social_osint",
+    modes: ["specialty", "additive"],
+    kinds: ["username", "name", "email"],
+    buildParams: (query) => ({ terms: query }),
+  },
+  {
     id: "room101-search",
     path: "/api/room101/v2/search",
     section: "social_osint",
-    modes: ["specialty"],
+    modes: ["specialty", "additive"],
     kinds: ["username", "name"],
     buildParams: (query) => ({ terms: query }),
   },
@@ -2572,6 +2514,8 @@ async function fanOutEndpoints(
   const queue: BreachHubEndpointDef[] = [];
 
   for (const endpoint of endpoints) {
+    if (shouldSkipBreachHubEndpoint(endpoint.id)) continue;
+
     const key = endpointRequestKey(endpoint, trimmed, kind);
 
     if (!key || seenKeys.has(key)) continue;
@@ -2639,11 +2583,14 @@ async function fanOutEndpoints(
 }
 
 function additiveForKind(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
-  return BREACHHUB_ENDPOINTS.filter(
-    (endpoint) =>
-      endpoint.modes.includes("additive") &&
-      (endpoint.kinds.includes(kind) ||
-        (kind !== "auto" && endpoint.kinds.includes("auto"))),
+  // Drop BreachHub mirrors of configured direct CSINT / OsintCat / BreachVIP / CordCat.
+  return filterBreachHubEndpoints(
+    BREACHHUB_ENDPOINTS.filter(
+      (endpoint) =>
+        endpoint.modes.includes("additive") &&
+        (endpoint.kinds.includes(kind) ||
+          (kind !== "auto" && endpoint.kinds.includes("auto"))),
+    ),
   );
 }
 
@@ -2656,8 +2603,7 @@ const STEALER_ONLY_PRIMARY_IDS = [
   "osintcat-machine-search",
   "oathnet-stealer",
   "wentyn",
-  "hudsonrock-legacy",
-  "hudsonrock-email",
+  "hudsonrock",
   "intelbase-intelvault-stealer",
 ] as const;
 
@@ -2665,9 +2611,6 @@ const STEALER_ONLY_SECONDARY_IDS = [
   "oathnet-stealer-subdomain",
   "seeknow-stealer",
   "seeknow-stealer-legacy",
-  "hudsonrock-username",
-  "hudsonrock-domain",
-  "hudsonrock-ip",
   "datavoid-stealer",
 ] as const;
 
@@ -2688,9 +2631,6 @@ const STEALER_BREACH_OVERLAP_IDS = [
   "osintcat-database",
   "snusbase",
   "snusbase-combo",
-  "intelbase-intelvault-breaches",
-  "intelbase-intelvault-email",
-  "intelbase-akula",
   "seekria-email-breach",
   "inf0sec",
 ] as const;
@@ -2757,7 +2697,7 @@ function stealerEndpointsByTier(
       );
 
   // Also pull any newly catalogued pure-stealer additive endpoints.
-  const listed = new Set([
+  const listed = new Set<string>([
     ...STEALER_ONLY_PRIMARY_IDS,
     ...STEALER_ONLY_SECONDARY_IDS,
     ...STEALER_BREACH_OVERLAP_IDS,
@@ -2771,12 +2711,12 @@ function stealerEndpointsByTier(
   );
 
   return {
-    primary: pick(STEALER_ONLY_PRIMARY_IDS),
-    secondary: [
+    primary: filterBreachHubEndpoints(pick(STEALER_ONLY_PRIMARY_IDS)),
+    secondary: filterBreachHubEndpoints([
       ...pick(STEALER_ONLY_SECONDARY_IDS),
       ...pick(STEALER_BREACH_OVERLAP_IDS),
       ...discovered,
-    ],
+    ]),
   };
 }
 
@@ -2856,7 +2796,7 @@ export async function fetchBreachHubByIds(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
-  const idSet = new Set(ids);
+  const idSet = new Set(filterBreachHubEndpointIds(ids));
   const endpoints = BREACHHUB_ENDPOINTS.filter((endpoint) =>
     idSet.has(endpoint.id),
   );
@@ -2993,8 +2933,6 @@ export async function fetchBreachHubSpecialty(
       "intelbase-ip",
     ],
     domain: [
-      "hudsonrock-domain",
-      "hudsonrock-domain-overview",
       "oathnet-stealer-subdomain",
       "oathnet-extract-subdomain",
       "seekria-domain",
@@ -4269,6 +4207,8 @@ export async function fetchBreachHubRaw(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<Record<string, unknown> | null> {
   if (!isBreachHubEnabled()) return null;
+  // Same vendor already hit via direct OsintCat / CSINT / etc.
+  if (shouldSkipBreachHubEndpoint(endpointId)) return null;
 
   const endpoint = BREACHHUB_ENDPOINTS.find((item) => item.id === endpointId);
 

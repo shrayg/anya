@@ -43,6 +43,12 @@ import {
   setProviderCached,
 } from "@/lib/provider-result-cache";
 
+/**
+ * Combined fan-out: direct CSINT / OsintCat / BreachVIP / GodsEye run in
+ * parallel with BreachHub. BreachHub internally skips endpoints that mirror
+ * those directs (see lib/provider-dedupe.ts) so the same vendor is not hit twice.
+ */
+
 const COMBINED_GODSEYE_TIMEOUT_MS = 18_000;
 const COMBINED_BREACHVIP_TIMEOUT_MS = 18_000;
 const COMBINED_CSINT_TIMEOUT_MS = 22_000;
@@ -246,8 +252,8 @@ export async function fetchCombinedStealerLogs(
 
   const parts: SanitizedBreachResponse[] = [];
 
-  // Coverage-first: BreachHub + OsintCat + GodsEye + CSINT in parallel.
-  // Budget exit returns whatever settled — does not starve via minResults caps.
+  // Coverage-first: BreachHub (unique vendors only) + OsintCat + GodsEye + CSINT.
+  // Overlapping BreachHub mirrors are skipped in lib/breachhub via provider-dedupe.
   const [stealerResult, godseyeResult, csintResult, breachHubResult] =
     await settleWithinBudget(
       [

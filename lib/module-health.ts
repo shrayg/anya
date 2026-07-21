@@ -1,7 +1,7 @@
-import { probeBreachHub } from "@/lib/breachhub";
-import { probeBreachVip } from "@/lib/breachvip";
+import { probeBreachHub, isBreachHubEnabled } from "@/lib/breachhub";
+import { probeBreachVip, isBreachVipEnabled } from "@/lib/breachvip";
 import { probeCordCat, isCordCatConfigured } from "@/lib/cordcat";
-import { probeCsint } from "@/lib/csint";
+import { probeCsint, isCsintEnabled } from "@/lib/csint";
 import {
   fetchGodsEyeIngressCheck,
   fetchGodsEyeRawExport,
@@ -13,6 +13,7 @@ import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { getOsintCatApiKey } from "@/lib/osintcat";
 import { probeInstagramAvailability } from "@/lib/instagram-search";
 import { getCourtListenerToken } from "@/lib/us-records/courtlistener";
+import { getSkippedBreachHubEndpointIds } from "@/lib/provider-dedupe";
 
 const OSINTCAT_BASE = "https://www.osintcat.net/api";
 
@@ -55,6 +56,18 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
       "osintcat",
     ],
   },
+  // Legacy slug — redirected to Breaches; keep health rule for old bookmarks.
+  breachbase: {
+    kind: "any",
+    providers: [
+      "builtin",
+      "godseye",
+      "breachvip",
+      "csint",
+      "breachhub",
+      "osintcat",
+    ],
+  },
   domain: {
     kind: "any",
     providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub"],
@@ -76,10 +89,9 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
     ],
   },
   "email-analyze": { kind: "any", providers: ["csint", "breachhub"] },
-  "fraud-footprint": { kind: "any", providers: ["csint"] },
-  breachbase: { kind: "any", providers: ["csint", "breachhub"] },
+  "fraud-footprint": { kind: "any", providers: ["csint", "breachhub"] },
   "oathnet-roblox": { kind: "any", providers: ["csint", "breachhub"] },
-  "contact-enrich": { kind: "any", providers: ["csint"] },
+  "contact-enrich": { kind: "any", providers: ["csint", "breachhub"] },
   phone: {
     kind: "any",
     providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub"],
@@ -93,7 +105,8 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
     kind: "any",
     providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub"],
   },
-  "shodan-host": { kind: "any", providers: ["csint"] },
+  /** Shodan host: CSINT primary; BreachHub fallback when CSINT is off. */
+  "shodan-host": { kind: "any", providers: ["csint", "breachhub"] },
   "site-pentest": { kind: "any", providers: ["builtin", "csint"] },
   "crypto-wallet": {
     kind: "any",
@@ -172,6 +185,45 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   badoo: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
 };
 
+/**
+ * Modules where BreachHub only mirrored CSINT for this surface — after dedupe,
+ * count CSINT when configured, else BreachHub. Avoids two greens for one vendor.
+ */
+const CSINT_MIRROR_MODULE_SLUGS = new Set([
+  "shodan-host",
+  "contact-enrich",
+  "fraud-footprint",
+]);
+
+/**
+ * Resolve which gateways count for a module after provider dedupe.
+ * Prefer configured directs; do not treat BreachHub as a second green for the
+ * same underlying vendor when that mirror is skipped at search time.
+ */
+export function resolveModuleHealthRule(
+  slug: string,
+  rule: ModuleHealthRule = MODULE_HEALTH_RULES[slug] ?? { kind: "off" },
+): ModuleHealthRule {
+  if (rule.kind === "off" || rule.kind === "all") return rule;
+
+  let providers = [...rule.providers];
+
+  if (CSINT_MIRROR_MODULE_SLUGS.has(slug)) {
+    if (isCsintEnabled()) {
+      providers = providers.filter((id) => id !== "breachhub");
+    } else if (isBreachHubEnabled()) {
+      providers = providers.filter((id) => id !== "csint");
+    }
+  }
+
+  // Breach.vip is always the primary for that vendor; BreachHub breachvip is skipped.
+  // Keep both in multi-source modules (BreachHub still adds unique indexes).
+
+  if (providers.length === 0) return { kind: "off" };
+
+  return { kind: "any", providers };
+}
+
 export type ProviderHealth = Record<ProviderId, boolean>;
 
 export type ProviderProbeResult = {
@@ -189,6 +241,7 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
   godseye: "Live search",
   "godseye-export": "IntelX",
   breachvip: "Comb index",
+  /** Unique multi-source remainder after direct CSINT/OsintCat/BreachVIP. */
   breachhub: "Multi-source",
   csint: "Enrichment",
   cordcat: "Discord",
@@ -445,7 +498,7 @@ export function buildModuleHealthMap(
   const modules: Record<string, boolean> = {};
 
   for (const [slug, rule] of Object.entries(MODULE_HEALTH_RULES)) {
-    modules[slug] = evaluateRule(rule, providers);
+    modules[slug] = evaluateRule(resolveModuleHealthRule(slug, rule), providers);
   }
 
   return modules;
@@ -457,10 +510,54 @@ export function buildModuleHealthLevels(
   const modules: Record<string, ModuleHealthLevel> = {};
 
   for (const [slug, rule] of Object.entries(MODULE_HEALTH_RULES)) {
-    modules[slug] = evaluateRuleLevel(rule, providers);
+    modules[slug] = evaluateRuleLevel(
+      resolveModuleHealthRule(slug, rule),
+      providers,
+    );
   }
 
   return modules;
+}
+
+/**
+ * Gateways that count as distinct sources in the health strip.
+ * Omits unconfigured directs so we do not show a red chip for unused keys,
+ * and still shows BreachHub when it contributes unique (non-skipped) vendors.
+ */
+export function uniqueHealthProviderIds(
+  detailed: ProviderProbeResult[],
+): ProviderId[] {
+  const byId = new Map(detailed.map((row) => [row.id, row]));
+  const out: ProviderId[] = [];
+
+  const pushIf = (id: ProviderId, configured: boolean) => {
+    const row = byId.get(id);
+
+    if (!row) return;
+    if (!configured && (row.unprobed || !row.ok)) return;
+    if (!configured) return;
+    out.push(id);
+  };
+
+  pushIf("osintcat", Boolean(getOsintCatApiKey()?.trim()));
+  pushIf("godseye", Boolean(getGodsEyeApiKey()));
+  pushIf("godseye-export", Boolean(getGodsEyeExportApiKey()));
+  pushIf("breachvip", isBreachVipEnabled());
+  pushIf("csint", isCsintEnabled());
+  pushIf("cordcat", isCordCatConfigured());
+  pushIf("courtlistener", Boolean(getCourtListenerToken()));
+  pushIf("instagram", true);
+
+  // BreachHub only when enabled and at least one endpoint is not skipped as a mirror.
+  if (isBreachHubEnabled()) {
+    const skipped = getSkippedBreachHubEndpointIds();
+    // Always have unique BH vendors beyond the small skip set.
+    if (skipped.size >= 0) {
+      out.push("breachhub");
+    }
+  }
+
+  return out;
 }
 
 export function isModuleOperationalFromMap(
