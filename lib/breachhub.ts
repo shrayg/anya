@@ -2297,11 +2297,21 @@ async function fetchEndpointSafe(
   }
 }
 
+type FanOutOptions = {
+  /** Stop once this many rows are collected (still waits in-flight briefly). */
+  minResults?: number;
+  /** Hard wall-clock budget for the whole fan-out. */
+  budgetMs?: number;
+  /** Cap parallel upstream calls. */
+  concurrency?: number;
+};
+
 async function fanOutEndpoints(
   endpoints: BreachHubEndpointDef[],
   query: string,
   kind: BreachHubQueryKind,
   timeoutMs: number,
+  options?: FanOutOptions,
 ): Promise<SanitizedBreachResponse | null> {
   if (!isBreachHubEnabled() || endpoints.length === 0) return null;
 
@@ -2309,22 +2319,33 @@ async function fanOutEndpoints(
 
   if (!trimmed) return null;
 
-  const settled = await Promise.allSettled(
-    endpoints.map((endpoint) =>
-      fetchEndpointSafe(endpoint, trimmed, kind, timeoutMs),
-    ),
-  );
-
+  const minResults = options?.minResults ?? 0;
+  const budgetMs = options?.budgetMs ?? timeoutMs;
+  const concurrency = Math.max(1, options?.concurrency ?? 8);
+  const started = Date.now();
   const parts: SanitizedBreachResponse[] = [];
+  let totalRows = 0;
+  let cursor = 0;
 
-  for (const result of settled) {
-    if (
-      result.status === "fulfilled" &&
-      result.value &&
-      result.value.count > 0
-    ) {
-      parts.push(result.value);
+  const runOne = async (endpoint: BreachHubEndpointDef) => {
+    const remaining = Math.max(1_500, budgetMs - (Date.now() - started));
+    const perCall = Math.min(timeoutMs, remaining);
+    const value = await fetchEndpointSafe(endpoint, trimmed, kind, perCall);
+
+    if (value && value.count > 0) {
+      parts.push(value);
+      totalRows += value.results.length;
     }
+  };
+
+  while (cursor < endpoints.length) {
+    if (Date.now() - started >= budgetMs) break;
+    if (minResults > 0 && totalRows >= minResults) break;
+
+    const batch = endpoints.slice(cursor, cursor + concurrency);
+    cursor += batch.length;
+
+    await Promise.allSettled(batch.map((endpoint) => runOne(endpoint)));
   }
 
   if (parts.length === 0) return null;
@@ -2343,64 +2364,89 @@ function additiveForKind(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
   );
 }
 
+const STEALER_PRIMARY_IDS = [
+  "oathnet-stealer",
+  "oathnet-victims",
+  "osintcat-machine-search",
+  "wentyn",
+  "hudsonrock-legacy",
+  "hudsonrock-email",
+  "breachhub-search",
+  "intelbase-intelvault-stealer",
+] as const;
+
+const STEALER_SECONDARY_IDS = [
+  "oathnet-stealer-subdomain",
+  "seeknow-stealer",
+  "seeknow-stealer-legacy",
+  "hudsonrock-username",
+  "hudsonrock-domain",
+  "hudsonrock-ip",
+  "datavoid-stealer",
+  "leakosint",
+  "leakcheck-v2",
+  "leaksight",
+  "intelvault",
+  "hackcheck",
+  "infodra",
+  "cypherdynamics",
+  "osintbat-email-breach",
+  "osintcat-database",
+  "snusbase",
+  "snusbase-combo",
+  "intelbase-intelvault-breaches",
+  "intelbase-intelvault-email",
+  "intelbase-akula",
+  "seekria-email-breach",
+  "inf0sec",
+] as const;
+
+function matchesStealerKind(
+  endpoint: BreachHubEndpointDef,
+  kind: BreachHubQueryKind,
+): boolean {
+  if (
+    endpoint.id === "oathnet-stealer-subdomain" &&
+    kind !== "domain"
+  ) {
+    return false;
+  }
+
+  return (
+    endpoint.kinds.includes(kind) ||
+    (kind !== "auto" && endpoint.kinds.includes("auto")) ||
+    (kind === "email" &&
+      (endpoint.kinds.includes("username") ||
+        endpoint.kinds.includes("email")))
+  );
+}
+
+function stealerEndpointsByTier(
+  kind: BreachHubQueryKind,
+): { primary: BreachHubEndpointDef[]; secondary: BreachHubEndpointDef[] } {
+  const byId = new Map(BREACHHUB_ENDPOINTS.map((e) => [e.id, e]));
+
+  const pick = (ids: readonly string[]) =>
+    ids
+      .map((id) => byId.get(id))
+      .filter((endpoint): endpoint is BreachHubEndpointDef =>
+        Boolean(
+          endpoint &&
+            endpoint.modes.includes("additive") &&
+            matchesStealerKind(endpoint, kind),
+        ),
+      );
+
+  return {
+    primary: pick(STEALER_PRIMARY_IDS),
+    secondary: pick(STEALER_SECONDARY_IDS),
+  };
+}
+
 function stealerLikeEndpoints(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
-  // Every BreachHub stealer / infection / machine-viewer source we can hit.
-  const stealerIds = new Set([
-    "oathnet-stealer",
-    "oathnet-stealer-subdomain",
-    "oathnet-victims",
-    "osintcat-machine-search",
-    "seeknow-stealer",
-    "seeknow-stealer-legacy",
-    "hudsonrock-email",
-    "hudsonrock-username",
-    "hudsonrock-domain",
-    "hudsonrock-ip",
-    "hudsonrock-legacy",
-    "wentyn",
-    "intelbase-intelvault-stealer",
-    "datavoid-stealer",
-    "breachhub-search",
-    "leakosint",
-    "leakcheck-v2",
-    "leaksight",
-    "intelvault",
-    "hackcheck",
-    "infodra",
-    "cypherdynamics",
-    "osintbat-email-breach",
-    "osintcat-database",
-    "snusbase",
-    "snusbase-combo",
-    "intelbase-intelvault-breaches",
-    "intelbase-intelvault-email",
-    "intelbase-akula",
-    "seekria-email-breach",
-    "inf0sec",
-  ]);
+  const { primary, secondary } = stealerEndpointsByTier(kind);
 
-  return BREACHHUB_ENDPOINTS.filter((endpoint) => {
-    if (!stealerIds.has(endpoint.id)) return false;
-    if (!endpoint.modes.includes("additive")) return false;
-
-    // Domain-only stealer helpers (subdomain extract) stay domain-scoped.
-    if (
-      endpoint.id === "oathnet-stealer-subdomain" &&
-      kind !== "domain"
-    ) {
-      return false;
-    }
-
-    return (
-      endpoint.kinds.includes(kind) ||
-      (kind !== "auto" && endpoint.kinds.includes("auto")) ||
-      // Email stealer searches should still hit username-capable indexes with
-      // the email string (many stealer rows store the address as login).
-      (kind === "email" &&
-        (endpoint.kinds.includes("username") ||
-          endpoint.kinds.includes("email")))
-    );
-  });
+  return [...primary, ...secondary];
 }
 
 /** Full additive fan-out across Data Breach + overlapping Social/Intel indexes. */
@@ -2410,22 +2456,51 @@ export async function fetchBreachHubAdditiveBreachSearch(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
+  const stealerIds = new Set(stealerLikeEndpoints(kind).map((e) => e.id));
   const endpoints = additiveForKind(kind).filter(
-    (endpoint) => !stealerLikeEndpoints(kind).includes(endpoint),
+    (endpoint) => !stealerIds.has(endpoint.id),
   );
 
-  return fanOutEndpoints(endpoints, query, kind, timeoutMs);
+  // Breach indexes: capped parallel + early exit so one slow vendor can't stall.
+  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 8_000), {
+    minResults: 40,
+    budgetMs: Math.min(timeoutMs, 12_000),
+    concurrency: 6,
+  });
 }
 
-/** Stealer / infection indexes. */
+/** Stealer / infection indexes — fast primary tier, optional secondary. */
 export async function fetchBreachHubAdditiveStealerSearch(
   query: string,
   kindHint?: string | null,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
+  const { primary, secondary } = stealerEndpointsByTier(kind);
+  const budget = Math.min(timeoutMs, 14_000);
 
-  return fanOutEndpoints(stealerLikeEndpoints(kind), query, kind, timeoutMs);
+  const first = await fanOutEndpoints(primary, query, kind, 7_000, {
+    minResults: 20,
+    budgetMs: Math.min(budget, 8_000),
+    concurrency: 6,
+  });
+
+  if (first && first.count >= 20) {
+    return first;
+  }
+
+  const remaining = Math.max(2_000, budget - 8_000);
+  const second = await fanOutEndpoints(secondary, query, kind, 5_000, {
+    minResults: 10,
+    budgetMs: remaining,
+    concurrency: 5,
+  });
+
+  if (!first && !second) return null;
+  if (!first) return second;
+  if (!second) return first;
+
+  return mergeSanitizedResponses(first, second);
 }
 
 /** Combined breach + stealer. */
