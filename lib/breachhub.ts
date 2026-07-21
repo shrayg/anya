@@ -34,8 +34,10 @@ import { OSINT_PROVIDER_TIMEOUT_MS } from "@/lib/osint-search-guard";
 
 const BREACHHUB_BASE = "https://breachhub.org";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
-const MAX_ROWS = 200;
-const MAX_ROWS_PER_SOURCE = 50;
+/** Soft memory ceiling across a single upstream payload (not a UX page size). */
+const MAX_ROWS = 25_000;
+/** Per nested list / source bucket — was 50 and silently truncated large indexes. */
+const MAX_ROWS_PER_SOURCE = 10_000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const IP_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
@@ -554,7 +556,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query, kind) => ({
       query,
       type: kind === "auto" ? "email" : kind,
-      limit: "50",
+      limit: "10000",
     }),
   },
   {
@@ -564,7 +566,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "data_breach",
     modes: ["additive"],
     kinds: ["email", "username", "domain"],
-    buildParams: (query) => ({ query, type: "stealer", limit: "100" }),
+    buildParams: (query) => ({ query, type: "stealer", limit: "10000" }),
   },
   {
     id: "seeknow-stealer-legacy",
@@ -572,7 +574,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "data_breach",
     modes: ["additive"],
     kinds: ["email", "username", "domain"],
-    buildParams: (query) => ({ query, limit: "100" }),
+    buildParams: (query) => ({ query, limit: "10000" }),
   },
   {
     id: "seekria-email-breach",
@@ -2488,9 +2490,10 @@ export async function fetchBreachHubAdditiveBreachSearch(
     (endpoint) => !stealerIds.has(endpoint.id),
   );
 
-  // Breach indexes: capped parallel + softer early exit for coverage.
+  // Coverage-first: budget caps wall-clock, not row count. Do not early-exit
+  // after a few dozen hits — that silently truncated large stealer/breach sets.
   return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 10_000), {
-    minResults: 80,
+    minResults: 0,
     budgetMs: Math.min(timeoutMs, 16_000),
     concurrency: 6,
   });
@@ -2506,17 +2509,17 @@ export async function fetchBreachHubAdditiveStealerSearch(
   const { primary, secondary } = stealerEndpointsByTier(kind);
   const budget = Math.min(timeoutMs, 22_000);
 
-  // Primary: high early-exit so machine/victim sources still get a turn.
+  // Primary + secondary always run within budget; minResults=0 avoids stopping
+  // once a single source returns ~50–80 rows.
   const first = await fanOutEndpoints(primary, query, kind, 10_000, {
-    minResults: 80,
+    minResults: 0,
     budgetMs: Math.min(budget, 12_000),
     concurrency: 6,
   });
 
-  // Always run secondary for email/username coverage — never skip after ~20 hits.
   const remaining = Math.max(5_000, budget - 12_000);
   const second = await fanOutEndpoints(secondary, query, kind, 7_000, {
-    minResults: 40,
+    minResults: 0,
     budgetMs: remaining,
     concurrency: 5,
   });
@@ -2562,9 +2565,9 @@ export async function fetchBreachHubByIds(
     idSet.has(endpoint.id),
   );
 
-  // Specialty / by-ids: shorter budgets + early exit (same pattern as breach fan-out).
+  // Specialty / by-ids: shorter budgets; allow large specialty payloads.
   return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 8_000), {
-    minResults: 15,
+    minResults: 0,
     budgetMs: Math.min(timeoutMs, 10_000),
     concurrency: 5,
   });
@@ -3028,7 +3031,16 @@ function normalizeFileTree(input: unknown, depth = 0): StealerFileNode[] {
     return input
       .map((item): StealerFileNode | null => {
         if (typeof item === "string") {
-          return { name: item, type: item.includes(".") ? "file" : "folder" };
+          const name = item.trim();
+
+          if (!name) return null;
+
+          return {
+            name,
+            type: name.includes(".") ? "file" : "folder",
+            // Filenames are valid OathNet file_id values when the tree is flat.
+            ...(name.includes(".") ? { id: name, path: name } : {}),
+          };
         }
         if (!item || typeof item !== "object" || Array.isArray(item)) {
           return null;
@@ -3038,6 +3050,8 @@ function normalizeFileTree(input: unknown, depth = 0): StealerFileNode[] {
           asString(node.name) ||
           asString(node.filename) ||
           asString(node.path) ||
+          asString(node.file_id) ||
+          asString(node.fileId) ||
           asString(node.id);
         if (!name) return null;
         const children = normalizeFileTree(
@@ -3065,14 +3079,26 @@ function normalizeFileTree(input: unknown, depth = 0): StealerFileNode[] {
             : typeof node.items === "number"
               ? node.items
               : children.length || undefined;
+        const fileId =
+          asString(node.file_id) ||
+          asString(node.fileId) ||
+          asString(node.id) ||
+          asString(node.uuid) ||
+          asString(node._id) ||
+          asString(node.path) ||
+          asString(node.full_path) ||
+          (!isFolder ? name : "");
 
         return {
           name,
           type: isFolder ? "folder" : "file",
-          ...(asString(node.id) ? { id: asString(node.id) } : {}),
+          ...(!isFolder && fileId ? { id: fileId } : {}),
+          ...(isFolder && asString(node.id) ? { id: asString(node.id) } : {}),
           ...(asString(node.path) || asString(node.full_path)
             ? { path: asString(node.path) || asString(node.full_path) }
-            : {}),
+            : !isFolder
+              ? { path: name }
+              : {}),
           ...(count !== undefined ? { count } : {}),
           ...(children.length ? { children } : {}),
         };
@@ -3457,49 +3483,183 @@ export async function fetchBreachHubVictimFile(
   fileId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<{ content: string; filename?: string } | null> {
-  if (!isBreachHubEnabled() || !logId.trim() || !fileId.trim()) return null;
+  const apiKey = getBreachHubApiKey();
+
+  if (!apiKey || !logId.trim() || !fileId.trim()) return null;
   if (!looksLikeVictimLogId(logId)) return null;
 
+  const url = new URL(
+    `${BREACHHUB_BASE}/api/oathnet/victims/${encodeURIComponent(logId.trim())}/files/${encodeURIComponent(fileId.trim())}`,
+  );
+
+  url.searchParams.set("key", apiKey);
+
   try {
-    const data = await breachHubGet(
-      "/api/oathnet/victims/:log_id/files/:file_id",
-      {},
+    const res = await fetchWithTimeout(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "text/plain, application/json, */*",
+        "User-Agent": "AnyaInt-BreachHub/1.0",
+      },
+      cache: "no-store",
       timeoutMs,
-      { log_id: logId.trim(), file_id: fileId.trim() },
-    );
-    const content =
-      asString(data.content) ||
-      asString(data.data) ||
-      asString(data.text) ||
-      asString(data.file) ||
-      (typeof data.body === "string" ? data.body : "");
+    });
+
+    if (!res.ok) return null;
+
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+    const text = await readResponseText(res, timeoutMs);
+
+    if (!text) return null;
+
+    // Upstream docs: "Downloads the file content as a .txt file." — often raw text.
+    if (
+      contentType.includes("text/plain") ||
+      contentType.includes("text/csv") ||
+      contentType.includes("octet-stream") ||
+      (!contentType.includes("json") && !text.trimStart().startsWith("{") && !text.trimStart().startsWith("["))
+    ) {
+      return {
+        content: text,
+        filename: fileId.trim(),
+      };
+    }
+
+    let data: Record<string, unknown> = {};
+
+    try {
+      data = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      // Non-JSON body that looked ambiguous — treat as file text.
+      return { content: text, filename: fileId.trim() };
+    }
+
+    if (data.success === false) return null;
+
+    const pickContent = (record: Record<string, unknown>): string =>
+      asString(record.content) ||
+      asString(record.data) ||
+      asString(record.text) ||
+      asString(record.file) ||
+      asString(record.body) ||
+      asString(record.raw) ||
+      (typeof record.data === "string" ? record.data : "");
+
+    let content = pickContent(data);
+
+    if (!content && data.data && typeof data.data === "object" && !Array.isArray(data.data)) {
+      content = pickContent(data.data as Record<string, unknown>);
+    }
+
+    if (!content && data.file && typeof data.file === "object" && !Array.isArray(data.file)) {
+      const nested = data.file as Record<string, unknown>;
+      content = pickContent(nested);
+
+      if (content) {
+        return {
+          content,
+          filename:
+            asString(nested.name) ||
+            asString(nested.filename) ||
+            fileId.trim(),
+        };
+      }
+    }
+
+    // Some gateways base64-encode the body.
+    const b64 =
+      asString(data.content_base64) ||
+      asString(data.base64) ||
+      asString(data.encoded);
+
+    if (!content && b64) {
+      try {
+        content = Buffer.from(b64, "base64").toString("utf8");
+      } catch {
+        content = "";
+      }
+    }
 
     if (!content) {
-      // Some APIs nest file body
-      const nested = data.file;
+      // Last resort: OsintCat machine-viewer file download (same BreachHub key).
+      const alt = await fetchOsintCatMachineFile(fileId.trim(), timeoutMs);
 
-      if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-        const n = nested as Record<string, unknown>;
-        const nestedContent =
-          asString(n.content) || asString(n.data) || asString(n.text);
-
-        if (nestedContent) {
-          return {
-            content: nestedContent,
-            filename: asString(n.name) || asString(n.filename) || undefined,
-          };
-        }
-      }
-
-      return null;
+      return alt;
     }
 
     return {
       content,
-      filename: asString(data.name) || asString(data.filename) || undefined,
+      filename:
+        asString(data.name) ||
+        asString(data.filename) ||
+        fileId.trim(),
     };
   } catch {
-    return null;
+    try {
+      return await fetchOsintCatMachineFile(fileId.trim(), timeoutMs);
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function fetchOsintCatMachineFile(
+  fileId: string,
+  timeoutMs: number,
+): Promise<{ content: string; filename?: string } | null> {
+  const apiKey = getBreachHubApiKey();
+
+  if (!apiKey || !fileId.trim()) return null;
+
+  const url = new URL(
+    `${BREACHHUB_BASE}/api/osintcat/machine-viewer/files/${encodeURIComponent(fileId.trim())}/download`,
+  );
+
+  url.searchParams.set("key", apiKey);
+
+  const res = await fetchWithTimeout(url.toString(), {
+    method: "GET",
+    headers: {
+      Accept: "text/plain, application/json, */*",
+      "User-Agent": "AnyaInt-BreachHub/1.0",
+    },
+    cache: "no-store",
+    timeoutMs,
+  });
+
+  if (!res.ok) return null;
+
+  const contentType = (res.headers.get("content-type") || "").toLowerCase();
+  const text = await readResponseText(res, timeoutMs);
+
+  if (!text) return null;
+
+  if (
+    contentType.includes("text/plain") ||
+    contentType.includes("octet-stream") ||
+    (!contentType.includes("json") &&
+      !text.trimStart().startsWith("{") &&
+      !text.trimStart().startsWith("["))
+  ) {
+    return { content: text, filename: fileId.trim() };
+  }
+
+  try {
+    const data = JSON.parse(text) as Record<string, unknown>;
+    const content =
+      asString(data.content) ||
+      asString(data.data) ||
+      asString(data.text) ||
+      asString(data.body);
+
+    if (!content) return null;
+
+    return {
+      content,
+      filename: asString(data.name) || asString(data.filename) || fileId.trim(),
+    };
+  } catch {
+    return { content: text, filename: fileId.trim() };
   }
 }
 

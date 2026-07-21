@@ -12,7 +12,7 @@ import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 const BREACHVIP_SEARCH_URL = "https://breach.vip/api/search";
 const DEFAULT_TIMEOUT_MS = 25_000;
-const MAX_RESULT_ROWS = 200;
+const MAX_RESULT_ROWS = 10_000;
 
 const MC_UUID_RE =
   /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
