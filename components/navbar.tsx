@@ -118,16 +118,16 @@ function AccountMenu({
       <button
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300 transition hover:border-white/22 hover:bg-white/[0.08] hover:text-white"
+        className="flex max-w-[11.5rem] items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300 transition hover:border-white/22 hover:bg-white/[0.08] hover:text-white lg:max-w-[14rem]"
         type="button"
         onClick={toggle}
       >
         {planLabel ? (
-          <span className="rounded-md bg-[var(--anya-blush-soft)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-anya-accent">
+          <span className="shrink-0 rounded-md bg-[var(--anya-blush-soft)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-anya-accent">
             {planLabel}
           </span>
         ) : null}
-        <span className="font-medium">{username}</span>
+        <span className="min-w-0 truncate font-medium">{username}</span>
         <svg
           aria-hidden
           className={clsx(
@@ -246,24 +246,7 @@ export const Navbar = () => {
   const activePillIndexRef = useRef(-1);
   const highlightPlacedRef = useRef(false);
 
-  const navItems = useMemo(() => {
-    const fromConfig = siteConfig.navItems;
-    const seen = new Set(fromConfig.map((item) => item.href));
-    const ensured: NavItem[] = [...fromConfig];
-
-    for (const item of [
-      { label: "Pricing", href: "/pricing" },
-      { label: "Status", href: "/status" },
-      { label: "Home", href: "/" },
-    ] as NavItem[]) {
-      if (!seen.has(item.href)) {
-        ensured.unshift(item);
-        seen.add(item.href);
-      }
-    }
-
-    return ensured;
-  }, []);
+  const navItems = useMemo(() => siteConfig.navItems, []);
 
   const activePillIndex = useMemo(
     () =>
@@ -383,7 +366,9 @@ export const Navbar = () => {
       <HeroUINavbar
         classNames={{
           base: "border-b border-white/[0.06] bg-black/55 backdrop-blur-xl backdrop-saturate-150",
-          wrapper: "max-w-7xl px-4 sm:px-6",
+          // Fixed 3-zone grid — avoids absolute-center overlapping brand/account on medium widths.
+          wrapper:
+            "anya-marketing-nav-wrapper max-w-7xl px-4 sm:px-6 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3",
         }}
         isMenuOpen={menuOpen}
         maxWidth="xl"
@@ -391,10 +376,10 @@ export const Navbar = () => {
         position="sticky"
       >
         {/* Left — brand */}
-        <NavbarContent className="basis-auto" justify="start">
+        <NavbarContent className="basis-auto md:min-w-0 md:justify-self-start" justify="start">
           <NavbarBrand as="li" className="max-w-fit gap-0">
             <NextLink
-              className="group flex items-center gap-2.5"
+              className="group flex min-w-0 items-center gap-2.5"
               href="/"
             >
               <Image
@@ -405,12 +390,12 @@ export const Navbar = () => {
                 unoptimized
                 className={clsx(
                   siteLogoClassName,
-                  "size-8 transition-transform duration-200 ease-out group-hover:scale-105",
+                  "size-8 shrink-0 transition-transform duration-200 ease-out group-hover:scale-105",
                 )}
               />
               <span
                 className={clsx(
-                  "text-[15px] font-bold leading-none tracking-wide text-white transition-transform duration-200 ease-out group-hover:-rotate-3",
+                  "truncate text-[15px] font-bold leading-none tracking-wide text-white transition-transform duration-200 ease-out group-hover:-rotate-3",
                   "[font-family:var(--font-bruno-ace-sc)]",
                 )}
               >
@@ -420,15 +405,15 @@ export const Navbar = () => {
           </NavbarBrand>
         </NavbarContent>
 
-        {/* Center — frosted pill nav */}
+        {/* Center — frosted pill nav (own grid column, never overlaps sides) */}
         <NavbarContent
-          className="absolute left-1/2 hidden -translate-x-1/2 md:flex"
+          className="hidden !flex-none md:!flex md:justify-self-center"
           justify="center"
         >
           <nav
             ref={pillNavRef}
             aria-label="Primary"
-            className="relative flex items-center gap-0.5 rounded-full border border-white/[0.1] bg-white/[0.045] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md"
+            className="relative flex shrink-0 items-center gap-0.5 rounded-full border border-white/[0.1] bg-white/[0.045] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md"
           >
             {/* Flat fill + hairline only — no blur/glow on the sliding piece */}
             <span
@@ -460,8 +445,11 @@ export const Navbar = () => {
         </NavbarContent>
 
         {/* Right — CTA + account */}
-        <NavbarContent className="hidden basis-auto md:flex" justify="end">
-          <NavbarItem className="flex shrink-0 items-center gap-2">
+        <NavbarContent
+          className="hidden basis-auto md:flex md:min-w-0 md:justify-self-end"
+          justify="end"
+        >
+          <NavbarItem className="flex min-w-0 shrink items-center gap-2">
             {username ? (
               <>
                 <AccountMenu
@@ -472,7 +460,7 @@ export const Navbar = () => {
                 {showWorkspace ? (
                   <Button
                     as={NextLink}
-                    className="font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
+                    className="shrink-0 font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
                     href={workspacePath}
                     radius="full"
                     variant="solid"

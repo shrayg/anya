@@ -62,6 +62,33 @@
   box-shadow: 0 0 10px var(--anya-blush-glow);
 }
 
+/* Marketing top bar: 3-zone grid so center pill never overlaps brand/account */
+@media (min-width: 768px) {
+  header[class*="navbar"] > [data-slot="base"] > [data-slot="wrapper"],
+  header[class*="navbar"] [class*="wrapper"],
+  .anya-marketing-nav-wrapper {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .anya-marketing-nav-wrapper > *:nth-child(1) {
+    justify-self: start;
+    min-width: 0;
+  }
+
+  .anya-marketing-nav-wrapper > *:nth-child(2) {
+    justify-self: center;
+    flex: 0 0 auto !important;
+  }
+
+  .anya-marketing-nav-wrapper > *:nth-child(3) {
+    justify-self: end;
+    min-width: 0;
+  }
+}
+
 /* Hero brand mark — keep descenders (y) visible under background-clip text */
 [data-splash-target] {
   overflow: visible !important;
