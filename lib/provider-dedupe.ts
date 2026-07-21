@@ -12,7 +12,7 @@
  * | Vendor                      | Primary     | Fallback                         |
  * |-----------------------------|-------------|----------------------------------|
  * | OathNet                     | BreachHub   | CSINT /oathnet/*                 |
- * | Snusbase                    | BreachHub   | CSINT /snusbase/* + /search      |
+ * | Snusbase                    | BreachHub   | direct SNUSBASE_API_KEY → CSINT  |
  * | LeakCheck                   | BreachHub   | CSINT /search (+ /leakcheck/v2)  |
  * | HackCheck                   | BreachHub   | CSINT /search (+ /hackcheck)     |
  * | Breach.vip                  | BreachHub   | direct breach.vip → CSINT /search|
@@ -23,16 +23,52 @@
  * | OsintCat database / stalker | BreachHub   | direct OSINTCAT_API_KEY          |
  * | OsintCat twitter / machine  | BreachHub   | (no CSINT equivalent)            |
  * | CordCat                     | BreachHub   | direct CORDCAT_API_KEY           |
+ * | Seekria                     | BreachHub   | direct SEEKRIA_API_KEY           |
+ * | Seekria Snusbase/LeakCheck  | specialty   | not additive (avoid double-hit)  |
  * | IntelX System ID (UUID)     | BreachHub   | CSINT → GodsEye                  |
  * | IntelX Storage ID (hex)     | CSINT       | BreachHub → GodsEye              |
+ * | IntelVault                  | Direct key  | BreachHub /api/intelvault*       |
+ * | SeekNow                     | Direct key  | BreachHub /api/seeknow/*         |
  *
  * Within BreachHub only: always skip IntelBase * mirrors of direct BH vendors.
+ * When INTELVAULT_API_KEY is set, also skip BH IntelVault catalog ids.
+ * When SEEKNOW_API_KEY is set, skip BH SeekNow catalog ids (direct owns vendor).
  */
 
 import { isBreachVipEnabled } from "@/lib/breachvip";
 import { isCordCatConfigured } from "@/lib/cordcat";
 import { isCsintEnabled } from "@/lib/csint";
 import { getOsintCatApiKey } from "@/lib/osintcat";
+import { hasSnusbaseDirect } from "@/lib/snusbase";
+
+/** Env-only — avoid importing lib/seeknow (pulls breachhub → circular). */
+function hasDirectSeekNowKeyEnv(): boolean {
+  if (process.env.SEEKNOW_ENABLED === "false") return false;
+
+  return Boolean(process.env.SEEKNOW_API_KEY?.trim());
+}
+
+const SKIP_SEEKNOW_WHEN_DIRECT = [
+  "seeknow-search",
+  "seeknow-stealer",
+  "seeknow-stealer-legacy",
+  "seeknow-discord-user",
+  "seeknow-discord-roblox",
+  "seeknow-github",
+  "seeknow-twitter",
+  "seeknow-tiktok",
+  "seeknow-reddit",
+  "seeknow-social",
+  "seeknow-history",
+  "seeknow-ip",
+  "seeknow-email-check",
+  "seeknow-phone",
+  "seeknow-domain-intel",
+  "seeknow-domain-whois",
+  "seeknow-xbox",
+  "seeknow-roblox",
+  "seeknow-minecraft",
+] as const;
 
 /** Always skip — mirrors a direct BreachHub catalog vendor in the same fan-out. */
 const SKIP_INTELBASE_MIRRORS = [
@@ -69,7 +105,7 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     fallback: "csint",
     notes: "BH first; CSINT only after BH fail/empty",
   },
-  { vendor: "Snusbase", primary: "breachhub", fallback: "csint" },
+  { vendor: "Snusbase", primary: "breachhub", fallback: "csint", notes: "Direct SNUSBASE_API_KEY before CSINT when set" },
   { vendor: "LeakCheck", primary: "breachhub", fallback: "csint" },
   { vendor: "HackCheck", primary: "breachhub", fallback: "csint" },
   {
@@ -90,12 +126,20 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
   {
     vendor: "OsintCat twitter/machine-viewer",
     primary: "breachhub",
-    fallback: "none",
+    fallback: "direct-osintcat",
+    notes: "Direct OSINTCAT_API_KEY via /api/osintcat/* when BH miss/unavailable",
   },
   {
     vendor: "CordCat",
     primary: "breachhub",
     fallback: "direct-cordcat",
+  },
+  {
+    vendor: "Seekria",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Direct SEEKRIA_API_KEY when set; Seekria snusbase/leakcheck specialty-only (not additive beside BH snusbase/leakcheck)",
   },
   {
     vendor: "IntelX export",
@@ -104,7 +148,18 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     notes:
       "UUID System ID → BH system_id first; Storage ID → CSINT first then BH; GodsEye last",
   },
+  {
+    vendor: "SeekNow",
+    primary: "breachhub",
+    fallback: "none",
+    notes: "Direct SEEKNOW_API_KEY owns vendor; else BreachHub /api/seeknow/*",
+  },
 ];
+
+/** Direct Snusbase — skip CSINT /snusbase/* mirrors when the native key is set. */
+export function shouldSkipCsintSnusbase(): boolean {
+  return hasSnusbaseDirect();
+}
 
 /** @deprecated Prefer VENDOR_GATEWAY_PRIMARIES — kept for older status tooling. */
 export type ProviderOverlapRow = {
@@ -210,11 +265,17 @@ function defaultIsSuccess(value: unknown): boolean {
 
 /**
  * BreachHub endpoint ids to skip for the current env.
- * Only IntelBase intra-BH mirrors — never drop BH vendors that CSINT also has.
+ * IntelBase intra-BH mirrors always; SeekNow catalog when SEEKNOW_API_KEY is set.
  * OathNet `/api/oathnet/*` ids are never skipped (BH is primary; CSINT is fallback).
  */
 export function getSkippedBreachHubEndpointIds(): Set<string> {
-  return new Set<string>(SKIP_INTELBASE_MIRRORS);
+  const skipped = new Set<string>(SKIP_INTELBASE_MIRRORS);
+
+  if (hasDirectSeekNowKeyEnv()) {
+    for (const id of SKIP_SEEKNOW_WHEN_DIRECT) skipped.add(id);
+  }
+
+  return skipped;
 }
 
 export function shouldSkipBreachHubEndpoint(endpointId: string): boolean {

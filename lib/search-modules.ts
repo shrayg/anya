@@ -199,6 +199,22 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breach",
         "IP, email, or domain",
         "Stealer indexes and COMB breach data — search by IP, email, or domain.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "all-stealers",
+              label: "All stealer indexes",
+              apiType: "breach",
+            },
+            {
+              id: "seeknow-stealer",
+              label: "SeekNow stealer",
+              apiType: "seeknow/stealer",
+            },
+          ],
+        },
       ),
     ],
   },
@@ -220,6 +236,75 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breach",
         "MD5, SHA-1, SHA-256, or other hash",
         "Pivot breach indexes by password or file hash.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "all-indexes",
+              label: "All indexes",
+              apiType: "breach",
+            },
+            {
+              id: "hash-database",
+              label: "Hash database",
+              apiType: "snusbase/hash-lookup",
+            },
+          ],
+        },
+      ),
+      mod(
+        "Breach & Leaks",
+        "Combo Lookup",
+        "combo-lookup",
+        "snusbase/combo-lookup",
+        "Username, email, or password",
+        "Search combolist indexes for credential pairs.",
+      ),
+      mod(
+        "Breach & Leaks",
+        "Credential Index",
+        "snusbase",
+        "snusbase",
+        "Email, username, IP, hash, or password",
+        "Search the primary credential breach index.",
+      ),
+      mod(
+        "Breach & Leaks",
+        "SeekNow Search",
+        "seeknow-search",
+        "seeknow/search",
+        "Email, phone, username, IP, or hash",
+        "SeekNow breach and dark-web search — email, phone, username, IP, and hash indexes.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "seeknow-search",
+              label: "Breach search",
+              apiType: "seeknow/search",
+            },
+            {
+              id: "seeknow-stealer",
+              label: "Stealer logs",
+              apiType: "seeknow/stealer",
+            },
+            {
+              id: "seeknow-email-check",
+              label: "Email check",
+              apiType: "seeknow/network/email-check",
+            },
+          ],
+        },
+      ),
+      mod(
+        "Breach & Leaks",
+        "SeekNow Stealer",
+        "seeknow-stealer",
+        "seeknow/stealer",
+        "Email, username, or domain",
+        "SeekNow stealer-log search against infected-device credential dumps.",
       ),
       mod(
         "Breach & Leaks",
@@ -284,6 +369,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Phone Index",
               apiType: "index-sweep",
             },
+            {
+              id: "seeknow-phone",
+              label: "SeekNow phone",
+              apiType: "seeknow/network/phone",
+            },
           ],
         },
       ),
@@ -312,6 +402,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               id: "handle-sweep",
               label: "Handle Sweep",
               apiType: "handle-sweep",
+            },
+            {
+              id: "seeknow-social",
+              label: "SeekNow social",
+              apiType: "seeknow/username/social",
+            },
+            {
+              id: "seeknow-history",
+              label: "SeekNow history",
+              apiType: "seeknow/username/history",
             },
           ],
         },
@@ -461,6 +561,18 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "ip",
         "IPv4 address",
         "Geolocate, enrich, and cross-reference IP intelligence.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "ip-indexes", label: "IP indexes", apiType: "ip" },
+            {
+              id: "seeknow-ip",
+              label: "SeekNow IP",
+              apiType: "seeknow/network/ip",
+            },
+          ],
+        },
       ),
       mod(
         "Network",
@@ -469,6 +581,23 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "domains",
         "Domain name (e.g. example.com)",
         "Stealer logs, breach data, and domain intelligence pivots.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "domain-indexes", label: "Domain indexes", apiType: "domains" },
+            {
+              id: "seeknow-domain-intel",
+              label: "SeekNow intel",
+              apiType: "seeknow/domain/intel",
+            },
+            {
+              id: "seeknow-domain-whois",
+              label: "SeekNow WHOIS",
+              apiType: "seeknow/domain/whois",
+            },
+          ],
+        },
       ),
       mod(
         "Network",
@@ -477,6 +606,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "shodan-host",
         "IPv4 or IPv6 address",
         "Open ports, services, banners, and host metadata for an IP.",
+      ),
+      mod(
+        "Network",
+        "IP WHOIS",
+        "ip-whois",
+        "snusbase/ip-whois",
+        "IPv4 or IPv6 address",
+        "WHOIS and network registration details for an IP address.",
       ),
       mod(
         "Network",
@@ -671,6 +808,103 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "discord",
         "Discord ID",
         "Live profile, server memberships, linked accounts, and indexed leak records.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "discord-live",
+              label: "Discord OSINT",
+              apiType: "discord",
+            },
+            {
+              id: "seeknow-discord-user",
+              label: "SeekNow user",
+              apiType: "seeknow/discord/user",
+            },
+            {
+              id: "seeknow-discord-roblox",
+              label: "SeekNow → Roblox",
+              apiType: "seeknow/discord/to-roblox",
+            },
+          ],
+        },
+      ),
+      mod(
+        "Platforms",
+        "Seekria Discord",
+        "seekria-discord",
+        "seekria/discord",
+        "Discord snowflake ID",
+        "Seekria Discord lookup — Medal, Roblox, FiveM logs, profile, and stealer pivots.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "discord", label: "Discord OSINT", apiType: "seekria/discord" },
+            { id: "discord-profile", label: "Profile", apiType: "seekria/discord-profile" },
+            { id: "discord-to-rat", label: "Stealer / RAT", apiType: "seekria/discord-to-rat" },
+          ],
+        },
+      ),
+      mod(
+        "Platforms",
+        "Seekria Roblox",
+        "seekria-roblox",
+        "seekria/roblox",
+        "Roblox username",
+        "Seekria Roblox profile lookup — username, avatar, and account metadata.",
+      ),
+      mod(
+        "Platforms",
+        "Seekria Minecraft",
+        "seekria-minecraft",
+        "seekria/minecraft",
+        "Minecraft username or UUID",
+        "Seekria Minecraft OSINT — UUID, name history, skins, LabyMod, and breach cross-reference.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "minecraft", label: "Player lookup", apiType: "seekria/minecraft" },
+            { id: "minecraft-osint", label: "Full OSINT", apiType: "seekria/minecraft-osint" },
+            { id: "name-history", label: "Name history", apiType: "seekria/name-history" },
+            { id: "laby-stats", label: "LabyMod stats", apiType: "seekria/laby-stats" },
+            { id: "minecraft-texture", label: "Skin / cape", apiType: "seekria/minecraft-texture" },
+          ],
+        },
+      ),
+      mod(
+        "Platforms",
+        "Seekria FiveM",
+        "seekria-fivem",
+        "seekria/fivem",
+        "Username, IP, Discord ID, license, Steam, or UUID",
+        "Seekria FiveM player lookup — server history, identifiers, and breach cross-reference.",
+      ),
+      mod(
+        "Platforms",
+        "Seekria IP",
+        "seekria-ip",
+        "seekria/ip",
+        "IPv4 address",
+        "Seekria IP intelligence — geolocation, ASN, VPN/proxy flags, and breach checks.",
+      ),
+      mod(
+        "Platforms",
+        "Seekria Domain",
+        "seekria-domain",
+        "seekria/domain-lookup",
+        "Domain name",
+        "Seekria domain WHOIS / DNS and hosting metadata, plus DNS resolver.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "domain-lookup", label: "Domain lookup", apiType: "seekria/domain-lookup" },
+            { id: "dns-resolver", label: "DNS resolver", apiType: "seekria/dns-resolver" },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -698,11 +932,138 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
       ),
       mod(
         "Platforms",
+        "LATAM Country DB",
+        "notalivex-country",
+        "notalivex/mx/email",
+        "Email, phone, name, or national ID",
+        "NotAliveX country breach databases (MX, AR, BR, CL, and more).",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "mx-email", label: "MX · email", apiType: "notalivex/mx/email" },
+            {
+              id: "mx-telefono",
+              label: "MX · teléfono",
+              apiType: "notalivex/mx/telefono",
+            },
+            { id: "mx-curp", label: "MX · CURP", apiType: "notalivex/mx/curp" },
+            { id: "mx-rfc", label: "MX · RFC", apiType: "notalivex/mx/rfc" },
+            {
+              id: "mx-nombre",
+              label: "MX · nombre",
+              apiType: "notalivex/mx/nombre",
+            },
+            { id: "ar-email", label: "AR · email", apiType: "notalivex/ar/email" },
+            { id: "ar-dni", label: "AR · DNI", apiType: "notalivex/ar/dni" },
+            {
+              id: "ar-telefono",
+              label: "AR · teléfono",
+              apiType: "notalivex/ar/telefono",
+            },
+            {
+              id: "ar-nombre",
+              label: "AR · nombre",
+              apiType: "notalivex/ar/nombre",
+            },
+            { id: "br-email", label: "BR · email", apiType: "notalivex/br/email" },
+            { id: "br-cpf", label: "BR · CPF", apiType: "notalivex/br/cpf" },
+            { id: "br-fone", label: "BR · fone", apiType: "notalivex/br/fone" },
+            { id: "cl-email", label: "CL · email", apiType: "notalivex/cl/email" },
+            { id: "cl-rut", label: "CL · RUT", apiType: "notalivex/cl/rut" },
+            {
+              id: "cl-telefono",
+              label: "CL · teléfono",
+              apiType: "notalivex/cl/telefono",
+            },
+            { id: "co-email", label: "CO · email", apiType: "notalivex/co/email" },
+            {
+              id: "co-cedula",
+              label: "CO · cédula",
+              apiType: "notalivex/co/cedula",
+            },
+            { id: "pe-email", label: "PE · email", apiType: "notalivex/pe/email" },
+            { id: "us-email", label: "US · email", apiType: "notalivex/us/email" },
+            { id: "es-email", label: "ES · email", apiType: "notalivex/es/email" },
+          ],
+        },
+      ),
+      mod(
+        "Platforms",
+        "NotAliveX Social",
+        "notalivex-platform",
+        "notalivex/tg/username",
+        "Username, phone, email, or Telegram ID",
+        "NotAliveX Telegram, Instagram, and social OSINT indexes.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "tg-username",
+              label: "Telegram · username",
+              apiType: "notalivex/tg/username",
+            },
+            {
+              id: "tg-id",
+              label: "Telegram · ID",
+              apiType: "notalivex/tg/id",
+            },
+            {
+              id: "tg-phone",
+              label: "Telegram · phone",
+              apiType: "notalivex/tg/telefono",
+            },
+            {
+              id: "ig-username",
+              label: "Instagram · username",
+              apiType: "notalivex/instagram/username",
+            },
+            {
+              id: "ig-email",
+              label: "Instagram · email",
+              apiType: "notalivex/instagram/email",
+            },
+            {
+              id: "ig-phone",
+              label: "Instagram · phone",
+              apiType: "notalivex/instagram/telefono",
+            },
+            {
+              id: "osint-social",
+              label: "OSINT · social",
+              apiType: "notalivex/osint/social",
+            },
+          ],
+        },
+      ),
+      mod(
+        "Platforms",
+        "AR Renaper",
+        "notalivex-renaper",
+        "notalivex/ar_rena/renaper",
+        "DNI and sex — e.g. 12345678 M",
+        "Argentina RENAPER national registry lookup by DNI + sex (M/F).",
+      ),
+      mod(
+        "Platforms",
         "Roblox",
         "roblox",
         "roblox",
         "Roblox username",
         "Lookup Roblox profiles and cross-platform links.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "roblox-indexes", label: "Leak indexes", apiType: "roblox" },
+            {
+              id: "seeknow-roblox",
+              label: "SeekNow Roblox",
+              apiType: "seeknow/gaming/roblox",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -719,6 +1080,18 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "minecraft",
         "Minecraft username or UUID",
         "Search Minecraft breach and OSINT indexes.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "minecraft-indexes", label: "Leak indexes", apiType: "minecraft" },
+            {
+              id: "seeknow-minecraft",
+              label: "SeekNow Minecraft",
+              apiType: "seeknow/gaming/minecraft",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -735,6 +1108,22 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breachhub",
         "Gamertag or Xbox ID",
         "Xbox gamertag and profile intelligence.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "xbox-indexes",
+              label: "Leak indexes",
+              apiType: "breachhub",
+            },
+            {
+              id: "seeknow-xbox",
+              label: "SeekNow Xbox",
+              apiType: "seeknow/gaming/xbox",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -777,6 +1166,22 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breach",
         "X / Twitter user or profile link",
         "X and legacy Twitter username search.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "twitter-indexes",
+              label: "Leak indexes",
+              apiType: "breach",
+            },
+            {
+              id: "seeknow-twitter",
+              label: "SeekNow Twitter",
+              apiType: "seeknow/username/twitter",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -809,6 +1214,18 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "tiktok-recon",
         "TikTok @username or profile URL",
         "Live TikTok profile, stats, bio, region, and account metadata.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "tiktok-live", label: "Live recon", apiType: "tiktok-recon" },
+            {
+              id: "seeknow-tiktok",
+              label: "SeekNow TikTok",
+              apiType: "seeknow/username/tiktok",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -825,6 +1242,18 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "reddit",
         "Reddit user or profile link",
         "Reddit account history and metadata.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "reddit-indexes", label: "Leak indexes", apiType: "reddit" },
+            {
+              id: "seeknow-reddit",
+              label: "SeekNow Reddit",
+              apiType: "seeknow/username/reddit",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -833,6 +1262,28 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breach",
         "GitHub user or profile link",
         "GitHub usernames, repos, and leaked emails.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "github-indexes", label: "Leak indexes", apiType: "breach" },
+            {
+              id: "seeknow-github",
+              label: "SeekNow GitHub",
+              apiType: "seeknow/username/github",
+            },
+            {
+              id: "seeknow-social",
+              label: "SeekNow social",
+              apiType: "seeknow/username/social",
+            },
+            {
+              id: "seeknow-history",
+              label: "SeekNow history",
+              apiType: "seeknow/username/history",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -1207,6 +1658,11 @@ const SLUG_API_ROUTES: Record<string, string> = {
   fivem: "fivem",
   domain: "domains",
   "hash-lookup": "breach",
+  "combo-lookup": "snusbase/combo-lookup",
+  snusbase: "snusbase",
+  "ip-whois": "snusbase/ip-whois",
+  "seeknow-search": "seeknow/search",
+  "seeknow-stealer": "seeknow/stealer",
   "password-search": "breach",
   "name-search": "breach",
   "email-analyze": "email-analyze",
@@ -1237,6 +1693,9 @@ const SLUG_API_ROUTES: Record<string, string> = {
   hwid: "breachhub",
   "facebook-id": "breachhub",
   passport: "breachhub",
+  "notalivex-country": "notalivex/mx/email",
+  "notalivex-platform": "notalivex/tg/username",
+  "notalivex-renaper": "notalivex/ar_rena/renaper",
   telegram: "breach",
   instagram: "instagram",
   snapchat: "breachhub",
@@ -1268,6 +1727,28 @@ export function resolveSearchApiType(
   }
 
   return moduleDef.module;
+}
+
+/** Absolute API path for a resolved search apiType segment. */
+export function resolveSearchApiPath(apiType: string): string {
+  if (
+    apiType === "snusbase" ||
+    apiType.startsWith("snusbase/") ||
+    apiType === "intelvault" ||
+    apiType.startsWith("intelvault/") ||
+    apiType === "osintcat" ||
+    apiType.startsWith("osintcat/") ||
+    apiType === "seekria" ||
+    apiType.startsWith("seekria/") ||
+    apiType === "seeknow" ||
+    apiType.startsWith("seeknow/") ||
+    apiType === "notalivex" ||
+    apiType.startsWith("notalivex/")
+  ) {
+    return `/api/${apiType}`;
+  }
+
+  return `/api/osint/${apiType}`;
 }
 
 export function getHubSections(): SearchModuleSection[] {
@@ -1366,6 +1847,11 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   ip: true,
   domain: true,
   "hash-lookup": true,
+  "combo-lookup": true,
+  snusbase: true,
+  "ip-whois": true,
+  "seeknow-search": true,
+  "seeknow-stealer": true,
   "password-search": true,
   "name-search": true,
   "email-analyze": true,
@@ -1413,6 +1899,9 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   hwid: true,
   "facebook-id": true,
   passport: true,
+  "notalivex-country": true,
+  "notalivex-platform": true,
+  "notalivex-renaper": true,
   "google-docs": true,
   ganknow: true,
   playstation: false,
