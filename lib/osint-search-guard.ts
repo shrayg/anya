@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import { publicSearchError } from "@/lib/public-branding";
 
 /** Per-provider upstream budget (headers + body). Stay under Cloudflare ~100s. */
-export const OSINT_PROVIDER_TIMEOUT_MS = 16_000;
+export const OSINT_PROVIDER_TIMEOUT_MS = 28_000;
 
 /** Whole route budget so proxies never see a hung Node request. */
-export const OSINT_ROUTE_DEADLINE_MS = 50_000;
+export const OSINT_ROUTE_DEADLINE_MS = 55_000;
 
 /** Long modules (site pentest, Instagram) still finish before CF hard-cut. */
 export const OSINT_LONG_ROUTE_DEADLINE_MS = 90_000;
@@ -47,15 +47,20 @@ export function withDeadline<T>(
  * Wait for all tasks, or return whatever has settled once `budgetMs` elapses.
  * Unsettled slots become rejected timeouts so callers can merge partials.
  * Does not cancel underlying work (fetch abort is per-call); it stops waiting.
+ * If the budget hits with zero fulfilled values while work is still in flight,
+ * wait up to `emptyGraceMs` longer so we don't return empty while providers
+ * are still running.
  * Tuple types are preserved (same as `Promise.allSettled`).
  */
 export function settleWithinBudget<T extends readonly unknown[] | []>(
   tasks: T,
   budgetMs: number,
+  emptyGraceMs?: number,
 ): Promise<{ -readonly [P in keyof T]: PromiseSettledResult<Awaited<T[P]>> }>;
 export function settleWithinBudget(
   tasks: readonly Promise<unknown>[],
   budgetMs: number,
+  emptyGraceMs = 12_000,
 ): Promise<PromiseSettledResult<unknown>[]> {
   if (tasks.length === 0) return Promise.resolve([]);
 
@@ -70,11 +75,13 @@ export function settleWithinBudget(
     );
     let remaining = tasks.length;
     let finished = false;
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
 
     const finish = () => {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
+      if (graceTimer) clearTimeout(graceTimer);
 
       const out = results.map((entry) => {
         if (entry) return entry;
@@ -90,7 +97,41 @@ export function settleWithinBudget(
       resolve(out);
     };
 
-    const timer = setTimeout(finish, budgetMs);
+    const tryFinishOnBudget = () => {
+      if (finished) return;
+      if (remaining === 0) {
+        finish();
+
+        return;
+      }
+
+      const fulfilledUseful = results.some(
+        (entry) =>
+          entry?.status === "fulfilled" &&
+          entry.value != null &&
+          !(
+            typeof entry.value === "object" &&
+            "count" in (entry.value as object) &&
+            (entry.value as { count?: number }).count === 0
+          ),
+      );
+
+      // Still empty while providers run — give them a grace window.
+      if (
+        !fulfilledUseful &&
+        remaining > 0 &&
+        Number.isFinite(emptyGraceMs) &&
+        emptyGraceMs > 0
+      ) {
+        graceTimer = setTimeout(finish, emptyGraceMs);
+
+        return;
+      }
+
+      finish();
+    };
+
+    const timer = setTimeout(tryFinishOnBudget, budgetMs);
 
     tasks.forEach((task, index) => {
       Promise.resolve(task).then(

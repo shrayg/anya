@@ -43,13 +43,13 @@ import {
   setProviderCached,
 } from "@/lib/provider-result-cache";
 
-const COMBINED_GODSEYE_TIMEOUT_MS = 10_000;
-const COMBINED_BREACHVIP_TIMEOUT_MS = 10_000;
-const COMBINED_CSINT_TIMEOUT_MS = 12_000;
-const COMBINED_BREACHHUB_TIMEOUT_MS = 16_000;
-/** Wall budget across parallel providers — return partials when stragglers hang. */
-const COMBINED_STEALER_BUDGET_MS = 18_000;
-const COMBINED_PLATFORM_BUDGET_MS = 16_000;
+const COMBINED_GODSEYE_TIMEOUT_MS = 18_000;
+const COMBINED_BREACHVIP_TIMEOUT_MS = 18_000;
+const COMBINED_CSINT_TIMEOUT_MS = 22_000;
+const COMBINED_BREACHHUB_TIMEOUT_MS = 36_000;
+/** Wall budget across parallel providers — prefer coverage over ultra-aggressive cutoffs. */
+const COMBINED_STEALER_BUDGET_MS = 42_000;
+const COMBINED_PLATFORM_BUDGET_MS = 40_000;
 const COMBINED_RESULT_CACHE_TTL_MS = 40_000;
 
 async function fetchOptionalCsintUniversal(
@@ -299,7 +299,9 @@ export async function fetchCombinedStealerLogs(
       results: filtered,
     };
 
-    setProviderCached(cacheKey, payload, COMBINED_RESULT_CACHE_TTL_MS);
+    if (payload.count > 0) {
+      setProviderCached(cacheKey, payload, COMBINED_RESULT_CACHE_TTL_MS);
+    }
 
     return payload;
   }
@@ -359,7 +361,7 @@ export async function fetchCombinedPlatformSearch(
         }),
         fetchOptionalBreachVip(query, breachVipField),
       ],
-      Math.min(COMBINED_PLATFORM_BUDGET_MS, 10_000),
+      COMBINED_PLATFORM_BUDGET_MS,
     );
 
     pushSettledSanitized(preferred, breachHubResult);
@@ -368,7 +370,9 @@ export async function fetchCombinedPlatformSearch(
     if (preferred.length > 0) {
       const merged = mergeSanitizedResponses(...preferred);
 
-      setProviderCached(cacheKey, merged, COMBINED_RESULT_CACHE_TTL_MS);
+      if (merged.count > 0) {
+        setProviderCached(cacheKey, merged, COMBINED_RESULT_CACHE_TTL_MS);
+      }
 
       return merged;
     }
@@ -401,7 +405,9 @@ export async function fetchCombinedPlatformSearch(
   if (parts.length > 0) {
     const merged = mergeSanitizedResponses(...parts);
 
-    setProviderCached(cacheKey, merged, COMBINED_RESULT_CACHE_TTL_MS);
+    if (merged.count > 0) {
+      setProviderCached(cacheKey, merged, COMBINED_RESULT_CACHE_TTL_MS);
+    }
 
     return merged;
   }
@@ -436,7 +442,7 @@ export async function fetchGodsEyeOnlySearch(
         }),
         fetchOptionalBreachVip(query, breachVipField),
       ],
-      Math.min(COMBINED_PLATFORM_BUDGET_MS, 10_000),
+      COMBINED_PLATFORM_BUDGET_MS,
     );
 
     pushSettledSanitized(preferred, breachHubResult);
