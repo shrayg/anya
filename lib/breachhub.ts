@@ -528,7 +528,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     modes: ["specialty", "followup"],
     // Storage/System IDs: UUID, 32-hex System ID, or long Storage ID hash.
     kinds: ["hash"],
-    buildParams: (query) => {
+    buildParams: (query): Record<string, string> | null => {
       const trimmed = query.trim();
       const hex = trimmed.replace(/[^a-f0-9]/gi, "");
 
@@ -540,10 +540,21 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
         return { system_id: trimmed.toLowerCase() };
       }
       if (/^[a-f0-9]{32}$/i.test(hex)) {
-        return { system_id: hex.toLowerCase() };
+        const uuid = [
+          hex.slice(0, 8),
+          hex.slice(8, 12),
+          hex.slice(12, 16),
+          hex.slice(16, 20),
+          hex.slice(20),
+        ]
+          .join("-")
+          .toLowerCase();
+
+        return { system_id: uuid };
       }
-      if (HASH_RE.test(hex) || /^[a-f0-9]{40,256}$/i.test(hex)) {
-        return { system_id: hex.toLowerCase() };
+      // OpenAPI: Storage ID mode requires storage_id + bucket.
+      if (/^[a-f0-9]{40,256}$/i.test(hex)) {
+        return { storage_id: hex.toLowerCase(), bucket: "leaks.public" };
       }
 
       return null;
@@ -4837,10 +4848,21 @@ function extractIntelxExportContent(payload: unknown): string {
     const value = data[key];
 
     if (typeof value === "string" && value.trim()) return value;
+    // Nested JSON wrappers: { data: { content: "…" } }
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const nested = extractIntelxExportContent(value);
+
+      if (nested.trim()) return nested;
+    }
   }
 
   if (typeof data.result === "string" && data.result.trim()) {
     return data.result;
+  }
+  if (data.result && typeof data.result === "object") {
+    const nested = extractIntelxExportContent(data.result);
+
+    if (nested.trim()) return nested;
   }
 
   return "";
@@ -4848,7 +4870,7 @@ function extractIntelxExportContent(payload: unknown): string {
 
 /**
  * IntelX file export via BreachHub `/api/intelx`.
- * Accepts System ID (UUID / 32-hex) or Storage ID (long hex). Soft-fails.
+ * System ID → `system_id`; Storage ID → `storage_id` + `bucket` (OpenAPI).
  */
 export async function fetchBreachHubIntelx(
   storageId: string,
@@ -4895,13 +4917,14 @@ export async function fetchBreachHubIntelx(
   const paramSets: Record<string, string>[] = [];
 
   if (systemId) {
+    // OpenAPI: UUID via system_id (bucket optional).
     paramSets.push({ system_id: systemId });
     paramSets.push({ system_id: systemId, bucket: resolvedBucket });
-  }
-  if (hex.length >= 40) {
-    paramSets.push({ system_id: hex });
-    paramSets.push({ storageid: hex, bucket: resolvedBucket });
+  } else if (hex.length >= 40) {
+    // OpenAPI: Storage ID requires storage_id + bucket.
     paramSets.push({ storage_id: hex, bucket: resolvedBucket });
+    // Compatibility aliases some gateways still accept.
+    paramSets.push({ storageid: hex, bucket: resolvedBucket });
   }
 
   if (paramSets.length === 0) {
@@ -4998,13 +5021,17 @@ export async function fetchBreachHubIntelxWithBuckets(
   preferredBucket?: string | null,
 ): Promise<{ content: string; error?: string; bucket: string }> {
   const preferred = preferredBucket?.trim() || "leaks.public";
+  // Prefer OpenAPI buckets; keep CSINT-overlapping names first.
   const ordered = [
     preferred,
     "leaks.public",
     "leaks.private",
+    "leaks.private.general",
     "leaks.logs",
     "dumpster",
     "pastes",
+    "documents.public",
+    "darknet",
   ].filter((b, i, arr) => Boolean(b) && arr.indexOf(b) === i);
 
   let lastError = "No export content returned.";

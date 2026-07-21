@@ -164,10 +164,18 @@ export function isInternalSourceLabel(value: string): boolean {
   ) {
     return true;
   }
-  if (lower.includes("csint")) return true;
-  if (lower.includes("powered by")) return true;
-  if (lower.includes("anya.int") && !lower.includes(" · ")) return true;
-  if (lower.includes("enkidu.int") && !lower.includes(" · ")) return true;
+
+  // Substring brand checks are only safe on short single-line field values.
+  // Multi-line IntelX/export bodies often contain rewritten provider URLs
+  // ("Anya.Int") or credit footers ("Powered by …") and must not be wiped.
+  const isShortField = trimmed.length <= 96 && !/[\r\n]/.test(trimmed);
+
+  if (isShortField) {
+    if (lower.includes("csint")) return true;
+    if (lower.includes("powered by")) return true;
+    if (lower.includes("anya.int") && !lower.includes(" · ")) return true;
+    if (lower.includes("enkidu.int") && !lower.includes(" · ")) return true;
+  }
 
   return false;
 }
