@@ -29,6 +29,7 @@ import {
   OSINT_PROVIDER_TIMEOUT_MS,
   withDeadline,
 } from "@/lib/osint-search-guard";
+import { recordProviderRequest } from "@/lib/provider-request-log";
 
 const CSINT_BASE = "https://csint.pro/api";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
@@ -120,52 +121,84 @@ async function csintPost(
   }
 
   const started = Date.now();
-  const res = await fetchWithTimeout(`${CSINT_BASE}${path}`, {
-    method: "POST",
-    headers: {
-      "X-API-Key": apiKey,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-    timeoutMs,
-  });
+  let logged = false;
 
-  const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
-  const text = await readResponseText(res, remaining);
-  let data: Record<string, unknown> = {};
+  const logRequest = (
+    ok: boolean,
+    opts?: { statusCode?: number; error?: string },
+  ) => {
+    if (logged) return;
+    logged = true;
+    recordProviderRequest({
+      gateway: "csint",
+      path,
+      method: "POST",
+      ok,
+      latencyMs: Date.now() - started,
+      statusCode: opts?.statusCode,
+      error: opts?.error,
+    });
+  };
 
   try {
-    data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-  } catch {
-    if (!res.ok) {
-      throw new Error(sanitizeCsintError(`HTTP ${res.status}`));
+    const res = await fetchWithTimeout(`${CSINT_BASE}${path}`, {
+      method: "POST",
+      headers: {
+        "X-API-Key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      timeoutMs,
+    });
+
+    const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+    const text = await readResponseText(res, remaining);
+    let data: Record<string, unknown> = {};
+
+    try {
+      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      const errMsg = !res.ok
+        ? sanitizeCsintError(`HTTP ${res.status}`)
+        : publicSearchError("Invalid response from intelligence index.");
+
+      logRequest(false, { statusCode: res.status, error: errMsg });
+      throw new Error(errMsg);
     }
-    throw new Error(
-      publicSearchError("Invalid response from intelligence index."),
-    );
+
+    if (!res.ok) {
+      const msg =
+        (typeof data.message === "string" && data.message) ||
+        (typeof data.error === "string" && data.error) ||
+        `HTTP ${res.status}`;
+      const errMsg = sanitizeCsintError(msg);
+
+      logRequest(false, { statusCode: res.status, error: errMsg });
+      throw new Error(errMsg);
+    }
+
+    if (data.success === false) {
+      const msg =
+        (typeof data.message === "string" && data.message) ||
+        (typeof data.error === "string" && data.error) ||
+        publicSearchError();
+      const errMsg = sanitizeCsintError(msg);
+
+      logRequest(false, { statusCode: res.status, error: errMsg });
+      throw new Error(errMsg);
+    }
+
+    logRequest(true, { statusCode: res.status });
+
+    return sanitizeCsintPayload(data);
+  } catch (err) {
+    logRequest(false, {
+      error: err instanceof Error ? err.message : "Request failed",
+    });
+    throw err;
   }
-
-  if (!res.ok) {
-    const msg =
-      (typeof data.message === "string" && data.message) ||
-      (typeof data.error === "string" && data.error) ||
-      `HTTP ${res.status}`;
-
-    throw new Error(sanitizeCsintError(msg));
-  }
-
-  if (data.success === false) {
-    const msg =
-      (typeof data.message === "string" && data.message) ||
-      (typeof data.error === "string" && data.error) ||
-      publicSearchError();
-
-    throw new Error(sanitizeCsintError(msg));
-  }
-
-  return sanitizeCsintPayload(data);
 }
 
 function truncateBanner(value: unknown): string | null {

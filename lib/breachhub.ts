@@ -47,6 +47,7 @@ import {
   filterBreachHubEndpoints,
   shouldSkipBreachHubEndpoint,
 } from "@/lib/provider-dedupe";
+import { recordProviderRequest } from "@/lib/provider-request-log";
 
 const BREACHHUB_BASE = "https://breachhub.org";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
@@ -2312,50 +2313,82 @@ export async function breachHubGet(
       }
 
       const started = Date.now();
-      const res = await fetchWithTimeout(url.toString(), {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "AnyaInt-BreachHub/1.0",
-        },
-        cache: "no-store",
-        timeoutMs,
-      });
+      let logged = false;
 
-      const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
-      const text = await readResponseText(res, remaining);
-      let data: Record<string, unknown> = {};
+      const logRequest = (
+        ok: boolean,
+        opts?: { statusCode?: number; error?: string },
+      ) => {
+        if (logged) return;
+        logged = true;
+        recordProviderRequest({
+          gateway: "breachhub",
+          path: resolved,
+          method: "GET",
+          ok,
+          latencyMs: Date.now() - started,
+          statusCode: opts?.statusCode,
+          error: opts?.error,
+        });
+      };
 
       try {
-        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-      } catch {
-        if (!res.ok) {
-          throw new Error(sanitizeBreachHubError(`HTTP ${res.status}`));
+        const res = await fetchWithTimeout(url.toString(), {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "AnyaInt-BreachHub/1.0",
+          },
+          cache: "no-store",
+          timeoutMs,
+        });
+
+        const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+        const text = await readResponseText(res, remaining);
+        let data: Record<string, unknown> = {};
+
+        try {
+          data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+        } catch {
+          const errMsg = !res.ok
+            ? sanitizeBreachHubError(`HTTP ${res.status}`)
+            : publicSearchError("Invalid response from intelligence index.");
+
+          logRequest(false, { statusCode: res.status, error: errMsg });
+          throw new Error(errMsg);
         }
-        throw new Error(
-          publicSearchError("Invalid response from intelligence index."),
-        );
+
+        if (!res.ok) {
+          const msg =
+            (typeof data.message === "string" && data.message) ||
+            (typeof data.error === "string" && data.error) ||
+            `HTTP ${res.status}`;
+          const errMsg = sanitizeBreachHubError(msg);
+
+          logRequest(false, { statusCode: res.status, error: errMsg });
+          throw new Error(errMsg);
+        }
+
+        if (data.success === false) {
+          const msg =
+            (typeof data.message === "string" && data.message) ||
+            (typeof data.error === "string" && data.error) ||
+            "Search failed";
+          const errMsg = sanitizeBreachHubError(msg);
+
+          logRequest(false, { statusCode: res.status, error: errMsg });
+          throw new Error(errMsg);
+        }
+
+        logRequest(true, { statusCode: res.status });
+
+        return data;
+      } catch (err) {
+        logRequest(false, {
+          error: err instanceof Error ? err.message : "Request failed",
+        });
+        throw err;
       }
-
-      if (!res.ok) {
-        const msg =
-          (typeof data.message === "string" && data.message) ||
-          (typeof data.error === "string" && data.error) ||
-          `HTTP ${res.status}`;
-
-        throw new Error(sanitizeBreachHubError(msg));
-      }
-
-      if (data.success === false) {
-        const msg =
-          (typeof data.message === "string" && data.message) ||
-          (typeof data.error === "string" && data.error) ||
-          "Search failed";
-
-        throw new Error(sanitizeBreachHubError(msg));
-      }
-
-      return data;
     },
     {
       // Never poison the short TTL cache with empty victim trees or empty search hits.

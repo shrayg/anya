@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { AccountSecurityPanel } from "@/components/dashboard/account-security-panel";
+import { AdminApiStatusPanel } from "@/components/dashboard/admin-api-status-panel";
 import { AdminUsersPanel } from "@/components/dashboard/admin-users-panel";
 import { AdminWorkspaceDashboard } from "@/components/dashboard/admin-workspace-dashboard";
 import { AdminEventLogsPanel } from "@/components/dashboard/admin-event-logs-panel";
@@ -44,18 +45,22 @@ export default function SettingsPage() {
                 Admin
               </h1>
               <p className="anya-hero-lede">
-                Manage users, plans, account status, and workspace activity for{" "}
-                {siteConfig.name}. This surface stays inside the panel — there
-                is no public admin endpoint.
+                Manage users, plans, account status, API health, and workspace
+                activity for {siteConfig.name}. This surface stays inside the
+                panel — there is no public admin endpoint.
               </p>
               <div className="anya-hero-actions">
                 <Link className="anya-pill" href="/dashboard/account">
                   Your account
                 </Link>
+                <Link className="anya-pill" href="#api-status">
+                  API status
+                </Link>
               </div>
             </div>
           </section>
           <AdminWorkspaceDashboard />
+          <AdminApiStatusPanel />
           <AdminEventLogsPanel />
           <SafetyFlagsPanel mode="admin" />
           <AdminUsersPanel />

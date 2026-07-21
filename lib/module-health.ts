@@ -14,6 +14,7 @@ import { getOsintCatApiKey } from "@/lib/osintcat";
 import { probeInstagramAvailability } from "@/lib/instagram-search";
 import { getCourtListenerToken } from "@/lib/us-records/courtlistener";
 import { getSkippedBreachHubEndpointIds } from "@/lib/provider-dedupe";
+import { recordProviderRequest } from "@/lib/provider-request-log";
 
 const OSINTCAT_BASE = "https://www.osintcat.net/api";
 
@@ -30,6 +31,18 @@ export type ProviderId =
   | "courtlistener"
   | "instagram";
 
+const PROVIDER_PROBE_PATH: Partial<
+  Record<ProviderId, { path: string; method: string }>
+> = {
+  breachhub: { path: "/api/status", method: "GET" },
+  oathnet: { path: "/api/oathnet/ip-info", method: "GET" },
+  csint: { path: "/status", method: "POST" },
+  osintcat: { path: "/breach", method: "GET" },
+  breachvip: { path: "/api/search", method: "POST" },
+  cordcat: { path: "/", method: "GET" },
+  godseye: { path: "/", method: "POST" },
+  "godseye-export": { path: "/", method: "POST" },
+};
 export type ModuleHealthRule =
   | { kind: "off" }
   | { kind: "any"; providers: ProviderId[] }
@@ -266,24 +279,51 @@ async function timedProbe(
   run: () => Promise<boolean>,
 ): Promise<ProviderProbeResult> {
   const started = Date.now();
+  const probePath = PROVIDER_PROBE_PATH[id];
 
   try {
     const ok = await run();
+    const latencyMs = Date.now() - started;
+
+    if (probePath) {
+      recordProviderRequest({
+        gateway: id === "oathnet" ? "breachhub" : id,
+        path: probePath.path,
+        method: probePath.method,
+        ok,
+        latencyMs,
+        error: ok ? undefined : "Probe failed",
+      });
+    }
 
     return {
       id,
       label: PROVIDER_LABELS[id],
       ok,
-      latencyMs: Date.now() - started,
+      latencyMs,
       ...(ok ? {} : { error: "Probe failed" }),
     };
   } catch (err) {
+    const latencyMs = Date.now() - started;
+    const error = err instanceof Error ? err.message : "Probe failed";
+
+    if (probePath) {
+      recordProviderRequest({
+        gateway: id === "oathnet" ? "breachhub" : id,
+        path: probePath.path,
+        method: probePath.method,
+        ok: false,
+        latencyMs,
+        error,
+      });
+    }
+
     return {
       id,
       label: PROVIDER_LABELS[id],
       ok: false,
-      latencyMs: Date.now() - started,
-      error: err instanceof Error ? err.message : "Probe failed",
+      latencyMs,
+      error,
     };
   }
 }
