@@ -18,8 +18,6 @@
  * optionally filter locally. Do not expose like / rate / chat to end users.
  */
 
-import { isResidentialProxyConfigured } from "@/lib/residential-proxy";
-
 function envFlagOff(value: string | undefined): boolean {
   if (value == null || value === "") return false;
   const normalized = value.trim().toLowerCase();
@@ -29,6 +27,19 @@ function envFlagOff(value: string | undefined): boolean {
     normalized === "false" ||
     normalized === "off" ||
     normalized === "no"
+  );
+}
+
+/**
+ * Env-only proxy check — must stay free of `node:fs`.
+ * `search-modules` imports this from client components; reading the VPS
+ * secrets file via `residential-proxy` breaks the Next/Turbopack build.
+ * Deploy merges secrets into `.env.local`, so env vars are enough here.
+ */
+function isResidentialProxyConfiguredEnv(): boolean {
+  return Boolean(
+    process.env.OSINT_RESIDENTIAL_PROXY_URL?.trim() ||
+      process.env.INSTAGRAM_PROXY_URL?.trim(),
   );
 }
 
@@ -65,7 +76,7 @@ export function isHingeLiveEnabled(): boolean {
   if (envFlagOff(process.env.HINGE_LIVE_ENABLED)) return false;
   if (envFlagOff(process.env.NEXT_PUBLIC_HINGE_LIVE)) return false;
   if (!hasHingeLiveCredentials()) return false;
-  if (hingeRequiresResidentialProxy() && !isResidentialProxyConfigured()) {
+  if (hingeRequiresResidentialProxy() && !isResidentialProxyConfiguredEnv()) {
     return false;
   }
 
