@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 import { fetchBreachVipSanitized } from "@/lib/breachvip";
+import { fetchBreachHubDiscord } from "@/lib/breachhub";
 import { fetchCordCatQuery } from "@/lib/cordcat";
 import {
   extractCsintDiscordLookupLeaks,
@@ -141,6 +142,7 @@ export async function GET(req: NextRequest) {
       robloxLink,
       fivemIntel,
       cordQuery,
+      breachHubLeaks,
     ] = await withDeadline(
       Promise.all([
         fetchDiscordProfile(query),
@@ -162,6 +164,7 @@ export async function GET(req: NextRequest) {
           records: [] as unknown[],
         })),
         fetchCordCatQuery(query).catch(() => null),
+        fetchBreachHubDiscord(query).catch(() => null),
       ]),
       OSINT_ROUTE_DEADLINE_MS,
     );
@@ -178,6 +181,7 @@ export async function GET(req: NextRequest) {
       csintOsint ?? { count: 0, results: [] },
       extractCsintDiscordLookupLeaks(csintLookup, query),
       cordCatBreachLeaks(cordQuery),
+      breachHubLeaks ?? { count: 0, results: [] },
     );
 
     const fivemFromGodsEye = fivemIntel.records ?? [];

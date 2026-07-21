@@ -54,6 +54,7 @@ cp .env.example .env.local
 | `OSINTCAT_API_KEY` | Recommended | OsintCat breach / stealer index key |
 | `GODSEYE_EXPORT_API_KEY` | Optional | IntelX raw export (IntelX module) |
 | `CSINT_API_KEY` | Recommended | csint.pro unified intelligence API key |
+| `BREACHHUB_API_KEY` | Recommended | BreachHub.org unified OSINT aggregator key |
 
 **Never commit `.env.local` or API keys.**
 

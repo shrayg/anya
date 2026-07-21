@@ -56,12 +56,14 @@ export async function GET(req: NextRequest) {
               query,
               platform.godseyeType,
               platform.breachVipField,
+              platform.breachHubScope,
             )
           : fetchCombinedPlatformSearch(
               query,
               platform.osintCatEndpoint,
               platform.godseyeType,
               platform.breachVipField,
+              platform.breachHubScope,
             ),
         OSINT_ROUTE_DEADLINE_MS,
       );

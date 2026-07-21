@@ -15,6 +15,9 @@ const INTERNAL_SOURCE_LABELS = new Set([
   "breach.vip",
   "breachvip",
   "breach vip",
+  "breachhub",
+  "breach hub",
+  "breachhub.org",
   "proxynova",
   "anya.search",
   "anya",
@@ -133,6 +136,13 @@ export function isInternalSourceLabel(value: string): boolean {
     lower === "breach.vip" ||
     lower.startsWith("breachvip") ||
     lower.startsWith("breach vip")
+  ) {
+    return true;
+  }
+  if (
+    lower === "breachhub.org" ||
+    lower.startsWith("breachhub") ||
+    lower.startsWith("breach hub")
   ) {
     return true;
   }

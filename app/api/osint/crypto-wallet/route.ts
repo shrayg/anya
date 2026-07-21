@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 import { detectCsintCryptoSymbol, fetchCsintCrypto } from "@/lib/csint";
+import { fetchBreachHubCrypto } from "@/lib/breachhub";
 import { PUBLIC_INTEL_SOURCE } from "@/lib/public-branding";
 import {
   CRYPTO_WALLET_INVALID_MESSAGE,
@@ -32,20 +33,23 @@ export async function GET(req: NextRequest) {
 
   try {
     const symbol = detectCsintCryptoSymbol(query);
-    const [wallet, godseye, csint] = await Promise.all([
+    const [wallet, godseye, csint, breachHub] = await Promise.all([
       lookupCryptoWallet(query),
       fetchGodsEyeSearchSafe("crypto", query),
       symbol ? fetchCsintCrypto(query, symbol) : Promise.resolve(null),
+      fetchBreachHubCrypto(query).catch(() => null),
     ]);
 
     return NextResponse.json({
       ...wallet,
       godseye,
       enrichment: csint,
+      breachHub,
       sources: [
         "On-chain",
         ...(godseye ? [PUBLIC_INTEL_SOURCE] : []),
         ...(csint ? [PUBLIC_INTEL_SOURCE] : []),
+        ...(breachHub ? [PUBLIC_INTEL_SOURCE] : []),
       ],
     });
   } catch (err) {

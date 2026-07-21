@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
+import {
+  breachHubRowsToCredentials,
+  fetchBreachHubAdditiveBreachSearch,
+} from "@/lib/breachhub";
 import { searchBreachVipForEmail } from "@/lib/breachvip";
 import {
   csintRowsToCredentials,
@@ -65,16 +69,22 @@ export async function GET(req: NextRequest) {
   const limit = Number(req.nextUrl.searchParams.get("limit") ?? 100);
 
   try {
-    const [combSettled, godseyeSettled, breachVipSettled, csintSettled] =
-      await withDeadline(
-        Promise.allSettled([
-          searchProxynovaCombForEmail(email, { start, limit }),
-          fetchGodsEyeEmailReport(email),
-          searchBreachVipForEmail(email, { maxRows: limit }),
-          fetchCsintAdditiveBreachSearch(email, "email", 15_000),
-        ]),
-        OSINT_ROUTE_DEADLINE_MS,
-      );
+    const [
+      combSettled,
+      godseyeSettled,
+      breachVipSettled,
+      csintSettled,
+      breachHubSettled,
+    ] = await withDeadline(
+      Promise.allSettled([
+        searchProxynovaCombForEmail(email, { start, limit }),
+        fetchGodsEyeEmailReport(email),
+        searchBreachVipForEmail(email, { maxRows: limit }),
+        fetchCsintAdditiveBreachSearch(email, "email", 15_000),
+        fetchBreachHubAdditiveBreachSearch(email, "email", 18_000),
+      ]),
+      OSINT_ROUTE_DEADLINE_MS,
+    );
 
     const combResult = settledValue(combSettled) ?? {
       query: email,
@@ -87,19 +97,31 @@ export async function GET(req: NextRequest) {
     const godseyeReport = settledValue(godseyeSettled);
     const breachVip = settledValue(breachVipSettled);
     const csint = settledValue(csintSettled);
+    const breachHub = settledValue(breachHubSettled);
 
     const csintCredentials = csint ? csintRowsToCredentials(csint.results) : [];
+    const breachHubCredentials = breachHub
+      ? breachHubRowsToCredentials(breachHub.results)
+      : [];
 
     const mergedCredentials = mergeCredentials(
-      mergeCredentials(combResult.credentials, breachVip?.credentials ?? []),
-      csintCredentials,
+      mergeCredentials(
+        mergeCredentials(combResult.credentials, breachVip?.credentials ?? []),
+        csintCredentials,
+      ),
+      breachHubCredentials,
     );
 
     const breachVipExtra = breachVip?.totalMatches ?? 0;
     const csintExtra = csint?.count ?? 0;
+    const breachHubExtra = breachHub?.count ?? 0;
     const merged: CombSearchResult = {
       ...combResult,
-      totalMatches: combResult.totalMatches + breachVipExtra + csintExtra,
+      totalMatches:
+        combResult.totalMatches +
+        breachVipExtra +
+        csintExtra +
+        breachHubExtra,
       returned: mergedCredentials.length,
       credentials: mergedCredentials,
     };
@@ -116,7 +138,8 @@ export async function GET(req: NextRequest) {
       merged.returned === 0 &&
       !godseyeReport &&
       !(breachVip && breachVip.returned > 0) &&
-      !csintExtra
+      !csintExtra &&
+      !breachHubExtra
     ) {
       return NextResponse.json({
         ...response,

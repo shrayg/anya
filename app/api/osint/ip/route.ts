@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 import { fetchCsintIpLookup } from "@/lib/csint";
+import { fetchBreachHubSpecialty } from "@/lib/breachhub";
 import { fetchCombinedOsintCatEndpoint } from "@/lib/osint-combined";
 import { normalizeIpSearchPayload } from "@/lib/ip-search";
 import {
@@ -22,12 +23,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [data, csintIp] = await withDeadline(
+    const [data, csintIp, breachHubIp] = await withDeadline(
       Promise.all([
         fetchCombinedOsintCatEndpoint("ip", query, "ip", "ip").catch(
           () => null,
         ),
         fetchCsintIpLookup(query).catch(() => null),
+        fetchBreachHubSpecialty("ip", query).catch(() => null),
       ]),
       OSINT_ROUTE_DEADLINE_MS,
     );
@@ -35,20 +37,22 @@ export async function GET(req: NextRequest) {
     if (data) {
       const payload = normalizeIpSearchPayload(data);
 
-      if (csintIp) {
-        return NextResponse.json({
-          ...payload,
-          enrichment: csintIp,
-        });
-      }
-
-      return NextResponse.json(payload);
+      return NextResponse.json({
+        ...payload,
+        ...(csintIp ? { enrichment: csintIp } : {}),
+        ...(breachHubIp && breachHubIp.count > 0
+          ? { indexHits: breachHubIp }
+          : {}),
+      });
     }
 
-    if (csintIp) {
+    if (csintIp || (breachHubIp && breachHubIp.count > 0)) {
       return NextResponse.json({
         query,
-        enrichment: csintIp,
+        ...(csintIp ? { enrichment: csintIp } : {}),
+        ...(breachHubIp && breachHubIp.count > 0
+          ? { indexHits: breachHubIp }
+          : {}),
         sources: ["index"],
       });
     }

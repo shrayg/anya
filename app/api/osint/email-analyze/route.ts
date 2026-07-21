@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
+import { fetchBreachHubSpecialty } from "@/lib/breachhub";
 import { fetchCsintEmailAnalyze } from "@/lib/csint";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import { publicSearchError } from "@/lib/public-branding";
@@ -27,9 +28,26 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await fetchCsintEmailAnalyze(email);
+    const [csint, breachHub] = await Promise.all([
+      fetchCsintEmailAnalyze(email).catch(() => null),
+      fetchBreachHubSpecialty("email", email).catch(() => null),
+    ]);
 
-    return NextResponse.json(data);
+    if (csint) {
+      return NextResponse.json({
+        ...csint,
+        ...(breachHub && breachHub.count > 0 ? { indexHits: breachHub } : {}),
+      });
+    }
+
+    if (breachHub && breachHub.count > 0) {
+      return NextResponse.json({
+        email,
+        indexHits: breachHub,
+      });
+    }
+
+    throw new Error(publicSearchError("No results from intelligence indexes."));
   } catch (err) {
     const message = err instanceof Error ? err.message : publicSearchError();
 

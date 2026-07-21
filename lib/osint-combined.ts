@@ -1,3 +1,10 @@
+import {
+  fetchBreachHubAdditiveBreachSearch,
+  fetchBreachHubAdditiveStealerSearch,
+  fetchBreachHubSpecialty,
+  isBreachHubEnabled,
+  mapGodsEyeTypeToBreachHub,
+} from "@/lib/breachhub";
 import { fetchBreachVipSanitized, type BreachVipField } from "@/lib/breachvip";
 import {
   fetchCsintAdditiveBreachSearch,
@@ -32,6 +39,7 @@ import {
 const COMBINED_GODSEYE_TIMEOUT_MS = 12_000;
 const COMBINED_BREACHVIP_TIMEOUT_MS = 12_000;
 const COMBINED_CSINT_TIMEOUT_MS = 15_000;
+const COMBINED_BREACHHUB_TIMEOUT_MS = 18_000;
 
 async function fetchOptionalCsintUniversal(
   query: string,
@@ -97,6 +105,81 @@ async function fetchOptionalBreachVip(
   return data.count > 0 ? data : null;
 }
 
+async function fetchOptionalBreachHubUniversal(
+  query: string,
+  godseyeType: GodsEyeSearchType | string,
+  breachHubScope?: string | null,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isBreachHubEnabled()) return null;
+
+  const specialtyScopes = new Set([
+    "steam",
+    "roblox",
+    "minecraft",
+    "discord",
+    "telegram",
+    "snapchat",
+    "tiktok",
+    "twitter",
+    "reddit",
+    "github",
+    "instagram",
+    "fivem",
+    "xbox",
+    "phone",
+  ]);
+
+  const tasks: Promise<SanitizedBreachResponse | null>[] = [
+    fetchBreachHubAdditiveBreachSearch(
+      query,
+      mapGodsEyeTypeToBreachHub(godseyeType),
+      COMBINED_BREACHHUB_TIMEOUT_MS,
+    ),
+  ];
+
+  const specialty =
+    (breachHubScope && specialtyScopes.has(breachHubScope)
+      ? breachHubScope
+      : null) ||
+    (specialtyScopes.has(godseyeType) ? godseyeType : null);
+
+  if (specialty) {
+    tasks.push(
+      fetchBreachHubSpecialty(specialty, query, COMBINED_BREACHHUB_TIMEOUT_MS),
+    );
+  }
+
+  const settled = await Promise.allSettled(tasks);
+  const parts: SanitizedBreachResponse[] = [];
+
+  for (const result of settled) {
+    if (
+      result.status === "fulfilled" &&
+      result.value &&
+      result.value.count > 0
+    ) {
+      parts.push(result.value);
+    }
+  }
+
+  if (parts.length === 0) return null;
+
+  return mergeSanitizedResponses(...parts);
+}
+
+async function fetchOptionalBreachHubStealer(
+  query: string,
+  godseyeType: GodsEyeSearchType | string,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isBreachHubEnabled()) return null;
+
+  return fetchBreachHubAdditiveStealerSearch(
+    query,
+    mapGodsEyeTypeToBreachHub(godseyeType),
+    COMBINED_BREACHHUB_TIMEOUT_MS,
+  );
+}
+
 function pushSettledSanitized(
   parts: SanitizedBreachResponse[],
   result: PromiseSettledResult<SanitizedBreachResponse | null>,
@@ -128,11 +211,13 @@ export async function fetchCombinedStealerLogs(
   const searchType = resolveGodsEyeSearchType(query, scope);
   const parts: SanitizedBreachResponse[] = [];
 
-  const [stealerResult, godseyeResult, csintResult] = await Promise.allSettled([
-    fetchOsintCatStealerLogs(query),
-    fetchGodsEyeSearchResult(searchType, query, COMBINED_GODSEYE_TIMEOUT_MS),
-    fetchOptionalCsintStealer(query, searchType),
-  ]);
+  const [stealerResult, godseyeResult, csintResult, breachHubResult] =
+    await Promise.allSettled([
+      fetchOsintCatStealerLogs(query),
+      fetchGodsEyeSearchResult(searchType, query, COMBINED_GODSEYE_TIMEOUT_MS),
+      fetchOptionalCsintStealer(query, searchType),
+      fetchOptionalBreachHubStealer(query, searchType),
+    ]);
 
   if (stealerResult.status === "fulfilled") {
     parts.push(stealerResult.value);
@@ -143,6 +228,7 @@ export async function fetchCombinedStealerLogs(
   }
 
   pushSettledSanitized(parts, csintResult);
+  pushSettledSanitized(parts, breachHubResult);
 
   if (parts.length > 0) {
     return mergeSanitizedResponses(...parts);
@@ -172,20 +258,28 @@ export async function fetchCombinedPlatformSearch(
   osintCatEndpoint: string | undefined,
   godseyeType: GodsEyeSearchType,
   breachVipField?: BreachVipField,
+  breachHubScope?: string | null,
 ): Promise<SanitizedBreachResponse> {
   const parts: SanitizedBreachResponse[] = [];
-  const [osintcatResult, godseyeResult, breachVipResult, csintResult] =
-    await Promise.allSettled([
-      fetchOptionalOsintCatPlatformSearch(osintCatEndpoint, query),
-      fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS),
-      fetchOptionalBreachVip(query, breachVipField),
-      fetchOptionalCsintUniversal(query, godseyeType),
-    ]);
+  const [
+    osintcatResult,
+    godseyeResult,
+    breachVipResult,
+    csintResult,
+    breachHubResult,
+  ] = await Promise.allSettled([
+    fetchOptionalOsintCatPlatformSearch(osintCatEndpoint, query),
+    fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS),
+    fetchOptionalBreachVip(query, breachVipField),
+    fetchOptionalCsintUniversal(query, godseyeType),
+    fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope),
+  ]);
 
   pushSettledSanitized(parts, osintcatResult);
   pushSettledSanitized(parts, godseyeResult);
   pushSettledSanitized(parts, breachVipResult);
   pushSettledSanitized(parts, csintResult);
+  pushSettledSanitized(parts, breachHubResult);
 
   if (parts.length > 0) {
     return mergeSanitizedResponses(...parts);
@@ -206,12 +300,14 @@ export async function fetchGodsEyeOnlySearch(
   query: string,
   godseyeType: GodsEyeSearchType,
   breachVipField?: BreachVipField,
+  breachHubScope?: string | null,
 ): Promise<SanitizedBreachResponse> {
   const hasGodsEye = Boolean(getGodsEyeApiKey());
   const hasCsint = isCsintEnabled();
+  const hasBreachHub = isBreachHubEnabled();
   const parts: SanitizedBreachResponse[] = [];
 
-  const [godseyeResult, breachVipResult, csintResult] =
+  const [godseyeResult, breachVipResult, csintResult, breachHubResult] =
     await Promise.allSettled([
       hasGodsEye
         ? fetchGodsEyeSearchResult(
@@ -222,17 +318,19 @@ export async function fetchGodsEyeOnlySearch(
         : Promise.resolve(null),
       fetchOptionalBreachVip(query, breachVipField),
       fetchOptionalCsintUniversal(query, godseyeType),
+      fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope),
     ]);
 
   pushSettledSanitized(parts, godseyeResult);
   pushSettledSanitized(parts, breachVipResult);
   pushSettledSanitized(parts, csintResult);
+  pushSettledSanitized(parts, breachHubResult);
 
   if (parts.length > 0) {
     return mergeSanitizedResponses(...parts);
   }
 
-  if (!hasGodsEye && !breachVipField && !hasCsint) {
+  if (!hasGodsEye && !breachVipField && !hasCsint && !hasBreachHub) {
     throw new Error(publicServiceUnavailable());
   }
 
@@ -252,6 +350,7 @@ export async function fetchCombinedOsintCatEndpoint(
   query: string,
   godseyeType: GodsEyeSearchType,
   breachVipField?: BreachVipField,
+  breachHubScope?: string | null,
 ): Promise<Record<string, unknown>> {
   const payload: Record<string, unknown> = {
     query,
@@ -284,11 +383,12 @@ export async function fetchCombinedOsintCatEndpoint(
     }
   }
 
-  const [godseyeResult, breachVipResult, csintResult] =
+  const [godseyeResult, breachVipResult, csintResult, breachHubResult] =
     await Promise.allSettled([
       fetchGodsEyeSearchResult(godseyeType, query, COMBINED_GODSEYE_TIMEOUT_MS),
       fetchOptionalBreachVip(query, breachVipField),
       fetchOptionalCsintUniversal(query, godseyeType),
+      fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope),
     ]);
 
   const mergedParts: SanitizedBreachResponse[] = [];
@@ -318,6 +418,14 @@ export async function fetchCombinedOsintCatEndpoint(
     mergedParts.push(csintResult.value);
   }
 
+  if (
+    breachHubResult.status === "fulfilled" &&
+    breachHubResult.value &&
+    breachHubResult.value.count > 0
+  ) {
+    mergedParts.push(breachHubResult.value);
+  }
+
   if (mergedParts.length > 0) {
     payload.indexHits = mergeSanitizedResponses(...mergedParts);
     (payload.sources as string[]).push("index");
@@ -341,12 +449,14 @@ export async function fetchCombinedBreachEndpoint(
   query: string,
   godseyeType: GodsEyeSearchType,
   breachVipField?: BreachVipField,
+  breachHubScope?: string | null,
 ): Promise<SanitizedBreachResponse> {
   return fetchCombinedPlatformSearch(
     query,
     endpoint,
     godseyeType,
     breachVipField,
+    breachHubScope,
   );
 }
 
@@ -357,19 +467,25 @@ export async function fetchCombinedDomainOsint(domain: string): Promise<{
   let osintcat: OsintCatResponse | null = null;
   let godseye: SanitizedBreachResponse | null = null;
 
-  const [osintcatResult, godseyeResult, breachVipResult, csintResult] =
-    await Promise.allSettled([
-      fetchOsintCatEndpoint("database-search", domain, {
-        type: "domain",
-      }),
-      fetchGodsEyeSearchResult("domain", domain, COMBINED_GODSEYE_TIMEOUT_MS),
-      fetchOptionalBreachVip(domain, "domain"),
-      fetchCsintAdditiveBreachSearch(
-        domain,
-        "username",
-        COMBINED_CSINT_TIMEOUT_MS,
-      ),
-    ]);
+  const [
+    osintcatResult,
+    godseyeResult,
+    breachVipResult,
+    csintResult,
+    breachHubResult,
+  ] = await Promise.allSettled([
+    fetchOsintCatEndpoint("database-search", domain, {
+      type: "domain",
+    }),
+    fetchGodsEyeSearchResult("domain", domain, COMBINED_GODSEYE_TIMEOUT_MS),
+    fetchOptionalBreachVip(domain, "domain"),
+    fetchCsintAdditiveBreachSearch(
+      domain,
+      "username",
+      COMBINED_CSINT_TIMEOUT_MS,
+    ),
+    fetchOptionalBreachHubUniversal(domain, "domain"),
+  ]);
 
   if (osintcatResult.status === "fulfilled") {
     osintcat = osintcatResult.value;
@@ -395,6 +511,14 @@ export async function fetchCombinedDomainOsint(domain: string): Promise<{
     csintResult.value.count > 0
   ) {
     mergedParts.push(csintResult.value);
+  }
+
+  if (
+    breachHubResult.status === "fulfilled" &&
+    breachHubResult.value &&
+    breachHubResult.value.count > 0
+  ) {
+    mergedParts.push(breachHubResult.value);
   }
 
   if (mergedParts.length > 0) {

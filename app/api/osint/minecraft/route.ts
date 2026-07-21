@@ -5,6 +5,7 @@ import {
   fetchBreachVipSanitized,
   resolveMinecraftBreachVipFields,
 } from "@/lib/breachvip";
+import { fetchBreachHubSpecialty, isBreachHubEnabled } from "@/lib/breachhub";
 import { fetchCsintMinecraft } from "@/lib/csint";
 import { fetchGodsEyeSearchResult, getGodsEyeApiKey } from "@/lib/godseye";
 import { isCsintEnabled } from "@/lib/csint";
@@ -42,15 +43,17 @@ export async function GET(req: NextRequest) {
   try {
     const hasGodsEye = Boolean(getGodsEyeApiKey());
     const hasCsint = isCsintEnabled();
+    const hasBreachHub = isBreachHubEnabled();
     const breachVipFields = resolveMinecraftBreachVipFields(query);
 
-    const [godseyeResult, breachVipResult, csintResult] =
+    const [godseyeResult, breachVipResult, csintResult, breachHubResult] =
       await Promise.allSettled([
         hasGodsEye
           ? fetchGodsEyeSearchResult("minecraft", query, 12_000)
           : Promise.resolve({ count: 0, results: [] as unknown[] }),
         fetchBreachVipSanitized(query, breachVipFields, { timeoutMs: 12_000 }),
         fetchCsintMinecraft(query, detectMinecraftCsintType(query)),
+        fetchBreachHubSpecialty("minecraft", query),
       ]);
 
     const parts = [];
@@ -74,13 +77,26 @@ export async function GET(req: NextRequest) {
       parts.push(csintResult.value);
     }
 
+    if (
+      breachHubResult.status === "fulfilled" &&
+      breachHubResult.value &&
+      breachHubResult.value.count > 0
+    ) {
+      parts.push(breachHubResult.value);
+    }
+
     if (parts.length > 0) {
       const data = mergeSanitizedResponses(...parts);
 
       return NextResponse.json(data);
     }
 
-    if (!hasGodsEye && !hasCsint && breachVipResult.status === "rejected") {
+    if (
+      !hasGodsEye &&
+      !hasCsint &&
+      !hasBreachHub &&
+      breachVipResult.status === "rejected"
+    ) {
       throw new Error(publicServiceUnavailable());
     }
 

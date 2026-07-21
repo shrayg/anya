@@ -12,10 +12,10 @@ export const PUBLIC_INTEL_SOURCE = siteConfig.name;
  * Keep in sync with INTERNAL_SOURCE_LABELS in intel-record.ts.
  */
 const PROVIDER_PATTERN =
-  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|anya\.search|anya search|anya crypto ai|anya /gi;
+  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|breachhub|breach\s*hub|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|hudsonrock|hudson\s*rock|xosint|seekria|anya\.search|anya search|anya crypto ai|anya /gi;
 
 const POWERED_BY_PROVIDER =
-  /powered\s+by\s+(?:csint(?:\.pro)?(?:\s+tools)?|godseye|osintcat|shodan|intelx|oathnet|snusbase|breachvip|breachbase|seon|cordcat|leakcheck|hackcheck)[^,.\n]*/gi;
+  /powered\s+by\s+(?:csint(?:\.pro)?(?:\s+tools)?|godseye|osintcat|shodan|intelx|oathnet|snusbase|breachvip|breachhub|breachbase|seon|cordcat|leakcheck|hackcheck)[^,.\n]*/gi;
 
 function stripProviderNames(text: string): string {
   let cleaned = text
@@ -30,6 +30,9 @@ function stripProviderNames(text: string): string {
     .replace(/Breach\.?vip[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/BreachVIP[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Breach\s*VIP[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/BreachHub[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/Breach\s*Hub[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    .replace(/breachhub\.org[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/BreachBase[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Breach\s*Base[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/ProxyNova[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
@@ -77,6 +80,7 @@ function stripProviderNames(text: string): string {
     .replace(/OSINTCAT_API_KEY/gi, "intelligence API key")
     .replace(/CSINT_API_KEY/gi, "intelligence API key")
     .replace(/BREACH_VIP_API_KEY/gi, "intelligence API key")
+    .replace(/BREACHHUB_API_KEY/gi, "intelligence API key")
     .replace(/OATHNET_API_KEY/gi, "intelligence API key")
     .replace(/SHODAN_API_KEY/gi, "intelligence API key")
     .replace(/INTELX_API_KEY/gi, "intelligence API key")

@@ -83,6 +83,7 @@ export function resolveOsintModuleSlug(
     "oathnet-roblox": "oathnet-roblox",
     "tinder-live": "tinder-live",
     "username-accounts": "account-finder",
+    breachhub: "google-docs",
   };
 
   return defaults[fallbackApiSegment] ?? null;

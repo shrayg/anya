@@ -3,9 +3,10 @@ import type { RobloxSearchResult } from "@/lib/roblox-search";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
+import { fetchBreachHubSpecialty } from "@/lib/breachhub";
 import { fetchCsintOathnetDiscordToRoblox } from "@/lib/csint";
 import { extractDiscordIdsFromResults } from "@/lib/discord-extract";
-import { isDiscordSnowflake } from "@/lib/osintcat";
+import { isDiscordSnowflake, mergeSanitizedResponses } from "@/lib/osintcat";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
 
@@ -23,19 +24,25 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [data, discordToRoblox] = await Promise.all([
+    const [data, discordToRoblox, breachHub] = await Promise.all([
       fetchGodsEyeOnlySearch(query, "roblox"),
       isDiscordSnowflake(query)
         ? fetchCsintOathnetDiscordToRoblox(query)
         : Promise.resolve(null),
+      fetchBreachHubSpecialty("roblox", query).catch(() => null),
     ]);
 
-    const linkedDiscordIds = extractDiscordIdsFromResults(data.results).slice(
+    const merged =
+      breachHub && breachHub.count > 0
+        ? mergeSanitizedResponses(data, breachHub)
+        : data;
+
+    const linkedDiscordIds = extractDiscordIdsFromResults(merged.results).slice(
       0,
       MAX_LINKED_PROFILES,
     );
 
-    const results = Array.isArray(data.results) ? [...data.results] : [];
+    const results = Array.isArray(merged.results) ? [...merged.results] : [];
 
     // When a Discord snowflake resolves a Roblox account but the Roblox index
     // is empty, surface that account as the sole result.
@@ -47,7 +54,7 @@ export async function GET(req: NextRequest) {
       results.length === 0
         ? 0
         : Math.max(
-            typeof data.count === "number" ? data.count : 0,
+            typeof merged.count === "number" ? merged.count : 0,
             results.length,
           );
 

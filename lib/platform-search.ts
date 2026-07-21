@@ -7,6 +7,8 @@ export type PlatformSearchConfig = {
   osintCatEndpoint?: string;
   /** Additive BreachVIP field when this module maps cleanly to BreachVIP. */
   breachVipField?: BreachVipField;
+  /** BreachHub specialty fan-out scope (steam, xbox, roblox, …). */
+  breachHubScope?: string;
 };
 
 /** Module slugs routed through breach search with platform-specific scopes. */
@@ -16,15 +18,28 @@ export const PLATFORM_SEARCH_BY_SLUG: Record<string, PlatformSearchConfig> = {
     godseyeType: "username",
     breachVipField: "username",
   },
-  phone: { godseyeType: "phone", breachVipField: "phone" },
-  minecraft: { godseyeType: "minecraft", breachVipField: "uuid" },
-  steam: { godseyeType: "steam", breachVipField: "steamid" },
-  telegram: { godseyeType: "telegram" },
-  instagram: { godseyeType: "instagram" },
-  snapchat: { godseyeType: "snapchat" },
-  tiktok: { godseyeType: "tiktok" },
-  twitter: { godseyeType: "twitter" },
-  github: { godseyeType: "github" },
+  phone: {
+    godseyeType: "phone",
+    breachVipField: "phone",
+    breachHubScope: "phone",
+  },
+  minecraft: {
+    godseyeType: "minecraft",
+    breachVipField: "uuid",
+    breachHubScope: "minecraft",
+  },
+  steam: {
+    godseyeType: "steam",
+    breachVipField: "steamid",
+    breachHubScope: "steam",
+  },
+  xbox: { godseyeType: "username", breachHubScope: "xbox" },
+  telegram: { godseyeType: "telegram", breachHubScope: "telegram" },
+  instagram: { godseyeType: "instagram", breachHubScope: "instagram" },
+  snapchat: { godseyeType: "snapchat", breachHubScope: "snapchat" },
+  tiktok: { godseyeType: "tiktok", breachHubScope: "tiktok" },
+  twitter: { godseyeType: "twitter", breachHubScope: "twitter" },
+  github: { godseyeType: "github", breachHubScope: "github" },
   "hash-lookup": { godseyeType: "hash" },
   "password-search": { godseyeType: "password", breachVipField: "password" },
   "name-search": { godseyeType: "name", breachVipField: "name" },
