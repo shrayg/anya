@@ -185,15 +185,15 @@ export type ProviderProbeResult = {
 };
 
 const PROVIDER_LABELS: Record<ProviderId, string> = {
-  osintcat: "OsintCat",
-  godseye: "GodsEye",
-  "godseye-export": "GodsEye Export",
-  breachvip: "BreachVIP",
-  breachhub: "BreachHub",
-  csint: "CSINT",
-  cordcat: "CordCat",
+  osintcat: "Breach DB",
+  godseye: "Live search",
+  "godseye-export": "IntelX",
+  breachvip: "Comb index",
+  breachhub: "Multi-source",
+  csint: "Enrichment",
+  cordcat: "Discord",
   builtin: "Built-in",
-  courtlistener: "CourtListener",
+  courtlistener: "Courts",
   instagram: "Instagram",
 };
 
