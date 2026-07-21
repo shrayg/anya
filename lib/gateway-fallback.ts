@@ -232,7 +232,11 @@ export type IntelxExportResult = {
   bucket: string;
 };
 
-/** IntelX export: BreachHub first, CSINT fallback (GodsEye left to the route). */
+/**
+ * IntelX export — ID-kind aware (never BH ∥ CSINT in parallel):
+ * - System ID (UUID): BreachHub `system_id` first → CSINT → (GodsEye in route)
+ * - Storage ID (long hex): CSINT `storageid`+bucket first → BreachHub → GodsEye
+ */
 export async function fetchIntelxExportWithFallback(
   storageId: string,
   idKind: "uuid" | "storage",
@@ -242,42 +246,47 @@ export async function fetchIntelxExportWithFallback(
     ? preferredBucket
     : DEFAULT_INTELX_BUCKET;
 
+  const tryBreachHub = async (): Promise<IntelxExportResult | null> => {
+    if (!isBreachHubEnabled()) return null;
+
+    const breachHub =
+      idKind === "uuid"
+        ? await fetchBreachHubIntelx(storageId, bucket)
+        : await fetchBreachHubIntelxWithBuckets(storageId, bucket);
+
+    if (!breachHub.content.trim()) {
+      return breachHub.error
+        ? { content: "", error: breachHub.error, bucket: breachHub.bucket }
+        : null;
+    }
+
+    return { content: breachHub.content, bucket: breachHub.bucket };
+  };
+
+  const tryCsint = async (): Promise<IntelxExportResult | null> => {
+    if (!isCsintEnabled()) return null;
+
+    const csint =
+      idKind === "uuid"
+        ? await fetchCsintIntelx(storageId, bucket)
+        : await fetchCsintIntelxWithBuckets(storageId, bucket);
+
+    if (!csint.content.trim()) {
+      return csint.error
+        ? { content: "", error: csint.error, bucket: csint.bucket }
+        : null;
+    }
+
+    return { content: csint.content, bucket: csint.bucket };
+  };
+
+  // System IDs: BH native path first. Storage IDs: CSINT dedicated export first.
+  const primary = idKind === "uuid" ? tryBreachHub : tryCsint;
+  const fallback = idKind === "uuid" ? tryCsint : tryBreachHub;
+
   const { value } = await withPrimaryFallback(
-    async () => {
-      if (!isBreachHubEnabled()) return null;
-
-      const breachHub =
-        idKind === "uuid"
-          ? await fetchBreachHubIntelx(storageId, bucket)
-          : await fetchBreachHubIntelxWithBuckets(storageId, bucket);
-
-      if (!breachHub.content.trim()) {
-        return breachHub.error
-          ? { content: "", error: breachHub.error, bucket: breachHub.bucket }
-          : null;
-      }
-
-      return {
-        content: breachHub.content,
-        bucket: breachHub.bucket,
-      };
-    },
-    async () => {
-      if (!isCsintEnabled()) return null;
-
-      const csint =
-        idKind === "uuid"
-          ? await fetchCsintIntelx(storageId, bucket)
-          : await fetchCsintIntelxWithBuckets(storageId, bucket);
-
-      if (!csint.content.trim()) {
-        return csint.error
-          ? { content: "", error: csint.error, bucket: csint.bucket }
-          : null;
-      }
-
-      return { content: csint.content, bucket: csint.bucket };
-    },
+    primary,
+    fallback,
     (row) => Boolean(row.content?.trim()),
   );
 

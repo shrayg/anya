@@ -219,11 +219,27 @@ export async function GET(req: NextRequest) {
   // Defense in depth: strip upstream credits / "powered by csint tools" footers.
   content = sanitizePublicContent(content).trim();
 
-  // Provider-name scrubbing must never leave the product brand as fake "content".
-  if (content && isBrandPlaceholderValue(content)) {
-    content = "";
-    if (!lastError) {
-      lastError = "No export content returned.";
+  // Drop brand-only / credit-only bodies. Keep real dumps even when scrubbing
+  // rewrites intelx.io URLs to the product brand on some lines.
+  if (content) {
+    const residual = content
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter(
+        (line) =>
+          !isBrandPlaceholderValue(line) && !/^powered\s+by\b/i.test(line),
+      )
+      .join("\n")
+      .trim();
+
+    if (!residual) {
+      content = "";
+      if (!lastError) {
+        lastError = "No export content returned.";
+      }
+    } else {
+      content = residual;
     }
   }
 

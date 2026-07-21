@@ -23,7 +23,8 @@
  * | OsintCat database / stalker | BreachHub   | direct OSINTCAT_API_KEY          |
  * | OsintCat twitter / machine  | BreachHub   | (no CSINT equivalent)            |
  * | CordCat                     | BreachHub   | direct CORDCAT_API_KEY           |
- * | IntelX export               | BreachHub   | CSINT → GodsEye                  |
+ * | IntelX System ID (UUID)     | BreachHub   | CSINT → GodsEye                  |
+ * | IntelX Storage ID (hex)     | CSINT       | BreachHub → GodsEye              |
  *
  * Within BreachHub only: always skip IntelBase * mirrors of direct BH vendors.
  */
@@ -100,7 +101,8 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     vendor: "IntelX export",
     primary: "breachhub",
     fallback: "csint",
-    notes: "GodsEye last resort after both",
+    notes:
+      "UUID System ID → BH system_id first; Storage ID → CSINT first then BH; GodsEye last",
   },
 ];
 
