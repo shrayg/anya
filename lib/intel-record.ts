@@ -426,6 +426,197 @@ export function scrubIntelResults(results: unknown[]): unknown[] {
   return scrubbed;
 }
 
+function firstFingerprintField(
+  record: Record<string, unknown>,
+  keys: string[],
+): string {
+  for (const key of keys) {
+    const value = record[key];
+
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+  }
+
+  return "";
+}
+
+function normalizeFingerprintPart(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/**
+ * Stable merge key for intel rows across providers.
+ * Collapses same email+password+site / breach id / stealer credential tuple.
+ * Does NOT key on email alone — distinct passwords/sites/breaches are kept.
+ */
+export function intelResultFingerprint(entry: unknown): string {
+  if (entry == null) return "null";
+  if (typeof entry !== "object" || Array.isArray(entry)) {
+    return `raw:${JSON.stringify(entry)}`;
+  }
+
+  const record = entry as Record<string, unknown>;
+
+  const recordId = firstFingerprintField(record, [
+    "id",
+    "record_id",
+    "recordId",
+    "_id",
+    "breach_id",
+    "breachId",
+    "entry_id",
+    "entryId",
+  ]);
+  const database = normalizeFingerprintPart(
+    firstFingerprintField(record, [
+      "database",
+      "databank",
+      "breach",
+      "breach_name",
+      "dbname",
+      "origin",
+      "title",
+      "collection",
+      "source",
+    ]),
+  );
+
+  // Prefer explicit record ids when present (cross-provider same dump row).
+  if (recordId.length >= 6) {
+    return `id:${normalizeFingerprintPart(recordId)}|${database}`;
+  }
+
+  const logId = firstFingerprintField(record, [
+    "log_id",
+    "logId",
+    "machine_id",
+    "machineId",
+    "stealer_id",
+    "stealerId",
+    "archive_id",
+    "archiveId",
+  ]);
+  const email = normalizeFingerprintPart(
+    firstFingerprintField(record, ["email", "mail", "mail_address"]),
+  );
+  const username = normalizeFingerprintPart(
+    firstFingerprintField(record, [
+      "username",
+      "user",
+      "login",
+      "identifier",
+      "handle",
+      "name",
+    ]),
+  );
+  const password = firstFingerprintField(record, [
+    "password",
+    "pass",
+    "passwd",
+    "secret",
+    "hash",
+    "password_hash",
+    "encrypted_password",
+  ]);
+  const site = normalizeFingerprintPart(
+    firstFingerprintField(record, [
+      "url",
+      "url_str",
+      "site",
+      "domain",
+      "host",
+      "hostname",
+      "origin_url",
+    ]),
+  );
+  const phone = normalizeFingerprintPart(
+    firstFingerprintField(record, ["phone", "phone_number", "mobile", "tel"]),
+  );
+  const ip = normalizeFingerprintPart(
+    firstFingerprintField(record, ["ip", "ip_address", "ipAddress"]),
+  );
+  const discordId = normalizeFingerprintPart(
+    firstFingerprintField(record, [
+      "discord_id",
+      "discordid",
+      "discordId",
+      "user_id",
+      "userid",
+    ]),
+  );
+
+  const identity = email || username || phone || ip || discordId;
+
+  if (logId) {
+    return `stealer:${normalizeFingerprintPart(logId)}|${identity}|${password}|${site}`;
+  }
+
+  // Credential / breach tuple — require more than identity alone.
+  if (identity && (password || site || database)) {
+    return `cred:${identity}|${password}|${site}|${database}`;
+  }
+
+  if (identity) {
+    // Identity-only rows: keep distinct by remaining stable scalar fields.
+    const extras = [
+      firstFingerprintField(record, ["uuid", "steamid", "steamid64", "wallet"]),
+      firstFingerprintField(record, ["token", "raw"]),
+      firstFingerprintField(record, ["added_at", "breach_date", "date"]),
+    ]
+      .map(normalizeFingerprintPart)
+      .filter(Boolean)
+      .join("|");
+
+    return extras
+      ? `ident:${identity}|${extras}`
+      : `ident:${identity}|${stableObjectFingerprint(record)}`;
+  }
+
+  return `obj:${stableObjectFingerprint(record)}`;
+}
+
+function stableObjectFingerprint(record: Record<string, unknown>): string {
+  const parts: string[] = [];
+
+  for (const key of Object.keys(record).sort()) {
+    if (key.startsWith("_")) continue;
+    const value = record[key];
+
+    if (value == null) continue;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+
+      if (!trimmed || isBrandPlaceholderValue(trimmed)) continue;
+      parts.push(`${key}=${trimmed.toLowerCase()}`);
+      continue;
+    }
+    if (typeof value === "number" || typeof value === "boolean") {
+      parts.push(`${key}=${String(value)}`);
+      continue;
+    }
+  }
+
+  return parts.length > 0 ? parts.join("&") : JSON.stringify(record);
+}
+
+/** Drop exact/semantic duplicate intel rows; preserves first occurrence order. */
+export function dedupeIntelResults(results: unknown[]): unknown[] {
+  const seen = new Set<string>();
+  const out: unknown[] = [];
+
+  for (const entry of results) {
+    const key = intelResultFingerprint(entry);
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(entry);
+  }
+
+  return out;
+}
+
 /**
  * Keep only rows that clearly relate to the searched query.
  * Email searches must not return unrelated logins/passwords from the same dump.

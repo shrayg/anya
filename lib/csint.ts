@@ -7,6 +7,7 @@ import type { SanitizedBreachResponse } from "@/lib/osintcat";
 import type { CombCredential } from "@/lib/proxynova-comb";
 
 import {
+  intelResultFingerprint,
   isBrandPlaceholderValue,
   isIdentityFieldKey,
   isInternalSourceLabel,
@@ -32,7 +33,8 @@ import {
 const CSINT_BASE = "https://csint.pro/api";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
 const SHODAN_TIMEOUT_MS = 18_000;
-const MAX_ROWS = 100_000;
+/** Memory-safety ceiling only — return full hit sets up to this. */
+const MAX_ROWS = 250_000;
 const MAX_SHODAN_SERVICES = 48;
 const MAX_SHODAN_BANNER_CHARS = 1_500;
 
@@ -588,7 +590,7 @@ function payloadToSanitized(
     const scrubbed = scrubIntelRecord(row);
 
     if (!scrubbed) continue;
-    const key = JSON.stringify(scrubbed);
+    const key = intelResultFingerprint(scrubbed);
 
     if (seen.has(key)) continue;
     seen.add(key);
@@ -615,7 +617,7 @@ function mergeOptionalSanitized(
       const scrubbed = scrubIntelRecord(record);
 
       if (!scrubbed) continue;
-      const key = JSON.stringify(scrubbed);
+      const key = intelResultFingerprint(scrubbed);
 
       if (seen.has(key)) continue;
       seen.add(key);
@@ -672,7 +674,7 @@ function flattenUniversalResults(
       delete scrubbed.database;
       if (!scrubIntelRecord(scrubbed)) continue;
     }
-    const key = JSON.stringify(scrubbed);
+    const key = intelResultFingerprint(scrubbed);
 
     if (seen.has(key)) continue;
     seen.add(key);

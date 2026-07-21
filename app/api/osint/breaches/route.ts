@@ -45,7 +45,7 @@ import {
 } from "@/lib/proxynova-comb";
 
 /** Memory-safety ceiling only — never reintroduce 50/100 caps on paid indexes. */
-const BREACH_FANOUT_MAX_ROWS = 100_000;
+const BREACH_FANOUT_MAX_ROWS = 250_000;
 const COMBINED_GODSEYE_TIMEOUT_MS = 18_000;
 const COMBINED_CSINT_TIMEOUT_MS = 22_000;
 const COMBINED_BREACHHUB_TIMEOUT_MS = 36_000;

@@ -5,7 +5,7 @@ import {
 import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
 import { OSINT_PROVIDER_TIMEOUT_MS } from "@/lib/osint-search-guard";
 import { normalizeDomain } from "@/lib/domain-search";
-import { scrubIntelResults } from "@/lib/intel-record";
+import { dedupeIntelResults, scrubIntelResults } from "@/lib/intel-record";
 
 const OSINTCAT_BASE = "https://www.osintcat.net/api";
 
@@ -120,21 +120,15 @@ export function sanitizeBreachResponse(
 export function mergeSanitizedResponses(
   ...responses: SanitizedBreachResponse[]
 ): SanitizedBreachResponse {
-  const seen = new Set<string>();
   const results: unknown[] = [];
 
   for (const response of responses) {
     for (const entry of response.results) {
-      const key = JSON.stringify(entry);
-
-      if (seen.has(key)) continue;
-
-      seen.add(key);
       results.push(entry);
     }
   }
 
-  const scrubbed = scrubIntelResults(results);
+  const scrubbed = dedupeIntelResults(scrubIntelResults(results));
 
   return { count: scrubbed.length, results: scrubbed };
 }

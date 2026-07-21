@@ -24,6 +24,7 @@ import {
 } from "@/lib/osintcat";
 import {
   isBrandPlaceholderValue,
+  intelResultFingerprint,
   scrubIntelRecord,
   scrubIntelResults,
   filterIntelResultsForQuery,
@@ -49,9 +50,9 @@ import {
 const BREACHHUB_BASE = "https://breachhub.org";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
 /** Soft memory ceiling across a single upstream payload (not a UX page size). */
-const MAX_ROWS = 100_000;
+const MAX_ROWS = 250_000;
 /** Per nested list / source bucket — keep large email hit sets intact. */
-const MAX_ROWS_PER_SOURCE = 50_000;
+const MAX_ROWS_PER_SOURCE = 250_000;
 /** Identical path+params within one process — avoids duplicate stealer/victim hits. */
 const BREACHHUB_GET_CACHE_TTL_MS = 45_000;
 /** Seeknow can be slow; give it enough time to return large pages. */
@@ -594,7 +595,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query, kind) => ({
       query,
       type: kind === "auto" ? "email" : kind,
-      limit: "50000",
+      limit: "250000",
     }),
   },
   {
@@ -604,7 +605,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "data_breach",
     modes: ["additive"],
     kinds: ["email", "username", "domain"],
-    buildParams: (query) => ({ query, type: "stealer", limit: "50000" }),
+    buildParams: (query) => ({ query, type: "stealer", limit: "250000" }),
   },
   {
     id: "seeknow-stealer-legacy",
@@ -612,7 +613,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "data_breach",
     modes: ["additive"],
     kinds: ["email", "username", "domain"],
-    buildParams: (query) => ({ query, limit: "50000" }),
+    buildParams: (query) => ({ query, limit: "250000" }),
   },
   {
     id: "seekria-email-breach",
@@ -2380,7 +2381,19 @@ export function extractBreachHubRows(
     }
   }
 
-  return rows.slice(0, MAX_ROWS);
+  const seen = new Set<string>();
+  const deduped: Record<string, unknown>[] = [];
+
+  for (const row of rows) {
+    const key = intelResultFingerprint(row);
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(row);
+    if (deduped.length >= MAX_ROWS) break;
+  }
+
+  return deduped;
 }
 
 function reportedCount(payload: Record<string, unknown>): number | undefined {

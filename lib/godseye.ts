@@ -6,7 +6,7 @@ import {
   sanitizePublicContent,
   sanitizePublicText,
 } from "@/lib/public-branding";
-import { isInternalSourceLabel, scrubIntelResults } from "@/lib/intel-record";
+import { isInternalSourceLabel, intelResultFingerprint, scrubIntelResults } from "@/lib/intel-record";
 import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
 import { OSINT_PROVIDER_TIMEOUT_MS } from "@/lib/osint-search-guard";
 import { normalizeDomain } from "@/lib/domain-search";
@@ -249,7 +249,7 @@ function pushUniqueRecord(
   entry: unknown,
 ) {
   const tagged = tagIntelRecord(entry);
-  const key = JSON.stringify(tagged);
+  const key = intelResultFingerprint(tagged);
 
   if (seen.has(key)) return;
 

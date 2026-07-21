@@ -7,12 +7,13 @@ import {
   publicServiceUnavailable,
   sanitizePublicText,
 } from "@/lib/public-branding";
-import { extractDatabank, isInternalSourceLabel } from "@/lib/intel-record";
+import { dedupeIntelResults, extractDatabank, isInternalSourceLabel } from "@/lib/intel-record";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 const BREACHVIP_SEARCH_URL = "https://breach.vip/api/search";
 const DEFAULT_TIMEOUT_MS = 25_000;
-const MAX_RESULT_ROWS = 100_000;
+/** Memory-safety ceiling only — return full hit sets up to this. */
+const MAX_RESULT_ROWS = 250_000;
 
 const MC_UUID_RE =
   /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
@@ -181,10 +182,12 @@ export function breachVipToSanitizedResponse(
     return { count: 0, results: [] };
   }
 
-  const results = result.results.map((row) => sanitizeBreachVipRecord(row));
+  const results = dedupeIntelResults(
+    result.results.map((row) => sanitizeBreachVipRecord(row)),
+  );
 
   return {
-    count: result.totalMatches || results.length,
+    count: Math.max(result.totalMatches || 0, results.length),
     results,
   };
 }
