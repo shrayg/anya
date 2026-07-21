@@ -129,15 +129,75 @@ export function ModuleCatalog({
   sections,
   showStatus = false,
   emptyLabel = "No modules match that filter.",
+  variant = "cards",
 }: {
   sections: ModuleCatalogSection[];
   showStatus?: boolean;
   emptyLabel?: string;
+  variant?: "cards" | "mindmap";
 }) {
   if (sections.length === 0) {
     return (
       <div className="mod-empty">
         <p>{emptyLabel}</p>
+      </div>
+    );
+  }
+
+  if (variant === "mindmap") {
+    return (
+      <div className="mod-map" role="list">
+        <div className="mod-map-hub">
+          <span className="mod-map-hub-dot" />
+          <p>Investigation graph</p>
+          <strong>{sections.reduce((sum, section) => sum + section.items.length, 0)} modules</strong>
+        </div>
+
+        <div className="mod-map-grid">
+          {sections.map((section, index) => (
+            <section
+              key={section.title}
+              className={clsx(
+                "mod-map-node",
+                `mod-map-node--n${(index % 3) + 1}`,
+                section.featured && "mod-map-node--featured",
+              )}
+              role="listitem"
+            >
+              <header className="mod-map-node-head">
+                <h3>{section.title}</h3>
+                <span>{section.items.length}</span>
+              </header>
+              {section.description ? (
+                <p className="mod-map-node-desc">{section.description}</p>
+              ) : null}
+              <div className="mod-map-node-items">
+                {section.items.map((item) => (
+                  <Link
+                    key={item.slug}
+                    className="mod-map-item"
+                    href={`/dashboard/search/${item.slug}`}
+                  >
+                    <span className="mod-map-item-icon">
+                      <ModuleIcon name={item.name} />
+                    </span>
+                    <span className="mod-map-item-copy">
+                      <strong>{item.name}</strong>
+                      <small>{item.hint}</small>
+                    </span>
+                    <span className="mod-map-item-meta">
+                      {showStatus ? (
+                        <ModuleStatusDot slug={item.slug} />
+                      ) : (
+                        <ArrowUpRight className="size-3.5" />
+                      )}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
     );
   }

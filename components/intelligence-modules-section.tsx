@@ -135,7 +135,7 @@ export function IntelligenceModulesSection() {
         </p>
       </div>
 
-      <ModuleCatalog sections={filtered} />
+      <ModuleCatalog sections={filtered} variant="mindmap" />
     </section>
   );
 }
