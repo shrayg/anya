@@ -2036,6 +2036,75 @@ html[data-splash="active"] [data-splash-target] {
   gap: 1rem;
 }
 
+.anya-stealer-view-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.65rem;
+  background: rgba(12, 12, 14, 0.85);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.anya-stealer-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 650;
+  color: #a1a1aa;
+  background: transparent;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.anya-stealer-view-tab:hover {
+  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.anya-stealer-view-tab--active {
+  color: #f4f4f5;
+  border-color: color-mix(in srgb, var(--anya-blush) 28%, transparent);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.anya-stealer-view-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #d4d4d8;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.anya-stealer-view-tab--active .anya-stealer-view-count {
+  color: var(--anya-blush);
+  background: color-mix(in srgb, var(--anya-blush) 12%, transparent);
+}
+
+.anya-stealer-empty-pane {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 1.1rem 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #a1a1aa;
+}
+
 .anya-stealer-card {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;

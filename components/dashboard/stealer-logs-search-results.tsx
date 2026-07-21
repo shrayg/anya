@@ -30,6 +30,7 @@ import { countFileNodes } from "@/lib/stealer-logs-view";
 const CRED_PAGE = 5;
 const DEVICE_PAGE = 4;
 
+type ResultsPane = "credentials" | "machines";
 type DeviceTab = "files" | "summary" | "properties" | "cookies";
 
 function PaginationBar({
@@ -577,6 +578,11 @@ export function StealerLogsSearchResults({
   totalCredentialCount?: number;
   fallbackRecords?: FormattedRecord[];
 }) {
+  const [pane, setPane] = useState<ResultsPane>(() =>
+    archives.length > 0 && credentials.length === 0
+      ? "machines"
+      : "credentials",
+  );
   const [credPage, setCredPage] = useState(1);
   const [devicePage, setDevicePage] = useState(1);
   const [openDevice, setOpenDevice] = useState<string | null>(null);
@@ -586,6 +592,12 @@ export function StealerLogsSearchResults({
   const credCount = totalCredentialCount ?? credentials.length;
   const credPageCount = Math.max(1, Math.ceil(credentials.length / CRED_PAGE));
   const devicePageCount = Math.max(1, Math.ceil(archives.length / DEVICE_PAGE));
+
+  useEffect(() => {
+    if (archives.length > 0 && credentials.length === 0) {
+      setPane("machines");
+    }
+  }, [archives.length, credentials.length]);
 
   const visibleCreds = useMemo(() => {
     const start = (credPage - 1) * CRED_PAGE;
@@ -676,7 +688,41 @@ export function StealerLogsSearchResults({
 
   return (
     <div className="anya-stealer-results">
-      {credentials.length > 0 ? (
+      <div className="anya-stealer-view-toggle" role="tablist">
+        <button
+          aria-selected={pane === "credentials"}
+          className={clsx(
+            "anya-stealer-view-tab",
+            pane === "credentials" && "anya-stealer-view-tab--active",
+          )}
+          role="tab"
+          type="button"
+          onClick={() => setPane("credentials")}
+        >
+          Credentials
+          <span className="anya-stealer-view-count">
+            {credCount.toLocaleString()}
+          </span>
+        </button>
+        <button
+          aria-selected={pane === "machines"}
+          className={clsx(
+            "anya-stealer-view-tab",
+            pane === "machines" && "anya-stealer-view-tab--active",
+          )}
+          role="tab"
+          type="button"
+          onClick={() => setPane("machines")}
+        >
+          <Monitor className="size-3.5" />
+          Machine view
+          <span className="anya-stealer-view-count">
+            {archives.length.toLocaleString()}
+          </span>
+        </button>
+      </div>
+
+      {pane === "credentials" ? (
         <section className="anya-stealer-card">
           <header className="anya-stealer-card-head">
             <p className="anya-stealer-stat">
@@ -691,60 +737,67 @@ export function StealerLogsSearchResults({
             ) : null}
           </header>
 
-          <div className="anya-stealer-table-wrap">
-            <table className="anya-stealer-table">
-              <thead>
-                <tr>
-                  <th>Site</th>
-                  <th>Username</th>
-                  <th>Password</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleCreds.map((row, i) => (
-                  <tr key={`${row.site}-${row.username}-${i}`}>
-                    <td>
-                      <BlurredValue
-                        forceBlur={blurResults}
-                        text={row.site || "—"}
-                      />
-                    </td>
-                    <td>
-                      <BlurredValue
-                        forceBlur={blurResults}
-                        text={row.username || "—"}
-                      />
-                    </td>
-                    <td>
-                      <BlurredValue
-                        forceBlur={blurResults}
-                        text={row.password || "—"}
-                      />
-                    </td>
-                    <td className="text-zinc-500">{row.date || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {credentials.length === 0 ? (
+            <p className="anya-stealer-empty-pane">
+              No flattened credentials for this query. Check Machine view for
+              infected devices, or related intel below.
+            </p>
+          ) : (
+            <>
+              <div className="anya-stealer-table-wrap">
+                <table className="anya-stealer-table">
+                  <thead>
+                    <tr>
+                      <th>Site</th>
+                      <th>Username</th>
+                      <th>Password</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleCreds.map((row, i) => (
+                      <tr key={`${row.site}-${row.username}-${i}`}>
+                        <td>
+                          <BlurredValue
+                            forceBlur={blurResults}
+                            text={row.site || "—"}
+                          />
+                        </td>
+                        <td>
+                          <BlurredValue
+                            forceBlur={blurResults}
+                            text={row.username || "—"}
+                          />
+                        </td>
+                        <td>
+                          <BlurredValue
+                            forceBlur={blurResults}
+                            text={row.password || "—"}
+                          />
+                        </td>
+                        <td className="text-zinc-500">{row.date || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-          <PaginationBar
-            page={credPage}
-            pageCount={credPageCount}
-            pageSize={CRED_PAGE}
-            onNext={() => setCredPage((p) => Math.min(credPageCount, p + 1))}
-            onPrev={() => setCredPage((p) => Math.max(1, p - 1))}
-          />
+              <PaginationBar
+                page={credPage}
+                pageCount={credPageCount}
+                pageSize={CRED_PAGE}
+                onNext={() =>
+                  setCredPage((p) => Math.min(credPageCount, p + 1))
+                }
+                onPrev={() => setCredPage((p) => Math.max(1, p - 1))}
+              />
+            </>
+          )}
         </section>
-      ) : null}
-
-      {archives.length > 0 ? (
+      ) : (
         <section className="anya-stealer-card">
           <header className="anya-stealer-archives-head">
-            <p className="anya-stealer-archives-label">
-              Linked stealer-log archives
-            </p>
+            <p className="anya-stealer-archives-label">Infected devices</p>
             <p className="anya-stealer-archives-sub">
               Browse files per device or download the full archive.
             </p>
@@ -754,86 +807,99 @@ export function StealerLogsSearchResults({
             <p className="mb-2 text-xs text-zinc-400">{archiveMsg}</p>
           ) : null}
 
-          <ul className="anya-stealer-device-list">
-            {visibleDevices.map((device, i) => {
-              const globalIndex = (devicePage - 1) * DEVICE_PAGE + i + 1;
+          {archives.length === 0 ? (
+            <div className="anya-stealer-empty-pane">
+              <Monitor className="mb-2 size-5 text-zinc-500" />
+              <p>
+                No infected devices linked for this query yet. Credential-only
+                indexes may return logins without a victim log ID — try another
+                query, or open credentials above.
+              </p>
+            </div>
+          ) : (
+            <>
+              <ul className="anya-stealer-device-list">
+                {visibleDevices.map((device, i) => {
+                  const globalIndex = (devicePage - 1) * DEVICE_PAGE + i + 1;
 
-              return (
-                <li key={device.logId} className="anya-stealer-device-item">
-                  <div className="anya-stealer-device-row">
-                    <div className="flex min-w-0 items-start gap-2">
-                      <Monitor className="mt-0.5 size-4 shrink-0 text-anya-accent" />
-                      <div className="min-w-0">
-                        <p className="anya-stealer-device-title">
-                          Infected device #{globalIndex}
-                          {device.label || device.machineId
-                            ? ` · ${device.label || device.machineId}`
-                            : ""}
-                        </p>
-                        {[
-                          device.os,
-                          device.malware,
-                          device.country,
-                          device.date?.slice(0, 10),
-                        ].filter(Boolean).length > 0 ? (
-                          <p className="anya-stealer-device-meta">
+                  return (
+                    <li key={device.logId} className="anya-stealer-device-item">
+                      <div className="anya-stealer-device-row">
+                        <div className="flex min-w-0 items-start gap-2">
+                          <Monitor className="mt-0.5 size-4 shrink-0 text-anya-accent" />
+                          <div className="min-w-0">
+                            <p className="anya-stealer-device-title">
+                              Infected device #{globalIndex}
+                              {device.label || device.machineId
+                                ? ` · ${device.label || device.machineId}`
+                                : ""}
+                            </p>
                             {[
                               device.os,
                               device.malware,
                               device.country,
                               device.date?.slice(0, 10),
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
-                        ) : null}
-                        <div className="flex min-w-0 items-center gap-1.5">
-                          <p className="anya-stealer-device-id truncate">
-                            <BlurredValue
-                              forceBlur={blurResults}
-                              text={device.logId}
-                            />
-                          </p>
-                          <ResultCopyButton compact text={device.logId} />
+                            ].filter(Boolean).length > 0 ? (
+                              <p className="anya-stealer-device-meta">
+                                {[
+                                  device.os,
+                                  device.malware,
+                                  device.country,
+                                  device.date?.slice(0, 10),
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            ) : null}
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              <p className="anya-stealer-device-id truncate">
+                                <BlurredValue
+                                  forceBlur={blurResults}
+                                  text={device.logId}
+                                />
+                              </p>
+                              <ResultCopyButton compact text={device.logId} />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="anya-stealer-device-actions">
+                          <button
+                            className="anya-stealer-btn anya-stealer-btn--ghost"
+                            type="button"
+                            onClick={() => setOpenDevice(device.logId)}
+                          >
+                            <Folder className="size-3.5" />
+                            Browse files
+                          </button>
+                          <button
+                            className="anya-stealer-btn anya-stealer-btn--solid"
+                            disabled={archivingId === device.logId}
+                            type="button"
+                            onClick={() => void handleArchive(device.logId)}
+                          >
+                            <Archive className="size-3.5" />
+                            Archive
+                          </button>
                         </div>
                       </div>
-                    </div>
-                    <div className="anya-stealer-device-actions">
-                      <button
-                        className="anya-stealer-btn anya-stealer-btn--ghost"
-                        type="button"
-                        onClick={() => setOpenDevice(device.logId)}
-                      >
-                        <Folder className="size-3.5" />
-                        Browse files
-                      </button>
-                      <button
-                        className="anya-stealer-btn anya-stealer-btn--solid"
-                        disabled={archivingId === device.logId}
-                        type="button"
-                        onClick={() => void handleArchive(device.logId)}
-                      >
-                        <Archive className="size-3.5" />
-                        Archive
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                    </li>
+                  );
+                })}
+              </ul>
 
-          <PaginationBar
-            page={devicePage}
-            pageCount={devicePageCount}
-            pageSize={DEVICE_PAGE}
-            onNext={() =>
-              setDevicePage((p) => Math.min(devicePageCount, p + 1))
-            }
-            onPrev={() => setDevicePage((p) => Math.max(1, p - 1))}
-          />
+              <PaginationBar
+                page={devicePage}
+                pageCount={devicePageCount}
+                pageSize={DEVICE_PAGE}
+                onNext={() =>
+                  setDevicePage((p) => Math.min(devicePageCount, p + 1))
+                }
+                onPrev={() => setDevicePage((p) => Math.max(1, p - 1))}
+              />
+            </>
+          )}
         </section>
-      ) : null}
+      )}
 
       {openDeviceEntry ? (
         <DeviceFileExplorerModal
