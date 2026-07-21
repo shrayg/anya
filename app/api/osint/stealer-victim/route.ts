@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
           logId,
           available: false,
           message:
-            "File manifest is not available for this device. Upstream returned no victim tree (OathNet + OsintCat).",
+            "File manifest is not available for this device. Upstream returned no victim tree (OathNet + OsintCat machine-viewer).",
           files: [],
         },
         { status: 502 },
@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
           label: manifest.label ?? null,
           machineId: manifest.machineId ?? null,
           message:
-            "File manifest is empty for this device. Upstream responded but included no file tree.",
+            "File manifest is empty for this device. Upstream responded but included no file tree (OsintCat machine index may be offline).",
           files: [],
         },
         { status: 502 },
@@ -141,12 +141,17 @@ export async function GET(req: NextRequest) {
       files: manifest.files,
     });
   } catch (err) {
+    const message =
+      err instanceof Error && err.message.trim()
+        ? err.message.trim()
+        : "File manifest is not available for this device.";
+
     return osintFailureResponse(err, {
       softEmpty: {
         logId,
         available: false,
         files: [],
-        message: "File manifest is not available for this device.",
+        message,
       },
     });
   }

@@ -183,7 +183,11 @@ function DeviceFileExplorerModal({
 
       try {
         const res = await apiFetch(
-          `/api/osint/stealer-victim?logId=${encodeURIComponent(device.logId)}&fileId=${encodeURIComponent(fileId)}&action=file&moduleSlug=stealer-logs`,
+          `/api/osint/stealer-victim?logId=${encodeURIComponent(device.logId)}&fileId=${encodeURIComponent(fileId)}&action=file&moduleSlug=stealer-logs${
+            device.machineId?.trim()
+              ? `&machineId=${encodeURIComponent(device.machineId.trim())}`
+              : ""
+          }`,
         );
         const data = (await res.json()) as {
           available?: boolean;
