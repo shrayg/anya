@@ -44,7 +44,6 @@ import {
   PlatformBrandIcon,
 } from "@/components/dashboard/platform-brand-icon";
 import { ModuleStatusDot } from "@/components/dashboard/module-status-dot";
-import { ProviderHealthPanel } from "@/components/dashboard/provider-health-panel";
 import { StaffBadge } from "@/components/dashboard/staff-badge";
 import { useDashboardSidebar } from "@/components/dashboard/dashboard-sidebar-context";
 import { LiquidGlassCard } from "@/components/ui/liquid-glass";
@@ -719,7 +718,6 @@ export function DashboardSidebar({ username }: { username: string }) {
               collapsed && "dash-sidebar-user--collapsed",
             )}
           >
-            <ProviderHealthPanel collapsed={collapsed} />
             <div className="flex min-w-0 items-center gap-2.5">
               <Link
                 className={clsx(
