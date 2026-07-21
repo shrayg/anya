@@ -48,21 +48,31 @@ function loadEnv() {
 
 loadEnv();
 
-const { buildModuleHealthLevels, buildModuleHealthMap, probeProviders } =
-  await import("../lib/module-health.ts");
+const {
+  buildModuleHealthLevels,
+  buildModuleHealthMap,
+  probeProvidersDetailed,
+  type ProviderHealth,
+} = await import("../lib/module-health.ts");
 
 const STORE_PATH = join(process.cwd(), "data", "provider-health.json");
 
 async function main() {
   const started = Date.now();
-  const providers = await probeProviders();
+  const detailed = await probeProvidersDetailed();
+  const providers = {} as ProviderHealth;
+
+  for (const row of detailed) {
+    providers[row.id] = row.ok;
+  }
+
   const modules = buildModuleHealthMap(providers);
   const levels = buildModuleHealthLevels(providers);
   const checkedAt = new Date().toISOString();
 
   const payload = {
     checkedAt,
-    providers,
+    providers: detailed,
     modules: levels,
     booleanModules: modules,
     elapsedMs: Date.now() - started,
@@ -71,8 +81,12 @@ async function main() {
   mkdirSync(dirname(STORE_PATH), { recursive: true });
   writeFileSync(STORE_PATH, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 
-  const providerLines = Object.entries(providers)
-    .map(([id, ok]) => `  ${ok ? "OK " : "DOWN"}  ${id}`)
+  const providerLines = detailed
+    .map((row) => {
+      const status = row.unprobed ? "SKIP" : row.ok ? "OK  " : "DOWN";
+
+      return `  ${status}  ${row.label.padEnd(18)} ${row.latencyMs}ms${row.error ? ` — ${row.error}` : ""}`;
+    })
     .join("\n");
 
   const downModules = Object.entries(levels)
@@ -94,11 +108,9 @@ async function main() {
   }
   console.log(`Wrote ${STORE_PATH}`);
 
-  const criticalDown = ["osintcat", "godseye", "breachhub", "csint"].some(
-    (id) => providers[id as keyof typeof providers] === false,
-  );
+  const anyDown = detailed.some((row) => !row.ok && !row.unprobed);
 
-  process.exitCode = criticalDown ? 1 : 0;
+  process.exitCode = anyDown ? 1 : 0;
 }
 
 main().catch((err) => {
