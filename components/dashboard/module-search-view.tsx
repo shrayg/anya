@@ -61,6 +61,9 @@ import {
 } from "@/components/dashboard/instagram-search-results";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
+import { StealerLogsSearchResults } from "@/components/dashboard/stealer-logs-search-results";
+import type { StealerArchiveEntry } from "@/lib/breachhub";
+import type { StealerCredentialRow } from "@/lib/stealer-logs-view";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
 import { DomainSearchResults } from "@/components/dashboard/domain-search-results";
 import {
@@ -260,6 +263,11 @@ export function ModuleSearchView({
   const [fivemResult, setFivemResult] = useState<FivemSearchResult | null>(
     null,
   );
+  const [stealerResult, setStealerResult] = useState<{
+    credentials: StealerCredentialRow[];
+    archives: StealerArchiveEntry[];
+    count?: number;
+  } | null>(null);
   const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(
     null,
   );
@@ -655,6 +663,7 @@ export function ModuleSearchView({
     setDiscordResult(null);
     setIntelxResult(null);
     setFivemResult(null);
+    setStealerResult(null);
     setRobloxResult(null);
     setInstagramResult(null);
     setInstagramEnriching(false);
@@ -1300,10 +1309,56 @@ export function ModuleSearchView({
           count?: number;
           message?: string;
           error?: string;
+          credentials?: StealerCredentialRow[];
+          archives?: StealerArchiveEntry[];
         };
         const results = Array.isArray(breachData.results)
           ? breachData.results
           : [];
+        const credentials = Array.isArray(breachData.credentials)
+          ? breachData.credentials
+          : [];
+        const archives = Array.isArray(breachData.archives)
+          ? breachData.archives
+          : [];
+
+        if (moduleDef.slug === "stealer-logs") {
+          if (
+            results.length === 0 &&
+            credentials.length === 0 &&
+            archives.length === 0
+          ) {
+            markNoResults(breachData.message || breachData.error);
+
+            return;
+          }
+
+          setStealerResult({
+            credentials,
+            archives,
+            count:
+              typeof breachData.count === "number"
+                ? breachData.count
+                : credentials.length || results.length,
+          });
+
+          if (results.length > 0 && credentials.length === 0) {
+            const formatted = formatSearchRecords(results);
+
+            if (formatted.length > 0) setRecords(formatted);
+          }
+
+          setResultCount(
+            typeof breachData.count === "number"
+              ? breachData.count
+              : Math.max(credentials.length, results.length, archives.length),
+          );
+          setRawResult(JSON.stringify(data, null, 2));
+          setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+          persistSearch(trimmed, moduleDef.slug, serialized);
+
+          return;
+        }
 
         if (results.length === 0) {
           markNoResults(breachData.message || breachData.error);
@@ -2045,6 +2100,7 @@ export function ModuleSearchView({
         discordResult ||
         intelxResult ||
         fivemResult ||
+        stealerResult ||
         robloxResult ||
         instagramResult ||
         (structuredResult && structuredResult.kind !== "site-pentest")) && (
@@ -2116,6 +2172,13 @@ export function ModuleSearchView({
               result={fivemResult}
               selectedExportIndex={selectedExportIndex}
               onSelectExportIndex={handleSelectExportIndex}
+            />
+          ) : stealerResult ? (
+            <StealerLogsSearchResults
+              archives={stealerResult.archives}
+              blurResults={blurResults}
+              credentials={stealerResult.credentials}
+              totalCredentialCount={stealerResult.count}
             />
           ) : robloxResult ? (
             <RobloxSearchResults

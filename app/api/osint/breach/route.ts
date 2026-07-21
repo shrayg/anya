@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
+import {
+  extractStealerArchives,
+  fetchBreachHubStealerVictims,
+} from "@/lib/breachhub";
 import { normalizeDomain } from "@/lib/domain-search";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import {
@@ -17,6 +21,11 @@ import {
   getPlatformSearchConfig,
   isGodsEyeOnlyPlatformConfig,
 } from "@/lib/platform-search";
+import {
+  archivesFromStealerResults,
+  extractStealerCredentialRows,
+  mergeStealerArchives,
+} from "@/lib/stealer-logs-view";
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "breach");
@@ -25,6 +34,7 @@ export async function GET(req: NextRequest) {
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
   const scope = req.nextUrl.searchParams.get("scope");
+  const moduleSlug = req.nextUrl.searchParams.get("moduleSlug")?.trim();
 
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
@@ -46,6 +56,8 @@ export async function GET(req: NextRequest) {
     count: 0,
     results: [] as unknown[],
     query,
+    credentials: [] as unknown[],
+    archives: [] as unknown[],
   };
 
   if (platform) {
@@ -83,14 +95,54 @@ export async function GET(req: NextRequest) {
 
   const domain = normalizeDomain(query);
   const searchQuery = domain ?? query;
+  const isStealerModule = !scope || moduleSlug === "stealer-logs";
 
   try {
-    const data = await withDeadline(
-      fetchCombinedStealerLogs(searchQuery, scope),
+    const [data, victims] = await withDeadline(
+      Promise.all([
+        fetchCombinedStealerLogs(searchQuery, scope),
+        isStealerModule
+          ? fetchBreachHubStealerVictims(searchQuery, 18_000).catch(() => [])
+          : Promise.resolve([]),
+      ]),
       OSINT_ROUTE_DEADLINE_MS,
     );
 
-    return NextResponse.json(data);
+    const results = Array.isArray(data.results) ? data.results : [];
+    const credentials = extractStealerCredentialRows(results);
+    const archives = mergeStealerArchives(
+      victims,
+      extractStealerArchives({ results }),
+      archivesFromStealerResults(results),
+    );
+
+    // Prefer nested credentials from victim archives when flat rows are empty.
+    const mergedCredentials =
+      credentials.length > 0
+        ? credentials
+        : extractStealerCredentialRows(
+            archives.flatMap((a) => a.credentials ?? []),
+          );
+
+    if (data.count === 0 && mergedCredentials.length === 0 && archives.length === 0) {
+      return NextResponse.json({
+        ...data,
+        credentials: [],
+        archives: [],
+        message: "No results were found.",
+      });
+    }
+
+    return NextResponse.json({
+      ...data,
+      count: Math.max(
+        typeof data.count === "number" ? data.count : 0,
+        results.length,
+        mergedCredentials.length,
+      ),
+      credentials: mergedCredentials,
+      archives,
+    });
   } catch (err) {
     return osintFailureResponse(err, { softEmpty });
   }

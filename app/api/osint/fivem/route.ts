@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
+import { fetchBreachHubSpecialty, isBreachHubEnabled } from "@/lib/breachhub";
 import { fetchDiscordProfile } from "@/lib/discord-profile";
 import {
   buildFivemSearchResult,
@@ -37,7 +38,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (!getGodsEyeApiKey()) {
+  const hasGodsEye = Boolean(getGodsEyeApiKey());
+  const hasBreachHub = isBreachHubEnabled();
+
+  if (!hasGodsEye && !hasBreachHub) {
     return NextResponse.json(
       {
         error: publicServiceUnavailable(),
@@ -48,20 +52,36 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [intel, profile] = await Promise.all([
-      fetchFivemIntel(query),
+    const [intel, profile, breachHub] = await Promise.all([
+      hasGodsEye
+        ? fetchFivemIntel(query)
+        : Promise.resolve({
+            searchData: null as null,
+            records: [] as unknown[],
+            warning: undefined as string | undefined,
+          }),
       fetchDiscordProfile(query).catch(() => null),
+      fetchBreachHubSpecialty("fivem", query).catch(() => null),
     ]);
+
+    const bhRecords =
+      breachHub && Array.isArray(breachHub.results) ? breachHub.results : [];
+    const records =
+      intel.records.length > 0
+        ? intel.records
+        : bhRecords.length > 0
+          ? bhRecords
+          : intel.records;
 
     const response = buildFivemSearchResult({
       discordId: query,
       searchData: intel.searchData,
-      records: intel.records,
+      records,
       profile,
       warning: intel.warning,
     });
 
-    if (!fivemHasResults(response)) {
+    if (!fivemHasResults(response) && bhRecords.length === 0) {
       const message = fivemErrorMessage(response);
 
       return NextResponse.json({

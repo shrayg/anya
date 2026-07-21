@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
+import {
+  fetchBreachHubDiscordToRoblox,
+  isBreachHubEnabled,
+} from "@/lib/breachhub";
 import { fetchCsintOathnetDiscordToRoblox, isCsintEnabled } from "@/lib/csint";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import {
@@ -37,7 +41,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (!isCsintEnabled()) {
+  if (!isBreachHubEnabled() && !isCsintEnabled()) {
     return NextResponse.json(
       { error: publicServiceUnavailable() },
       { status: 503 },
@@ -45,10 +49,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const account = await withDeadline(
-      fetchCsintOathnetDiscordToRoblox(query),
+    const [breachHub, csint] = await withDeadline(
+      Promise.all([
+        fetchBreachHubDiscordToRoblox(query).catch(() => null),
+        fetchCsintOathnetDiscordToRoblox(query).catch(() => null),
+      ]),
       OSINT_ROUTE_DEADLINE_MS,
     );
+
+    const account = breachHub ?? csint;
 
     if (!account) {
       return NextResponse.json({ ...NO_RESULTS, query });
@@ -58,6 +67,7 @@ export async function GET(req: NextRequest) {
       query,
       count: 1,
       results: [account],
+      source: breachHub ? "index" : "index",
     });
   } catch (err) {
     return osintFailureResponse(err, {

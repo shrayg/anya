@@ -117,6 +117,7 @@ async function fetchOptionalBreachHubUniversal(
     "roblox",
     "minecraft",
     "discord",
+    "discord-roblox",
     "telegram",
     "snapchat",
     "tiktok",
@@ -127,6 +128,11 @@ async function fetchOptionalBreachHubUniversal(
     "fivem",
     "xbox",
     "phone",
+    "email",
+    "domain",
+    "hwid",
+    "facebook",
+    "passport",
   ]);
 
   const tasks: Promise<SanitizedBreachResponse | null>[] = [

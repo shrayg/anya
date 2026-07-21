@@ -84,6 +84,7 @@ export function resolveOsintModuleSlug(
     "tinder-live": "tinder-live",
     "username-accounts": "account-finder",
     breachhub: "google-docs",
+    "stealer-victim": "stealer-logs",
   };
 
   return defaults[fallbackApiSegment] ?? null;

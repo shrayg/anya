@@ -21,6 +21,13 @@ const ALLOWED_SCOPES = new Set([
   "bin",
   "vin",
   "crypto",
+  "hwid",
+  "facebook",
+  "passport",
+  "telegram",
+  "twitter",
+  "fivem",
+  "discord-roblox",
 ]);
 
 export async function GET(req: NextRequest) {
@@ -36,10 +43,15 @@ export async function GET(req: NextRequest) {
   }
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
-  const scope =
+  const rawScope =
     req.nextUrl.searchParams.get("scope")?.trim() ||
     req.nextUrl.searchParams.get("endpoint")?.trim() ||
     "google-docs";
+  const scopeAliases: Record<string, string> = {
+    "facebook-id": "facebook",
+    "oathnet-roblox": "discord-roblox",
+  };
+  const scope = scopeAliases[rawScope] || rawScope;
 
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });

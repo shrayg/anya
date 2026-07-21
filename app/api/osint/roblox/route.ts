@@ -3,7 +3,7 @@ import type { RobloxSearchResult } from "@/lib/roblox-search";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-import { fetchBreachHubSpecialty } from "@/lib/breachhub";
+import { fetchBreachHubSpecialty, fetchBreachHubDiscordToRoblox } from "@/lib/breachhub";
 import { fetchCsintOathnetDiscordToRoblox } from "@/lib/csint";
 import { extractDiscordIdsFromResults } from "@/lib/discord-extract";
 import { isDiscordSnowflake, mergeSanitizedResponses } from "@/lib/osintcat";
@@ -24,13 +24,19 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [data, discordToRoblox, breachHub] = await Promise.all([
-      fetchGodsEyeOnlySearch(query, "roblox"),
-      isDiscordSnowflake(query)
-        ? fetchCsintOathnetDiscordToRoblox(query)
-        : Promise.resolve(null),
-      fetchBreachHubSpecialty("roblox", query).catch(() => null),
-    ]);
+    const [data, discordToRobloxBh, discordToRobloxCsint, breachHub] =
+      await Promise.all([
+        fetchGodsEyeOnlySearch(query, "roblox"),
+        isDiscordSnowflake(query)
+          ? fetchBreachHubDiscordToRoblox(query)
+          : Promise.resolve(null),
+        isDiscordSnowflake(query)
+          ? fetchCsintOathnetDiscordToRoblox(query)
+          : Promise.resolve(null),
+        fetchBreachHubSpecialty("roblox", query).catch(() => null),
+      ]);
+
+    const discordToRoblox = discordToRobloxBh ?? discordToRobloxCsint;
 
     const merged =
       breachHub && breachHub.count > 0

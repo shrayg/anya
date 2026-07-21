@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 import { fetchBreachVipSanitized } from "@/lib/breachvip";
-import { fetchBreachHubDiscord } from "@/lib/breachhub";
+import {
+  fetchBreachHubDiscord,
+  fetchBreachHubDiscordToRoblox,
+  fetchBreachHubSpecialty,
+} from "@/lib/breachhub";
 import { fetchCordCatQuery } from "@/lib/cordcat";
 import {
   extractCsintDiscordLookupLeaks,
@@ -139,10 +143,12 @@ export async function GET(req: NextRequest) {
       breachVipLeaks,
       csintOsint,
       csintLookup,
-      robloxLink,
+      robloxLinkCsint,
+      robloxLinkBh,
       fivemIntel,
       cordQuery,
       breachHubLeaks,
+      breachHubFivem,
     ] = await withDeadline(
       Promise.all([
         fetchDiscordProfile(query),
@@ -159,12 +165,14 @@ export async function GET(req: NextRequest) {
         fetchCsintDiscordOsint(query).catch(() => null),
         fetchCsintDiscordLookup(query).catch(() => null),
         fetchCsintOathnetDiscordToRoblox(query).catch(() => null),
+        fetchBreachHubDiscordToRoblox(query).catch(() => null),
         fetchFivemIntel(query).catch(() => ({
           searchData: null,
           records: [] as unknown[],
         })),
         fetchCordCatQuery(query).catch(() => null),
         fetchBreachHubDiscord(query).catch(() => null),
+        fetchBreachHubSpecialty("fivem", query).catch(() => null),
       ]),
       OSINT_ROUTE_DEADLINE_MS,
     );
@@ -186,8 +194,16 @@ export async function GET(req: NextRequest) {
 
     const fivemFromGodsEye = fivemIntel.records ?? [];
     const fivemFromCord = cordCatFivemRecords(cordQuery);
+    const fivemFromBh =
+      breachHubFivem && Array.isArray(breachHubFivem.results)
+        ? breachHubFivem.results
+        : [];
     const fivemMerged =
-      fivemFromGodsEye.length > 0 ? fivemFromGodsEye : fivemFromCord;
+      fivemFromGodsEye.length > 0
+        ? fivemFromGodsEye
+        : fivemFromBh.length > 0
+          ? fivemFromBh
+          : fivemFromCord;
     const cordFivemTotal =
       typeof cordQuery?.fivem?.data?.total === "number"
         ? cordQuery.fivem.data.total
@@ -198,13 +214,17 @@ export async function GET(req: NextRequest) {
       profile,
       leaks,
       fivem: {
-        count: Math.max(fivemMerged.length, cordFivemTotal),
+        count: Math.max(
+          fivemMerged.length,
+          cordFivemTotal,
+          breachHubFivem?.count ?? 0,
+        ),
         accounts: fivemMerged,
         bans: [],
       },
       dsa,
       enrichment: csintLookup,
-      robloxLink: normalizeRobloxLink(robloxLink, query),
+      robloxLink: normalizeRobloxLink(robloxLinkBh ?? robloxLinkCsint, query),
     };
 
     return NextResponse.json(response);

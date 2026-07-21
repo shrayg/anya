@@ -981,6 +981,31 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     },
   },
   {
+    id: "leaksight-hwid",
+    path: "/api/leaksight",
+    section: "intelligence_platform",
+    modes: ["specialty"],
+    kinds: ["username", "hash"],
+    buildParams: (query) => typeQuery("hwid", query),
+  },
+  {
+    id: "leaksight-facebook",
+    path: "/api/leaksight",
+    section: "intelligence_platform",
+    modes: ["specialty"],
+    kinds: ["username"],
+    // OpenAPI enum has no facebook type — searchstring accepts FB profile IDs.
+    buildParams: (query) => typeQuery("searchstring", query),
+  },
+  {
+    id: "leaksight-passport",
+    path: "/api/leaksight",
+    section: "intelligence_platform",
+    modes: ["specialty"],
+    kinds: ["username"],
+    buildParams: (query) => typeQuery("searchstring", query),
+  },
+  {
     id: "wentyn",
     path: "/api/wentyn",
     section: "intelligence_platform",
@@ -1259,6 +1284,14 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
         kind === "discord" ? "discord" : kind === "email" ? "email" : "username",
       query,
     }),
+  },
+  {
+    id: "reconly-fivem",
+    path: "/api/reconly",
+    section: "social_osint",
+    modes: ["specialty"],
+    kinds: ["discord", "username"],
+    buildParams: (query) => ({ mode: "fivem", query }),
   },
   {
     id: "seekria-email-osint",
@@ -1930,7 +1963,13 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "user_lookup",
     modes: ["specialty"],
     kinds: ["username"],
-    buildParams: (query) => ({ playerid: query }),
+    buildParams: (query): Record<string, string> | null => {
+      const cleaned = query.trim();
+
+      return /^\d+$/.test(cleaned)
+        ? { playerid: cleaned }
+        : { username: cleaned };
+    },
   },
 ];
 
@@ -2372,9 +2411,10 @@ export async function fetchBreachHubSpecialty(
     steam: ["breachhub-steam", "oathnet-steam"],
     xbox: ["breachhub-xbox", "oathnet-xbox", "seeknow-xbox"],
     roblox: [
+      "nbrs-roblox",
+      "seeknow-roblox",
       "oathnet-roblox",
       "seekria-roblox",
-      "seeknow-roblox",
       "osintbat-roblox",
       "intelbase-roblox",
       "indicia-roblox",
@@ -2387,6 +2427,8 @@ export async function fetchBreachHubSpecialty(
       "intelbase-minecraft",
     ],
     discord: [
+      "seeknow-discord-user",
+      "reconly",
       "discord-lookup",
       "discord-stalker",
       "cordcat",
@@ -2397,22 +2439,23 @@ export async function fetchBreachHubSpecialty(
       "intelbase-discord",
       "intelfetch-discord",
       "indicia-discord",
-      "reconly",
     ],
+    "discord-roblox": ["seeknow-discord-roblox", "oathnet-discord-roblox"],
     telegram: ["telegram-username", "telegram-phone"],
     snapchat: ["snapchat"],
     tiktok: ["tiktok", "seeknow-tiktok", "intelbase-tiktok", "indicia-tiktok"],
-    twitter: ["osintcat-twitter", "osintbat-twitter", "seeknow-twitter"],
+    twitter: ["seeknow-twitter", "osintcat-twitter", "osintbat-twitter"],
     reddit: ["room101-user", "room101-analyze", "seeknow-reddit", "intelbase-reddit"],
     github: ["github", "osintbat-github", "seeknow-github", "intelfetch-github", "intelbase-github"],
     instagram: ["instagram", "datavoid-instagram"],
-    fivem: ["breachhub-fivem"],
+    fivem: ["breachhub-fivem", "reconly-fivem"],
     phone: [
+      "seeknow-phone",
+      "nosint-search",
       "truecaller",
       "seon-phone",
       "osintbat-phone",
       "intelbase-phone",
-      "seeknow-phone",
       "telegram-phone",
     ],
     ip: [
@@ -2441,6 +2484,8 @@ export async function fetchBreachHubSpecialty(
       "shodan-dns",
     ],
     email: [
+      "seeknow-email-check",
+      "nosint-search",
       "oathnet-holehe",
       "oathnet-ghunt",
       "breachhub-email-osint",
@@ -2448,6 +2493,9 @@ export async function fetchBreachHubSpecialty(
       "seon-email",
       "seon-email-verification",
     ],
+    hwid: ["leaksight-hwid"],
+    facebook: ["leaksight-facebook", "osintbat-facebook-breach"],
+    passport: ["leaksight-passport"],
     crypto: ["breachhub-crypto"],
     "google-docs": ["breachhub-google-docs"],
     ganknow: ["breachhub-ganknow"],
@@ -2462,7 +2510,7 @@ export async function fetchBreachHubSpecialty(
   const kindHint =
     scope === "steam"
       ? "steam"
-      : scope === "discord"
+      : scope === "discord" || scope === "discord-roblox" || scope === "fivem"
         ? "discord"
         : scope === "ip"
           ? "ip"
@@ -2480,9 +2528,380 @@ export async function fetchBreachHubSpecialty(
                       ? "vin"
                       : scope === "google-docs"
                         ? "url"
-                        : "username";
+                        : scope === "hwid"
+                          ? "hash"
+                          : "username";
 
   return fetchBreachHubByIds(ids, query, kindHint, timeoutMs);
+}
+
+/** Discord ID → Roblox via BreachHub seeknow (preferred) + OathNet mirror. */
+export async function fetchBreachHubDiscordToRoblox(
+  discordId: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<Record<string, unknown> | null> {
+  if (!isBreachHubEnabled()) return null;
+
+  const cleaned = discordId.trim();
+
+  if (!cleaned || !DISCORD_ID_RE.test(cleaned)) return null;
+
+  const specialty = await fetchBreachHubSpecialty(
+    "discord-roblox",
+    cleaned,
+    timeoutMs,
+  );
+
+  if (specialty && specialty.results.length > 0) {
+    const first = specialty.results[0];
+
+    if (first && typeof first === "object" && !Array.isArray(first)) {
+      return { ...(first as Record<string, unknown>), discord_id: cleaned };
+    }
+  }
+
+  try {
+    const data = await breachHubGet(
+      "/api/seeknow/discord/to-roblox",
+      { discord_id: cleaned },
+      timeoutMs,
+    );
+    const rows = extractBreachHubRows(data);
+    const first = rows[0];
+
+    if (first) return { ...first, discord_id: cleaned };
+
+    const username =
+      asString(data.username) ||
+      asString(data.roblox_username) ||
+      asString(data.name);
+    const userId =
+      asString(data.userId) ||
+      asString(data.user_id) ||
+      asString(data.roblox_id);
+    const profileUrl =
+      asString(data.profileUrl) ||
+      asString(data.profile_url) ||
+      (userId ? `https://www.roblox.com/users/${userId}/profile` : "");
+
+    if (!username && !userId && !profileUrl) return null;
+
+    return {
+      ...(username ? { username } : {}),
+      ...(userId ? { userId } : {}),
+      ...(profileUrl ? { profileUrl } : {}),
+      discord_id: cleaned,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export type StealerArchiveEntry = {
+  logId: string;
+  label?: string;
+  machineId?: string;
+  os?: string;
+  date?: string;
+  malware?: string;
+  country?: string;
+  credentials?: Array<{
+    site?: string;
+    username?: string;
+    password?: string;
+    date?: string;
+  }>;
+  summary?: Record<string, unknown>;
+  properties?: Record<string, unknown>;
+  cookies?: unknown[];
+  files?: StealerFileNode[];
+};
+
+export type StealerFileNode = {
+  id?: string;
+  name: string;
+  type: "folder" | "file";
+  count?: number;
+  children?: StealerFileNode[];
+  path?: string;
+};
+
+function asLogId(record: Record<string, unknown>): string {
+  return (
+    asString(record.log_id) ||
+    asString(record.logId) ||
+    asString(record.id) ||
+    asString(record.machine_id) ||
+    asString(record.machineId) ||
+    asString(record.hwid) ||
+    ""
+  );
+}
+
+function normalizeCredentialRows(
+  list: unknown[],
+): NonNullable<StealerArchiveEntry["credentials"]> {
+  const out: NonNullable<StealerArchiveEntry["credentials"]> = [];
+
+  for (const item of list) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const row = item as Record<string, unknown>;
+    const site =
+      asString(row.url) ||
+      asString(row.site) ||
+      asString(row.domain) ||
+      asString(row.host);
+    const username =
+      asString(row.username) ||
+      asString(row.login) ||
+      asString(row.email) ||
+      asString(row.user);
+    const password =
+      asString(row.password) || asString(row.pass) || asString(row.secret);
+    const date =
+      asString(row.date) ||
+      asString(row.added_at) ||
+      asString(row.indexed_at) ||
+      asString(row.timestamp);
+
+    if (!site && !username && !password) continue;
+    out.push({
+      ...(site ? { site } : {}),
+      ...(username ? { username } : {}),
+      ...(password ? { password } : {}),
+      ...(date ? { date } : {}),
+    });
+  }
+
+  return out;
+}
+
+function normalizeFileTree(input: unknown): StealerFileNode[] {
+  if (!input) return [];
+
+  if (Array.isArray(input)) {
+    return input
+      .map((item): StealerFileNode | null => {
+        if (typeof item === "string") {
+          return { name: item, type: item.includes(".") ? "file" : "folder" };
+        }
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return null;
+        }
+        const node = item as Record<string, unknown>;
+        const name =
+          asString(node.name) ||
+          asString(node.filename) ||
+          asString(node.path) ||
+          asString(node.id);
+        if (!name) return null;
+        const children = normalizeFileTree(
+          node.children ?? node.files ?? node.entries ?? node.items,
+        );
+        const isFolder =
+          children.length > 0 ||
+          asString(node.type).toLowerCase() === "folder" ||
+          asString(node.kind).toLowerCase() === "dir" ||
+          Boolean(node.is_dir || node.isDir);
+        const count =
+          typeof node.count === "number"
+            ? node.count
+            : typeof node.items === "number"
+              ? node.items
+              : children.length || undefined;
+
+        return {
+          name,
+          type: isFolder ? "folder" : "file",
+          ...(asString(node.id) ? { id: asString(node.id) } : {}),
+          ...(asString(node.path) ? { path: asString(node.path) } : {}),
+          ...(count !== undefined ? { count } : {}),
+          ...(children.length ? { children } : {}),
+        };
+      })
+      .filter((n): n is StealerFileNode => Boolean(n));
+  }
+
+  if (typeof input === "object") {
+    const obj = input as Record<string, unknown>;
+
+    if (Array.isArray(obj.tree)) return normalizeFileTree(obj.tree);
+    if (Array.isArray(obj.files)) return normalizeFileTree(obj.files);
+    if (Array.isArray(obj.manifest)) return normalizeFileTree(obj.manifest);
+
+    // Flat map of folder → files
+    const nodes: StealerFileNode[] = [];
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        const children = normalizeFileTree(value);
+
+        nodes.push({
+          name: key,
+          type: "folder",
+          count: children.length,
+          children,
+        });
+      } else if (value && typeof value === "object") {
+        const children = normalizeFileTree(value);
+
+        nodes.push({
+          name: key,
+          type: children.length ? "folder" : "file",
+          ...(children.length
+            ? { count: children.length, children }
+            : {}),
+        });
+      }
+    }
+
+    return nodes;
+  }
+
+  return [];
+}
+
+export function extractStealerArchives(
+  payload: unknown,
+): StealerArchiveEntry[] {
+  if (!payload || typeof payload !== "object") return [];
+
+  const data = payload as Record<string, unknown>;
+  const lists: unknown[] = [];
+
+  for (const key of ["logs", "victims", "archives", "devices", "results"]) {
+    if (Array.isArray(data[key])) lists.push(...(data[key] as unknown[]));
+  }
+
+  if (lists.length === 0 && Array.isArray(payload)) {
+    lists.push(...payload);
+  }
+
+  const archives: StealerArchiveEntry[] = [];
+  const seen = new Set<string>();
+
+  for (const item of lists) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const row = item as Record<string, unknown>;
+    const logId = asLogId(row);
+
+    if (!logId || seen.has(logId)) continue;
+    seen.add(logId);
+
+    const creds = Array.isArray(row.credentials)
+      ? normalizeCredentialRows(row.credentials)
+      : undefined;
+    const files = normalizeFileTree(
+      row.files ?? row.tree ?? row.manifest ?? row.file_tree,
+    );
+
+    archives.push({
+      logId,
+      label: asString(row.machine_id) || asString(row.label) || undefined,
+      machineId: asString(row.machine_id) || asString(row.machineId) || undefined,
+      os: asString(row.os) || undefined,
+      date: asString(row.date) || asString(row.indexed_at) || undefined,
+      malware: asString(row.malware) || asString(row.stealer) || undefined,
+      country: asString(row.country) || undefined,
+      ...(creds?.length ? { credentials: creds } : {}),
+      ...(files.length ? { files } : {}),
+      ...(row.summary && typeof row.summary === "object"
+        ? { summary: row.summary as Record<string, unknown> }
+        : {}),
+      ...(row.properties && typeof row.properties === "object"
+        ? { properties: row.properties as Record<string, unknown> }
+        : {}),
+      ...(Array.isArray(row.cookies) ? { cookies: row.cookies } : {}),
+    });
+  }
+
+  return archives;
+}
+
+export async function fetchBreachHubStealerVictims(
+  query: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<StealerArchiveEntry[]> {
+  if (!isBreachHubEnabled()) return [];
+
+  try {
+    const data = await breachHubGet(
+      "/api/oathnet/victims",
+      { query: query.trim() },
+      timeoutMs,
+    );
+
+    return extractStealerArchives(data);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchBreachHubVictimManifest(
+  logId: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<StealerArchiveEntry | null> {
+  if (!isBreachHubEnabled() || !logId.trim()) return null;
+
+  try {
+    const data = await breachHubGet(
+      "/api/oathnet/victims/:log_id",
+      {},
+      timeoutMs,
+      { log_id: logId.trim() },
+    );
+    const archives = extractStealerArchives(data);
+
+    if (archives[0]) return { ...archives[0], logId: logId.trim() };
+
+    const files = normalizeFileTree(
+      data.files ?? data.tree ?? data.manifest ?? data.file_tree ?? data,
+    );
+
+    return {
+      logId: logId.trim(),
+      ...(files.length ? { files } : {}),
+      summary:
+        data.summary && typeof data.summary === "object"
+          ? (data.summary as Record<string, unknown>)
+          : stripMetaFields(data),
+      properties:
+        data.properties && typeof data.properties === "object"
+          ? (data.properties as Record<string, unknown>)
+          : undefined,
+      cookies: Array.isArray(data.cookies) ? data.cookies : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchBreachHubVictimArchiveUrl(
+  logId: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ downloadUrl?: string; payload?: Record<string, unknown> } | null> {
+  if (!isBreachHubEnabled() || !logId.trim()) return null;
+
+  try {
+    const data = await breachHubGet(
+      "/api/oathnet/victims/:log_id/archive",
+      {},
+      timeoutMs,
+      { log_id: logId.trim() },
+    );
+    const downloadUrl =
+      asString(data.download_url) ||
+      asString(data.url) ||
+      asString(data.archive_url) ||
+      asString(data.link);
+
+    return {
+      ...(downloadUrl ? { downloadUrl } : {}),
+      payload: stripMetaFields(data),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function breachHubRowsToCredentials(
