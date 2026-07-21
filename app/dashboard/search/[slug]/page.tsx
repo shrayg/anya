@@ -6,8 +6,15 @@ import { useEffect } from "react";
 
 import { ModuleComingSoon } from "@/components/dashboard/module-coming-soon";
 import { ModuleSearchView } from "@/components/dashboard/module-search-view";
+import {
+  CRYPTO_INTEL_UNIFIED_SLUG,
+} from "@/lib/crypto-intel/enabled";
 import { isLegacyPublicRecordsSlug } from "@/lib/public-records/source-options";
-import { getSearchModuleBySlug } from "@/lib/search-modules";
+import {
+  CRYPTO_INTEL_LEGACY_REDIRECT_SLUGS,
+  getCryptoIntelToolIdForLegacySlug,
+  getSearchModuleBySlug,
+} from "@/lib/search-modules";
 
 export default function ModuleSearchPage() {
   const params = useParams();
@@ -25,12 +32,19 @@ export default function ModuleSearchPage() {
     if (isLegacyPublicRecordsSlug(slug)) {
       router.replace("/dashboard/search/public-records");
     }
+    if (CRYPTO_INTEL_LEGACY_REDIRECT_SLUGS.has(slug.toLowerCase())) {
+      const tool = getCryptoIntelToolIdForLegacySlug(slug);
+      const qs = tool ? `?tool=${encodeURIComponent(tool)}` : "";
+
+      router.replace(`/dashboard/search/${CRYPTO_INTEL_UNIFIED_SLUG}${qs}`);
+    }
   }, [router, slug]);
 
   if (
     slug === "domains" ||
     slug === "breachbase" ||
-    isLegacyPublicRecordsSlug(slug)
+    isLegacyPublicRecordsSlug(slug) ||
+    CRYPTO_INTEL_LEGACY_REDIRECT_SLUGS.has(slug.toLowerCase())
   ) {
     return null;
   }

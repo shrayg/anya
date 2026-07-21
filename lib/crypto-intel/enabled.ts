@@ -6,15 +6,9 @@
  *
  * Defaults ON so the suite is tryable out of the box.
  *
- * When ON: Crypto Wallet, Crypto AI Analyse, and suite modules all live under
- * the Crypto Intel catalog/sidebar lane (no duplicates elsewhere).
- * When OFF: suite modules (CRYPTO_INTEL_MODULE_SLUGS) hide; legacy modules
- * (CRYPTO_INTEL_LEGACY_SLUGS) fall back to their pre-suite sections
- * (Financial & Assets / AI Intelligence).
- *
- * To remove the feature entirely later: delete `lib/crypto-intel/`,
- * `app/api/osint/crypto-{address,tx,risk,flow}/`, crypto-intel UI components,
- * and the "Crypto Intel" section registration in `lib/search-modules.ts`.
+ * When ON: unified Crypto Intel module (+ roadmap stubs) under Crypto Intel.
+ * When OFF: suite hides; legacy crypto-wallet / crypto-ai fall back to
+ * Financial & Assets / AI Intelligence if still registered.
  */
 
 function envFlagOff(value: string | undefined): boolean {
@@ -39,12 +33,28 @@ export function isCryptoIntelEnabled(): boolean {
 
 export const CRYPTO_INTEL_SECTION_TITLE = "Crypto Intel";
 
-/** Suite-only modules — hidden from catalog/routes when Crypto Intel is off. */
+/** Unified module slug — all wallet/tx tools live here as submodules. */
+export const CRYPTO_INTEL_UNIFIED_SLUG = "crypto-intel";
+
+/** Old per-tool slugs → tool id on the unified module. */
+export const CRYPTO_INTEL_LEGACY_TOOL_BY_SLUG: Record<string, string> = {
+  "crypto-wallet": "wallet",
+  "crypto-address": "address",
+  "crypto-tx": "tx",
+  "crypto-risk": "risk",
+  "crypto-flow": "flow",
+  "crypto-ai": "ai",
+  "crypto-full": "full",
+};
+
+/** Suite modules — hidden from catalog/routes when Crypto Intel is off. */
 export const CRYPTO_INTEL_MODULE_SLUGS = new Set([
+  CRYPTO_INTEL_UNIFIED_SLUG,
   "crypto-address",
   "crypto-tx",
   "crypto-risk",
   "crypto-flow",
+  "crypto-full",
   "crypto-holders",
   "crypto-cex-flows",
   "crypto-social",
@@ -72,4 +82,12 @@ export function isCryptoIntelLegacySlug(
   if (!slug) return false;
 
   return CRYPTO_INTEL_LEGACY_SLUGS.has(slug.toLowerCase());
+}
+
+export function isCryptoIntelUnifiedSlug(
+  slug: string | null | undefined,
+): boolean {
+  if (!slug) return false;
+
+  return slug.toLowerCase() === CRYPTO_INTEL_UNIFIED_SLUG;
 }

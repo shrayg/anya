@@ -49,6 +49,7 @@ export function resolveOsintModuleSlug(
     minecraft: "minecraft",
     fivem: "fivem",
     "crypto-wallet": "crypto-wallet",
+    "crypto-full": "crypto-intel",
     "crypto-address": "crypto-address",
     "crypto-tx": "crypto-tx",
     "crypto-risk": "crypto-risk",

@@ -295,6 +295,140 @@ pre,
   letter-spacing: -0.01em;
 }
 
+/* Constrained multi-field search — not full-bleed across the desk */
+.module-search-form {
+  width: 100%;
+  max-width: 34rem;
+}
+
+.module-search-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.module-search-field-row {
+  display: grid;
+  grid-template-columns: 7.75rem minmax(0, 1fr) 2.25rem;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.module-search-field-type {
+  width: 100%;
+  min-width: 0;
+  height: 2.65rem;
+  border-radius: var(--anya-radius-sm);
+  border: 1px solid var(--anya-hairline);
+  background: rgba(255, 255, 255, 0.035);
+  color: #e4e4e7;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0 0.55rem;
+}
+
+.module-search-field-type:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--anya-blush) 16%, transparent);
+}
+
+.module-search-field-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.module-search-field-remove {
+  display: inline-flex;
+  height: 2.65rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--anya-radius-sm);
+  border: 1px solid var(--anya-hairline);
+  background: rgba(255, 255, 255, 0.03);
+  color: #a1a1aa;
+  transition:
+    border-color 0.15s var(--anya-ease),
+    color 0.15s var(--anya-ease),
+    background 0.15s var(--anya-ease);
+}
+
+.module-search-field-remove:hover:not(:disabled) {
+  border-color: rgba(251, 113, 133, 0.45);
+  color: #fda4af;
+  background: rgba(251, 113, 133, 0.08);
+}
+
+.module-search-field-remove:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.module-search-form .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.module-search-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.module-search-add-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.85rem;
+}
+
+.module-search-form-submit-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.module-search-summary-form {
+  width: 100%;
+  max-width: 34rem;
+}
+
+@media (max-width: 640px) {
+  .module-search-field-row {
+    grid-template-columns: 1fr 2.25rem;
+    grid-template-areas:
+      "type remove"
+      "input input";
+  }
+
+  .module-search-field-type {
+    grid-area: type;
+  }
+
+  .module-search-field-input {
+    grid-area: input;
+  }
+
+  .module-search-field-remove {
+    grid-area: remove;
+    justify-self: end;
+  }
+}
+
 /* —— Marketing —— */
 .container {
   letter-spacing: -0.01em;

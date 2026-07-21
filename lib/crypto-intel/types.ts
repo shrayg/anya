@@ -93,5 +93,20 @@ export type CryptoFundFlowResult = {
   sources: string[];
 };
 
+export type CryptoFullSuiteResult = {
+  kind: "crypto-full";
+  query: string;
+  inputKind: "wallet" | "tx";
+  chainLabel: string | null;
+  wallet: CryptoWalletResult | null;
+  address: CryptoAddressIntelResult | null;
+  risk: CryptoRiskCheckResult | null;
+  flow: CryptoFundFlowResult | null;
+  tx: CryptoTxDeepDiveResult | null;
+  errors: Array<{ source: string; message: string }>;
+  disclaimer: string;
+  sources: string[];
+};
+
 export const CRYPTO_INTEL_DISCLAIMER =
   "Authorized OSINT / compliance research only. Uses public blockchain data and a static seed label list — not a substitute for commercial chain analytics or legal advice. Do not use to facilitate sanctions evasion or criminal activity.";

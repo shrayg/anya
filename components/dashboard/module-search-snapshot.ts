@@ -4,6 +4,7 @@ import type { CryptoWalletResult } from "@/lib/crypto-wallet";
 import type {
   CryptoAddressIntelResult,
   CryptoFundFlowResult,
+  CryptoFullSuiteResult,
   CryptoRiskCheckResult,
   CryptoTxDeepDiveResult,
 } from "@/lib/crypto-intel/types";
@@ -36,6 +37,7 @@ import type { SearchJobPayload } from "@/components/dashboard/search-jobs-contex
 
 export type StructuredSearchResult =
   | { kind: "crypto-wallet"; data: CryptoWalletResult }
+  | { kind: "crypto-full"; data: CryptoFullSuiteResult }
   | { kind: "crypto-address"; data: CryptoAddressIntelResult }
   | { kind: "crypto-tx"; data: CryptoTxDeepDiveResult }
   | { kind: "crypto-risk"; data: CryptoRiskCheckResult }

@@ -116,7 +116,7 @@ function readCategoryOpenMap(): Record<string, boolean> {
 const AI_BADGES: Record<string, string> = {
   "AI Search": "NEW",
   "AI Deep Scan": "NEW",
-  "Crypto AI Analyse": "NEW",
+  "Crypto Intel": "NEW",
 };
 
 const mainNav: NavItem[] = [

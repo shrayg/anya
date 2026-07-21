@@ -135,6 +135,11 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
     kind: "any",
     providers: ["builtin", "godseye", "csint", "breachhub"],
   },
+  "crypto-intel": {
+    kind: "any",
+    providers: ["builtin", "godseye", "csint", "breachhub", "osintcat"],
+  },
+  "crypto-full": { kind: "any", providers: ["builtin"] },
   "crypto-address": { kind: "any", providers: ["builtin"] },
   "crypto-tx": { kind: "any", providers: ["builtin"] },
   "crypto-risk": { kind: "any", providers: ["builtin"] },

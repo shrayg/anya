@@ -115,6 +115,11 @@ const MODULE_BRANDS: Record<string, BrandIconConfig> = {
     OutlineIcon: TbCurrencyBitcoin,
     color: "#F7931A",
   },
+  "Crypto Intel": {
+    Icon: TbCurrencyBitcoin,
+    OutlineIcon: TbCurrencyBitcoin,
+    color: "#F7931A",
+  },
   "Address Intel": { Icon: TbWallet, color: "#38BDF8" },
   "Tx Deep Dive": { Icon: TbFileSearch, color: "#22D3EE" },
   "Risk Check": { Icon: TbShieldExclamation, color: "#F87171" },

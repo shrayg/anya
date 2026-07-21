@@ -6,9 +6,11 @@ import type { CryptoWalletResult } from "@/lib/crypto-wallet";
 import type {
   CryptoAddressIntelResult,
   CryptoFundFlowResult,
+  CryptoFullSuiteResult,
   CryptoRiskCheckResult,
   CryptoTxDeepDiveResult,
 } from "@/lib/crypto-intel/types";
+import { detectCryptoInput } from "@/lib/crypto-intel/detect";
 import type { IbanLookupResult } from "@/lib/iban-lookup";
 import type { UsProviderSearchResult } from "@/lib/us-provider-directory";
 import type { VinDecodeResult } from "@/lib/vin-decode";
@@ -51,6 +53,7 @@ import { apiFetch } from "@/lib/csrf-client";
 import { SearchBarTour } from "@/components/search-bar-tour";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { CryptoWalletResults } from "@/components/dashboard/crypto-wallet-results";
+import { CryptoFullSuiteResults } from "@/components/dashboard/crypto-full-suite-results";
 import {
   CryptoAddressIntelResults,
   CryptoFundFlowResults,
@@ -136,6 +139,13 @@ import {
   type ModuleOptionalFilter,
   type SearchModuleDef,
 } from "@/lib/search-modules";
+import { ModuleSearchFields } from "@/components/dashboard/module-search-fields";
+import {
+  composeModuleSearchFields,
+  createSearchFieldRow,
+  defaultSearchFieldsForModule,
+  type ModuleSearchFieldRow,
+} from "@/lib/module-search-fields";
 import {
   DEFAULT_PUBLIC_RECORDS_SOURCES,
   type PublicRecordsSourceOptionId,
@@ -221,19 +231,13 @@ export function ModuleSearchView({
   } = useSearchJobs();
   const boundJobIdRef = useRef<string | null>(null);
 
-  const isAi = moduleDef.module === "ai";
-  const aiMode = (() => {
-    const fromModule = getAiModeForModule(moduleDef);
-
-    if (fromModule !== "auto" && fromModule !== "search") return fromModule;
-    if (fromModule === "search") return "search";
-
-    return aiModeFromSidebarItem(moduleDef.name);
-  })();
-  const isSummary = aiMode === "summary";
   const isPublicRecords = moduleDef.slug === "public-records";
+  const isCryptoIntel = moduleDef.slug === "crypto-intel";
 
   const [query, setQuery] = useState("");
+  const [searchFields, setSearchFields] = useState<ModuleSearchFieldRow[]>(() =>
+    defaultSearchFieldsForModule(moduleDef),
+  );
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [publicRecordsSources, setPublicRecordsSources] = useState<
@@ -244,14 +248,24 @@ export function ModuleSearchView({
   const [optionalFilterValues, setOptionalFilterValues] = useState<
     Partial<Record<ModuleOptionalFilter["id"], string>>
   >({});
-  const [showOptionalFilters, setShowOptionalFilters] = useState(false);
   const searchParams = useSearchParams();
+  const toolLockedRef = useRef(false);
 
   useEffect(() => {
     const prefill = searchParams.get("q")?.trim();
 
     if (prefill) {
       setQuery(prefill);
+      setSearchFields((prev) => {
+        if (prev.length === 0) {
+          return [createSearchFieldRow("query", prefill)];
+        }
+
+        const next = [...prev];
+        next[0] = { ...next[0]!, value: prefill };
+
+        return next;
+      });
       if (isPublicRecords) {
         const parts = prefill.split(/\s+/);
         setFirstName(parts[0] ?? "");
@@ -265,16 +279,65 @@ export function ModuleSearchView({
   );
 
   useEffect(() => {
-    setSelectedToolId(moduleDef.tools?.[0]?.id ?? "");
+    const fromUrl = searchParams.get("tool")?.trim();
+    const validTool = moduleDef.tools?.find((t) => t.id === fromUrl);
+    const initial = validTool?.id ?? moduleDef.tools?.[0]?.id ?? "";
+
+    setSelectedToolId(initial);
+    toolLockedRef.current = Boolean(validTool);
+  }, [moduleDef.slug, moduleDef.tools, searchParams]);
+
+  useEffect(() => {
+    setSearchFields(defaultSearchFieldsForModule(moduleDef));
     setOptionalFilterValues({});
-    setShowOptionalFilters(false);
     setShowPublicRecordsOptions(false);
     setPublicRecordsSources([...DEFAULT_PUBLIC_RECORDS_SOURCES]);
+    setQuery("");
     if (moduleDef.slug === "public-records") {
       setFirstName("");
       setLastName("");
     }
-  }, [moduleDef.slug, moduleDef.tools]);
+  }, [moduleDef.slug]);
+
+  const selectedTool = moduleDef.tools?.find(
+    (tool) => tool.id === selectedToolId,
+  );
+  const toolAiMode = selectedTool?.aiMode;
+  const isAi = moduleDef.module === "ai" || Boolean(toolAiMode);
+  const aiMode = (() => {
+    if (toolAiMode) return toolAiMode;
+
+    const fromModule = getAiModeForModule(moduleDef);
+
+    if (fromModule !== "auto" && fromModule !== "search") return fromModule;
+    if (fromModule === "search") return "search";
+
+    return aiModeFromSidebarItem(moduleDef.name);
+  })();
+  const isSummary = aiMode === "summary";
+
+  const composedFields = useMemo(
+    () => composeModuleSearchFields(searchFields, moduleDef),
+    [searchFields, moduleDef],
+  );
+
+  const cryptoDetection = useMemo(
+    () =>
+      isCryptoIntel
+        ? detectCryptoInput(composedFields.query || query)
+        : null,
+    [isCryptoIntel, composedFields.query, query],
+  );
+
+  useEffect(() => {
+    if (!isCryptoIntel || toolLockedRef.current) return;
+    if (!cryptoDetection || cryptoDetection.kind === "unknown") return;
+    if (!moduleDef.tools?.some((t) => t.id === cryptoDetection.suggestedToolId)) {
+      return;
+    }
+
+    setSelectedToolId(cryptoDetection.suggestedToolId);
+  }, [cryptoDetection, isCryptoIntel, moduleDef.tools]);
 
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
@@ -802,10 +865,30 @@ export function ModuleSearchView({
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const composed = isSummary
+      ? {
+          query: query.trim(),
+          firstName: "",
+          lastName: "",
+          optionalFilters: {},
+          hasInput: Boolean(query.trim()),
+        }
+      : composeModuleSearchFields(searchFields, moduleDef);
+
+    if (composed.firstName) setFirstName(composed.firstName);
+    if (composed.lastName) setLastName(composed.lastName);
+    setOptionalFilterValues(composed.optionalFilters);
+
     const nameQuery = isPublicRecords
-      ? [firstName, lastName].map((part) => part.trim()).filter(Boolean).join(" ")
-      : query;
-    const trimmed = composeModuleQuery(nameQuery, optionalFilterValues);
+      ? composed.query ||
+        [composed.firstName, composed.lastName]
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .join(" ")
+      : composed.query;
+    const trimmed = isPublicRecords
+      ? composeModuleQuery(nameQuery, composed.optionalFilters)
+      : composed.query;
 
     if (!trimmed) {
       setError(
@@ -817,9 +900,7 @@ export function ModuleSearchView({
       return;
     }
 
-    if (isPublicRecords) {
-      setQuery(nameQuery);
-    }
+    setQuery(trimmed);
 
     const searchQuery = isDatingAppSlug(moduleDef.slug)
       ? normalizeDatingQuery(trimmed, moduleDef.slug)
@@ -880,18 +961,18 @@ export function ModuleSearchView({
         return CRYPTO_WALLET_INVALID_MESSAGE;
       }
       if (
-        (activeType === "crypto-address" ||
+        (activeType === "crypto-full" ||
+          activeType === "crypto-address" ||
           activeType === "crypto-risk" ||
           activeType === "crypto-flow") &&
-        !detectCryptoChain(trimmed)
+        !detectCryptoChain(trimmed) &&
+        !(activeType === "crypto-full" && detectCryptoInput(trimmed).kind === "tx")
       ) {
         return CRYPTO_WALLET_INVALID_MESSAGE;
       }
       if (
         activeType === "crypto-tx" &&
-        !/^0x[a-fA-F0-9]{64}$/.test(trimmed) &&
-        !/^[a-fA-F0-9]{64}$/.test(trimmed) &&
-        !/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(trimmed)
+        detectCryptoInput(trimmed).kind !== "tx"
       ) {
         return "Paste an Ethereum 0x…64 hash, Bitcoin 64-hex txid, or Solana signature.";
       }
@@ -946,7 +1027,7 @@ export function ModuleSearchView({
         return "Enter a name to search (at least 2 characters).";
       }
       if (isPublicRecords) {
-        if (!firstName.trim() || !lastName.trim()) {
+        if (!composed.firstName.trim() || !composed.lastName.trim()) {
           return "Enter both a first name and a last name.";
         }
         if (publicRecordsSources.length === 0) {
@@ -1018,8 +1099,10 @@ export function ModuleSearchView({
 
     if (isAi) {
       try {
+        const aiModuleSlug =
+          toolAiMode === "crypto" ? "crypto-ai" : moduleDef.slug;
         const searchResponse = await fetch(
-          `/api/osint/ai?query=${encodeURIComponent(trimmed)}&mode=${aiMode}&moduleSlug=${encodeURIComponent(moduleDef.slug)}`,
+          `/api/osint/ai?query=${encodeURIComponent(trimmed)}&mode=${aiMode}&moduleSlug=${encodeURIComponent(aiModuleSlug)}`,
           { signal },
         );
         const data = (await searchResponse.json()) as AiIntelResult & {
@@ -1761,6 +1844,18 @@ export function ModuleSearchView({
         return;
       }
 
+      if (activeType === "crypto-full") {
+        commitSuccess({
+          structuredResult: {
+            kind: "crypto-full",
+            data: data as CryptoFullSuiteResult,
+          },
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
+
+        return;
+      }
+
       if (activeType === "crypto-address") {
         commitSuccess({
 
@@ -2362,7 +2457,10 @@ export function ModuleSearchView({
                         : "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300 hover:border-white/25"
                     }
                     type="button"
-                    onClick={() => setSelectedToolId(tool.id)}
+                    onClick={() => {
+                      toolLockedRef.current = true;
+                      setSelectedToolId(tool.id);
+                    }}
                   >
                     {tool.label}
                   </button>
@@ -2370,105 +2468,97 @@ export function ModuleSearchView({
               })}
             </div>
           ) : null}
+          {isCryptoIntel && cryptoDetection?.chainLabel ? (
+            <p className="mb-3 text-xs text-zinc-400">
+              Detected:{" "}
+              <span className="font-medium text-zinc-200">
+                {cryptoDetection.chainLabel}
+              </span>
+              {cryptoDetection.kind === "tx" ? " · transaction" : " · wallet"}
+                  {!toolLockedRef.current ? (
+                <span className="text-zinc-500">
+                  {" "}
+                  · routing to{" "}
+                  {cryptoDetection.suggestedToolId === "full"
+                    ? "Full intel"
+                    : cryptoDetection.suggestedToolId}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
           <form
             autoComplete="off"
-            className="relative flex flex-col gap-3 sm:flex-row sm:items-start"
+            className="relative"
             onSubmit={handleSearch}
           >
-            <AutofillDecoyFields />
-            {isPublicRecords ? (
-              <>
-                <input
-                  {...SEARCH_AUTOFILL_SHIELD}
-                  autoFocus
+            {isSummary ? (
+              <div className="module-search-summary-form space-y-3">
+                <AutofillDecoyFields />
+                <textarea
+                  {...TEXTAREA_AUTOFILL_SHIELD}
                   readOnly
-                  className="ui-input flex-1 font-mono text-sm"
+                  className="ui-input min-h-[7rem] w-full resize-y font-mono text-sm"
                   data-tour="search-input"
-                  name="osint-first-name"
-                  placeholder="First name"
-                  type="text"
-                  value={firstName}
-                  onChange={(event) => setFirstName(event.target.value)}
+                  name="osint-summary-query"
+                  placeholder="Paste intel, JSON, logs, or case notes…"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
                   onFocus={unlockAutofillShield}
                 />
-                <input
-                  {...SEARCH_AUTOFILL_SHIELD}
-                  readOnly
-                  className="ui-input flex-1 font-mono text-sm"
-                  name="osint-last-name"
-                  placeholder="Last name"
-                  type="text"
-                  value={lastName}
-                  onChange={(event) => setLastName(event.target.value)}
-                  onFocus={unlockAutofillShield}
-                />
-              </>
-            ) : isSummary ? (
-              <textarea
-                {...TEXTAREA_AUTOFILL_SHIELD}
-                readOnly
-                className="ui-input min-h-[7rem] flex-1 resize-y font-mono text-sm"
-                data-tour="search-input"
-                name="osint-summary-query"
-                placeholder="Paste intel, JSON, logs, or case notes…"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onFocus={unlockAutofillShield}
-              />
+                <div className="module-search-form-actions">
+                  <span />
+                  <button
+                    className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
+                    data-tour="search-submit"
+                    disabled={
+                      !query.trim() || isSearching || Boolean(moduleLocked)
+                    }
+                    type="submit"
+                  >
+                    {isSearching ? "Scanning…" : "Analyse"}
+                  </button>
+                </div>
+              </div>
             ) : (
-              <input
-                {...SEARCH_AUTOFILL_SHIELD}
-                autoFocus
-                readOnly
-                className="ui-input flex-1 font-mono text-sm"
-                data-tour="search-input"
-                name="osint-search-query"
-                placeholder={
-                  moduleDef.slug === "intelx"
-                    ? "Paste Storage ID or share URL…"
-                    : moduleDef.hint
+              <ModuleSearchFields
+                canSubmit={
+                  composedFields.hasInput &&
+                  !isSearching &&
+                  !moduleLocked
                 }
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onFocus={unlockAutofillShield}
+                disabled={Boolean(moduleLocked)}
+                extraActions={
+                  isPublicRecords ? (
+                    <button
+                      className="ui-btn shrink-0 sm:min-w-[6.5rem]"
+                      disabled={Boolean(moduleLocked)}
+                      type="button"
+                      onClick={() =>
+                        setShowPublicRecordsOptions((open) => !open)
+                      }
+                    >
+                      Options
+                      <span className="ml-1 text-[10px] text-zinc-500">
+                        ({publicRecordsSources.length})
+                      </span>
+                    </button>
+                  ) : null
+                }
+                fields={searchFields}
+                isSearching={isSearching}
+                moduleDef={moduleDef}
+                submitLabel={
+                  isAi
+                    ? "Analyse"
+                    : moduleDef.slug === "intelx"
+                      ? "Open"
+                      : isPublicRecords
+                        ? "Search"
+                        : "Run"
+                }
+                onChange={setSearchFields}
               />
             )}
-            <button
-              className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
-              data-tour="search-submit"
-              disabled={
-                (isPublicRecords
-                  ? !firstName.trim() || !lastName.trim()
-                  : !query.trim() && !optionalFilterValues.zip?.trim()) ||
-                isSearching ||
-                Boolean(moduleLocked)
-              }
-              type="submit"
-            >
-              {isSearching
-                ? "Scanning…"
-                : isAi
-                  ? "Analyse"
-                  : moduleDef.slug === "intelx"
-                    ? "Open"
-                    : isPublicRecords
-                      ? "Search"
-                      : "Run"}
-            </button>
-            {isPublicRecords ? (
-              <button
-                className="ui-btn shrink-0 sm:min-w-[6.5rem]"
-                disabled={Boolean(moduleLocked)}
-                type="button"
-                onClick={() => setShowPublicRecordsOptions((open) => !open)}
-              >
-                Options
-                <span className="ml-1 text-[10px] text-zinc-500">
-                  ({publicRecordsSources.length})
-                </span>
-              </button>
-            ) : null}
           </form>
 
           {isPublicRecords ? (
@@ -2478,48 +2568,6 @@ export function ModuleSearchView({
               onChange={setPublicRecordsSources}
               onClose={() => setShowPublicRecordsOptions(false)}
             />
-          ) : null}
-
-          {moduleDef.optionalFilters && moduleDef.optionalFilters.length > 0 ? (
-            <div className="mt-4 border-t border-white/10 pt-4">
-              <button
-                className="text-xs font-medium text-zinc-400 hover:text-zinc-200"
-                type="button"
-                onClick={() => setShowOptionalFilters((open) => !open)}
-              >
-                {showOptionalFilters ? "Hide" : "Show"} optional filters
-                <span className="ml-2 font-normal text-zinc-500">
-                  — leave blank for open-ended search
-                </span>
-              </button>
-              {showOptionalFilters ? (
-                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {moduleDef.optionalFilters.map((filter) => (
-                    <label key={filter.id} className="flex flex-col gap-1">
-                      <span className="text-[11px] uppercase tracking-wide text-zinc-500">
-                        {filter.label}
-                      </span>
-                      <input
-                        {...SEARCH_AUTOFILL_SHIELD}
-                        readOnly
-                        className="ui-input font-mono text-sm"
-                        name={`osint-filter-${filter.id}`}
-                        placeholder={filter.placeholder}
-                        type="text"
-                        value={optionalFilterValues[filter.id] ?? ""}
-                        onChange={(event) =>
-                          setOptionalFilterValues((prev) => ({
-                            ...prev,
-                            [filter.id]: event.target.value,
-                          }))
-                        }
-                        onFocus={unlockAutofillShield}
-                      />
-                    </label>
-                  ))}
-                </div>
-              ) : null}
-            </div>
           ) : null}
 
           {error && (
@@ -2749,6 +2797,11 @@ export function ModuleSearchView({
             />
           ) : structuredResult?.kind === "crypto-wallet" ? (
             <CryptoWalletResults
+              blurResults={blurResults}
+              result={structuredResult.data}
+            />
+          ) : structuredResult?.kind === "crypto-full" ? (
+            <CryptoFullSuiteResults
               blurResults={blurResults}
               result={structuredResult.data}
             />
