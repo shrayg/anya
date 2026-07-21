@@ -138,8 +138,28 @@ async function fetchBreachHubThenCsintBreach(
   godseyeType: GodsEyeSearchType | string,
   breachHubScope?: string | null,
 ): Promise<SanitizedBreachResponse | null> {
+  // Platform specialty modules: spend the BH budget on specialty fan-out, not
+  // additive breach indexes (those starve Seeknow/OathNet/etc. under the wall).
+  const specialtyOnly = Boolean(
+    breachHubScope &&
+      [
+        "roblox",
+        "minecraft",
+        "xbox",
+        "telegram",
+        "twitter",
+        "snapchat",
+        "tiktok",
+        "steam",
+        "discord-roblox",
+      ].includes(breachHubScope),
+  );
+
   const { value } = await withPrimaryFallback(
-    () => fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope),
+    () =>
+      fetchOptionalBreachHubUniversal(query, godseyeType, breachHubScope, {
+        specialtyOnly,
+      }),
     () => fetchOptionalCsintUniversal(query, godseyeType),
     (row) => Boolean(row && row.count > 0),
   );

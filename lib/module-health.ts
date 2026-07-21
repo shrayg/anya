@@ -157,7 +157,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
     kind: "any",
     providers: ["godseye", "breachvip", "csint", "breachhub"],
   },
-  xbox: { kind: "any", providers: ["breachhub"] },
+  xbox: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
   hwid: { kind: "any", providers: ["breachhub"] },
   "facebook-id": { kind: "any", providers: ["breachhub"] },
   passport: { kind: "any", providers: ["breachhub"] },

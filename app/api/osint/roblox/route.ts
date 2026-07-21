@@ -3,10 +3,9 @@ import type { RobloxSearchResult } from "@/lib/roblox-search";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-import { fetchBreachHubSpecialty } from "@/lib/breachhub";
 import { fetchOathnetDiscordToRoblox } from "@/lib/gateway-fallback";
 import { extractDiscordIdsFromResults } from "@/lib/discord-extract";
-import { isDiscordSnowflake, mergeSanitizedResponses } from "@/lib/osintcat";
+import { isDiscordSnowflake } from "@/lib/osintcat";
 import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
 
@@ -24,25 +23,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [data, discordToRoblox, breachHub] = await Promise.all([
-      fetchGodsEyeOnlySearch(query, "roblox"),
+    // GodsEye ∥ BreachHub specialty (via scope) → CSINT fallback. Do not call
+    // fetchBreachHubSpecialty again in parallel — that double-hit vendors.
+    const [data, discordToRoblox] = await Promise.all([
+      fetchGodsEyeOnlySearch(query, "roblox", undefined, "roblox"),
       isDiscordSnowflake(query)
         ? fetchOathnetDiscordToRoblox(query)
         : Promise.resolve(null),
-      fetchBreachHubSpecialty("roblox", query).catch(() => null),
     ]);
 
-    const merged =
-      breachHub && breachHub.count > 0
-        ? mergeSanitizedResponses(data, breachHub)
-        : data;
-
-    const linkedDiscordIds = extractDiscordIdsFromResults(merged.results).slice(
-      0,
-      MAX_LINKED_PROFILES,
-    );
-
-    const results = Array.isArray(merged.results) ? [...merged.results] : [];
+    const results = Array.isArray(data.results) ? [...data.results] : [];
 
     // When a Discord snowflake resolves a Roblox account but the Roblox index
     // is empty, surface that account as the sole result.
@@ -54,9 +44,14 @@ export async function GET(req: NextRequest) {
       results.length === 0
         ? 0
         : Math.max(
-            typeof merged.count === "number" ? merged.count : 0,
+            typeof data.count === "number" ? data.count : 0,
             results.length,
           );
+
+    const linkedDiscordIds = extractDiscordIdsFromResults(results).slice(
+      0,
+      MAX_LINKED_PROFILES,
+    );
 
     const response: RobloxSearchResult & {
       discordToRoblox?: Record<string, unknown>;

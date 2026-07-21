@@ -5,29 +5,14 @@ import {
   fetchBreachVipSanitized,
   resolveMinecraftBreachVipFields,
 } from "@/lib/breachvip";
-import { fetchBreachHubSpecialty, isBreachHubEnabled } from "@/lib/breachhub";
-import { fetchCsintMinecraft } from "@/lib/csint";
-import { fetchGodsEyeSearchResult, getGodsEyeApiKey } from "@/lib/godseye";
+import { getGodsEyeApiKey } from "@/lib/godseye";
+import { isBreachHubEnabled } from "@/lib/breachhub";
 import { isCsintEnabled } from "@/lib/csint";
 import { mergeSanitizedResponses } from "@/lib/osintcat";
+import { fetchGodsEyeOnlySearch } from "@/lib/osint-combined";
+import { shouldUseDirectBreachVip } from "@/lib/provider-dedupe";
 import { publicServiceUnavailable } from "@/lib/public-branding";
 import { osintFailureResponse } from "@/lib/osint-search-guard";
-
-function detectMinecraftCsintType(
-  query: string,
-): "username" | "email" | "ip" | "uuid" {
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(query)) return "email";
-  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(query)) return "ip";
-  if (
-    /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(
-      query,
-    )
-  ) {
-    return "uuid";
-  }
-
-  return "username";
-}
 
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "minecraft");
@@ -46,20 +31,22 @@ export async function GET(req: NextRequest) {
     const hasBreachHub = isBreachHubEnabled();
     const breachVipFields = resolveMinecraftBreachVipFields(query);
 
-    const [godseyeResult, breachVipResult, csintResult, breachHubResult] =
-      await Promise.allSettled([
-        hasGodsEye
-          ? fetchGodsEyeSearchResult("minecraft", query, 12_000)
-          : Promise.resolve({ count: 0, results: [] as unknown[] }),
-        fetchBreachVipSanitized(query, breachVipFields, { timeoutMs: 12_000 }),
-        fetchCsintMinecraft(query, detectMinecraftCsintType(query)),
-        fetchBreachHubSpecialty("minecraft", query),
-      ]);
+    // GodsEye ∥ BreachHub specialty→CSINT (sequential, no vendor double-hit).
+    // Direct BreachVIP only when BH is not primary.
+    const [platformResult, breachVipResult] = await Promise.allSettled([
+      fetchGodsEyeOnlySearch(query, "minecraft", undefined, "minecraft"),
+      shouldUseDirectBreachVip()
+        ? fetchBreachVipSanitized(query, breachVipFields, { timeoutMs: 12_000 })
+        : Promise.resolve({ count: 0, results: [] as unknown[] }),
+    ]);
 
     const parts = [];
 
-    if (godseyeResult.status === "fulfilled" && godseyeResult.value.count > 0) {
-      parts.push(godseyeResult.value);
+    if (
+      platformResult.status === "fulfilled" &&
+      platformResult.value.count > 0
+    ) {
+      parts.push(platformResult.value);
     }
 
     if (
@@ -69,26 +56,8 @@ export async function GET(req: NextRequest) {
       parts.push(breachVipResult.value);
     }
 
-    if (
-      csintResult.status === "fulfilled" &&
-      csintResult.value &&
-      csintResult.value.count > 0
-    ) {
-      parts.push(csintResult.value);
-    }
-
-    if (
-      breachHubResult.status === "fulfilled" &&
-      breachHubResult.value &&
-      breachHubResult.value.count > 0
-    ) {
-      parts.push(breachHubResult.value);
-    }
-
     if (parts.length > 0) {
-      const data = mergeSanitizedResponses(...parts);
-
-      return NextResponse.json(data);
+      return NextResponse.json(mergeSanitizedResponses(...parts));
     }
 
     if (
@@ -101,10 +70,10 @@ export async function GET(req: NextRequest) {
     }
 
     if (
-      godseyeResult.status === "rejected" &&
-      godseyeResult.reason instanceof Error
+      platformResult.status === "rejected" &&
+      platformResult.reason instanceof Error
     ) {
-      throw godseyeResult.reason;
+      throw platformResult.reason;
     }
 
     return NextResponse.json({

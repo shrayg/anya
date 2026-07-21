@@ -1140,7 +1140,16 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "social_osint",
     modes: ["specialty", "additive"],
     kinds: ["username"],
-    buildParams: (query) => ({ username: query }),
+    buildParams: (query): Record<string, string> | null => {
+      const cleaned = query.trim().replace(/^@/, "");
+
+      if (!cleaned) return null;
+
+      // OpenAPI: provide either user_id or username.
+      return /^\d+$/.test(cleaned)
+        ? { user_id: cleaned }
+        : { username: cleaned };
+    },
   },
   {
     id: "oathnet-mc",
@@ -1616,8 +1625,19 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     path: "/api/intelbase/roblox",
     section: "social_osint",
     modes: ["specialty"],
-    kinds: ["username"],
-    buildParams: (query) => typeQuery("username", query),
+    // OpenAPI accepts type=username | discord-id — also a Discord→Roblox path.
+    kinds: ["username", "discord"],
+    buildParams: (query, kind): Record<string, string> | null => {
+      const cleaned = query.trim().replace(/^@/, "");
+
+      if (!cleaned) return null;
+
+      if (kind === "discord" || DISCORD_ID_RE.test(cleaned)) {
+        return { type: "discord-id", query: cleaned };
+      }
+
+      return { type: "username", query: cleaned };
+    },
   },
   {
     id: "intelbase-reddit",
@@ -1909,7 +1929,13 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "user_lookup",
     modes: ["specialty", "additive"],
     kinds: ["username"],
-    buildParams: (query) => ({ query, mode: "username" }),
+    buildParams: (query): Record<string, string> | null => {
+      const cleaned = query.trim().replace(/^@/, "");
+
+      if (!cleaned || /^\d+$/.test(cleaned)) return null;
+
+      return { query: cleaned, mode: "username" };
+    },
   },
   {
     id: "telegram-id",
@@ -1917,7 +1943,14 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "user_lookup",
     modes: ["specialty"],
     kinds: ["username"],
-    buildParams: (query) => q(query),
+    buildParams: (query): Record<string, string> | null => {
+      const cleaned = query.trim().replace(/^@/, "");
+
+      // Prefer numeric Telegram IDs; still accept handles if username path skipped.
+      if (!cleaned) return null;
+
+      return { query: cleaned };
+    },
   },
   {
     id: "telegram-phone",
@@ -2891,39 +2924,94 @@ export async function fetchBreachHubByIds(
   );
 
   // Specialty / by-ids: enough budget for full related catalog, large payloads.
-  const perCall = Math.min(Math.max(timeoutMs, 14_000), 24_000);
-  const budget = Math.min(Math.max(timeoutMs, 20_000), 36_000);
+  const perCall = Math.min(Math.max(timeoutMs, 16_000), 28_000);
+  const budget = Math.min(Math.max(timeoutMs, 28_000), 42_000);
 
   return fanOutEndpoints(endpoints, query, kind, perCall, {
     minResults: 0,
     budgetMs: budget,
-    concurrency: 10,
+    concurrency: 12,
   });
 }
 
 /** Expand seed specialty IDs with every catalog endpoint matching the scope. */
 function expandSpecialtyIds(scope: string, seed: string[]): string[] {
+  // Discord→Roblox must NOT expand to every discord_* or roblox_* endpoint —
+  // that starved the real to-roblox converters and returned unrelated profiles.
+  if (scope === "discord-roblox") {
+    const discovered = BREACHHUB_ENDPOINTS.filter((endpoint) => {
+      if (
+        !endpoint.modes.includes("specialty") &&
+        !endpoint.modes.includes("additive")
+      ) {
+        return false;
+      }
+
+      const id = endpoint.id.toLowerCase();
+      const path = endpoint.path.toLowerCase();
+
+      return (
+        id.includes("discord-roblox") ||
+        id.includes("to-roblox") ||
+        path.includes("discord-to-roblox") ||
+        path.includes("/to-roblox") ||
+        path.includes("discord/to-roblox") ||
+        // IntelBase roblox accepts type=discord-id for the same pivot.
+        id === "intelbase-roblox"
+      );
+    }).map((endpoint) => endpoint.id);
+
+    return [...new Set([...seed, ...discovered])];
+  }
+
   const tokens = scope
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((token) => token.length >= 3);
   const extras =
-    scope === "discord-roblox"
-      ? ["discord", "roblox"]
-      : scope === "google-docs"
-        ? ["google", "docs"]
-        : [];
+    scope === "google-docs"
+      ? ["google", "docs"]
+      : scope === "minecraft"
+        ? ["mc-history", "hypixel"]
+        : scope === "twitter"
+          ? ["twitter-osint"]
+          : scope === "telegram"
+            ? ["telegram"]
+            : scope === "xbox"
+              ? ["xbox", "xbl"]
+              : [];
   const keys = [...new Set([...tokens, ...extras])];
 
   const discovered = BREACHHUB_ENDPOINTS.filter((endpoint) => {
-    if (!endpoint.modes.includes("specialty") && !endpoint.modes.includes("additive")) {
+    if (
+      !endpoint.modes.includes("specialty") &&
+      !endpoint.modes.includes("additive")
+    ) {
       return false;
     }
 
     const id = endpoint.id.toLowerCase();
     const path = endpoint.path.toLowerCase();
 
-    return keys.some((key) => id.includes(key) || path.includes(`/${key}`));
+    // Keep username Roblox lookups out of plain "roblox" discovery of
+    // discord-to-roblox converters (those need a Discord snowflake).
+    if (
+      scope === "roblox" &&
+      (id.includes("discord-roblox") ||
+        id.includes("to-roblox") ||
+        path.includes("discord-to-roblox") ||
+        path.includes("/to-roblox"))
+    ) {
+      return false;
+    }
+
+    return keys.some(
+      (key) =>
+        id.includes(key) ||
+        path.includes(`/${key}`) ||
+        path.includes(`-${key}`) ||
+        path.includes(`_${key}`),
+    );
   }).map((endpoint) => endpoint.id);
 
   return [...new Set([...seed, ...discovered])];
@@ -2936,7 +3024,12 @@ export async function fetchBreachHubSpecialty(
 ): Promise<SanitizedBreachResponse | null> {
   const map: Record<string, string[]> = {
     steam: ["breachhub-steam", "oathnet-steam"],
-    xbox: ["breachhub-xbox", "oathnet-xbox", "seeknow-xbox"],
+    xbox: [
+      "breachhub-xbox",
+      "oathnet-xbox",
+      "seeknow-xbox",
+      "seeknow-social",
+    ],
     roblox: [
       "nbrs-roblox",
       "seeknow-roblox",
@@ -2952,6 +3045,7 @@ export async function fetchBreachHubSpecialty(
       "seeknow-minecraft",
       "osintbat-minecraft",
       "intelbase-minecraft",
+      "seeknow-history",
     ],
     discord: [
       "seeknow-discord-user",
@@ -2967,8 +3061,12 @@ export async function fetchBreachHubSpecialty(
       "intelfetch-discord",
       "indicia-discord",
     ],
-    "discord-roblox": ["seeknow-discord-roblox", "oathnet-discord-roblox"],
-    telegram: ["telegram-username", "telegram-phone", "telegram-id"],
+    "discord-roblox": [
+      "seeknow-discord-roblox",
+      "oathnet-discord-roblox",
+      "intelbase-roblox",
+    ],
+    telegram: ["telegram-username", "telegram-id", "telegram-phone"],
     snapchat: ["snapchat", "seeknow-social"],
     tiktok: [
       "tiktok",
@@ -2982,6 +3080,7 @@ export async function fetchBreachHubSpecialty(
       "seeknow-social",
       "osintcat-twitter",
       "osintbat-twitter",
+      "seeknow-history",
     ],
     reddit: [
       "room101-user",
@@ -3071,22 +3170,90 @@ export async function fetchBreachHubSpecialty(
               ? "email"
               : scope === "phone"
                 ? "phone"
-                : scope === "crypto"
-                  ? "crypto"
-                  : scope === "bin"
-                    ? "bin"
-                    : scope === "vin"
-                      ? "vin"
-                      : scope === "google-docs"
-                        ? "url"
-                        : scope === "hwid"
-                          ? "hash"
-                          : "username";
+                : scope === "telegram"
+                  ? detectBreachHubQueryKind(query, null) === "phone"
+                    ? "phone"
+                    : "username"
+                  : scope === "crypto"
+                    ? "crypto"
+                    : scope === "bin"
+                      ? "bin"
+                      : scope === "vin"
+                        ? "vin"
+                        : scope === "google-docs"
+                          ? "url"
+                          : scope === "hwid"
+                            ? "hash"
+                            : "username";
 
   return fetchBreachHubByIds(ids, query, kindHint, timeoutMs);
 }
 
-/** Discord ID → Roblox via BreachHub seeknow (preferred) + OathNet mirror. */
+function looksLikeRobloxAccountRow(row: Record<string, unknown>): boolean {
+  const username =
+    asString(row.username) ||
+    asString(row.roblox_username) ||
+    asString(row.robloxUsername) ||
+    asString(row.displayName) ||
+    asString(row.name);
+  const userId =
+    asString(row.userId) ||
+    asString(row.user_id) ||
+    asString(row.roblox_id) ||
+    asString(row.robloxId) ||
+    asString(row.id);
+  const profileUrl =
+    asString(row.profileUrl) ||
+    asString(row.profile_url) ||
+    asString(row.url) ||
+    asString(row.link);
+
+  if (profileUrl && /roblox\.com/i.test(profileUrl)) return true;
+  if (userId && /^\d+$/.test(userId) && username) return true;
+  if (username && (asString(row.roblox_id) || asString(row.roblox_username))) {
+    return true;
+  }
+
+  return Boolean(username && userId);
+}
+
+function normalizeDiscordToRobloxRow(
+  row: Record<string, unknown>,
+  discordId: string,
+): Record<string, unknown> | null {
+  const username =
+    asString(row.username) ||
+    asString(row.roblox_username) ||
+    asString(row.robloxUsername) ||
+    asString(row.displayName);
+  const userId =
+    asString(row.userId) ||
+    asString(row.user_id) ||
+    asString(row.roblox_id) ||
+    asString(row.robloxId);
+  let profileUrl =
+    asString(row.profileUrl) ||
+    asString(row.profile_url) ||
+    asString(row.url) ||
+    asString(row.link);
+
+  if (profileUrl && !/roblox\.com/i.test(profileUrl)) profileUrl = "";
+  if (!profileUrl && userId && /^\d+$/.test(userId)) {
+    profileUrl = `https://www.roblox.com/users/${userId}/profile`;
+  }
+
+  if (!username && !userId && !profileUrl) return null;
+
+  return {
+    ...row,
+    ...(username ? { username } : {}),
+    ...(userId ? { userId } : {}),
+    ...(profileUrl ? { profileUrl } : {}),
+    discord_id: discordId,
+  };
+}
+
+/** Discord ID → Roblox via BreachHub seeknow / OathNet / IntelBase fan-out. */
 export async function fetchBreachHubDiscordToRoblox(
   discordId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
@@ -3104,10 +3271,27 @@ export async function fetchBreachHubDiscordToRoblox(
   );
 
   if (specialty && specialty.results.length > 0) {
+    for (const row of specialty.results) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+      const record = row as Record<string, unknown>;
+
+      if (!looksLikeRobloxAccountRow(record)) continue;
+
+      const normalized = normalizeDiscordToRobloxRow(record, cleaned);
+
+      if (normalized) return normalized;
+    }
+
+    // Specialty returned rows but none looked like Roblox — still try first.
     const first = specialty.results[0];
 
     if (first && typeof first === "object" && !Array.isArray(first)) {
-      return { ...(first as Record<string, unknown>), discord_id: cleaned };
+      const normalized = normalizeDiscordToRobloxRow(
+        first as Record<string, unknown>,
+        cleaned,
+      );
+
+      if (normalized) return normalized;
     }
   }
 
@@ -3120,29 +3304,18 @@ export async function fetchBreachHubDiscordToRoblox(
     const rows = extractBreachHubRows(data);
     const first = rows[0];
 
-    if (first) return { ...first, discord_id: cleaned };
+    if (first) {
+      const normalized = normalizeDiscordToRobloxRow(first, cleaned);
 
-    const username =
-      asString(data.username) ||
-      asString(data.roblox_username) ||
-      asString(data.name);
-    const userId =
-      asString(data.userId) ||
-      asString(data.user_id) ||
-      asString(data.roblox_id);
-    const profileUrl =
-      asString(data.profileUrl) ||
-      asString(data.profile_url) ||
-      (userId ? `https://www.roblox.com/users/${userId}/profile` : "");
+      if (normalized) return normalized;
+    }
 
-    if (!username && !userId && !profileUrl) return null;
-
-    return {
-      ...(username ? { username } : {}),
-      ...(userId ? { userId } : {}),
-      ...(profileUrl ? { profileUrl } : {}),
-      discord_id: cleaned,
-    };
+    return normalizeDiscordToRobloxRow(
+      data && typeof data === "object" && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {},
+      cleaned,
+    );
   } catch {
     return null;
   }
