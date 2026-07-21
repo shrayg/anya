@@ -600,7 +600,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
   },
   {
     id: "seeknow-stealer",
-    // Live OpenAPI exposes /api/seeknow/search (stealer-specific path is often absent).
+    // Status inventory supports type=stealer on /api/seeknow/search.
     path: "/api/seeknow/search",
     section: "data_breach",
     modes: ["additive"],
@@ -609,6 +609,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
   },
   {
     id: "seeknow-stealer-legacy",
+    // Status inventory still lists /api/seeknow/stealer (may 404 on some plans).
     path: "/api/seeknow/stealer",
     section: "data_breach",
     modes: ["additive"],
@@ -940,7 +941,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
       return null;
     },
   },
-  // OpenAPI only exposes GET /api/hudsonrock?email= — older subpaths 404.
+  // Live status inventory exposes richer HudsonRock paths; soft-fail if absent.
   {
     id: "hudsonrock",
     path: "/api/hudsonrock",
@@ -948,6 +949,38 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     modes: ["additive"],
     kinds: ["email"],
     buildParams: (query) => ({ email: query }),
+  },
+  {
+    id: "hudsonrock-login-emails",
+    path: "/api/hudsonrock/search-by-login/emails",
+    section: "intelligence_platform",
+    modes: ["additive"],
+    kinds: ["email"],
+    buildParams: (query) => ({ email: query }),
+  },
+  {
+    id: "hudsonrock-domain",
+    path: "/api/hudsonrock/search-by-domain",
+    section: "intelligence_platform",
+    modes: ["additive", "specialty"],
+    kinds: ["domain"],
+    buildParams: (query) => ({ domain: query }),
+  },
+  {
+    id: "hudsonrock-ip",
+    path: "/api/hudsonrock/search-by-ip",
+    section: "intelligence_platform",
+    modes: ["additive", "specialty"],
+    kinds: ["ip"],
+    buildParams: (query) => ({ ip: query }),
+  },
+  {
+    id: "hudsonrock-usernames",
+    path: "/api/hudsonrock/search-by-login/usernames",
+    section: "intelligence_platform",
+    modes: ["additive"],
+    kinds: ["username"],
+    buildParams: (query) => ({ username: query }),
   },
   {
     id: "leaksight",
@@ -1636,10 +1669,35 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "specialized_tools",
     modes: ["additive", "specialty"],
     kinds: ["email", "username", "ip", "domain", "phone", "name"],
-    buildParams: (query, kind) => ({
-      module: kind === "auto" ? "email" : kind,
-      query,
-    }),
+    buildParams: (query, kind): Record<string, string> | null => {
+      if (kind === "ip") return { module: "ip-info", query };
+      if (kind === "domain") return { module: "domain", query };
+      if (kind === "username") return { module: "username", query };
+      if (kind === "phone") return { module: "hlr", query };
+      if (kind === "name") {
+        const parts = query.trim().split(/\s+/);
+
+        if (parts.length >= 2) {
+          return {
+            module: "npd",
+            firstname: parts[0]!,
+            lastname: parts.slice(1).join(" "),
+          };
+        }
+
+        return { module: "npd", lastname: query };
+      }
+
+      return { module: "leaks", query };
+    },
+  },
+  {
+    id: "inf0sec-leaks",
+    path: "/api/inf0sec",
+    section: "specialized_tools",
+    modes: ["additive"],
+    kinds: ["email", "username", "domain", "phone", "auto"],
+    buildParams: (query) => ({ module: "leaks", query }),
   },
   {
     id: "melissa",
@@ -2614,6 +2672,9 @@ function additiveForKind(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
 /**
  * Pure infection / stealer-log indexes. These are excluded from breach-only
  * fan-out so Snusbase / LeakOsint / etc. stay in the breach path.
+ *
+ * All pure stealer sources run in the primary wave so a short budget cannot
+ * starve Seeknow / DataVoid / Inf0sec / HudsonRock login pivots.
  */
 const STEALER_ONLY_PRIMARY_IDS = [
   "oathnet-victims",
@@ -2621,15 +2682,19 @@ const STEALER_ONLY_PRIMARY_IDS = [
   "oathnet-stealer",
   "wentyn",
   "hudsonrock",
+  "hudsonrock-login-emails",
+  "hudsonrock-usernames",
+  "hudsonrock-domain",
+  "hudsonrock-ip",
   "intelbase-intelvault-stealer",
-] as const;
-
-const STEALER_ONLY_SECONDARY_IDS = [
-  "oathnet-stealer-subdomain",
   "seeknow-stealer",
   "seeknow-stealer-legacy",
   "datavoid-stealer",
+  "inf0sec-leaks",
+  "oathnet-stealer-subdomain",
 ] as const;
+
+const STEALER_ONLY_SECONDARY_IDS = [] as const;
 
 /**
  * Breach indexes also useful during stealer searches for credential coverage.
@@ -2650,6 +2715,9 @@ const STEALER_BREACH_OVERLAP_IDS = [
   "snusbase-combo",
   "seekria-email-breach",
   "inf0sec",
+  "seeknow-search",
+  "xosint",
+  "akula",
 ] as const;
 
 const STEALER_ONLY_ID_SET = new Set<string>([
@@ -2673,7 +2741,8 @@ function isPureStealerEndpoint(endpoint: BreachHubEndpointDef): boolean {
     id.includes("machine-search") ||
     path.includes("machine-viewer/search") ||
     id === "wentyn" ||
-    path.includes("/wentyn")
+    path.includes("/wentyn") ||
+    id === "inf0sec-leaks"
   );
 }
 
@@ -2727,12 +2796,15 @@ function stealerEndpointsByTier(
       matchesStealerKind(endpoint, kind),
   );
 
+  // Pure stealer + discovered infection indexes first; breach overlaps second.
   return {
-    primary: filterBreachHubEndpoints(pick(STEALER_ONLY_PRIMARY_IDS)),
+    primary: filterBreachHubEndpoints([
+      ...pick(STEALER_ONLY_PRIMARY_IDS),
+      ...discovered,
+    ]),
     secondary: filterBreachHubEndpoints([
       ...pick(STEALER_ONLY_SECONDARY_IDS),
       ...pick(STEALER_BREACH_OVERLAP_IDS),
-      ...discovered,
     ]),
   };
 }
@@ -2772,15 +2844,15 @@ export async function fetchBreachHubAdditiveStealerSearch(
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
   const { primary, secondary } = stealerEndpointsByTier(kind);
-  const budget = Math.min(Math.max(timeoutMs, 32_000), 42_000);
+  const budget = Math.min(Math.max(timeoutMs, 36_000), 48_000);
   const perCall = Math.min(Math.max(timeoutMs, 16_000), 28_000);
 
-  // One worker pool: primary queued first, secondary fills free slots as
-  // primary calls finish — no sequential tier wait. minResults=0 keeps coverage.
+  // One worker pool: pure stealer sources first, then breach-overlap credential
+  // indexes. minResults=0 keeps coverage — do not early-exit after a few hits.
   return fanOutEndpoints([...primary, ...secondary], query, kind, perCall, {
     minResults: 0,
     budgetMs: budget,
-    concurrency: 10,
+    concurrency: 12,
   });
 }
 
@@ -3735,63 +3807,100 @@ export async function fetchBreachHubVictimManifest(
     bestFiles = nextFiles;
   };
 
-  // 1) OathNet victim manifest (canonical for log_id-backed devices).
-  try {
-    const data = await breachHubGet(
-      "/api/oathnet/victims/:log_id",
-      {},
-      timeoutMs,
-      { log_id: trimmed },
-    );
-    const archives = extractStealerArchives(data);
-    const files = pickManifestTree(data);
-    const entry = buildManifestEntry(trimmed, data, files, archives[0]);
+  const preferMachineViewer =
+    Boolean(machineId) ||
+    /^[a-f0-9]{24,128}$/i.test(trimmed) ||
+    (trimmed.length >= 32 && /^[a-f0-9-]+$/i.test(trimmed));
 
-    mergeBest(entry);
-    if (files.length > 0) return bestMeta;
-  } catch (err) {
-    errors.push(err instanceof Error ? err.message : "OathNet manifest failed");
-  }
-
-  // 2) OsintCat machine-viewer treeview — needed when search used machine_id
-  //    (e.g. 64-char hex) rather than an OathNet log_id.
-  const perTree = Math.min(timeoutMs, 18_000);
-
-  for (const id of browseIds) {
-    if (bestFiles.length > 0) break;
-
+  const tryOathNetManifest = async () => {
     try {
       const data = await breachHubGet(
-        "/api/osintcat/machine-viewer/machines/:machine_id/files/treeview",
+        "/api/oathnet/victims/:log_id",
         {},
-        perTree,
-        { machine_id: id },
+        timeoutMs,
+        { log_id: trimmed },
       );
       const archives = extractStealerArchives(data);
       const files = pickManifestTree(data);
-      const entry = buildManifestEntry(
-        trimmed,
-        data,
-        files,
-        archives[0] ?? bestMeta ?? undefined,
-      );
+      const entry = buildManifestEntry(trimmed, data, files, archives[0]);
 
       mergeBest(entry);
-      if (files.length > 0) return bestMeta;
+      return files.length > 0;
     } catch (err) {
       errors.push(
-        err instanceof Error
-          ? err.message
-          : `Machine treeview failed for ${id.slice(0, 12)}…`,
+        err instanceof Error ? err.message : "OathNet manifest failed",
       );
+      return false;
     }
+  };
+
+  const tryOsintCatTrees = async () => {
+    const perTree = Math.min(timeoutMs, 18_000);
+
+    for (const id of browseIds) {
+      if (bestFiles.length > 0) return true;
+
+      // Prefer treeview; fall back to machine info which sometimes embeds files.
+      for (const path of [
+        "/api/osintcat/machine-viewer/machines/:machine_id/files/treeview",
+        "/api/osintcat/machine-viewer/machines/:machine_id/info",
+      ] as const) {
+        try {
+          const data = await breachHubGet(path, {}, perTree, {
+            machine_id: id,
+          });
+          const archives = extractStealerArchives(data);
+          const files = pickManifestTree(data);
+          const entry = buildManifestEntry(
+            trimmed,
+            data,
+            files,
+            archives[0] ?? bestMeta ?? undefined,
+          );
+
+          mergeBest(entry);
+          if (files.length > 0) return true;
+        } catch (err) {
+          errors.push(
+            err instanceof Error
+              ? err.message
+              : `Machine browse failed for ${id.slice(0, 12)}…`,
+          );
+        }
+      }
+    }
+
+    return bestFiles.length > 0;
+  };
+
+  // Hex / machine_id rows come from OsintCat machine-viewer — try that first.
+  // Short OathNet log tokens try OathNet first, then OsintCat fallback.
+  if (preferMachineViewer) {
+    const ok = await tryOsintCatTrees();
+    if (ok) return bestMeta;
+    const oathOk = await tryOathNetManifest();
+    if (oathOk) return bestMeta;
+  } else {
+    const oathOk = await tryOathNetManifest();
+    if (oathOk) return bestMeta;
+    const ok = await tryOsintCatTrees();
+    if (ok) return bestMeta;
   }
 
   if (bestFiles.length > 0) return bestMeta;
 
-  // Surface upstream errors (rate limit / 404) instead of a silent empty.
+  // Surface upstream errors (rate limit / 404 / vendor outage) instead of silent empty.
   if (errors.length > 0 && !bestMeta) {
-    throw new Error(errors[0]);
+    const joined = [...new Set(errors)].slice(0, 3).join(" · ");
+    throw new Error(joined);
+  }
+
+  if (errors.length > 0 && bestMeta && !bestFiles.length) {
+    const joined = [...new Set(errors)].slice(0, 3).join(" · ");
+    throw new Error(
+      joined ||
+        "File tree empty — machine index returned metadata without files.",
+    );
   }
 
   return bestMeta;

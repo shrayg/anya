@@ -695,6 +695,8 @@ export function filterIntelResultsForQuery(
       record.logId,
       record.machine_id,
       record.machineId,
+      record.victim_id,
+      record.victimId,
     ]
       .flatMap((v) => {
         if (typeof v === "string") return [v.toLowerCase()];

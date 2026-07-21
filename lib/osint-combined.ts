@@ -59,9 +59,9 @@ import {
 const COMBINED_GODSEYE_TIMEOUT_MS = 18_000;
 const COMBINED_BREACHVIP_TIMEOUT_MS = 18_000;
 const COMBINED_CSINT_TIMEOUT_MS = 22_000;
-const COMBINED_BREACHHUB_TIMEOUT_MS = 36_000;
+const COMBINED_BREACHHUB_TIMEOUT_MS = 42_000;
 /** Wall budget across parallel providers — prefer coverage over ultra-aggressive cutoffs. */
-const COMBINED_STEALER_BUDGET_MS = 42_000;
+const COMBINED_STEALER_BUDGET_MS = 48_000;
 const COMBINED_PLATFORM_BUDGET_MS = 40_000;
 const COMBINED_RESULT_CACHE_TTL_MS = 40_000;
 
@@ -158,6 +158,21 @@ async function fetchBreachHubThenCsintStealer(
   );
 
   return value;
+}
+
+/** Direct OsintCat for stealer — unique rows when BH's OsintCat mirror is down. */
+async function fetchOptionalDirectOsintCatStealer(
+  query: string,
+): Promise<SanitizedBreachResponse | null> {
+  if (!hasOsintCatDirect()) return null;
+
+  try {
+    const data = await fetchOsintCatStealerLogs(query);
+
+    return data.count > 0 ? data : null;
+  } catch {
+    return null;
+  }
 }
 
 const BREACHHUB_SPECIALTY_SCOPES = new Set([
@@ -290,24 +305,13 @@ export async function fetchCombinedStealerLogs(
 
   const parts: SanitizedBreachResponse[] = [];
 
-  // GodsEye parallel (distinct). BreachHub primary → CSINT, then OsintCat fallback.
-  const [godseyeResult, gatewayResult] = await settleWithinBudget(
+  // GodsEye (distinct) ∥ BreachHub→CSINT (vendor dedupe) ∥ direct OsintCat.
+  // Direct OsintCat stays parallel so BH OsintCat outages do not drop coverage.
+  const [godseyeResult, gatewayResult, osintCatResult] = await settleWithinBudget(
     [
       fetchGodsEyeSearchResult(searchType, query, COMBINED_GODSEYE_TIMEOUT_MS),
-      (async () => {
-        const bhThenCsint = await fetchBreachHubThenCsintStealer(
-          query,
-          searchType,
-        );
-
-        if (bhThenCsint && bhThenCsint.count > 0) return bhThenCsint;
-
-        if (hasOsintCatDirect()) {
-          return fetchOsintCatStealerLogs(query).catch(() => null);
-        }
-
-        return null;
-      })(),
+      fetchBreachHubThenCsintStealer(query, searchType),
+      fetchOptionalDirectOsintCatStealer(query),
     ],
     COMBINED_STEALER_BUDGET_MS,
   );
@@ -317,6 +321,7 @@ export async function fetchCombinedStealerLogs(
   }
 
   pushSettledSanitized(parts, gatewayResult);
+  pushSettledSanitized(parts, osintCatResult);
 
   if (parts.length > 0) {
     const merged = mergeSanitizedResponses(...parts);
