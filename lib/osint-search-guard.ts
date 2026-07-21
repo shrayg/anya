@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import { publicSearchError } from "@/lib/public-branding";
 
 /** Per-provider upstream budget (headers + body). Stay under Cloudflare ~100s. */
-export const OSINT_PROVIDER_TIMEOUT_MS = 16_000;
+export const OSINT_PROVIDER_TIMEOUT_MS = 12_000;
 
 /** Whole route budget so proxies never see a hung Node request. */
-export const OSINT_ROUTE_DEADLINE_MS = 50_000;
+export const OSINT_ROUTE_DEADLINE_MS = 35_000;
 
 /** Long modules (site pentest, Instagram) still finish before CF hard-cut. */
 export const OSINT_LONG_ROUTE_DEADLINE_MS = 90_000;

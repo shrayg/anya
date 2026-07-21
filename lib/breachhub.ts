@@ -2535,10 +2535,10 @@ export async function fetchBreachHubByIds(
     idSet.has(endpoint.id),
   );
 
-  // Specialty / by-ids: reasonable budgets without starving coverage.
-  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 10_000), {
-    minResults: 40,
-    budgetMs: Math.min(timeoutMs, 14_000),
+  // Specialty / by-ids: shorter budgets + early exit (same pattern as breach fan-out).
+  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 8_000), {
+    minResults: 15,
+    budgetMs: Math.min(timeoutMs, 10_000),
     concurrency: 5,
   });
 }
