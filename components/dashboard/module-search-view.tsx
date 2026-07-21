@@ -826,8 +826,8 @@ export function ModuleSearchView({
         activeType = selectedTool.apiType;
       }
 
-      if (activeType === "breaches" && !normalizeEmail(trimmed)) {
-        return "Enter a valid email address.";
+      if (activeType === "breaches" && trimmed.length < 2) {
+        return "Enter an email, username, or search term.";
       }
       if (activeType === "crypto-wallet" && !detectCryptoChain(trimmed)) {
         return CRYPTO_WALLET_INVALID_MESSAGE;

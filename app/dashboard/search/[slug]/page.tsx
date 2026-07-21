@@ -18,9 +18,12 @@ export default function ModuleSearchPage() {
     if (slug === "domains") {
       router.replace("/dashboard/search/stealer-logs");
     }
+    if (slug === "breachbase") {
+      router.replace("/dashboard/search/breaches");
+    }
   }, [router, slug]);
 
-  if (slug === "domains") {
+  if (slug === "domains" || slug === "breachbase") {
     return null;
   }
 

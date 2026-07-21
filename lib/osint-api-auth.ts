@@ -79,7 +79,7 @@ export function resolveOsintModuleSlug(
     "site-pentest": "site-pentest",
     "seon-email": "fraud-footprint",
     "seon-phone": "fraud-footprint",
-    breachbase: "breachbase",
+    breachbase: "breaches",
     "oathnet-roblox": "oathnet-roblox",
     "tinder-live": "tinder-live",
     "username-accounts": "account-finder",
