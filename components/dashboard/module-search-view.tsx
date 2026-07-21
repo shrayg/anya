@@ -136,6 +136,11 @@ import {
   type SearchModuleDef,
 } from "@/lib/search-modules";
 import {
+  DEFAULT_PUBLIC_RECORDS_SOURCES,
+  type PublicRecordsSourceOptionId,
+} from "@/lib/public-records/source-options";
+import { PublicRecordsOptionsPanel } from "@/components/dashboard/public-records-options";
+import {
   WORKSPACE_SEARCH_TOUR_STEPS,
   WORKSPACE_SEARCH_TOUR_STORAGE_KEY,
 } from "@/lib/search-tour";
@@ -175,6 +180,7 @@ const PUBLIC_RECORDS_COMPOSE_KINDS = new Set([
   "us-state-directory",
   "us-portal-backlog",
   "us-intl-directory",
+  "public-records",
 ]);
 
 const PUBLIC_RECORDS_COMPOSE_TITLES: Record<string, string> = {
@@ -186,6 +192,7 @@ const PUBLIC_RECORDS_COMPOSE_TITLES: Record<string, string> = {
   "us-state-directory": "US state records directory",
   "us-portal-backlog": "Portal adapter backlog",
   "us-intl-directory": "International records directory",
+  "public-records": "Public records",
 };
 
 type CaseOption = {
@@ -223,8 +230,16 @@ export function ModuleSearchView({
     return aiModeFromSidebarItem(moduleDef.name);
   })();
   const isSummary = aiMode === "summary";
+  const isPublicRecords = moduleDef.slug === "public-records";
 
   const [query, setQuery] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [publicRecordsSources, setPublicRecordsSources] = useState<
+    PublicRecordsSourceOptionId[]
+  >(() => [...DEFAULT_PUBLIC_RECORDS_SOURCES]);
+  const [showPublicRecordsOptions, setShowPublicRecordsOptions] =
+    useState(false);
   const [optionalFilterValues, setOptionalFilterValues] = useState<
     Partial<Record<ModuleOptionalFilter["id"], string>>
   >({});
@@ -236,8 +251,13 @@ export function ModuleSearchView({
 
     if (prefill) {
       setQuery(prefill);
+      if (isPublicRecords) {
+        const parts = prefill.split(/\s+/);
+        setFirstName(parts[0] ?? "");
+        setLastName(parts.slice(1).join(" "));
+      }
     }
-  }, [searchParams, moduleDef.slug]);
+  }, [searchParams, moduleDef.slug, isPublicRecords]);
 
   const [selectedToolId, setSelectedToolId] = useState(
     moduleDef.tools?.[0]?.id ?? "",
@@ -247,6 +267,12 @@ export function ModuleSearchView({
     setSelectedToolId(moduleDef.tools?.[0]?.id ?? "");
     setOptionalFilterValues({});
     setShowOptionalFilters(false);
+    setShowPublicRecordsOptions(false);
+    setPublicRecordsSources([...DEFAULT_PUBLIC_RECORDS_SOURCES]);
+    if (moduleDef.slug === "public-records") {
+      setFirstName("");
+      setLastName("");
+    }
   }, [moduleDef.slug, moduleDef.tools]);
 
   const [isSearching, setIsSearching] = useState(false);
@@ -775,13 +801,25 @@ export function ModuleSearchView({
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const trimmed = composeModuleQuery(query, optionalFilterValues);
+    const nameQuery = isPublicRecords
+      ? [firstName, lastName].map((part) => part.trim()).filter(Boolean).join(" ")
+      : query;
+    const trimmed = composeModuleQuery(nameQuery, optionalFilterValues);
 
     if (!trimmed) {
-      setError("Enter a search target.");
+      setError(
+        isPublicRecords
+          ? "Enter a first and last name (optional filters alone are not enough)."
+          : "Enter a search target.",
+      );
 
       return;
     }
+
+    if (isPublicRecords) {
+      setQuery(nameQuery);
+    }
+
     const searchQuery = isDatingAppSlug(moduleDef.slug)
       ? normalizeDatingQuery(trimmed, moduleDef.slug)
       : trimmed;
@@ -905,6 +943,14 @@ export function ModuleSearchView({
       }
       if (moduleDef.slug === "name-search" && trimmed.length < 2) {
         return "Enter a name to search (at least 2 characters).";
+      }
+      if (isPublicRecords) {
+        if (!firstName.trim() || !lastName.trim()) {
+          return "Enter both a first name and a last name.";
+        }
+        if (publicRecordsSources.length === 0) {
+          return "Enable at least one source in Options.";
+        }
       }
 
       return null;
@@ -1031,6 +1077,10 @@ export function ModuleSearchView({
         activeType === "site-pentest"
           ? `&modules=${encodeURIComponent(pentestModules.join(","))}`
           : "";
+      const publicRecordsParam =
+        activeType === "public-records"
+          ? `&sources=${encodeURIComponent(publicRecordsSources.join(","))}`
+          : "";
       // Phone surfaces force phone path so every format variant is searched strictly.
       const indexSweepKindParam =
         activeType === "index-sweep" &&
@@ -1040,7 +1090,7 @@ export function ModuleSearchView({
           ? "&kind=phone"
           : "";
       const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${indexSweepKindParam}`,
+        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}`,
         { signal },
       );
       const responseText = await searchResponse.text();
@@ -2047,6 +2097,50 @@ export function ModuleSearchView({
         return;
       }
 
+      if (activeType === "public-records") {
+        const identityData = data as UsIdentitySearchResult & {
+          error?: string;
+          breaches?: CombSearchResult | null;
+        };
+        const breachData =
+          identityData.breaches && identityData.breaches.returned > 0
+            ? identityData.breaches
+            : null;
+        const hitCount =
+          (identityData.count ?? 0) > 0 ||
+          Boolean(breachData) ||
+          (identityData.portals?.length ?? 0) > 0;
+
+        if (!hitCount) {
+          if (identityData.errors?.length) {
+            commitSuccess({
+              structuredResult: {
+                kind: "public-records",
+                data: identityData,
+              },
+              combResult: null,
+              rawResult: JSON.stringify(data, null, 2),
+            });
+          } else {
+            markNoResults(
+              identityData.message ||
+                identityData.error ||
+                "No public records matches found.",
+            );
+          }
+
+          return;
+        }
+
+        commitSuccess({
+          structuredResult: { kind: "public-records", data: identityData },
+          combResult: breachData,
+          rawResult: JSON.stringify(data, null, 2),
+        }, serialized);
+
+        return;
+      }
+
       if (PUBLIC_RECORDS_COMPOSE_KINDS.has(activeType)) {
         const identityData = data as UsIdentitySearchResult & {
           error?: string;
@@ -2059,7 +2153,8 @@ export function ModuleSearchView({
           | "us-wanted"
           | "us-state-directory"
           | "us-portal-backlog"
-          | "us-intl-directory";
+          | "us-intl-directory"
+          | "public-records";
 
         if (!identityData.count) {
           if (identityData.errors?.length || identityData.portals?.length) {
@@ -2277,7 +2372,34 @@ export function ModuleSearchView({
             onSubmit={handleSearch}
           >
             <AutofillDecoyFields />
-            {isSummary ? (
+            {isPublicRecords ? (
+              <>
+                <input
+                  {...SEARCH_AUTOFILL_SHIELD}
+                  autoFocus
+                  readOnly
+                  className="ui-input flex-1 font-mono text-sm"
+                  data-tour="search-input"
+                  name="osint-first-name"
+                  placeholder="First name"
+                  type="text"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  onFocus={unlockAutofillShield}
+                />
+                <input
+                  {...SEARCH_AUTOFILL_SHIELD}
+                  readOnly
+                  className="ui-input flex-1 font-mono text-sm"
+                  name="osint-last-name"
+                  placeholder="Last name"
+                  type="text"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  onFocus={unlockAutofillShield}
+                />
+              </>
+            ) : isSummary ? (
               <textarea
                 {...TEXTAREA_AUTOFILL_SHIELD}
                 readOnly
@@ -2312,7 +2434,9 @@ export function ModuleSearchView({
               className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
               data-tour="search-submit"
               disabled={
-                (!query.trim() && !optionalFilterValues.zip?.trim()) ||
+                (isPublicRecords
+                  ? !firstName.trim() || !lastName.trim()
+                  : !query.trim() && !optionalFilterValues.zip?.trim()) ||
                 isSearching ||
                 Boolean(moduleLocked)
               }
@@ -2324,9 +2448,33 @@ export function ModuleSearchView({
                   ? "Analyse"
                   : moduleDef.slug === "intelx"
                     ? "Open"
-                    : "Run"}
+                    : isPublicRecords
+                      ? "Search"
+                      : "Run"}
             </button>
+            {isPublicRecords ? (
+              <button
+                className="ui-btn shrink-0 sm:min-w-[6.5rem]"
+                disabled={Boolean(moduleLocked)}
+                type="button"
+                onClick={() => setShowPublicRecordsOptions((open) => !open)}
+              >
+                Options
+                <span className="ml-1 text-[10px] text-zinc-500">
+                  ({publicRecordsSources.length})
+                </span>
+              </button>
+            ) : null}
           </form>
+
+          {isPublicRecords ? (
+            <PublicRecordsOptionsPanel
+              open={showPublicRecordsOptions}
+              selected={publicRecordsSources}
+              onChange={setPublicRecordsSources}
+              onClose={() => setShowPublicRecordsOptions(false)}
+            />
+          ) : null}
 
           {moduleDef.optionalFilters && moduleDef.optionalFilters.length > 0 ? (
             <div className="mt-4 border-t border-white/10 pt-4">
@@ -2563,6 +2711,31 @@ export function ModuleSearchView({
               selectedExportIndex={selectedExportIndex}
               onSelectExportIndex={handleSelectExportIndex}
             />
+          ) : structuredResult?.kind === "public-records" ? (
+            <div className="space-y-8">
+              {(structuredResult.data.count > 0 ||
+                (structuredResult.data.portals?.length ?? 0) > 0 ||
+                structuredResult.data.errors.length > 0) && (
+                <UsIdentitySearchResults
+                  blurResults={blurResults}
+                  result={structuredResult.data}
+                  title="Public records"
+                />
+              )}
+              {combResult ? (
+                <div>
+                  <p className="mb-3 text-sm font-medium text-zinc-300">
+                    Breach & leak indexes
+                  </p>
+                  <BreachesSearchResults
+                    blurResults={blurResults}
+                    result={combResult}
+                    selectedExportIndex={selectedExportIndex}
+                    onSelectExportIndex={handleSelectExportIndex}
+                  />
+                </div>
+              ) : null}
+            </div>
           ) : combResult ? (
             <BreachesSearchResults
               blurResults={blurResults}

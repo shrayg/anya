@@ -182,6 +182,7 @@ const MODULE_BRANDS: Record<string, BrandIconConfig> = {
     color: "#F7931A",
   },
   "Threat Brief": { Icon: SiSnyk, color: "#4C427A" },
+  "Public Records": { Icon: TbGlobe, color: "#38BDF8" },
   "Global Public Records": { Icon: TbGlobe, color: "#38BDF8" },
   "Court Records": { Icon: TbGavel, color: "#D4A574" },
   "Identity Search": { Icon: TbIdBadge, color: "#94A3B8" },

@@ -33,6 +33,10 @@ export {
   searchPortalBacklogDirectory,
 } from "@/lib/us-records/orchestrator";
 export {
+  searchUnifiedPublicRecords,
+  type UnifiedPublicRecordsResult,
+} from "@/lib/us-records/unified";
+export {
   getCourtListenerToken,
   probeCourtListener,
 } from "@/lib/us-records/courtlistener";

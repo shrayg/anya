@@ -146,6 +146,10 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "identity-search": { kind: "any", providers: ["builtin", "courtlistener"] },
   "npd-search": { kind: "any", providers: ["builtin", "courtlistener"] },
   "va-sex-offender": { kind: "any", providers: ["builtin"] },
+  "public-records": {
+    kind: "any",
+    providers: ["builtin", "courtlistener", "breachhub", "csint", "godseye"],
+  },
   "global-public-records": {
     kind: "any",
     providers: ["builtin", "courtlistener"],

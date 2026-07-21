@@ -68,6 +68,7 @@ export const PROFESSIONAL_INTELX_DAILY_LIMIT = 5;
 
 /** Public-records modules require Professional panel access (not Free/Starter homepage set). */
 export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
+  "public-records",
   "court-records",
   "identity-search",
   "npd-search",

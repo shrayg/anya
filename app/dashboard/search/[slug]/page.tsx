@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { ModuleComingSoon } from "@/components/dashboard/module-coming-soon";
 import { ModuleSearchView } from "@/components/dashboard/module-search-view";
+import { isLegacyPublicRecordsSlug } from "@/lib/public-records/source-options";
 import { getSearchModuleBySlug } from "@/lib/search-modules";
 
 export default function ModuleSearchPage() {
@@ -21,9 +22,16 @@ export default function ModuleSearchPage() {
     if (slug === "breachbase") {
       router.replace("/dashboard/search/breaches");
     }
+    if (isLegacyPublicRecordsSlug(slug)) {
+      router.replace("/dashboard/search/public-records");
+    }
   }, [router, slug]);
 
-  if (slug === "domains" || slug === "breachbase") {
+  if (
+    slug === "domains" ||
+    slug === "breachbase" ||
+    isLegacyPublicRecordsSlug(slug)
+  ) {
     return null;
   }
 

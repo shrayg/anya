@@ -57,6 +57,7 @@ export type StructuredSearchResult =
   | { kind: "us-state-directory"; data: UsIdentitySearchResult }
   | { kind: "us-portal-backlog"; data: UsIdentitySearchResult }
   | { kind: "us-intl-directory"; data: UsIdentitySearchResult }
+  | { kind: "public-records"; data: UsIdentitySearchResult }
   | { kind: "site-pentest"; data: SitePentestResult }
   | { kind: "tinder-live"; data: TinderLiveSearchResult }
   | { kind: "hinge-live"; data: HingeLiveSearchResult }
