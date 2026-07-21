@@ -130,6 +130,7 @@ import {
 import {
   getAiModeForModule,
   isPhoneQuery,
+  resolveSearchApiPath,
   resolveSearchApiType,
   composeModuleQuery,
   type ModuleOptionalFilter,
@@ -1089,10 +1090,13 @@ export function ModuleSearchView({
           selectedToolId === "phone-index")
           ? "&kind=phone"
           : "";
-      const searchResponse = await fetch(
-        `/api/osint/${activeType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}`,
-        { signal },
-      );
+      // Twitter uses dedicated OsintCat twitter-osint (+ BreachHub fallback).
+      // Snusbase / IntelVault / etc. use top-level /api/<vendor> paths.
+      const searchUrl =
+        moduleDef.slug === "twitter"
+          ? `/api/osintcat/twitter-osint?query=${encodeURIComponent(searchQuery)}${moduleParam}`
+          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}`;
+      const searchResponse = await fetch(searchUrl, { signal });
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
 
