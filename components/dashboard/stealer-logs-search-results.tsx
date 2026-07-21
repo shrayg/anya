@@ -131,9 +131,17 @@ function DeviceFileExplorerModal({
     setError(null);
 
     try {
-      const res = await apiFetch(
-        `/api/osint/stealer-victim?logId=${encodeURIComponent(device.logId)}&action=manifest&moduleSlug=stealer-logs`,
-      );
+      const params = new URLSearchParams({
+        logId: device.logId,
+        action: "manifest",
+        moduleSlug: "stealer-logs",
+      });
+
+      if (device.machineId?.trim()) {
+        params.set("machineId", device.machineId.trim());
+      }
+
+      const res = await apiFetch(`/api/osint/stealer-victim?${params}`);
       const data = (await res.json()) as StealerArchiveEntry & {
         available?: boolean;
         message?: string;
@@ -675,9 +683,18 @@ export function StealerLogsSearchResults({
     setArchiveMsg(null);
 
     try {
-      const res = await apiFetch(
-        `/api/osint/stealer-victim?logId=${encodeURIComponent(logId)}&action=archive&moduleSlug=stealer-logs`,
-      );
+      const deviceMatch = archives.find((d) => d.logId === logId);
+      const params = new URLSearchParams({
+        logId,
+        action: "archive",
+        moduleSlug: "stealer-logs",
+      });
+
+      if (deviceMatch?.machineId?.trim()) {
+        params.set("machineId", deviceMatch.machineId.trim());
+      }
+
+      const res = await apiFetch(`/api/osint/stealer-victim?${params}`);
       const contentType = res.headers.get("content-type") || "";
 
       if (

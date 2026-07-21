@@ -39,14 +39,14 @@ import {
 const BREACHHUB_BASE = "https://breachhub.org";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
 /** Soft memory ceiling across a single upstream payload (not a UX page size). */
-const MAX_ROWS = 25_000;
-/** Per nested list / source bucket — was 50 and silently truncated large indexes. */
-const MAX_ROWS_PER_SOURCE = 10_000;
+const MAX_ROWS = 100_000;
+/** Per nested list / source bucket — keep large email hit sets intact. */
+const MAX_ROWS_PER_SOURCE = 50_000;
 /** Identical path+params within one process — avoids duplicate stealer/victim hits. */
 const BREACHHUB_GET_CACHE_TTL_MS = 45_000;
-/** Seeknow is often slow/flaky; fail fast and keep budget for primary indexes. */
-const SEEKNOW_TIMEOUT_MS = 4_500;
-const FLAKY_VENDOR_TIMEOUT_MS = 6_000;
+/** Seeknow can be slow; give it enough time to return large pages. */
+const SEEKNOW_TIMEOUT_MS = 14_000;
+const FLAKY_VENDOR_TIMEOUT_MS = 16_000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const IP_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
@@ -565,7 +565,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query, kind) => ({
       query,
       type: kind === "auto" ? "email" : kind,
-      limit: "10000",
+      limit: "50000",
     }),
   },
   {
@@ -575,7 +575,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "data_breach",
     modes: ["additive"],
     kinds: ["email", "username", "domain"],
-    buildParams: (query) => ({ query, type: "stealer", limit: "10000" }),
+    buildParams: (query) => ({ query, type: "stealer", limit: "50000" }),
   },
   {
     id: "seeknow-stealer-legacy",
@@ -583,7 +583,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "data_breach",
     modes: ["additive"],
     kinds: ["email", "username", "domain"],
-    buildParams: (query) => ({ query, limit: "10000" }),
+    buildParams: (query) => ({ query, limit: "50000" }),
   },
   {
     id: "seekria-email-breach",
@@ -2040,64 +2040,168 @@ export async function breachHubGet(
     ...params,
   });
 
-  return withProviderCache(cacheKey, BREACHHUB_GET_CACHE_TTL_MS, async () => {
-    const url = new URL(
-      resolved.startsWith("http") ? resolved : `${BREACHHUB_BASE}${resolved}`,
-    );
+  return withProviderCache(
+    cacheKey,
+    BREACHHUB_GET_CACHE_TTL_MS,
+    async () => {
+      const url = new URL(
+        resolved.startsWith("http") ? resolved : `${BREACHHUB_BASE}${resolved}`,
+      );
 
-    url.searchParams.set("key", apiKey);
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined && value !== "") {
-        url.searchParams.set(key, value);
+      url.searchParams.set("key", apiKey);
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== "") {
+          url.searchParams.set(key, value);
+        }
       }
-    }
 
-    const started = Date.now();
-    const res = await fetchWithTimeout(url.toString(), {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "AnyaInt-BreachHub/1.0",
-      },
-      cache: "no-store",
-      timeoutMs,
-    });
+      const started = Date.now();
+      const res = await fetchWithTimeout(url.toString(), {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "AnyaInt-BreachHub/1.0",
+        },
+        cache: "no-store",
+        timeoutMs,
+      });
 
-    const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
-    const text = await readResponseText(res, remaining);
-    let data: Record<string, unknown> = {};
+      const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+      const text = await readResponseText(res, remaining);
+      let data: Record<string, unknown> = {};
 
-    try {
-      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-    } catch {
+      try {
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      } catch {
+        if (!res.ok) {
+          throw new Error(sanitizeBreachHubError(`HTTP ${res.status}`));
+        }
+        throw new Error(
+          publicSearchError("Invalid response from intelligence index."),
+        );
+      }
+
       if (!res.ok) {
-        throw new Error(sanitizeBreachHubError(`HTTP ${res.status}`));
+        const msg =
+          (typeof data.message === "string" && data.message) ||
+          (typeof data.error === "string" && data.error) ||
+          `HTTP ${res.status}`;
+
+        throw new Error(sanitizeBreachHubError(msg));
       }
-      throw new Error(
-        publicSearchError("Invalid response from intelligence index."),
+
+      if (data.success === false) {
+        const msg =
+          (typeof data.message === "string" && data.message) ||
+          (typeof data.error === "string" && data.error) ||
+          "Search failed";
+
+        throw new Error(sanitizeBreachHubError(msg));
+      }
+
+      return data;
+    },
+    {
+      // Never poison the short TTL cache with empty victim trees or empty search hits.
+      shouldCache: (data) => {
+        if (isVictimFileTreePath(resolved)) {
+          return breachHubPayloadHasFileTree(data);
+        }
+
+        return breachHubPayloadHasSearchHits(data);
+      },
+    },
+  );
+}
+
+/** Per-log manifest / machine treeview paths — empty bodies must not be cached. */
+function isVictimFileTreePath(path: string): boolean {
+  const lower = path.toLowerCase();
+
+  return (
+    /\/oathnet\/victims\/[^/?]+$/i.test(lower) ||
+    /\/files\/treeview$/i.test(lower) ||
+    /\/machine-viewer\/machines\/[^/]+\/info$/i.test(lower)
+  );
+}
+
+/** True when a BreachHub JSON body has at least one extractable search row. */
+function breachHubPayloadHasSearchHits(data: Record<string, unknown>): boolean {
+  return extractBreachHubRows(data).length > 0;
+}
+
+function breachHubPayloadHasFileTree(data: Record<string, unknown>): boolean {
+  const hasNode = (value: unknown): boolean => {
+    if (!value) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+
+      return Boolean(
+        obj.victim_tree ||
+          obj.tree ||
+          obj.file_tree ||
+          obj.manifest ||
+          (Array.isArray(obj.files) && obj.files.length > 0) ||
+          (Array.isArray(obj.children) && obj.children.length > 0) ||
+          asString(obj.name) ||
+          asString(obj.type),
       );
     }
 
-    if (!res.ok) {
-      const msg =
-        (typeof data.message === "string" && data.message) ||
-        (typeof data.error === "string" && data.error) ||
-        `HTTP ${res.status}`;
+    return false;
+  };
 
-      throw new Error(sanitizeBreachHubError(msg));
+  if (
+    hasNode(data.victim_tree) ||
+    hasNode(data.tree) ||
+    hasNode(data.file_tree) ||
+    hasNode(data.manifest) ||
+    hasNode(data.files) ||
+    hasNode(data.children)
+  ) {
+    return true;
+  }
+
+  if (data.data && typeof data.data === "object") {
+    if (hasNode(data.data)) return true;
+    if (!Array.isArray(data.data)) {
+      const nested = data.data as Record<string, unknown>;
+
+      if (
+        hasNode(nested.victim_tree) ||
+        hasNode(nested.tree) ||
+        hasNode(nested.files) ||
+        hasNode(nested.file_tree) ||
+        hasNode(nested.manifest)
+      ) {
+        return true;
+      }
     }
+  }
 
-    if (data.success === false) {
-      const msg =
-        (typeof data.message === "string" && data.message) ||
-        (typeof data.error === "string" && data.error) ||
-        "Search failed";
+  for (const key of ["logs", "victims", "machines", "results", "items"] as const) {
+    const list = data[key];
 
-      throw new Error(sanitizeBreachHubError(msg));
+    if (!Array.isArray(list)) continue;
+
+    for (const row of list) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+      const record = row as Record<string, unknown>;
+
+      if (
+        hasNode(record.victim_tree) ||
+        hasNode(record.tree) ||
+        hasNode(record.files) ||
+        hasNode(record.file_tree) ||
+        hasNode(record.manifest)
+      ) {
+        return true;
+      }
     }
+  }
 
-    return data;
-  });
+  return false;
 }
 
 function stripMetaFields(
@@ -2436,7 +2540,7 @@ async function fanOutEndpoints(
   const runOne = async (endpoint: BreachHubEndpointDef) => {
     const remaining = budgetMs - (Date.now() - started);
 
-    if (remaining < 800) {
+    if (remaining < 1_500) {
       stopQueue = true;
 
       return;
@@ -2596,9 +2700,9 @@ export async function fetchBreachHubAdditiveBreachSearch(
 
   // Coverage-first: budget caps wall-clock, not row count. Do not early-exit
   // after a few dozen hits — that silently truncated large stealer/breach sets.
-  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 10_000), {
+  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 18_000), {
     minResults: 0,
-    budgetMs: Math.min(timeoutMs, 14_000),
+    budgetMs: Math.min(timeoutMs, 32_000),
     concurrency: 8,
   });
 }
@@ -2611,7 +2715,7 @@ export async function fetchBreachHubAdditiveStealerSearch(
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
   const { primary, secondary } = stealerEndpointsByTier(kind);
-  const budget = Math.min(timeoutMs, 18_000);
+  const budget = Math.min(timeoutMs, 36_000);
 
   // One worker pool: primary queued first, secondary fills free slots as
   // primary calls finish — no sequential tier wait. minResults=0 keeps coverage.
@@ -2619,7 +2723,7 @@ export async function fetchBreachHubAdditiveStealerSearch(
     [...primary, ...secondary],
     query,
     kind,
-    10_000,
+    16_000,
     {
       minResults: 0,
       budgetMs: budget,
@@ -2663,9 +2767,9 @@ export async function fetchBreachHubByIds(
   );
 
   // Specialty / by-ids: shorter budgets; allow large specialty payloads.
-  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 8_000), {
+  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 14_000), {
     minResults: 0,
-    budgetMs: Math.min(timeoutMs, 9_000),
+    budgetMs: Math.min(timeoutMs, 20_000),
     concurrency: 7,
   });
 }
@@ -3216,8 +3320,31 @@ function normalizeFileTree(input: unknown, depth = 0): StealerFileNode[] {
       "entries",
       "children",
     ]) {
-      if (Array.isArray(obj[key])) {
-        return normalizeFileTree(obj[key], depth + 1);
+      const value = obj[key];
+
+      if (Array.isArray(value)) {
+        return normalizeFileTree(value, depth + 1);
+      }
+
+      // OathNet victim_tree is a single root node object, not an array.
+      if (value && typeof value === "object") {
+        const node = value as Record<string, unknown>;
+        const typeRaw = asString(node.type).toLowerCase();
+
+        if (
+          Array.isArray(node.children) ||
+          typeRaw === "file" ||
+          typeRaw === "folder" ||
+          typeRaw === "directory" ||
+          typeRaw === "dir" ||
+          asString(node.name) ||
+          asString(node.file_id) ||
+          asString(node.fileId)
+        ) {
+          const nested = normalizeFileTree(value, depth + 1);
+
+          if (nested.length > 0) return nested;
+        }
       }
     }
 
@@ -3403,74 +3530,194 @@ function pickManifestTree(data: Record<string, unknown>): StealerFileNode[] {
       data.files ??
       data.tree ??
       data.manifest ??
-      data.file_tree,
+      data.file_tree ??
+      data.children,
   );
 
   if (direct.length > 0) return direct;
 
   if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) {
     const nested = data.data as Record<string, unknown>;
-
-    return normalizeFileTree(
+    const fromNested = normalizeFileTree(
       nested.victim_tree ??
         nested.files ??
         nested.tree ??
         nested.manifest ??
-        nested.file_tree,
+        nested.file_tree ??
+        nested.children ??
+        nested,
     );
+
+    if (fromNested.length > 0) return fromNested;
+  }
+
+  if (Array.isArray(data.data)) {
+    const fromDataArr = normalizeFileTree(data.data);
+
+    if (fromDataArr.length > 0) return fromDataArr;
   }
 
   const fromLogs = extractStealerArchives(data);
 
-  return fromLogs[0]?.files ?? [];
+  if (fromLogs[0]?.files?.length) return fromLogs[0].files;
+
+  // Last resort: treat the envelope itself as a folder map / root node.
+  return normalizeFileTree(data);
+}
+
+function buildManifestEntry(
+  logId: string,
+  data: Record<string, unknown>,
+  files: StealerFileNode[],
+  base?: StealerArchiveEntry,
+): StealerArchiveEntry {
+  return {
+    logId: logId.trim(),
+    label:
+      base?.label ||
+      asString(data.machine_id) ||
+      asString(data.machineId) ||
+      asString(data.log_name) ||
+      asString(data.hostname) ||
+      undefined,
+    machineId:
+      base?.machineId ||
+      asString(data.machine_id) ||
+      asString(data.machineId) ||
+      undefined,
+    os: base?.os || asString(data.os) || undefined,
+    date: base?.date || asString(data.date) || undefined,
+    malware: base?.malware || asString(data.malware) || undefined,
+    country: base?.country || asString(data.country) || undefined,
+    ...(base?.credentials?.length ? { credentials: base.credentials } : {}),
+    ...(files.length ? { files } : {}),
+    summary:
+      (base?.summary as Record<string, unknown> | undefined) ||
+      (data.summary && typeof data.summary === "object"
+        ? (data.summary as Record<string, unknown>)
+        : undefined),
+    properties:
+      (base?.properties as Record<string, unknown> | undefined) ||
+      (data.properties && typeof data.properties === "object"
+        ? (data.properties as Record<string, unknown>)
+        : undefined),
+    cookies: base?.cookies?.length
+      ? base.cookies
+      : Array.isArray(data.cookies)
+        ? data.cookies
+        : undefined,
+  };
 }
 
 export async function fetchBreachHubVictimManifest(
   logId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  opts?: { machineId?: string },
 ): Promise<StealerArchiveEntry | null> {
   if (!isBreachHubEnabled() || !logId.trim()) return null;
   if (!looksLikeVictimLogId(logId)) return null;
 
+  const trimmed = logId.trim();
+  const machineId = opts?.machineId?.trim() || "";
+  const browseIds = [
+    ...new Set(
+      [trimmed, machineId].filter(
+        (id) => id && looksLikeVictimLogId(id) && !/^DESKTOP[-_]/i.test(id),
+      ),
+    ),
+  ];
+  const errors: string[] = [];
+  let bestFiles: StealerFileNode[] = [];
+  let bestMeta: StealerArchiveEntry | null = null;
+
+  const mergeBest = (entry: StealerArchiveEntry) => {
+    const prev = bestMeta;
+    const nextFiles = entry.files?.length
+      ? entry.files
+      : prev?.files?.length
+        ? prev.files
+        : [];
+
+    bestMeta = {
+      ...(prev ?? { logId: trimmed }),
+      ...entry,
+      credentials: entry.credentials?.length
+        ? entry.credentials
+        : prev?.credentials,
+      files: nextFiles.length ? nextFiles : undefined,
+      cookies: entry.cookies?.length ? entry.cookies : prev?.cookies,
+      summary: entry.summary ?? prev?.summary,
+      properties: entry.properties ?? prev?.properties,
+    };
+    bestFiles = nextFiles;
+  };
+
+  // 1) OathNet victim manifest (canonical for log_id-backed devices).
   try {
     const data = await breachHubGet(
       "/api/oathnet/victims/:log_id",
       {},
       timeoutMs,
-      { log_id: logId.trim() },
+      { log_id: trimmed },
     );
     const archives = extractStealerArchives(data);
     const files = pickManifestTree(data);
-    const base = archives[0];
+    const entry = buildManifestEntry(trimmed, data, files, archives[0]);
 
-    return {
-      logId: logId.trim(),
-      label: base?.label,
-      machineId: base?.machineId,
-      os: base?.os || asString(data.os) || undefined,
-      date: base?.date || asString(data.date) || undefined,
-      malware: base?.malware || asString(data.malware) || undefined,
-      country: base?.country || asString(data.country) || undefined,
-      ...(base?.credentials?.length ? { credentials: base.credentials } : {}),
-      ...(files.length ? { files } : {}),
-      summary:
-        data.summary && typeof data.summary === "object"
-          ? (data.summary as Record<string, unknown>)
-          : undefined,
-      properties:
-        data.properties && typeof data.properties === "object"
-          ? (data.properties as Record<string, unknown>)
-          : undefined,
-      cookies: Array.isArray(data.cookies) ? data.cookies : undefined,
-    };
-  } catch {
-    return null;
+    mergeBest(entry);
+    if (files.length > 0) return bestMeta;
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : "OathNet manifest failed");
   }
+
+  // 2) OsintCat machine-viewer treeview — needed when search used machine_id
+  //    (e.g. 64-char hex) rather than an OathNet log_id.
+  const perTree = Math.min(timeoutMs, 18_000);
+
+  for (const id of browseIds) {
+    if (bestFiles.length > 0) break;
+
+    try {
+      const data = await breachHubGet(
+        "/api/osintcat/machine-viewer/machines/:machine_id/files/treeview",
+        {},
+        perTree,
+        { machine_id: id },
+      );
+      const archives = extractStealerArchives(data);
+      const files = pickManifestTree(data);
+      const entry = buildManifestEntry(
+        trimmed,
+        data,
+        files,
+        archives[0] ?? bestMeta ?? undefined,
+      );
+
+      mergeBest(entry);
+      if (files.length > 0) return bestMeta;
+    } catch (err) {
+      errors.push(
+        err instanceof Error
+          ? err.message
+          : `Machine treeview failed for ${id.slice(0, 12)}…`,
+      );
+    }
+  }
+
+  if (bestFiles.length > 0) return bestMeta;
+
+  // Surface upstream errors (rate limit / 404) instead of a silent empty.
+  if (errors.length > 0 && !bestMeta) {
+    throw new Error(errors[0]);
+  }
+
+  return bestMeta;
 }
 
 export async function fetchBreachHubVictimArchiveBinary(
   logId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  opts?: { machineId?: string },
 ): Promise<{
   bytes: ArrayBuffer;
   contentType: string;
@@ -3480,69 +3727,102 @@ export async function fetchBreachHubVictimArchiveBinary(
 
   if (!apiKey || !logId.trim() || !looksLikeVictimLogId(logId)) return null;
 
-  const url = new URL(
-    `${BREACHHUB_BASE}/api/oathnet/victims/${encodeURIComponent(logId.trim())}/archive`,
-  );
+  const trimmed = logId.trim();
+  const filename = `stealer-${trimmed.slice(0, 12)}.zip`;
 
-  url.searchParams.set("key", apiKey);
-
-  const res = await fetchWithTimeout(url.toString(), {
-    method: "GET",
-    headers: {
-      Accept: "application/zip, application/octet-stream, application/json",
-      "User-Agent": "AnyaInt-BreachHub/1.0",
-    },
-    cache: "no-store",
-    timeoutMs,
-  });
-
-  if (!res.ok) return null;
-
-  const contentType = res.headers.get("content-type") || "";
-
-  if (
-    contentType.includes("application/json") ||
-    contentType.includes("text/json")
-  ) {
-    const text = await readResponseText(res, 8_000);
-    let data: Record<string, unknown> = {};
-
-    try {
-      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-    } catch {
-      return null;
-    }
-
-    const downloadUrl =
-      asString(data.download_url) ||
-      asString(data.url) ||
-      asString(data.archive_url) ||
-      asString(data.link);
-
-    if (!downloadUrl) return null;
-
-    const fileRes = await fetchWithTimeout(downloadUrl, {
+  const tryBinaryUrl = async (url: string) => {
+    const res = await fetchWithTimeout(url, {
       method: "GET",
-      headers: { "User-Agent": "AnyaInt-BreachHub/1.0" },
+      headers: {
+        Accept: "application/zip, application/octet-stream, application/json",
+        "User-Agent": "AnyaInt-BreachHub/1.0",
+      },
       cache: "no-store",
       timeoutMs,
     });
 
-    if (!fileRes.ok) return null;
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") || "";
+
+    if (
+      contentType.includes("application/json") ||
+      contentType.includes("text/json")
+    ) {
+      const text = await readResponseText(res, 8_000);
+      let data: Record<string, unknown> = {};
+
+      try {
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      } catch {
+        return null;
+      }
+
+      const downloadUrl =
+        asString(data.download_url) ||
+        asString(data.url) ||
+        asString(data.archive_url) ||
+        asString(data.link);
+
+      if (!downloadUrl) return null;
+
+      const fileRes = await fetchWithTimeout(downloadUrl, {
+        method: "GET",
+        headers: { "User-Agent": "AnyaInt-BreachHub/1.0" },
+        cache: "no-store",
+        timeoutMs,
+      });
+
+      if (!fileRes.ok) return null;
+
+      return {
+        bytes: await fileRes.arrayBuffer(),
+        contentType: fileRes.headers.get("content-type") || "application/zip",
+        filename,
+      };
+    }
 
     return {
-      bytes: await fileRes.arrayBuffer(),
-      contentType:
-        fileRes.headers.get("content-type") || "application/zip",
-      filename: `stealer-${logId.trim().slice(0, 12)}.zip`,
+      bytes: await res.arrayBuffer(),
+      contentType: contentType || "application/zip",
+      filename,
     };
+  };
+
+  const oathUrl = new URL(
+    `${BREACHHUB_BASE}/api/oathnet/victims/${encodeURIComponent(trimmed)}/archive`,
+  );
+
+  oathUrl.searchParams.set("key", apiKey);
+
+  const fromOath = await tryBinaryUrl(oathUrl.toString());
+
+  if (fromOath) return fromOath;
+
+  const machineIds = [
+    ...new Set(
+      [trimmed, opts?.machineId?.trim() || ""].filter(
+        (id) =>
+          Boolean(id) &&
+          looksLikeVictimLogId(id) &&
+          !/^DESKTOP[-_]/i.test(id),
+      ),
+    ),
+  ];
+
+  for (const id of machineIds) {
+    const catUrl = new URL(
+      `${BREACHHUB_BASE}/api/osintcat/machine-viewer/machines/${encodeURIComponent(id)}/download`,
+    );
+
+    catUrl.searchParams.set("key", apiKey);
+
+    const fromCat = await tryBinaryUrl(catUrl.toString());
+
+    if (fromCat) return fromCat;
   }
 
-  return {
-    bytes: await res.arrayBuffer(),
-    contentType: contentType || "application/zip",
-    filename: `stealer-${logId.trim().slice(0, 12)}.zip`,
-  };
+  return null;
 }
 
 /** @deprecated Prefer fetchBreachHubVictimArchiveBinary for ZIP streams. */

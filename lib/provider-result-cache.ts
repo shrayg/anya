@@ -61,6 +61,8 @@ export function setProviderCached<T>(
   ttlMs: number,
 ): void {
   if (!Number.isFinite(ttlMs) || ttlMs <= 0) return;
+  // Never poison the cache with empty/useless search payloads.
+  if (isEmptyCacheValue(value)) return;
 
   const now = Date.now();
 
@@ -69,14 +71,38 @@ export function setProviderCached<T>(
   store.set(key, { value, expiresAt: now + ttlMs });
 }
 
+/** Detect empty OSINT payloads that must not be memoized. */
+export function isEmptyCacheValue(value: unknown): boolean {
+  if (value == null) return true;
+
+  if (Array.isArray(value)) return value.length === 0;
+
+  if (typeof value !== "object") return false;
+
+  const obj = value as Record<string, unknown>;
+
+  if (typeof obj.count === "number" && obj.count <= 0) {
+    if (Array.isArray(obj.results) && obj.results.length === 0) return true;
+    if (!("results" in obj)) return true;
+  }
+
+  if (Array.isArray(obj.results) && obj.results.length === 0) {
+    if (typeof obj.count !== "number" || obj.count <= 0) return true;
+  }
+
+  return false;
+}
+
 /**
  * Coalesce concurrent identical work and memoize the result briefly.
  * Failures are not cached so callers can retry.
+ * Pass `shouldCache` to skip memoizing empty/useless payloads (e.g. victim trees).
  */
 export async function withProviderCache<T>(
   key: string,
   ttlMs: number,
   work: () => Promise<T>,
+  opts?: { shouldCache?: (value: T) => boolean },
 ): Promise<T> {
   const cached = getProviderCached<T>(key);
 
@@ -90,7 +116,12 @@ export async function withProviderCache<T>(
     try {
       const value = await work();
 
-      setProviderCached(key, value, ttlMs);
+      if (
+        (!opts?.shouldCache || opts.shouldCache(value)) &&
+        !isEmptyCacheValue(value)
+      ) {
+        setProviderCached(key, value, ttlMs);
+      }
 
       return value;
     } finally {

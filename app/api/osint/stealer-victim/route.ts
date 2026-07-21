@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
   }
 
   const logId = req.nextUrl.searchParams.get("logId")?.trim();
+  const machineId = req.nextUrl.searchParams.get("machineId")?.trim();
   const fileId = req.nextUrl.searchParams.get("fileId")?.trim();
   const action = req.nextUrl.searchParams.get("action")?.trim() || "manifest";
 
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
   try {
     if (action === "archive") {
       const archive = await withDeadline(
-        fetchBreachHubVictimArchiveBinary(logId, 45_000),
+        fetchBreachHubVictimArchiveBinary(logId, 45_000, { machineId }),
         Math.max(OSINT_ROUTE_DEADLINE_MS, 50_000),
       );
 
@@ -92,17 +93,36 @@ export async function GET(req: NextRequest) {
     }
 
     const manifest = await withDeadline(
-      fetchBreachHubVictimManifest(logId, 25_000),
+      fetchBreachHubVictimManifest(logId, 25_000, { machineId }),
       OSINT_ROUTE_DEADLINE_MS,
     );
 
     if (!manifest) {
-      return NextResponse.json({
-        logId,
-        available: false,
-        message: "File manifest is not available for this device.",
-        files: [],
-      });
+      return NextResponse.json(
+        {
+          logId,
+          available: false,
+          message:
+            "File manifest is not available for this device. Upstream returned no victim tree (OathNet + OsintCat).",
+          files: [],
+        },
+        { status: 502 },
+      );
+    }
+
+    if (!manifest.files?.length) {
+      return NextResponse.json(
+        {
+          logId,
+          available: false,
+          label: manifest.label ?? null,
+          machineId: manifest.machineId ?? null,
+          message:
+            "File manifest is empty for this device. Upstream responded but included no file tree.",
+          files: [],
+        },
+        { status: 502 },
+      );
     }
 
     return NextResponse.json({
