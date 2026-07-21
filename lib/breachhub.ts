@@ -2365,9 +2365,9 @@ function additiveForKind(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
 }
 
 const STEALER_PRIMARY_IDS = [
-  "oathnet-stealer",
   "oathnet-victims",
   "osintcat-machine-search",
+  "oathnet-stealer",
   "wentyn",
   "hudsonrock-legacy",
   "hudsonrock-email",
@@ -2461,15 +2461,15 @@ export async function fetchBreachHubAdditiveBreachSearch(
     (endpoint) => !stealerIds.has(endpoint.id),
   );
 
-  // Breach indexes: capped parallel + early exit so one slow vendor can't stall.
-  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 8_000), {
-    minResults: 40,
-    budgetMs: Math.min(timeoutMs, 12_000),
+  // Breach indexes: capped parallel + softer early exit for coverage.
+  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 10_000), {
+    minResults: 80,
+    budgetMs: Math.min(timeoutMs, 16_000),
     concurrency: 6,
   });
 }
 
-/** Stealer / infection indexes — fast primary tier, optional secondary. */
+/** Stealer / infection indexes — primary + secondary for coverage. */
 export async function fetchBreachHubAdditiveStealerSearch(
   query: string,
   kindHint?: string | null,
@@ -2477,21 +2477,19 @@ export async function fetchBreachHubAdditiveStealerSearch(
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
   const { primary, secondary } = stealerEndpointsByTier(kind);
-  const budget = Math.min(timeoutMs, 14_000);
+  const budget = Math.min(timeoutMs, 22_000);
 
-  const first = await fanOutEndpoints(primary, query, kind, 7_000, {
-    minResults: 20,
-    budgetMs: Math.min(budget, 8_000),
+  // Primary: high early-exit so machine/victim sources still get a turn.
+  const first = await fanOutEndpoints(primary, query, kind, 10_000, {
+    minResults: 80,
+    budgetMs: Math.min(budget, 12_000),
     concurrency: 6,
   });
 
-  if (first && first.count >= 20) {
-    return first;
-  }
-
-  const remaining = Math.max(2_000, budget - 8_000);
-  const second = await fanOutEndpoints(secondary, query, kind, 5_000, {
-    minResults: 10,
+  // Always run secondary for email/username coverage — never skip after ~20 hits.
+  const remaining = Math.max(5_000, budget - 12_000);
+  const second = await fanOutEndpoints(secondary, query, kind, 7_000, {
+    minResults: 40,
     budgetMs: remaining,
     concurrency: 5,
   });
@@ -2537,7 +2535,12 @@ export async function fetchBreachHubByIds(
     idSet.has(endpoint.id),
   );
 
-  return fanOutEndpoints(endpoints, query, kind, timeoutMs);
+  // Specialty / by-ids: reasonable budgets without starving coverage.
+  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 10_000), {
+    minResults: 40,
+    budgetMs: Math.min(timeoutMs, 14_000),
+    concurrency: 5,
+  });
 }
 
 export async function fetchBreachHubSpecialty(
@@ -3124,17 +3127,58 @@ export async function fetchBreachHubStealerVictims(
 ): Promise<StealerArchiveEntry[]> {
   if (!isBreachHubEnabled()) return [];
 
-  try {
-    const data = await breachHubGet(
-      "/api/oathnet/victims",
-      { query: query.trim() },
-      timeoutMs,
-    );
+  const trimmed = query.trim();
 
-    return extractStealerArchives(data);
-  } catch {
-    return [];
+  if (!trimmed) return [];
+
+  const perCall = Math.min(timeoutMs, 14_000);
+  const settled = await Promise.allSettled([
+    breachHubGet("/api/oathnet/victims", { query: trimmed }, perCall),
+    breachHubGet(
+      "/api/osintcat/machine-viewer/search",
+      { query: trimmed },
+      perCall,
+    ),
+  ]);
+
+  const archives: StealerArchiveEntry[] = [];
+
+  for (const result of settled) {
+    if (result.status !== "fulfilled") continue;
+    archives.push(...extractStealerArchives(result.value));
   }
+
+  return mergeStealerArchiveLists(archives);
+}
+
+function mergeStealerArchiveLists(
+  list: StealerArchiveEntry[],
+): StealerArchiveEntry[] {
+  const map = new Map<string, StealerArchiveEntry>();
+
+  for (const entry of list) {
+    if (!entry.logId) continue;
+    const existing = map.get(entry.logId);
+
+    if (!existing) {
+      map.set(entry.logId, entry);
+      continue;
+    }
+
+    map.set(entry.logId, {
+      ...existing,
+      ...entry,
+      credentials: entry.credentials?.length
+        ? entry.credentials
+        : existing.credentials,
+      files: entry.files?.length ? entry.files : existing.files,
+      cookies: entry.cookies?.length ? entry.cookies : existing.cookies,
+      summary: entry.summary ?? existing.summary,
+      properties: entry.properties ?? existing.properties,
+    });
+  }
+
+  return [...map.values()];
 }
 
 function pickManifestTree(data: Record<string, unknown>): StealerFileNode[] {

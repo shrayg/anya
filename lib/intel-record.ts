@@ -504,10 +504,18 @@ export function filterIntelResultsForQuery(
     const haystack = identity.join(" ");
 
     if (isEmail) {
+      const deep = JSON.stringify(record).toLowerCase();
+
       if (
         haystack.includes(needle) ||
         identity.some((v) => v === needle) ||
-        (haystack.includes(localPart) && haystack.includes(domainPart))
+        (localPart.length >= 3 &&
+          haystack.includes(localPart) &&
+          Boolean(domainPart) &&
+          haystack.includes(domainPart)) ||
+        // Keep victim/machine rows where the email only appears nested
+        // (credentials already filtered above; still require a real match).
+        deep.includes(needle)
       ) {
         filtered.push(record);
       }
