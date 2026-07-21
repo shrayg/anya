@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 import {
+  fetchBreachHubIntelx,
+  fetchBreachHubIntelxWithBuckets,
+  isBreachHubEnabled,
+} from "@/lib/breachhub";
+import {
   fetchCsintIntelx,
   fetchCsintIntelxWithBuckets,
   isCsintEnabled,
@@ -160,8 +165,9 @@ export async function GET(req: NextRequest) {
 
   const hasGodsEyeExport = Boolean(getGodsEyeExportApiKey());
   const hasCsint = isCsintEnabled();
+  const hasBreachHub = isBreachHubEnabled();
 
-  if (!hasGodsEyeExport && !hasCsint) {
+  if (!hasGodsEyeExport && !hasCsint && !hasBreachHub) {
     return NextResponse.json(
       { error: publicServiceUnavailable() },
       { status: 503 },
@@ -185,6 +191,24 @@ export async function GET(req: NextRequest) {
       bucket = isIntelxBucket(csint.bucket) ? csint.bucket : preferredBucket;
     } else if (csint.error) {
       lastError = csint.error;
+    }
+  }
+
+  // BreachHub IntelX specialty — covers System/Storage IDs when CSINT is down/empty.
+  if (!content && hasBreachHub) {
+    const breachHub =
+      idKind === "uuid"
+        ? await fetchBreachHubIntelx(storageId, preferredBucket)
+        : await fetchBreachHubIntelxWithBuckets(storageId, preferredBucket);
+
+    if (breachHub.content.trim()) {
+      content = breachHub.content;
+      bucket = isIntelxBucket(breachHub.bucket)
+        ? breachHub.bucket
+        : preferredBucket;
+      lastError = "";
+    } else if (breachHub.error) {
+      lastError = breachHub.error;
     }
   }
 

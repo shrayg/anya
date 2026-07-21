@@ -480,9 +480,28 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     path: "/api/intelx",
     section: "data_breach",
     modes: ["specialty", "followup"],
+    // Storage/System IDs: UUID, 32-hex System ID, or long Storage ID hash.
     kinds: ["hash"],
-    buildParams: (query) =>
-      HASH_RE.test(query) ? { system_id: query } : null,
+    buildParams: (query) => {
+      const trimmed = query.trim();
+      const hex = trimmed.replace(/[^a-f0-9]/gi, "");
+
+      if (
+        /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+          trimmed,
+        )
+      ) {
+        return { system_id: trimmed.toLowerCase() };
+      }
+      if (/^[a-f0-9]{32}$/i.test(hex)) {
+        return { system_id: hex.toLowerCase() };
+      }
+      if (HASH_RE.test(hex) || /^[a-f0-9]{40,256}$/i.test(hex)) {
+        return { system_id: hex.toLowerCase() };
+      }
+
+      return null;
+    },
   },
   {
     id: "osintcat-database",
@@ -2627,18 +2646,21 @@ function additiveForKind(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
   );
 }
 
-const STEALER_PRIMARY_IDS = [
+/**
+ * Pure infection / stealer-log indexes. These are excluded from breach-only
+ * fan-out so Snusbase / LeakOsint / etc. stay in the breach path.
+ */
+const STEALER_ONLY_PRIMARY_IDS = [
   "oathnet-victims",
   "osintcat-machine-search",
   "oathnet-stealer",
   "wentyn",
   "hudsonrock-legacy",
   "hudsonrock-email",
-  "breachhub-search",
   "intelbase-intelvault-stealer",
 ] as const;
 
-const STEALER_SECONDARY_IDS = [
+const STEALER_ONLY_SECONDARY_IDS = [
   "oathnet-stealer-subdomain",
   "seeknow-stealer",
   "seeknow-stealer-legacy",
@@ -2646,6 +2668,14 @@ const STEALER_SECONDARY_IDS = [
   "hudsonrock-domain",
   "hudsonrock-ip",
   "datavoid-stealer",
+] as const;
+
+/**
+ * Breach indexes also useful during stealer searches for credential coverage.
+ * Must NOT be excluded from breach-only fan-out.
+ */
+const STEALER_BREACH_OVERLAP_IDS = [
+  "breachhub-search",
   "leakosint",
   "leakcheck-v2",
   "leaksight",
@@ -2663,6 +2693,31 @@ const STEALER_SECONDARY_IDS = [
   "seekria-email-breach",
   "inf0sec",
 ] as const;
+
+const STEALER_ONLY_ID_SET = new Set<string>([
+  ...STEALER_ONLY_PRIMARY_IDS,
+  ...STEALER_ONLY_SECONDARY_IDS,
+]);
+
+function isPureStealerEndpoint(endpoint: BreachHubEndpointDef): boolean {
+  if (STEALER_ONLY_ID_SET.has(endpoint.id)) return true;
+
+  const id = endpoint.id.toLowerCase();
+  const path = endpoint.path.toLowerCase();
+
+  return (
+    id.includes("stealer") ||
+    path.includes("/stealer") ||
+    id.includes("hudsonrock") ||
+    path.includes("/hudsonrock") ||
+    id.includes("victims") ||
+    path.includes("/victims") ||
+    id.includes("machine-search") ||
+    path.includes("machine-viewer/search") ||
+    id === "wentyn" ||
+    path.includes("/wentyn")
+  );
+}
 
 function matchesStealerKind(
   endpoint: BreachHubEndpointDef,
@@ -2700,16 +2755,28 @@ function stealerEndpointsByTier(
         ),
       );
 
+  // Also pull any newly catalogued pure-stealer additive endpoints.
+  const listed = new Set([
+    ...STEALER_ONLY_PRIMARY_IDS,
+    ...STEALER_ONLY_SECONDARY_IDS,
+    ...STEALER_BREACH_OVERLAP_IDS,
+  ]);
+  const discovered = BREACHHUB_ENDPOINTS.filter(
+    (endpoint) =>
+      !listed.has(endpoint.id) &&
+      endpoint.modes.includes("additive") &&
+      isPureStealerEndpoint(endpoint) &&
+      matchesStealerKind(endpoint, kind),
+  );
+
   return {
-    primary: pick(STEALER_PRIMARY_IDS),
-    secondary: pick(STEALER_SECONDARY_IDS),
+    primary: pick(STEALER_ONLY_PRIMARY_IDS),
+    secondary: [
+      ...pick(STEALER_ONLY_SECONDARY_IDS),
+      ...pick(STEALER_BREACH_OVERLAP_IDS),
+      ...discovered,
+    ],
   };
-}
-
-function stealerLikeEndpoints(kind: BreachHubQueryKind): BreachHubEndpointDef[] {
-  const { primary, secondary } = stealerEndpointsByTier(kind);
-
-  return [...primary, ...secondary];
 }
 
 /** Full additive fan-out across Data Breach + overlapping Social/Intel indexes. */
@@ -2719,17 +2786,23 @@ export async function fetchBreachHubAdditiveBreachSearch(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
-  const stealerIds = new Set(stealerLikeEndpoints(kind).map((e) => e.id));
+  // Keep pure stealer/infection indexes out — but never exclude Snusbase,
+  // LeakOsint, LeakCheck, IntelVault, etc. (those used to sit on the stealer
+  // secondary list and starved breach searches).
   const endpoints = additiveForKind(kind).filter(
-    (endpoint) => !stealerIds.has(endpoint.id),
+    (endpoint) => !isPureStealerEndpoint(endpoint),
   );
 
-  // Coverage-first: budget caps wall-clock, not row count. Do not early-exit
-  // after a few dozen hits — that silently truncated large stealer/breach sets.
-  return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 18_000), {
+  // Coverage-first: give the full Data Breach catalog enough wall-clock to
+  // finish multiple concurrency waves. Do not early-exit after a few hits —
+  // that silently truncated large breach sets under short budgets.
+  const perCall = Math.min(Math.max(timeoutMs, 18_000), 28_000);
+  const budget = Math.min(Math.max(timeoutMs, 32_000), 42_000);
+
+  return fanOutEndpoints(endpoints, query, kind, perCall, {
     minResults: 0,
-    budgetMs: Math.min(timeoutMs, 32_000),
-    concurrency: 8,
+    budgetMs: budget,
+    concurrency: 10,
   });
 }
 
@@ -2741,21 +2814,16 @@ export async function fetchBreachHubAdditiveStealerSearch(
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
   const { primary, secondary } = stealerEndpointsByTier(kind);
-  const budget = Math.min(timeoutMs, 36_000);
+  const budget = Math.min(Math.max(timeoutMs, 32_000), 42_000);
+  const perCall = Math.min(Math.max(timeoutMs, 16_000), 28_000);
 
   // One worker pool: primary queued first, secondary fills free slots as
   // primary calls finish — no sequential tier wait. minResults=0 keeps coverage.
-  return fanOutEndpoints(
-    [...primary, ...secondary],
-    query,
-    kind,
-    16_000,
-    {
-      minResults: 0,
-      budgetMs: budget,
-      concurrency: 8,
-    },
-  );
+  return fanOutEndpoints([...primary, ...secondary], query, kind, perCall, {
+    minResults: 0,
+    budgetMs: budget,
+    concurrency: 10,
+  });
 }
 
 /** Combined breach + stealer. */
@@ -4196,4 +4264,200 @@ export async function probeBreachHub(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function extractIntelxExportContent(payload: unknown): string {
+  if (typeof payload === "string") {
+    return payload.trim() ? payload : "";
+  }
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return "";
+  }
+
+  const data = payload as Record<string, unknown>;
+
+  for (const key of ["content", "data", "text", "body", "raw", "file"]) {
+    const value = data[key];
+
+    if (typeof value === "string" && value.trim()) return value;
+  }
+
+  if (typeof data.result === "string" && data.result.trim()) {
+    return data.result;
+  }
+
+  return "";
+}
+
+/**
+ * IntelX file export via BreachHub `/api/intelx`.
+ * Accepts System ID (UUID / 32-hex) or Storage ID (long hex). Soft-fails.
+ */
+export async function fetchBreachHubIntelx(
+  storageId: string,
+  bucket = "leaks.public",
+): Promise<{ content: string; error?: string; bucket: string }> {
+  const resolvedBucket = bucket.trim() || "leaks.public";
+
+  if (!isBreachHubEnabled()) {
+    return {
+      content: "",
+      error: publicServiceUnavailable(),
+      bucket: resolvedBucket,
+    };
+  }
+
+  const apiKey = getBreachHubApiKey();
+
+  if (!apiKey) {
+    return {
+      content: "",
+      error: publicServiceUnavailable(),
+      bucket: resolvedBucket,
+    };
+  }
+
+  const trimmed = storageId.trim();
+  const hex = trimmed.replace(/[^a-f0-9]/gi, "").toLowerCase();
+  const isUuid =
+    /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+      trimmed,
+    ) || /^[a-f0-9]{32}$/i.test(hex);
+  const systemId = isUuid
+    ? /^[a-f0-9]{32}$/i.test(hex)
+      ? [
+          hex.slice(0, 8),
+          hex.slice(8, 12),
+          hex.slice(12, 16),
+          hex.slice(16, 20),
+          hex.slice(20),
+        ].join("-")
+      : trimmed.toLowerCase()
+    : "";
+
+  const paramSets: Record<string, string>[] = [];
+
+  if (systemId) {
+    paramSets.push({ system_id: systemId });
+    paramSets.push({ system_id: systemId, bucket: resolvedBucket });
+  }
+  if (hex.length >= 40) {
+    paramSets.push({ system_id: hex });
+    paramSets.push({ storageid: hex, bucket: resolvedBucket });
+    paramSets.push({ storage_id: hex, bucket: resolvedBucket });
+  }
+
+  if (paramSets.length === 0) {
+    return {
+      content: "",
+      error: "Enter a Storage ID (long hex) or System ID.",
+      bucket: resolvedBucket,
+    };
+  }
+
+  let lastError = "No export content returned.";
+
+  for (const params of paramSets) {
+    try {
+      const url = new URL(`${BREACHHUB_BASE}/api/intelx`);
+
+      url.searchParams.set("key", apiKey);
+      for (const [key, value] of Object.entries(params)) {
+        url.searchParams.set(key, value);
+      }
+
+      const res = await fetchWithTimeout(url.toString(), {
+        method: "GET",
+        headers: {
+          Accept: "application/json, text/plain, */*",
+          "User-Agent": "AnyaInt-BreachHub/1.0",
+        },
+        cache: "no-store",
+        timeoutMs: 60_000,
+      });
+
+      const contentType = res.headers.get("content-type") ?? "";
+      const text = await readResponseText(res, 60_000);
+
+      if (contentType.includes("text/plain") && res.ok && text.trim()) {
+        return { content: text, bucket: resolvedBucket };
+      }
+
+      let data: Record<string, unknown> = {};
+
+      try {
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      } catch {
+        if (res.ok && text.trim()) {
+          return { content: text, bucket: resolvedBucket };
+        }
+        lastError = sanitizeBreachHubError(`HTTP ${res.status}`);
+        continue;
+      }
+
+      if (!res.ok || data.success === false) {
+        const msg =
+          (typeof data.message === "string" && data.message) ||
+          (typeof data.error === "string" && data.error) ||
+          `HTTP ${res.status}`;
+
+        lastError = sanitizeBreachHubError(msg);
+        if (/rate limit|429|quota|capacity/i.test(lastError)) {
+          return { content: "", error: lastError, bucket: resolvedBucket };
+        }
+        continue;
+      }
+
+      const content = extractIntelxExportContent(data);
+
+      if (content.trim()) {
+        return { content, bucket: resolvedBucket };
+      }
+    } catch (err) {
+      lastError = sanitizeBreachHubError(
+        err instanceof Error ? err.message : publicSearchError(),
+      );
+      if (/rate limit|429|quota|capacity/i.test(lastError)) {
+        return { content: "", error: lastError, bucket: resolvedBucket };
+      }
+    }
+  }
+
+  return { content: "", error: lastError, bucket: resolvedBucket };
+}
+
+/** Try preferred + common leak buckets for long Storage IDs. */
+export async function fetchBreachHubIntelxWithBuckets(
+  storageId: string,
+  preferredBucket?: string | null,
+): Promise<{ content: string; error?: string; bucket: string }> {
+  const preferred = preferredBucket?.trim() || "leaks.public";
+  const ordered = [
+    preferred,
+    "leaks.public",
+    "leaks.private",
+    "leaks.logs",
+    "dumpster",
+    "pastes",
+  ].filter((b, i, arr) => Boolean(b) && arr.indexOf(b) === i);
+
+  let lastError = "No export content returned.";
+
+  for (const bucket of ordered) {
+    const result = await fetchBreachHubIntelx(storageId, bucket);
+
+    if (result.content.trim()) return result;
+    if (result.error) {
+      lastError = result.error;
+      if (/rate limit|429|quota|capacity/i.test(result.error)) {
+        return result;
+      }
+    }
+  }
+
+  return {
+    content: "",
+    error: lastError,
+    bucket: ordered[0] || "leaks.public",
+  };
 }
