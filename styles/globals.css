@@ -5050,7 +5050,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-id-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
   gap: 0.65rem;
 }
 
@@ -5116,6 +5116,16 @@ html[data-splash="active"] [data-splash-target] {
 .discord-id-stat--roblox .discord-id-stat-icon {
   background: rgba(96, 165, 250, 0.14);
   color: #60a5fa;
+}
+
+.discord-id-stat--servers .discord-id-stat-icon {
+  background: rgba(167, 139, 250, 0.14);
+  color: #a78bfa;
+}
+
+.discord-id-stat--connections .discord-id-stat-icon {
+  background: rgba(45, 212, 191, 0.14);
+  color: #2dd4bf;
 }
 
 .discord-id-stat-label {
@@ -5356,6 +5366,138 @@ html[data-splash="active"] [data-splash-target] {
 .discord-id-roblox-link:hover {
   background: rgba(96, 165, 250, 0.16);
   color: #bfdbfe;
+}
+
+.discord-id-servers-list,
+.discord-id-connections-wrap {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.discord-id-servers-empty-count {
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.75rem;
+  background: #0c0c0e;
+}
+
+.discord-id-server-row,
+.discord-id-connection-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.75rem;
+  background: #141417;
+}
+
+.discord-id-server-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.55rem;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #0c0c0e;
+}
+
+.discord-id-server-icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.55rem;
+  flex-shrink: 0;
+  background: rgba(167, 139, 250, 0.16);
+  color: #c4b5fd;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.discord-id-server-copy,
+.discord-id-connection-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.discord-id-server-name,
+.discord-id-connection-name {
+  margin: 0;
+  color: #f4f4f5;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.discord-id-server-id,
+.discord-id-server-nick,
+.discord-id-connection-id {
+  margin: 0.15rem 0 0;
+  color: #a1a1aa;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+}
+
+.discord-id-connection-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.4rem;
+  background: rgba(45, 212, 191, 0.12);
+  color: #5eead4;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+
+.discord-id-connection-verified {
+  flex-shrink: 0;
+  color: #71717a;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.discord-id-connection-verified--yes {
+  color: #4ade80;
+}
+
+.discord-id-history-block {
+  margin-top: 0.35rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.75rem;
+  background: #0c0c0e;
+}
+
+.discord-id-history-list {
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.discord-id-history-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #e4e4e7;
+  font-size: 0.82rem;
+}
+
+.discord-id-history-date {
+  color: #71717a;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.discord-id-meta-grid--contacts {
+  margin-top: 0.65rem;
 }
 
 .discord-id-profile {

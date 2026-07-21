@@ -26,6 +26,7 @@ const ALLOWED_SCOPES = new Set([
   "passport",
   "telegram",
   "twitter",
+  "snapchat",
   "fivem",
   "discord-roblox",
 ]);

@@ -2369,6 +2369,7 @@ export function extractBreachHubRows(
 
   if (rows.length === 0) {
     const profile = data.profile;
+    const userInfo = data.user_info ?? data.userInfo;
 
     if (profile && typeof profile === "object" && !Array.isArray(profile)) {
       pushRecord(rows, {
@@ -2379,10 +2380,35 @@ export function extractBreachHubRows(
         ...(asString(data.wallet) ? { wallet: asString(data.wallet) } : {}),
       });
     } else if (
+      userInfo &&
+      typeof userInfo === "object" &&
+      !Array.isArray(userInfo)
+    ) {
+      // OsintCat / stalker-style envelopes: { user_info: { …, mutual_guilds } }
+      pushRecord(rows, {
+        ...(userInfo as Record<string, unknown>),
+        ...(Array.isArray(data.mutual_guilds)
+          ? { mutual_guilds: data.mutual_guilds }
+          : {}),
+        ...(Array.isArray(data.connected_accounts)
+          ? { connected_accounts: data.connected_accounts }
+          : {}),
+      });
+    } else if (
       asString(data.wallet) ||
       asString(data.steamid64) ||
       asString(data.balance) ||
-      Array.isArray(data.sources)
+      Array.isArray(data.sources) ||
+      // Flat Discord / Xbox / social profile payloads (no results[] wrapper).
+      asString(data.username) ||
+      asString(data.global_name) ||
+      asString(data.globalName) ||
+      asString(data.gamertag) ||
+      typeof data.mutual_servers === "number" ||
+      Array.isArray(data.mutual_guilds) ||
+      Array.isArray(data.connected_accounts) ||
+      Array.isArray(data.guilds) ||
+      Array.isArray(data.servers)
     ) {
       pushRecord(rows, stripMetaFields(data));
     }

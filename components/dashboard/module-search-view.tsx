@@ -1375,6 +1375,17 @@ export function ModuleSearchView({
         );
         const hasFivem = (discordData.fivem?.count ?? 0) > 0;
         const hasDsa = (discordData.dsa?.count ?? 0) > 0;
+        const hasGuilds =
+          (discordData.guilds?.count ?? 0) > 0 ||
+          (discordData.guilds?.items?.length ?? 0) > 0;
+        const hasConnections =
+          (discordData.connections?.length ?? 0) > 0 ||
+          (discordData.usernameHistory?.length ?? 0) > 0;
+        const hasContacts = Boolean(
+          discordData.contacts?.email ||
+            discordData.contacts?.phone ||
+            discordData.contacts?.ip,
+        );
 
         if (
           !hasProfile &&
@@ -1382,24 +1393,23 @@ export function ModuleSearchView({
           !hasRoblox &&
           !hasEnrichment &&
           !hasFivem &&
-          !hasDsa
+          !hasDsa &&
+          !hasGuilds &&
+          !hasConnections &&
+          !hasContacts
         ) {
           markNoResults(discordData.error || "No results were found.");
 
           return;
         }
 
-        commitSuccess({
-
-
-          discordResult: discordData,
-
-
-          rawResult: JSON.stringify(discordData, null, 2),
-
-
-        }, serialized);
-
+        commitSuccess(
+          {
+            discordResult: discordData,
+            rawResult: JSON.stringify(discordData, null, 2),
+          },
+          serialized,
+        );
 
         return;
       }

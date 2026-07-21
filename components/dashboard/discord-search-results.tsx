@@ -9,6 +9,7 @@ import {
   Gamepad2,
   Link2,
   Scale,
+  Server,
   Shield,
   TriangleAlert,
 } from "lucide-react";
@@ -18,6 +19,12 @@ import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { resolveDiscordBadges } from "@/lib/discord-badges";
+import type {
+  DiscordConnectedAccount,
+  DiscordGuildMembership,
+  DiscordOsintContacts,
+  DiscordUsernameHistoryEntry,
+} from "@/lib/discord-enrichment";
 import {
   formatDiscordMemberSince,
   formatDsaDate,
@@ -34,7 +41,13 @@ import { formatSearchRecords, type FormattedRecord } from "@/lib/search-utils";
 const LEAK_PAGE_SIZE = 5;
 const LEAK_VALUE_PREVIEW = 72;
 
-type DataTab = "breaches" | "roblox" | "dsa" | "fivem";
+type DataTab =
+  | "breaches"
+  | "servers"
+  | "connections"
+  | "roblox"
+  | "dsa"
+  | "fivem";
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -314,6 +327,197 @@ function DiscordLeakRecords({
   );
 }
 
+function ServersBlock({
+  guilds,
+  count,
+  blurResults,
+}: {
+  guilds: DiscordGuildMembership[];
+  count: number;
+  blurResults: boolean;
+}) {
+  if (guilds.length === 0 && count <= 0) {
+    return (
+      <p className="discord-id-dsa-empty">
+        No server memberships returned for this Discord ID. Upstream indexes
+        only expose mutual guilds when their stalker coverage includes this
+        user.
+      </p>
+    );
+  }
+
+  if (guilds.length === 0) {
+    return (
+      <div className="discord-id-servers-empty-count">
+        <p className="discord-id-dsa-empty" style={{ margin: 0 }}>
+          Upstream reports {count} mutual server{count === 1 ? "" : "s"}, but
+          did not return server names or IDs for this lookup.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="discord-id-servers-list">
+      <p className="discord-leak-meta" style={{ marginBottom: "0.65rem" }}>
+        <span className="discord-leak-meta-pill">
+          {guilds.length} server{guilds.length === 1 ? "" : "s"}
+        </span>
+        <span className="discord-leak-meta-detail">
+          {count > guilds.length
+            ? `${count} reported · ${guilds.length} with details`
+            : "Memberships from Discord OSINT indexes"}
+        </span>
+      </p>
+      {guilds.map((guild) => (
+        <article key={guild.id} className="discord-id-server-row">
+          {guild.iconUrl ? (
+            <img
+              alt=""
+              className="discord-id-server-icon"
+              src={guild.iconUrl}
+            />
+          ) : (
+            <span aria-hidden className="discord-id-server-icon-fallback">
+              {(guild.name ?? guild.id).slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div className="discord-id-server-copy">
+            <p className="discord-id-server-name">
+              <BlurredValue
+                forceBlur={blurResults}
+                text={guild.name ?? "Unknown server"}
+              />
+            </p>
+            <p className="discord-id-server-id">
+              <BlurredValue forceBlur={blurResults} text={guild.id} />
+            </p>
+            {guild.nick ? (
+              <p className="discord-id-server-nick">
+                Nick:{" "}
+                <BlurredValue forceBlur={blurResults} text={guild.nick} />
+              </p>
+            ) : null}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ConnectionsBlock({
+  connections,
+  history,
+  blurResults,
+}: {
+  connections: DiscordConnectedAccount[];
+  history: DiscordUsernameHistoryEntry[];
+  blurResults: boolean;
+}) {
+  if (connections.length === 0 && history.length === 0) {
+    return (
+      <p className="discord-id-dsa-empty">
+        No linked accounts or username history returned for this Discord ID.
+      </p>
+    );
+  }
+
+  return (
+    <div className="discord-id-connections-wrap">
+      {connections.length > 0 ? (
+        <div className="discord-id-connections-list">
+          {connections.map((account) => (
+            <article
+              key={`${account.type}-${account.name}-${account.id ?? ""}`}
+              className="discord-id-connection-row"
+            >
+              <span className="discord-id-connection-type">
+                {account.type}
+              </span>
+              <div className="discord-id-connection-copy">
+                <p className="discord-id-connection-name">
+                  <BlurredValue forceBlur={blurResults} text={account.name} />
+                </p>
+                {account.id ? (
+                  <p className="discord-id-connection-id">
+                    <BlurredValue forceBlur={blurResults} text={account.id} />
+                  </p>
+                ) : null}
+              </div>
+              {account.verified != null ? (
+                <span
+                  className={clsx(
+                    "discord-id-connection-verified",
+                    account.verified &&
+                      "discord-id-connection-verified--yes",
+                  )}
+                >
+                  {account.verified ? "Verified" : "Unverified"}
+                </span>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      {history.length > 0 ? (
+        <div className="discord-id-history-block">
+          <p className="discord-id-meta-label">Username history</p>
+          <ul className="discord-id-history-list">
+            {history.map((entry) => (
+              <li
+                key={`${entry.username}-${entry.changedAt ?? ""}`}
+                className="discord-id-history-item"
+              >
+                <BlurredValue forceBlur={blurResults} text={entry.username} />
+                {entry.changedAt ? (
+                  <span className="discord-id-history-date">
+                    {entry.changedAt}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ContactsRow({
+  contacts,
+  blurResults,
+}: {
+  contacts: DiscordOsintContacts;
+  blurResults: boolean;
+}) {
+  const fields = [
+    contacts.email ? { label: "Email", value: contacts.email } : null,
+    contacts.phone ? { label: "Phone", value: contacts.phone } : null,
+    contacts.ip ? { label: "IP", value: contacts.ip } : null,
+  ].filter(Boolean) as { label: string; value: string }[];
+
+  if (fields.length === 0) return null;
+
+  return (
+    <div className="discord-id-meta-grid discord-id-meta-grid--contacts">
+      {fields.map((field) => (
+        <div key={field.label} className="discord-id-meta-block">
+          <p className="discord-id-meta-label">{field.label}</p>
+          <p
+            className={clsx(
+              "discord-id-meta-value",
+              field.label !== "Email" && "discord-id-meta-value--mono",
+            )}
+          >
+            <BlurredValue forceBlur={blurResults} text={field.value} />
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SummaryCard({
   label,
   count,
@@ -323,7 +527,7 @@ function SummaryCard({
 }: {
   label: string;
   count: number;
-  tone: "breach" | "fivem" | "dsa" | "roblox";
+  tone: "breach" | "fivem" | "dsa" | "roblox" | "servers" | "connections";
   icon: React.ReactNode;
   active?: boolean;
 }) {
@@ -542,19 +746,39 @@ export function DiscordSearchResults({
   result: DiscordSearchResult;
   blurResults?: boolean;
 }) {
-  const { profile, leaks, fivem, dsa, robloxLink } = result;
+  const {
+    profile,
+    leaks,
+    fivem,
+    dsa,
+    robloxLink,
+    guilds,
+    connections,
+    contacts,
+    usernameHistory,
+  } = result;
   const accent = profileAccent(profile);
   const themeColor = profileThemeColor(profile);
+  const guildItems = guilds?.items ?? [];
+  const guildCount = Math.max(guilds?.count ?? 0, guildItems.length);
+  const linkedAccounts = connections ?? [];
+  const history = usernameHistory ?? [];
+  const connectionsCount = linkedAccounts.length + history.length;
+
   const [dataTab, setDataTab] = useState<DataTab>(() =>
     leaks.count > 0
       ? "breaches"
-      : robloxLink
-        ? "roblox"
-        : (dsa?.count ?? 0) > 0
-          ? "dsa"
-          : (fivem?.count ?? 0) > 0
-            ? "fivem"
-            : "breaches",
+      : guildCount > 0
+        ? "servers"
+        : connectionsCount > 0
+          ? "connections"
+          : robloxLink
+            ? "roblox"
+            : (dsa?.count ?? 0) > 0
+              ? "dsa"
+              : (fivem?.count ?? 0) > 0
+                ? "fivem"
+                : "breaches",
   );
   const [assetsOpen, setAssetsOpen] = useState(false);
 
@@ -599,6 +823,34 @@ export function DiscordSearchResults({
           />
         </button>
         <button
+          aria-pressed={dataTab === "servers"}
+          className="discord-id-stat-btn"
+          type="button"
+          onClick={() => setDataTab("servers")}
+        >
+          <SummaryCard
+            active={dataTab === "servers"}
+            count={guildCount}
+            icon={<Server className="size-4" />}
+            label="Servers"
+            tone="servers"
+          />
+        </button>
+        <button
+          aria-pressed={dataTab === "connections"}
+          className="discord-id-stat-btn"
+          type="button"
+          onClick={() => setDataTab("connections")}
+        >
+          <SummaryCard
+            active={dataTab === "connections"}
+            count={connectionsCount}
+            icon={<Link2 className="size-4" />}
+            label="Linked"
+            tone="connections"
+          />
+        </button>
+        <button
           aria-pressed={dataTab === "roblox"}
           className="discord-id-stat-btn"
           type="button"
@@ -607,8 +859,8 @@ export function DiscordSearchResults({
           <SummaryCard
             active={dataTab === "roblox"}
             count={robloxLinked ? 1 : 0}
-            icon={<Link2 className="size-4" />}
-            label="Roblox linked"
+            icon={<Gamepad2 className="size-4" />}
+            label="Roblox"
             tone="roblox"
           />
         </button>
@@ -622,7 +874,7 @@ export function DiscordSearchResults({
             active={dataTab === "dsa"}
             count={dsaCount}
             icon={<Scale className="size-4" />}
-            label="DSA sanctions"
+            label="DSA"
             tone="dsa"
           />
         </button>
@@ -636,7 +888,7 @@ export function DiscordSearchResults({
             active={dataTab === "fivem"}
             count={fivemCount}
             icon={<Gamepad2 className="size-4" />}
-            label="FiveM records"
+            label="FiveM"
             tone="fivem"
           />
         </button>
@@ -798,6 +1050,10 @@ export function DiscordSearchResults({
                     </p>
                   </div>
                 </div>
+
+                {contacts ? (
+                  <ContactsRow blurResults={blurResults} contacts={contacts} />
+                ) : null}
               </div>
 
               <div className="discord-id-assets">
@@ -842,9 +1098,31 @@ export function DiscordSearchResults({
           <section className="discord-id-data-panel">
             <header className="discord-id-data-head">
               <div>
-                <h4 className="discord-id-data-title">Breach records</h4>
+                <h4 className="discord-id-data-title">
+                  {dataTab === "servers"
+                    ? "Servers"
+                    : dataTab === "connections"
+                      ? "Linked accounts"
+                      : dataTab === "roblox"
+                        ? "Roblox link"
+                        : dataTab === "dsa"
+                          ? "DSA sanctions"
+                          : dataTab === "fivem"
+                            ? "FiveM records"
+                            : "Breach records"}
+                </h4>
                 <p className="discord-id-data-sub">
-                  Leaks and linked exposure for this Discord ID
+                  {dataTab === "servers"
+                    ? "Guild memberships from Discord OSINT indexes"
+                    : dataTab === "connections"
+                      ? "Connected platforms and username history"
+                      : dataTab === "roblox"
+                        ? "Roblox account linked to this Discord ID"
+                        : dataTab === "dsa"
+                          ? "Digital Services Act sanctions"
+                          : dataTab === "fivem"
+                            ? "FiveM accounts linked to this Discord ID"
+                            : "Leaks and linked exposure for this Discord ID"}
                 </p>
               </div>
             </header>
@@ -860,6 +1138,16 @@ export function DiscordSearchResults({
                     id: "breaches" as const,
                     label: "Breaches",
                     count: leaks.count,
+                  },
+                  {
+                    id: "servers" as const,
+                    label: "Servers",
+                    count: guildCount,
+                  },
+                  {
+                    id: "connections" as const,
+                    label: "Linked",
+                    count: connectionsCount,
                   },
                   {
                     id: "roblox" as const,
@@ -894,6 +1182,20 @@ export function DiscordSearchResults({
                   emptyDetail="No breach or stealer records found for this Discord ID."
                   records={leakRecords}
                   totalCount={leaks.count}
+                />
+              ) : null}
+              {dataTab === "servers" ? (
+                <ServersBlock
+                  blurResults={blurResults}
+                  count={guildCount}
+                  guilds={guildItems}
+                />
+              ) : null}
+              {dataTab === "connections" ? (
+                <ConnectionsBlock
+                  blurResults={blurResults}
+                  connections={linkedAccounts}
+                  history={history}
                 />
               ) : null}
               {dataTab === "roblox" ? (

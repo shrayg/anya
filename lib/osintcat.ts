@@ -13,6 +13,8 @@ const OSINTCAT_BASE = "https://www.osintcat.net/api";
 export const OSINTCAT_SUPPORTED_ENDPOINTS = new Set([
   "breach",
   "discord",
+  /** Profile + mutual guilds (may 404 on some plans; callers should catch). */
+  "discord-stalker",
   "database-search",
   "ip",
   "domain",

@@ -5,6 +5,7 @@ import { fetchBreachVipSanitized } from "@/lib/breachvip";
 import {
   fetchBreachHubDiscord,
   fetchBreachHubDiscordToRoblox,
+  fetchBreachHubRaw,
   fetchBreachHubSpecialty,
 } from "@/lib/breachhub";
 import { fetchCordCatQuery } from "@/lib/cordcat";
@@ -14,6 +15,7 @@ import {
   fetchCsintDiscordOsint,
   fetchCsintOathnetDiscordToRoblox,
 } from "@/lib/csint";
+import { mergeDiscordOsintEnrichment } from "@/lib/discord-enrichment";
 import {
   parseDiscordDsaFromStatements,
   fetchPublicDsaSanctions,
@@ -114,6 +116,21 @@ async function resolveDsa(discordId: string, cordStatements: unknown) {
   return { count: fromPublic.length, sanctions: fromPublic };
 }
 
+/** OsintCat stalker — mutual guilds live here, not on /api/discord leaks. */
+async function fetchOsintCatDiscordStalker(
+  discordId: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const data = await fetchOsintCatEndpoint("discord-stalker", discordId);
+
+    return data && typeof data === "object"
+      ? (data as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "discord");
 
@@ -149,6 +166,12 @@ export async function GET(req: NextRequest) {
       cordQuery,
       breachHubLeaks,
       breachHubFivem,
+      osintCatStalker,
+      bhStalker,
+      bhLookup,
+      bhSeeknowUser,
+      bhUserInfo,
+      bhUsernameHistory,
     ] = await withDeadline(
       Promise.all([
         fetchDiscordProfile(query),
@@ -173,6 +196,18 @@ export async function GET(req: NextRequest) {
         fetchCordCatQuery(query).catch(() => null),
         fetchBreachHubDiscord(query).catch(() => null),
         fetchBreachHubSpecialty("fivem", query).catch(() => null),
+        fetchOsintCatDiscordStalker(query),
+        fetchBreachHubRaw("discord-stalker", { query }).catch(() => null),
+        fetchBreachHubRaw("discord-lookup", { query }).catch(() => null),
+        fetchBreachHubRaw("seeknow-discord-user", {
+          discord_id: query,
+        }).catch(() => null),
+        fetchBreachHubRaw("oathnet-discord-userinfo", {
+          discord_id: query,
+        }).catch(() => null),
+        fetchBreachHubRaw("oathnet-discord-history", {
+          discord_id: query,
+        }).catch(() => null),
       ]),
       OSINT_ROUTE_DEADLINE_MS,
     );
@@ -209,6 +244,25 @@ export async function GET(req: NextRequest) {
         ? cordQuery.fivem.data.total
         : fivemFromCord.length;
 
+    const osintEnrichment = mergeDiscordOsintEnrichment(
+      osintCatStalker,
+      bhStalker,
+      bhLookup,
+      bhSeeknowUser,
+      bhUserInfo,
+      bhUsernameHistory,
+      cordQuery,
+      csintLookup,
+      csintOsint,
+      ...(breachHubLeaks?.results ?? []),
+    );
+
+    const hasContacts = Boolean(
+      osintEnrichment.contacts.email ||
+        osintEnrichment.contacts.phone ||
+        osintEnrichment.contacts.ip,
+    );
+
     const response: DiscordSearchResult = {
       id: query,
       profile,
@@ -225,6 +279,19 @@ export async function GET(req: NextRequest) {
       dsa,
       enrichment: csintLookup,
       robloxLink: normalizeRobloxLink(robloxLinkBh ?? robloxLinkCsint, query),
+      guilds: {
+        count: osintEnrichment.mutualServersCount,
+        items: osintEnrichment.guilds,
+      },
+      connections:
+        osintEnrichment.connections.length > 0
+          ? osintEnrichment.connections
+          : undefined,
+      contacts: hasContacts ? osintEnrichment.contacts : undefined,
+      usernameHistory:
+        osintEnrichment.usernameHistory.length > 0
+          ? osintEnrichment.usernameHistory
+          : undefined,
     };
 
     return NextResponse.json(response);
@@ -238,6 +305,10 @@ export async function GET(req: NextRequest) {
         dsa: { count: 0, sanctions: [] },
         robloxLink: null as DiscordRobloxLink | null,
         enrichment: null,
+        guilds: { count: 0, items: [] },
+        connections: [],
+        contacts: null,
+        usernameHistory: [],
       },
       fallbackMessage: "Failed to resolve Discord profile",
     });

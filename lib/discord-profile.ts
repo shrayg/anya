@@ -1,5 +1,11 @@
 import { fetchCordCatUserInfo, type CordCatUserInfo } from "@/lib/cordcat";
 import { badgesFromPublicFlags } from "@/lib/discord-badges";
+import type {
+  DiscordConnectedAccount,
+  DiscordGuildMembership,
+  DiscordOsintContacts,
+  DiscordUsernameHistoryEntry,
+} from "@/lib/discord-enrichment";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 function discordProfileUrl(discordId: string): string {
@@ -85,6 +91,17 @@ export type DiscordSearchResult = {
   robloxLink?: DiscordRobloxLink | null;
   /** Extra lookup payload when available. */
   enrichment?: Record<string, unknown> | null;
+  /** Servers / mutual guilds from OsintCat stalker / BreachHub Discord OSINT. */
+  guilds?: {
+    count: number;
+    items: DiscordGuildMembership[];
+  };
+  /** Linked platform accounts (Steam, Xbox, Spotify, …) when returned. */
+  connections?: DiscordConnectedAccount[];
+  /** Email / phone / IP pivoted from Discord OSINT providers. */
+  contacts?: DiscordOsintContacts;
+  /** Prior Discord usernames when history indexes return them. */
+  usernameHistory?: DiscordUsernameHistoryEntry[];
 };
 
 const DISCORD_EPOCH = 1_420_070_400_000n;
