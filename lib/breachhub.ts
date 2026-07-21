@@ -1496,6 +1496,40 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query) => q(query),
   },
   {
+    id: "seekria-tiktok-lookup",
+    path: "/api/seekria/tiktok-lookup",
+    section: "social_osint",
+    modes: ["specialty", "additive"],
+    kinds: ["username"],
+    buildParams: (query) => ({ query, type: "full" }),
+  },
+  {
+    id: "seekria-tiktok-breach",
+    path: "/api/seekria/tiktok-breach",
+    section: "social_osint",
+    modes: ["specialty", "additive"],
+    kinds: ["username"],
+    buildParams: (query) => q(query),
+  },
+  // Seekria-proxied Snusbase/LeakCheck — specialty-only so additive fan-out
+  // does not double-hit direct BH snusbase / leakcheck-v2 (see provider-dedupe).
+  {
+    id: "seekria-snusbase-breach",
+    path: "/api/seekria/snusbase-breach",
+    section: "data_breach",
+    modes: ["specialty"],
+    kinds: ["email", "username", "ip", "hash", "name"],
+    buildParams: (query) => q(query),
+  },
+  {
+    id: "seekria-leakcheck-breach",
+    path: "/api/seekria/leakcheck-breach",
+    section: "data_breach",
+    modes: ["specialty"],
+    kinds: ["email", "username"],
+    buildParams: (query) => q(query),
+  },
+  {
     id: "seeknow-discord-user",
     path: "/api/seeknow/discord/user",
     section: "social_osint",
@@ -3328,6 +3362,8 @@ export async function fetchBreachHubSpecialty(
       "seeknow-social",
       "intelbase-tiktok",
       "indicia-tiktok",
+      "seekria-tiktok-lookup",
+      "seekria-tiktok-breach",
     ],
     twitter: [
       "seeknow-twitter",
