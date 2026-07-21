@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ChevronDown,
   Copy,
@@ -279,33 +279,59 @@ function DiscordLeakRecords({
 
               {!isExpanded ? null : (
                 <div className="discord-leak-fields">
-                  {fields.map((field) => (
-                    <div
-                      key={`${record.index}-${field.key}`}
-                      className={clsx(
-                        "discord-leak-field",
-                        field.sensitive && "discord-leak-field--sensitive",
-                      )}
-                    >
-                      <span className="discord-leak-label">{field.label}</span>
-                      <span
-                        className={clsx(
-                          "discord-leak-value",
-                          field.highlight && "discord-leak-value--accent",
-                        )}
-                        title={
-                          field.value.length > LEAK_VALUE_PREVIEW
-                            ? field.value
-                            : undefined
-                        }
-                      >
-                        <BlurredValue
-                          forceBlur={blurResults}
-                          text={field.value}
-                        />
-                      </span>
-                    </div>
-                  ))}
+                  {(() => {
+                    const nodes: ReactNode[] = [];
+                    let lastGroup: string | undefined;
+
+                    fields.forEach((field) => {
+                      if (field.group && field.group !== lastGroup) {
+                        lastGroup = field.group;
+                        nodes.push(
+                          <div
+                            key={`group-${record.index}-${field.group}`}
+                            className="discord-leak-group-label"
+                          >
+                            {field.group}
+                          </div>,
+                        );
+                      }
+
+                      nodes.push(
+                        <div
+                          key={`${record.index}-${field.key}`}
+                          className={clsx(
+                            "discord-leak-field",
+                            field.sensitive && "discord-leak-field--sensitive",
+                            field.block && "discord-leak-field--block",
+                            field.group && "discord-leak-field--grouped",
+                          )}
+                        >
+                          <span className="discord-leak-label">
+                            {field.label}
+                          </span>
+                          <span
+                            className={clsx(
+                              "discord-leak-value",
+                              field.highlight && "discord-leak-value--accent",
+                              field.block && "discord-leak-value--block",
+                            )}
+                            title={
+                              field.value.length > LEAK_VALUE_PREVIEW
+                                ? field.value
+                                : undefined
+                            }
+                          >
+                            <BlurredValue
+                              forceBlur={blurResults}
+                              text={field.value}
+                            />
+                          </span>
+                        </div>,
+                      );
+                    });
+
+                    return nodes;
+                  })()}
                 </div>
               )}
             </article>

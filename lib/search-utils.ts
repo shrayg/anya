@@ -18,6 +18,8 @@ export type FormattedField = {
   highlight?: boolean;
   /** Full-width readable block (AI summaries, long lists, etc.). */
   block?: boolean;
+  /** Optional section header when nested objects are expanded (e.g. IP Geolocation). */
+  group?: string;
 };
 
 export type FormattedRecord = {
@@ -45,25 +47,46 @@ const FIELD_LABELS: Record<string, string> = {
   name: "Name",
   country: "Country",
   country_code: "Country code",
+  countryCode: "Country code",
   country_name: "Country",
   city: "City",
+  region: "Region",
   region_code: "Region",
+  regionName: "Region",
+  region_name: "Region",
+  zip: "ZIP",
   isp: "ISP",
+  org: "Organization",
+  as: "ASN",
+  asname: "ASN name",
+  mobile: "Mobile",
+  proxy: "Proxy",
+  hosting: "Hosting",
   hostnames: "Hostnames",
   ports: "Open ports",
   latitude: "Latitude",
+  lat: "Latitude",
   longitude: "Longitude",
+  lon: "Longitude",
   last_update: "Last seen",
   steam: "Steam",
   license: "License",
   uuid: "UUID",
-  query: "Query",
+  query: "IP address",
   hash: "Hash",
   secret: "Secret",
   identifier: "Identifier",
   raw: "Raw match",
   public_flags: "Public flags",
+  flags: "Flags",
   global_name: "Display name",
+  display_name: "Display name",
+  accent_color: "Accent color",
+  banner_color: "Banner color",
+  avatar_hash: "Avatar hash",
+  avatar_url: "Avatar URL",
+  account_created_at: "Account created",
+  medal_id: "Medal ID",
   mutual_servers: "Mutual servers",
   mutual_guilds: "Servers",
   connected_accounts: "Linked accounts",
@@ -93,6 +116,13 @@ const FIELD_LABELS: Record<string, string> = {
   analysis: "Analysis",
   overview: "Overview",
   description: "Description",
+  ip_geolocation: "IP Geolocation",
+  discord_profile: "Discord Profile",
+  medal: "Medal",
+  database_leaks: "Database leaks",
+  osint_data: "OSINT data",
+  total_results: "Total results",
+  data_found: "Data found",
 };
 
 const FIELD_ORDER = [
@@ -123,9 +153,15 @@ const FIELD_ORDER = [
   "registered_accounts",
   "country",
   "country_name",
+  "countryCode",
   "city",
+  "region",
+  "regionName",
   "region_code",
+  "zip",
   "isp",
+  "org",
+  "query",
   "carrier",
 ];
 
@@ -148,9 +184,13 @@ const HIGHLIGHT_KEYS = new Set([
 
 /** Provider branding / meta — never shown as result field rows. */
 const HIDDEN_RESULT_KEY =
-  /^(source|sources|_source|credit|credits|service|success|provider|providers)$/i;
+  /^(source|sources|_source|credit|credits|service|success|status|provider|providers)$/i;
 
 const ERROR_RESULT_KEY = /error|exception|failure|failed/i;
+
+/** Nested objects worth expanding into labeled field groups. */
+const EXPANDABLE_OBJECT_KEY =
+  /^(ip_?geolocation|geolocation|geo|discord_?profile|profile|medal|database_?leaks|osint_?data|avatar_?decoration_?data|primary_?guild|clan)$/i;
 
 /** Long prose / list fields — render as full-width text blocks. */
 const BLOCK_TEXT_KEY =
@@ -180,6 +220,79 @@ function humanizeKey(key: string): string {
   return sanitizePublicText(label);
 }
 
+function tryParseJsonObject(value: string): Record<string, unknown> | null {
+  const trimmed = value.trim();
+
+  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return null;
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function coercePlainObject(value: unknown): Record<string, unknown> | null {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    return tryParseJsonObject(value);
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return null;
+}
+
+function shouldExpandObject(key: string, obj: Record<string, unknown>): boolean {
+  if (EXPANDABLE_OBJECT_KEY.test(key)) return true;
+
+  const keys = Object.keys(obj).filter((k) => !isHiddenResultKey(k));
+
+  if (keys.length < 2 || keys.length > 24) return false;
+
+  return keys.every((k) => {
+    const v = obj[k];
+
+    return (
+      v == null ||
+      typeof v === "string" ||
+      typeof v === "number" ||
+      typeof v === "boolean"
+    );
+  });
+}
+
+function formatScalarValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  if (typeof value === "string") {
+    const text = sanitizePublicText(value.trim());
+
+    if (!text || /^\[object object\]$/i.test(text)) return "";
+
+    return text;
+  }
+
+  return "";
+}
+
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "";
 
@@ -196,24 +309,22 @@ function formatValue(value: unknown): string {
       .join(", ");
   }
 
-  if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
-  }
+  const scalar = formatScalarValue(value);
 
-  if (typeof value === "object") {
+  if (scalar) return scalar;
+
+  const obj = coercePlainObject(value);
+
+  if (obj) {
     const parts: string[] = [];
 
-    for (const [nestedKey, nestedVal] of Object.entries(
-      value as Record<string, unknown>,
-    )) {
-      if (typeof nestedVal === "string" && nestedVal.trim()) {
-        parts.push(`${nestedKey}: ${nestedVal.trim()}`);
-      } else if (
-        typeof nestedVal === "number" ||
-        typeof nestedVal === "boolean"
-      ) {
-        parts.push(`${nestedKey}: ${String(nestedVal)}`);
-      }
+    for (const [nestedKey, nestedVal] of Object.entries(obj)) {
+      if (isHiddenResultKey(nestedKey)) continue;
+
+      const nestedFormatted = formatScalarValue(nestedVal);
+
+      if (!nestedFormatted) continue;
+      parts.push(`${humanizeKey(nestedKey)}: ${nestedFormatted}`);
     }
 
     if (parts.length === 0) return "";
@@ -228,6 +339,76 @@ function formatValue(value: unknown): string {
   return text;
 }
 
+function makeField(
+  key: string,
+  value: unknown,
+  group?: string,
+): FormattedField | null {
+  const formatted = formatValue(value);
+
+  if (!formatted) return null;
+  if (isBrandPlaceholderValue(formatted)) return null;
+  if (/invalid\s+api\s*key/i.test(formatted)) return null;
+
+  const label = humanizeKey(key);
+
+  if (!label.trim() || /^sources?$/i.test(label)) return null;
+
+  return {
+    key,
+    label,
+    value: formatted,
+    sensitive: SENSITIVE_KEYS.has(key),
+    highlight: HIGHLIGHT_KEYS.has(key),
+    block: isBlockTextField(key, formatted),
+    ...(group ? { group } : {}),
+  };
+}
+
+function expandObjectFields(
+  key: string,
+  value: unknown,
+): FormattedField[] | null {
+  const obj = coercePlainObject(value);
+
+  if (!obj || !shouldExpandObject(key, obj)) return null;
+
+  const group = humanizeKey(key);
+  const fields: FormattedField[] = [];
+
+  for (const [nestedKey, nestedVal] of Object.entries(obj)) {
+    if (isHiddenResultKey(nestedKey)) continue;
+
+    const nestedObj = coercePlainObject(nestedVal);
+
+    if (nestedObj && shouldExpandObject(nestedKey, nestedObj)) {
+      const deeper = expandObjectFields(nestedKey, nestedObj);
+
+      if (deeper && deeper.length > 0) {
+        fields.push(
+          ...deeper.map((field) => ({
+            ...field,
+            group: field.group ? `${group} · ${field.group}` : group,
+            key: `${key}.${field.key}`,
+          })),
+        );
+        continue;
+      }
+    }
+
+    const field = makeField(`${key}.${nestedKey}`, nestedVal, group);
+
+    if (field) {
+      fields.push({
+        ...field,
+        label: humanizeKey(nestedKey),
+      });
+    }
+  }
+
+  return fields.length > 0 ? fields : null;
+}
+
 function objectFields(
   data: Record<string, unknown>,
   keys?: string[],
@@ -238,37 +419,44 @@ function objectFields(
         .map((key) => [key, data[key]] as const)
     : Object.entries(data).filter(([key]) => !isHiddenResultKey(key));
 
-  const fields = entries
-    .map(([key, value]) => {
-      const formatted = formatValue(value);
+  const fields: FormattedField[] = [];
 
-      if (!formatted) return null;
-      if (isBrandPlaceholderValue(formatted)) return null;
-      if (/invalid\s+api\s*key/i.test(formatted)) return null;
+  for (const [key, value] of entries) {
+    const expanded = expandObjectFields(key, value);
 
-      const label = humanizeKey(key);
+    if (expanded) {
+      fields.push(...expanded);
+      continue;
+    }
 
-      if (!label.trim() || /^sources?$/i.test(label)) return null;
+    const field = makeField(key, value);
 
-      return {
-        key,
-        label,
-        value: formatted,
-        sensitive: SENSITIVE_KEYS.has(key),
-        highlight: HIGHLIGHT_KEYS.has(key),
-        block: isBlockTextField(key, formatted),
-      };
-    })
-    .filter((field) => field !== null) as FormattedField[];
+    if (field) fields.push(field);
+  }
 
-  // Compact fields first; full-width prose blocks last.
+  // Ungrouped compact fields first, then grouped sections, then prose blocks.
   fields.sort((a, b) => {
+    const aGrouped = Boolean(a.group);
+    const bGrouped = Boolean(b.group);
+
+    if (aGrouped !== bGrouped) return aGrouped ? 1 : -1;
+
+    if (a.group && b.group && a.group !== b.group) {
+      return a.group.localeCompare(b.group);
+    }
+
     if (Boolean(a.block) !== Boolean(b.block)) {
       return a.block ? 1 : -1;
     }
 
-    const aIndex = FIELD_ORDER.indexOf(a.key);
-    const bIndex = FIELD_ORDER.indexOf(b.key);
+    const aBase = a.key.includes(".")
+      ? a.key.slice(a.key.lastIndexOf(".") + 1)
+      : a.key;
+    const bBase = b.key.includes(".")
+      ? b.key.slice(b.key.lastIndexOf(".") + 1)
+      : b.key;
+    const aIndex = FIELD_ORDER.indexOf(aBase);
+    const bIndex = FIELD_ORDER.indexOf(bBase);
     const aRank = aIndex === -1 ? 999 : aIndex;
     const bRank = bIndex === -1 ? 999 : bIndex;
 

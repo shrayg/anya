@@ -300,15 +300,36 @@ export function SearchResultCards({
                   </div>
                 </header>
                 <div className="anya-breach-fields">
-                  {record.fields.map((field) => (
-                    <ResultField
-                      key={`${record.index}-${field.key}`}
-                      blurResults={blurResults}
-                      expanded
-                      field={field}
-                      premium
-                    />
-                  ))}
+                  {(() => {
+                    const nodes: React.ReactNode[] = [];
+                    let lastGroup: string | undefined;
+
+                    record.fields.forEach((field) => {
+                      if (field.group && field.group !== lastGroup) {
+                        lastGroup = field.group;
+                        nodes.push(
+                          <div
+                            key={`group-${record.index}-${field.group}`}
+                            className="anya-breach-group-label"
+                          >
+                            {field.group}
+                          </div>,
+                        );
+                      }
+
+                      nodes.push(
+                        <ResultField
+                          key={`${record.index}-${field.key}`}
+                          blurResults={blurResults}
+                          expanded
+                          field={field}
+                          premium
+                        />,
+                      );
+                    });
+
+                    return nodes;
+                  })()}
                 </div>
               </article>
             );

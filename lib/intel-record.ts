@@ -457,6 +457,131 @@ function normalizeFingerprintPart(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function looksLikeDiscordSnowflake(value: string): boolean {
+  return /^\d{17,20}$/.test(value.trim());
+}
+
+function looksLikeDumpFilename(value: string): boolean {
+  const trimmed = value.trim();
+
+  if (!trimmed) return false;
+
+  return /\.(txt|csv|sql|json|tsv|log|db|zip|rar|7z)$/i.test(trimmed);
+}
+
+function asFingerprintRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  return value as Record<string, unknown>;
+}
+
+function nestedFingerprintField(
+  record: Record<string, unknown>,
+  path: Array<string | string[]>,
+): string {
+  let current: unknown = record;
+
+  for (const step of path) {
+    const obj = asFingerprintRecord(current);
+
+    if (!obj) return "";
+
+    if (Array.isArray(step)) {
+      current = firstFingerprintField(obj, step) || undefined;
+      continue;
+    }
+
+    current = obj[step];
+  }
+
+  if (typeof current === "string" && current.trim()) return current.trim();
+  if (typeof current === "number" && Number.isFinite(current)) {
+    return String(current);
+  }
+
+  return "";
+}
+
+function extractFingerprintDiscordId(record: Record<string, unknown>): string {
+  const direct = firstFingerprintField(record, [
+    "discord_id",
+    "discordid",
+    "discordId",
+    "user_id",
+    "userid",
+  ]);
+
+  if (direct && looksLikeDiscordSnowflake(direct)) {
+    return normalizeFingerprintPart(direct);
+  }
+
+  const id = firstFingerprintField(record, ["id"]);
+
+  if (id && looksLikeDiscordSnowflake(id)) {
+    return normalizeFingerprintPart(id);
+  }
+
+  for (const key of [
+    "discord_profile",
+    "discordProfile",
+    "profile",
+    "user",
+    "discord",
+  ]) {
+    const nested = asFingerprintRecord(record[key]);
+
+    if (!nested) continue;
+
+    const nestedId = firstFingerprintField(nested, [
+      "discord_id",
+      "discordId",
+      "user_id",
+      "userid",
+      "id",
+    ]);
+
+    if (nestedId && looksLikeDiscordSnowflake(nestedId)) {
+      return normalizeFingerprintPart(nestedId);
+    }
+  }
+
+  return "";
+}
+
+function extractFingerprintIp(record: Record<string, unknown>): string {
+  const direct = firstFingerprintField(record, [
+    "ip",
+    "ip_address",
+    "ipAddress",
+    "query",
+  ]);
+
+  if (direct) return normalizeFingerprintPart(direct);
+
+  const fromOsint = nestedFingerprintField(record, [
+    "osint_data",
+    ["ip", "ip_address", "ipAddress"],
+  ]);
+
+  if (fromOsint) return normalizeFingerprintPart(fromOsint);
+
+  const fromGeo = nestedFingerprintField(record, [
+    "ip_geolocation",
+    ["query", "ip", "ip_address"],
+  ]);
+
+  if (fromGeo) return normalizeFingerprintPart(fromGeo);
+
+  const fromGeoCamel = nestedFingerprintField(record, [
+    "ipGeolocation",
+    ["query", "ip", "ipAddress"],
+  ]);
+
+  if (fromGeoCamel) return normalizeFingerprintPart(fromGeoCamel);
+
+  return "";
+}
+
 /**
  * Stable merge key for intel rows across providers.
  * Collapses same email+password+site / breach id / stealer credential tuple.
@@ -493,11 +618,6 @@ export function intelResultFingerprint(entry: unknown): string {
       "source",
     ]),
   );
-
-  // Prefer explicit record ids when present (cross-provider same dump row).
-  if (recordId.length >= 6) {
-    return `id:${normalizeFingerprintPart(recordId)}|${database}`;
-  }
 
   const logId = firstFingerprintField(record, [
     "log_id",
@@ -545,18 +665,24 @@ export function intelResultFingerprint(entry: unknown): string {
   const phone = normalizeFingerprintPart(
     firstFingerprintField(record, ["phone", "phone_number", "mobile", "tel"]),
   );
-  const ip = normalizeFingerprintPart(
-    firstFingerprintField(record, ["ip", "ip_address", "ipAddress"]),
-  );
-  const discordId = normalizeFingerprintPart(
-    firstFingerprintField(record, [
-      "discord_id",
-      "discordid",
-      "discordId",
-      "user_id",
-      "userid",
-    ]),
-  );
+  const ip = extractFingerprintIp(record);
+  const discordId = extractFingerprintDiscordId(record);
+
+  // Discord snowflakes often land in `id` — do not treat them as unique dump
+  // row ids keyed by BREACHES.TXT vs RESTORECORD.CSV (same person, eight cards).
+  const stableRecordId =
+    recordId &&
+    !(
+      looksLikeDiscordSnowflake(recordId) &&
+      (!discordId || discordId === normalizeFingerprintPart(recordId))
+    )
+      ? recordId
+      : "";
+
+  // Prefer explicit record ids when present (cross-provider same dump row).
+  if (stableRecordId.length >= 6) {
+    return `id:${normalizeFingerprintPart(stableRecordId)}|${database}`;
+  }
 
   const identity = email || username || phone || ip || discordId;
 
@@ -564,17 +690,32 @@ export function intelResultFingerprint(entry: unknown): string {
     return `stealer:${normalizeFingerprintPart(logId)}|${identity}|${password}|${site}`;
   }
 
+  // Discord / IP leak rows often repeat across dump filenames. Key on
+  // identity+ip (+ password when present), not the dump title / sparse wrapper.
+  if (discordId && !site) {
+    return `discord:${discordId}|${ip}|${password}`;
+  }
+
+  if (ip && !password && !site && (discordId || username || email)) {
+    return `iphit:${ip}|${discordId || username || email}`;
+  }
+
+  const databaseKey =
+    database && !looksLikeDumpFilename(database) ? database : "";
+
   // Credential / breach tuple — require more than identity alone.
-  if (identity && (password || site || database)) {
-    return `cred:${identity}|${password}|${site}|${database}`;
+  if (identity && (password || site || databaseKey)) {
+    return `cred:${identity}|${password}|${site}|${databaseKey}`;
   }
 
   if (identity) {
     // Identity-only rows: keep distinct by remaining stable scalar fields.
+    // Ignore dump/filename-style databases and indexed dates so near-identical
+    // leak rows merge (richer row wins in dedupeIntelResults).
     const extras = [
       firstFingerprintField(record, ["uuid", "steamid", "steamid64", "wallet"]),
       firstFingerprintField(record, ["token", "raw"]),
-      firstFingerprintField(record, ["added_at", "breach_date", "date"]),
+      ip,
     ]
       .map(normalizeFingerprintPart)
       .filter(Boolean)
@@ -612,20 +753,47 @@ function stableObjectFingerprint(record: Record<string, unknown>): string {
   return parts.length > 0 ? parts.join("&") : JSON.stringify(record);
 }
 
-/** Drop exact/semantic duplicate intel rows; preserves first occurrence order. */
-export function dedupeIntelResults(results: unknown[]): unknown[] {
-  const seen = new Set<string>();
-  const out: unknown[] = [];
+function intelRowRichness(entry: unknown): number {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return 0;
+  const record = entry as Record<string, unknown>;
+  let score = 0;
 
-  for (const entry of results) {
-    const key = intelResultFingerprint(entry);
-
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(entry);
+  for (const [key, value] of Object.entries(record)) {
+    if (key.startsWith("_") || value == null || value === "") continue;
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      score += 1;
+      continue;
+    }
+    if (typeof value === "object") score += 3;
   }
 
-  return out;
+  return score;
+}
+
+/** Drop exact/semantic duplicate intel rows; keeps the richer row per key. */
+export function dedupeIntelResults(results: unknown[]): unknown[] {
+  const best = new Map<
+    string,
+    { entry: unknown; richness: number; order: number }
+  >();
+
+  results.forEach((entry, order) => {
+    const key = intelResultFingerprint(entry);
+    const richness = intelRowRichness(entry);
+    const prev = best.get(key);
+
+    if (!prev || richness > prev.richness) {
+      best.set(key, { entry, richness, order });
+    }
+  });
+
+  return [...best.values()]
+    .sort((a, b) => a.order - b.order)
+    .map((item) => item.entry);
 }
 
 /**

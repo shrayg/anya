@@ -1998,6 +1998,24 @@ html[data-splash="active"] [data-splash-target] {
   min-width: 0;
 }
 
+.anya-breach-group-label {
+  grid-column: 1 / -1;
+  margin-top: 0.35rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+}
+
+.anya-breach-group-label:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 .anya-breach-field--meta .anya-breach-value-box {
   background: transparent;
   border: none;
@@ -6751,8 +6769,36 @@ html[data-splash="active"] [data-splash-target] {
   min-width: 0;
 }
 
-.discord-leak-field--sensitive {
+.discord-leak-field--sensitive,
+.discord-leak-field--block {
   grid-column: 1 / -1;
+}
+
+.discord-leak-group-label {
+  grid-column: 1 / -1;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0 0.1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+}
+
+.discord-leak-group-label:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.discord-leak-field--grouped .discord-leak-value {
+  color: #f4f4f5;
+}
+
+.discord-leak-value--block {
+  white-space: pre-wrap;
+  line-height: 1.45;
 }
 
 .discord-leak-label {
