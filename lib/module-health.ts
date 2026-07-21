@@ -1,4 +1,4 @@
-import { probeBreachHub, isBreachHubEnabled } from "@/lib/breachhub";
+import { probeBreachHub, probeOathNet, isBreachHubEnabled } from "@/lib/breachhub";
 import { probeBreachVip, isBreachVipEnabled } from "@/lib/breachvip";
 import { probeCordCat, isCordCatConfigured } from "@/lib/cordcat";
 import { probeCsint, isCsintEnabled } from "@/lib/csint";
@@ -23,6 +23,7 @@ export type ProviderId =
   | "godseye-export"
   | "breachvip"
   | "breachhub"
+  | "oathnet"
   | "csint"
   | "cordcat"
   | "builtin"
@@ -43,7 +44,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   intelx: { kind: "any", providers: ["godseye-export", "csint", "breachhub"] },
   "stealer-logs": {
     kind: "any",
-    providers: ["osintcat", "godseye", "csint", "breachhub"],
+    providers: ["osintcat", "godseye", "csint", "breachhub", "oathnet"],
   },
   breaches: {
     kind: "any",
@@ -53,6 +54,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
       "breachvip",
       "csint",
       "breachhub",
+      "oathnet",
       "osintcat",
     ],
   },
@@ -65,12 +67,13 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
       "breachvip",
       "csint",
       "breachhub",
+      "oathnet",
       "osintcat",
     ],
   },
   domain: {
     kind: "any",
-    providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub"],
+    providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub", "oathnet"],
   },
   "hash-lookup": { kind: "any", providers: ["godseye", "csint", "breachhub"] },
   "password-search": {
@@ -88,13 +91,13 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
       "breachhub",
     ],
   },
-  "email-analyze": { kind: "any", providers: ["csint", "breachhub"] },
+  "email-analyze": { kind: "any", providers: ["csint", "breachhub", "oathnet"] },
   "fraud-footprint": { kind: "any", providers: ["csint", "breachhub"] },
-  "oathnet-roblox": { kind: "any", providers: ["csint", "breachhub"] },
+  "oathnet-roblox": { kind: "any", providers: ["csint", "breachhub", "oathnet"] },
   "contact-enrich": { kind: "any", providers: ["csint", "breachhub"] },
   phone: {
     kind: "any",
-    providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub"],
+    providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub", "oathnet"],
   },
   username: {
     kind: "any",
@@ -103,7 +106,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "account-finder": { kind: "any", providers: ["builtin"] },
   ip: {
     kind: "any",
-    providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub"],
+    providers: ["osintcat", "godseye", "breachvip", "csint", "breachhub", "oathnet"],
   },
   /** Shodan host: CSINT primary; BreachHub fallback when CSINT is off. */
   "shodan-host": { kind: "any", providers: ["csint", "breachhub"] },
@@ -145,19 +148,20 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
       "breachvip",
       "csint",
       "breachhub",
+      "oathnet",
       "builtin",
     ],
   },
-  roblox: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
+  roblox: { kind: "any", providers: ["godseye", "csint", "breachhub", "oathnet"] },
   minecraft: {
     kind: "any",
-    providers: ["godseye", "breachvip", "csint", "breachhub"],
+    providers: ["godseye", "breachvip", "csint", "breachhub", "oathnet"],
   },
   steam: {
     kind: "any",
-    providers: ["godseye", "breachvip", "csint", "breachhub"],
+    providers: ["godseye", "breachvip", "csint", "breachhub", "oathnet"],
   },
-  xbox: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
+  xbox: { kind: "any", providers: ["godseye", "csint", "breachhub", "oathnet"] },
   hwid: { kind: "any", providers: ["breachhub"] },
   "facebook-id": { kind: "any", providers: ["breachhub"] },
   passport: { kind: "any", providers: ["breachhub"] },
@@ -243,6 +247,8 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
   breachvip: "Comb index",
   /** Unique multi-source remainder after direct CSINT/OsintCat/BreachVIP. */
   breachhub: "Multi-source",
+  /** BreachHub `/api/oathnet/*` vendor — shown so ops can see red/green. */
+  oathnet: "OathNet",
   csint: "Enrichment",
   cordcat: "Discord",
   builtin: "Built-in",
@@ -390,6 +396,7 @@ export async function probeProvidersDetailed(): Promise<ProviderProbeResult[]> {
     godseyeExport,
     breachvip,
     breachhub,
+    oathnet,
     csint,
     cordcat,
     courtlistener,
@@ -400,6 +407,16 @@ export async function probeProvidersDetailed(): Promise<ProviderProbeResult[]> {
     timedProbe("godseye-export", probeGodsEyeExport),
     timedProbe("breachvip", probeBreachVip),
     timedProbe("breachhub", probeBreachHub),
+    isBreachHubEnabled()
+      ? timedProbe("oathnet", probeOathNet)
+      : Promise.resolve({
+          id: "oathnet" as const,
+          label: PROVIDER_LABELS.oathnet,
+          ok: false,
+          latencyMs: 0,
+          unprobed: true,
+          error: "Not configured",
+        }),
     timedProbe("csint", probeCsint),
     isCordCatConfigured()
       ? timedProbe("cordcat", probeCordCat)
@@ -421,6 +438,7 @@ export async function probeProvidersDetailed(): Promise<ProviderProbeResult[]> {
     godseyeExport,
     breachvip,
     breachhub,
+    oathnet,
     csint,
     cordcat,
     {
@@ -555,6 +573,8 @@ export function uniqueHealthProviderIds(
     if (skipped.size >= 0) {
       out.push("breachhub");
     }
+    // OathNet is a distinct BH vendor chip so ops can see live /api/oathnet health.
+    out.push("oathnet");
   }
 
   return out;

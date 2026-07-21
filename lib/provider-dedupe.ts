@@ -209,6 +209,7 @@ function defaultIsSuccess(value: unknown): boolean {
 /**
  * BreachHub endpoint ids to skip for the current env.
  * Only IntelBase intra-BH mirrors — never drop BH vendors that CSINT also has.
+ * OathNet `/api/oathnet/*` ids are never skipped (BH is primary; CSINT is fallback).
  */
 export function getSkippedBreachHubEndpointIds(): Set<string> {
   return new Set<string>(SKIP_INTELBASE_MIRRORS);

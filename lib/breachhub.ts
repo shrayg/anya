@@ -1064,20 +1064,24 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
       typeQuery(kind === "domain" ? "domain" : "email", query),
   },
 
-  // ─── 3. Social & OSINT ───────────────────────────────────────────────
+  // ─── 3. Social & OSINT — OathNet (full OpenAPI /api/oathnet/*) ───────
+  // Docs: breach, stealer, stealer-subdomain, extract-subdomain, victims(+log/
+  // files/archive), discord-userinfo, discord-username-history,
+  // discord-to-roblox, steam, xbox, roblox-userinfo, mc-history, ip-info,
+  // holehe, ghunt. Never skip via provider-dedupe (not an IntelBase mirror).
   {
     id: "oathnet-breach",
     path: "/api/oathnet/breach",
     section: "social_osint",
-    modes: ["additive"],
-    kinds: ["email", "username"],
+    modes: ["additive", "specialty"],
+    kinds: ["email", "username", "domain", "phone"],
     buildParams: (query) => q(query),
   },
   {
     id: "oathnet-stealer",
     path: "/api/oathnet/stealer",
     section: "social_osint",
-    modes: ["additive"],
+    modes: ["additive", "specialty"],
     kinds: ["email", "domain", "username"],
     buildParams: (query) => q(query),
   },
@@ -1101,8 +1105,8 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     id: "oathnet-victims",
     path: "/api/oathnet/victims",
     section: "social_osint",
-    modes: ["additive"],
-    kinds: ["email", "domain"],
+    modes: ["additive", "specialty"],
+    kinds: ["email", "domain", "username"],
     buildParams: (query) => q(query),
   },
   {
@@ -1141,7 +1145,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     id: "oathnet-discord-history",
     path: "/api/oathnet/discord-username-history",
     section: "social_osint",
-    modes: ["specialty"],
+    modes: ["specialty", "additive"],
     kinds: ["discord"],
     buildParams: (query) => ({ discord_id: query }),
   },
@@ -1149,7 +1153,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     id: "oathnet-discord-roblox",
     path: "/api/oathnet/discord-to-roblox",
     section: "social_osint",
-    modes: ["specialty"],
+    modes: ["specialty", "additive"],
     kinds: ["discord"],
     buildParams: (query) => ({ discord_id: query }),
   },
@@ -1165,7 +1169,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     id: "oathnet-xbox",
     path: "/api/oathnet/xbox",
     section: "social_osint",
-    modes: ["specialty"],
+    modes: ["specialty", "additive"],
     kinds: ["username"],
     buildParams: (query) => ({ xbl_id: query }),
   },
@@ -2920,6 +2924,7 @@ const STEALER_ONLY_SECONDARY_IDS = [] as const;
  */
 const STEALER_BREACH_OVERLAP_IDS = [
   "breachhub-search",
+  "oathnet-breach",
   "leakosint",
   "leakcheck-v2",
   "leaksight",
@@ -3319,6 +3324,7 @@ export async function fetchBreachHubSpecialty(
       "intelbase-phone",
       "telegram-phone",
       "notalivex-tg-phone",
+      "oathnet-breach",
     ],
     ip: [
       "ipinfo",
@@ -3335,6 +3341,9 @@ export async function fetchBreachHubSpecialty(
     domain: [
       "oathnet-stealer-subdomain",
       "oathnet-extract-subdomain",
+      "oathnet-breach",
+      "oathnet-stealer",
+      "oathnet-victims",
       "seekria-domain",
       "seekria-dns",
       "seeknow-domain-intel",
@@ -3348,11 +3357,28 @@ export async function fetchBreachHubSpecialty(
       "nosint-search",
       "oathnet-holehe",
       "oathnet-ghunt",
+      "oathnet-breach",
+      "oathnet-stealer",
+      "oathnet-victims",
       "breachhub-email-osint",
       "seekria-email-osint",
       "seon-email",
       "seon-email-verification",
     ],
+    /** Stealer / infection indexes — OathNet stealer + victims first. */
+    stealer: [
+      "oathnet-stealer",
+      "oathnet-victims",
+      "oathnet-stealer-subdomain",
+      "osintcat-machine-search",
+      "wentyn",
+      "hudsonrock",
+      "seeknow-stealer",
+      "datavoid-stealer",
+      "intelvault-stealer-logs",
+    ],
+    victims: ["oathnet-victims", "osintcat-machine-search"],
+    breach: ["oathnet-breach"],
     hwid: ["leaksight-hwid"],
     facebook: ["leaksight-facebook", "osintbat-facebook-breach"],
     passport: ["leaksight-passport"],
@@ -3396,7 +3422,11 @@ export async function fetchBreachHubSpecialty(
                           ? "url"
                           : scope === "hwid"
                             ? "hash"
-                            : "username";
+                            : scope === "stealer" ||
+                                scope === "victims" ||
+                                scope === "breach"
+                              ? detectBreachHubQueryKind(query, null)
+                              : "username";
 
   return fetchBreachHubByIds(ids, query, kindHint, timeoutMs);
 }
@@ -4750,6 +4780,48 @@ export async function probeBreachHub(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Live OathNet vendor probe via BreachHub (not CSINT). Hits a cheap documented
+ * path so the health strip can show OathNet red/green independently of /api/status.
+ */
+export async function probeOathNet(): Promise<boolean> {
+  if (!isBreachHubEnabled()) return false;
+
+  try {
+    const data = await breachHubGet(
+      "/api/oathnet/ip-info",
+      { ip: "1.1.1.1" },
+      8_000,
+    );
+
+    return Boolean(data && typeof data === "object");
+  } catch {
+    return false;
+  }
+}
+
+/** Catalog ids for every BreachHub `/api/oathnet/*` OpenAPI path. */
+export const OATHNET_BREACHHUB_ENDPOINT_IDS = [
+  "oathnet-breach",
+  "oathnet-stealer",
+  "oathnet-stealer-subdomain",
+  "oathnet-extract-subdomain",
+  "oathnet-victims",
+  "oathnet-victims-log",
+  "oathnet-victims-file",
+  "oathnet-victims-archive",
+  "oathnet-discord-userinfo",
+  "oathnet-discord-history",
+  "oathnet-discord-roblox",
+  "oathnet-steam",
+  "oathnet-xbox",
+  "oathnet-roblox",
+  "oathnet-mc",
+  "oathnet-ip",
+  "oathnet-holehe",
+  "oathnet-ghunt",
+] as const;
 
 function extractIntelxExportContent(payload: unknown): string {
   if (typeof payload === "string") {
