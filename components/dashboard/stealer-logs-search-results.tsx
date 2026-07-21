@@ -102,6 +102,7 @@ function DeviceFileExplorerModal({
     content: string;
   } | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -169,6 +170,8 @@ function DeviceFileExplorerModal({
     async (fileId: string, name: string) => {
       setFileLoading(true);
       setFilePreview(null);
+      setFileError(null);
+      setError(null);
 
       try {
         const res = await apiFetch(
@@ -179,10 +182,27 @@ function DeviceFileExplorerModal({
           content?: string;
           filename?: string;
           message?: string;
+          error?: string;
         };
 
-        if (!res.ok || !data.content) {
-          setError(data.message || "File content unavailable.");
+        if (!res.ok) {
+          const message =
+            data.message || data.error || `Could not open file (HTTP ${res.status}).`;
+
+          setFileError(message);
+          setError(message);
+
+          return;
+        }
+
+        if (data.available === false || !data.content) {
+          const message =
+            data.message ||
+            data.error ||
+            "File content is not available for preview.";
+
+          setFileError(message);
+          setError(message);
 
           return;
         }
@@ -192,13 +212,19 @@ function DeviceFileExplorerModal({
           content: data.content,
         });
       } catch {
-        setError("Could not open file.");
+        const message = "Could not open file.";
+
+        setFileError(message);
+        setError(message);
       } finally {
         setFileLoading(false);
       }
     },
     [device.logId],
   );
+
+  const resolveFileId = (node: StealerFileNode): string =>
+    (node.id || node.path || node.name || "").trim();
 
   const summary = manifest?.summary ?? device.summary;
   const properties = manifest?.properties ?? device.properties;
@@ -319,6 +345,7 @@ function DeviceFileExplorerModal({
                 onClick={() => {
                   setPathStack([]);
                   setFilePreview(null);
+                  setFileError(null);
                 }}
               >
                 <Home className="size-3.5" />
@@ -333,6 +360,7 @@ function DeviceFileExplorerModal({
                     onClick={() => {
                       setPathStack((stack) => stack.slice(0, i + 1));
                       setFilePreview(null);
+                      setFileError(null);
                     }}
                   >
                     {folder.name}
@@ -364,6 +392,7 @@ function DeviceFileExplorerModal({
                           onClick={() => {
                             setPathStack((stack) => stack.slice(0, -1));
                             setFilePreview(null);
+                            setFileError(null);
                           }}
                         >
                           <span className="anya-explorer-row-name">
@@ -405,25 +434,36 @@ function DeviceFileExplorerModal({
                                 if (isFolder) {
                                   setPathStack((stack) => [...stack, node]);
                                   setFilePreview(null);
-                                } else if (node.id) {
-                                  void openFile(node.id, node.name);
+                                  setFileError(null);
+                                } else {
+                                  const id = resolveFileId(node);
+
+                                  if (id) void openFile(id, node.name);
+                                  else {
+                                    setFileError(
+                                      "No file id available for preview.",
+                                    );
+                                    setFilePreview(null);
+                                  }
                                 }
                               }}
                               onClick={() => {
                                 if (isFolder) {
                                   setPathStack((stack) => [...stack, node]);
                                   setFilePreview(null);
+                                  setFileError(null);
 
                                   return;
                                 }
 
-                                if (node.id) void openFile(node.id, node.name);
+                                const id = resolveFileId(node);
+
+                                if (id) void openFile(id, node.name);
                                 else {
-                                  setFilePreview({
-                                    name: node.name,
-                                    content:
-                                      "No file id available for preview.",
-                                  });
+                                  setFileError(
+                                    "No file id available for preview.",
+                                  );
+                                  setFilePreview(null);
                                 }
                               }}
                             >
@@ -459,11 +499,14 @@ function DeviceFileExplorerModal({
               <aside className="anya-explorer-preview-pane">
                 <div className="anya-explorer-preview-head">
                   <p>{filePreview?.name || "Preview"}</p>
-                  {filePreview ? (
+                  {filePreview || fileError ? (
                     <button
                       className="anya-stealer-btn anya-stealer-btn--ghost"
                       type="button"
-                      onClick={() => setFilePreview(null)}
+                      onClick={() => {
+                        setFilePreview(null);
+                        setFileError(null);
+                      }}
                     >
                       Clear
                     </button>
@@ -472,6 +515,10 @@ function DeviceFileExplorerModal({
                 <div className="anya-explorer-preview-body">
                   {fileLoading ? (
                     <p className="anya-explorer-empty">Loading file…</p>
+                  ) : fileError ? (
+                    <p className="anya-explorer-empty anya-explorer-empty--error">
+                      {fileError}
+                    </p>
                   ) : filePreview ? (
                     <pre>
                       <BlurredValue

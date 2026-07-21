@@ -70,12 +70,16 @@ export async function GET(req: NextRequest) {
       );
 
       if (!file) {
-        return NextResponse.json({
-          logId,
-          fileId,
-          available: false,
-          message: "File content is not available.",
-        });
+        return NextResponse.json(
+          {
+            logId,
+            fileId,
+            available: false,
+            message:
+              "File content is not available. The upstream index returned no readable body for this file id.",
+          },
+          { status: 502 },
+        );
       }
 
       return NextResponse.json({

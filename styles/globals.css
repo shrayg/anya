@@ -2634,6 +2634,10 @@ html[data-splash="active"] [data-splash-target] {
   color: #71717a;
 }
 
+.anya-explorer-empty--error {
+  color: #fca5a5;
+}
+
 .anya-explorer-meta-pane {
   flex: 1;
   padding: 0.85rem 1rem;
