@@ -1,6 +1,7 @@
-import type {
-  StealerArchiveEntry,
-  StealerFileNode,
+import {
+  looksLikeVictimLogId,
+  type StealerArchiveEntry,
+  type StealerFileNode,
 } from "@/lib/breachhub";
 import { isBrandPlaceholderValue } from "@/lib/intel-record";
 import { sanitizePublicText } from "@/lib/public-branding";
@@ -16,6 +17,13 @@ function asString(value: unknown): string {
   if (typeof value === "string") return value.trim();
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const text = asString(item);
+
+      if (text) return text;
+    }
   }
 
   return "";
@@ -67,7 +75,12 @@ export function extractStealerCredentialRows(
       for (const cred of record.credentials) {
         if (!cred || typeof cred !== "object") continue;
         const c = cred as Record<string, unknown>;
-        const site = asString(c.url) || asString(c.site) || asString(c.domain);
+        const site =
+          asString(c.url) ||
+          asString(c.url_str) ||
+          asString(c.site) ||
+          asString(c.domain) ||
+          asString(c.subdomain);
         const username =
           asString(c.username) || asString(c.login) || asString(c.email);
 
@@ -85,8 +98,10 @@ export function extractStealerCredentialRows(
 
     const site =
       asString(record.url) ||
+      asString(record.url_str) ||
       asString(record.site) ||
       asString(record.domain) ||
+      asString(record.subdomain) ||
       asString(record.host);
     const username =
       asString(record.username) ||
@@ -108,6 +123,7 @@ export function extractStealerCredentialRows(
         asString(record.added_at) ||
         asString(record.indexed_at) ||
         asString(record.breach_date) ||
+        asString(record.pwned_at) ||
         asString(record.timestamp),
     });
   }
@@ -184,24 +200,67 @@ export function archivesFromStealerResults(
   const archives: StealerArchiveEntry[] = [];
   const seen = new Set<string>();
 
-  for (const entry of results) {
-    if (!entry || typeof entry !== "object") continue;
-    const record = entry as Record<string, unknown>;
-    const candidates = [
+  const pickLogId = (record: Record<string, unknown>): string => {
+    const primary = [
       asString(record.log_id),
       asString(record.logId),
+      asString(record.victim_id),
+      asString(record.victimId),
       asString(record.doc_id),
       asString(record.import_id),
       asString(record.importId),
-      asString(record.id),
     ];
-    const logId = candidates.find(
-      (value) =>
-        value.length >= 24 &&
-        /^[a-zA-Z0-9_-]+$/.test(value) &&
-        !/^DESKTOP[-_]/i.test(value) &&
-        !value.includes("."),
-    );
+
+    for (const value of primary) {
+      if (looksLikeVictimLogId(value)) return value;
+    }
+
+    const legacyLog = record.log;
+
+    if (typeof legacyLog === "string" && looksLikeVictimLogId(legacyLog)) {
+      return legacyLog.trim();
+    }
+
+    if (
+      legacyLog &&
+      typeof legacyLog === "object" &&
+      !Array.isArray(legacyLog)
+    ) {
+      const nested = pickLogId(legacyLog as Record<string, unknown>);
+
+      if (nested) return nested;
+    }
+
+    // machine_id / id / hwid only when they look like browseable UUIDs / long tokens
+    const secondary = [
+      asString(record.machine_id),
+      asString(record.machineId),
+      asString(record.uuid),
+      asString(record._id),
+      asString(record.id),
+      asString(record.hwid),
+    ];
+
+    for (const value of secondary) {
+      if (
+        looksLikeVictimLogId(value) &&
+        (value.length >= 24 ||
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            value,
+          ) ||
+          /^[a-f0-9]{24,128}$/i.test(value))
+      ) {
+        return value;
+      }
+    }
+
+    return "";
+  };
+
+  for (const entry of results) {
+    if (!entry || typeof entry !== "object") continue;
+    const record = entry as Record<string, unknown>;
+    const logId = pickLogId(record);
 
     if (!logId || seen.has(logId)) continue;
     seen.add(logId);
@@ -210,13 +269,23 @@ export function archivesFromStealerResults(
       logId,
       label:
         asString(record.machine_id) ||
+        asString(record.machineId) ||
         asString(record.hostname) ||
+        asString(record.log_name) ||
         undefined,
-      machineId: asString(record.machine_id) || undefined,
-      os: asString(record.os) || undefined,
-      date: asString(record.date) || asString(record.indexed_at) || undefined,
+      machineId:
+        asString(record.machine_id) || asString(record.machineId) || undefined,
+      os: asString(record.os) || asString(record.device_os) || undefined,
+      date:
+        asString(record.date) ||
+        asString(record.indexed_at) ||
+        asString(record.pwned_at) ||
+        undefined,
       malware: asString(record.malware) || asString(record.stealer) || undefined,
-      country: asString(record.country) || undefined,
+      country:
+        asString(record.country) ||
+        asString(record.device_country) ||
+        undefined,
     });
   }
 

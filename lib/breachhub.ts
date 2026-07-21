@@ -2200,9 +2200,17 @@ export function extractBreachHubRows(
     }
   }
 
-  // OsintCat machine-viewer / OathNet victims often use `logs` / `victims`.
+  // OsintCat machine-viewer / OathNet victims often use `logs` / `victims` /
+  // `machines`, or the standard envelope `{ data: { items: [...] } }`.
   if (rows.length === 0) {
-    for (const key of ["logs", "victims", "archives", "devices", "items"]) {
+    for (const key of [
+      "logs",
+      "victims",
+      "archives",
+      "devices",
+      "machines",
+      "items",
+    ]) {
       if (Array.isArray(data[key])) {
         pushLimited(data[key] as unknown[]);
         break;
@@ -2210,8 +2218,27 @@ export function extractBreachHubRows(
     }
   }
 
-  if (rows.length === 0 && Array.isArray(data.data)) {
-    pushLimited(data.data);
+  if (rows.length === 0 && data.data && typeof data.data === "object") {
+    if (Array.isArray(data.data)) {
+      pushLimited(data.data);
+    } else {
+      const nested = data.data as Record<string, unknown>;
+
+      for (const key of [
+        "items",
+        "results",
+        "logs",
+        "victims",
+        "archives",
+        "devices",
+        "machines",
+      ]) {
+        if (Array.isArray(nested[key])) {
+          pushLimited(nested[key] as unknown[]);
+          break;
+        }
+      }
+    }
   }
 
   if (rows.length === 0 && Array.isArray(data.services)) {
@@ -2791,10 +2818,14 @@ export type StealerFileNode = {
   path?: string;
 };
 
-function looksLikeVictimLogId(value: string): boolean {
+/**
+ * OathNet log ids are often short opaque tokens (docs example: `abc123def456`).
+ * Reject hostnames / DESKTOP-* only — do not require 24+ chars.
+ */
+export function looksLikeVictimLogId(value: string): boolean {
   const v = value.trim();
 
-  if (!v || v.length < 16) return false;
+  if (!v || v.length < 8) return false;
   // Hostnames / DESKTOP-… are never OathNet log ids.
   if (/^DESKTOP[-_]/i.test(v)) return false;
   if (/[\s\\/]/.test(v)) return false;
@@ -2803,38 +2834,96 @@ function looksLikeVictimLogId(value: string): boolean {
   )) {
     return false;
   }
-  // Prefer hex / uuid-ish ids used by victim manifests.
-  if (/^[a-f0-9]{32,128}$/i.test(v)) return true;
+  // Windows-style computer names (HOST-NAME) without looking like opaque ids.
+  if (/^[A-Z][A-Z0-9]*-[A-Z0-9]+$/i.test(v) && !/^[a-f0-9-]{8,}$/i.test(v)) {
+    return false;
+  }
+  // Hex / uuid-ish ids used by victim manifests.
+  if (/^[a-f0-9]{12,128}$/i.test(v)) return true;
   if (
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
   ) {
     return true;
   }
-  // Long opaque tokens (no spaces, mostly alnum)
-  if (v.length >= 24 && /^[a-zA-Z0-9_-]+$/.test(v) && !/^[A-Z]+-\w+$/.test(v)) {
+  // Opaque tokens (OathNet stealer/victim log ids — often 12+ alnum).
+  if (v.length >= 12 && /^[a-zA-Z0-9_-]+$/.test(v)) {
     return true;
   }
 
   return false;
 }
 
+/** Stricter check for machine_id / hwid fallbacks (avoid hostnames as log ids). */
+function looksLikeMachineBrowseId(value: string): boolean {
+  const v = value.trim();
+
+  if (!looksLikeVictimLogId(v)) return false;
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+  ) {
+    return true;
+  }
+  if (/^[a-f0-9]{24,128}$/i.test(v)) return true;
+  if (v.length >= 24 && /^[a-zA-Z0-9_-]+$/.test(v)) return true;
+
+  return false;
+}
+
 function asLogId(record: Record<string, unknown>): string {
-  const candidates = [
+  const primary = [
     asString(record.log_id),
     asString(record.logId),
+    asString(record.victim_id),
+    asString(record.victimId),
     asString(record.doc_id),
     asString(record.docId),
     asString(record.import_id),
     asString(record.importId),
-    asString(record.id),
   ];
 
-  for (const candidate of candidates) {
+  for (const candidate of primary) {
     if (candidate && looksLikeVictimLogId(candidate)) return candidate;
+  }
+
+  // Legacy OathNet `log` field (string or { id / log_id }).
+  const legacyLog = record.log;
+
+  if (typeof legacyLog === "string" && looksLikeVictimLogId(legacyLog)) {
+    return legacyLog.trim();
+  }
+
+  if (legacyLog && typeof legacyLog === "object" && !Array.isArray(legacyLog)) {
+    const nested = asLogId(legacyLog as Record<string, unknown>);
+
+    if (nested) return nested;
+  }
+
+  const secondary = [
+    asString(record.machine_id),
+    asString(record.machineId),
+    asString(record.uuid),
+    asString(record._id),
+    asString(record.id),
+    asString(record.hwid),
+  ];
+
+  for (const candidate of secondary) {
+    if (candidate && looksLikeMachineBrowseId(candidate)) return candidate;
   }
 
   return "";
 }
+
+const VICTIM_LIST_KEYS = [
+  "logs",
+  "victims",
+  "archives",
+  "devices",
+  "machines",
+  "results",
+  "items",
+  "data",
+] as const;
 
 function unwrapVictimPayload(payload: unknown): Record<string, unknown>[] {
   if (!payload) return [];
@@ -2849,15 +2938,7 @@ function unwrapVictimPayload(payload: unknown): Record<string, unknown>[] {
   const data = payload as Record<string, unknown>;
   const buckets: unknown[] = [];
 
-  for (const key of [
-    "logs",
-    "victims",
-    "archives",
-    "devices",
-    "results",
-    "items",
-    "data",
-  ]) {
+  for (const key of VICTIM_LIST_KEYS) {
     const value = data[key];
 
     if (Array.isArray(value)) {
@@ -2865,14 +2946,8 @@ function unwrapVictimPayload(payload: unknown): Record<string, unknown>[] {
     } else if (value && typeof value === "object" && !Array.isArray(value)) {
       const nested = value as Record<string, unknown>;
 
-      for (const nestedKey of [
-        "logs",
-        "victims",
-        "archives",
-        "devices",
-        "results",
-        "items",
-      ]) {
+      for (const nestedKey of VICTIM_LIST_KEYS) {
+        if (nestedKey === "data") continue;
         if (Array.isArray(nested[nestedKey])) {
           buckets.push(...(nested[nestedKey] as unknown[]));
         }
@@ -2890,6 +2965,22 @@ function unwrapVictimPayload(payload: unknown): Record<string, unknown>[] {
   );
 }
 
+function firstStringish(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const text = firstStringish(item);
+
+      if (text) return text;
+    }
+  }
+
+  return "";
+}
+
 function normalizeCredentialRows(
   list: unknown[],
 ): NonNullable<StealerArchiveEntry["credentials"]> {
@@ -2900,13 +2991,15 @@ function normalizeCredentialRows(
     const row = item as Record<string, unknown>;
     const site =
       asString(row.url) ||
+      asString(row.url_str) ||
       asString(row.site) ||
-      asString(row.domain) ||
+      firstStringish(row.domain) ||
+      firstStringish(row.subdomain) ||
       asString(row.host);
     const username =
       asString(row.username) ||
       asString(row.login) ||
-      asString(row.email) ||
+      firstStringish(row.email) ||
       asString(row.user);
     const password =
       asString(row.password) || asString(row.pass) || asString(row.secret);

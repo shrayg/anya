@@ -495,10 +495,26 @@ export function filterIntelResultsForQuery(
       record.ip,
       record.domain,
       record.url,
+      record.url_str,
       record.site,
       record.host,
+      record.device_emails,
+      record.device_emails_str,
+      record.log_id,
+      record.logId,
+      record.machine_id,
+      record.machineId,
     ]
-      .map((v) => (typeof v === "string" ? v.toLowerCase() : ""))
+      .flatMap((v) => {
+        if (typeof v === "string") return [v.toLowerCase()];
+        if (Array.isArray(v)) {
+          return v
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.toLowerCase());
+        }
+
+        return [];
+      })
       .filter(Boolean);
 
     const haystack = identity.join(" ");
