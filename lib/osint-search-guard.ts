@@ -43,6 +43,74 @@ export function withDeadline<T>(
   });
 }
 
+/**
+ * Wait for all tasks, or return whatever has settled once `budgetMs` elapses.
+ * Unsettled slots become rejected timeouts so callers can merge partials.
+ * Does not cancel underlying work (fetch abort is per-call); it stops waiting.
+ * Tuple types are preserved (same as `Promise.allSettled`).
+ */
+export function settleWithinBudget<T extends readonly unknown[] | []>(
+  tasks: T,
+  budgetMs: number,
+): Promise<{ -readonly [P in keyof T]: PromiseSettledResult<Awaited<T[P]>> }>;
+export function settleWithinBudget(
+  tasks: readonly Promise<unknown>[],
+  budgetMs: number,
+): Promise<PromiseSettledResult<unknown>[]> {
+  if (tasks.length === 0) return Promise.resolve([]);
+
+  if (!Number.isFinite(budgetMs) || budgetMs <= 0) {
+    return Promise.allSettled(tasks);
+  }
+
+  return new Promise((resolve) => {
+    const results: Array<PromiseSettledResult<unknown> | undefined> = Array.from(
+      { length: tasks.length },
+      () => undefined,
+    );
+    let remaining = tasks.length;
+    let finished = false;
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+
+      const out = results.map((entry) => {
+        if (entry) return entry;
+
+        return {
+          status: "rejected" as const,
+          reason: new OsintTimeoutError(
+            "Lookup timed out before results arrived. Try again.",
+          ),
+        };
+      });
+
+      resolve(out);
+    };
+
+    const timer = setTimeout(finish, budgetMs);
+
+    tasks.forEach((task, index) => {
+      Promise.resolve(task).then(
+        (value) => {
+          if (finished) return;
+          results[index] = { status: "fulfilled", value };
+          remaining -= 1;
+          if (remaining === 0) finish();
+        },
+        (reason) => {
+          if (finished) return;
+          results[index] = { status: "rejected", reason };
+          remaining -= 1;
+          if (remaining === 0) finish();
+        },
+      );
+    });
+  });
+}
+
 export function isTimeoutLike(err: unknown): boolean {
   if (err instanceof OsintTimeoutError) return true;
   if (!(err instanceof Error)) return false;

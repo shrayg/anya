@@ -31,6 +31,10 @@ import {
 } from "@/lib/public-branding";
 import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
 import { OSINT_PROVIDER_TIMEOUT_MS } from "@/lib/osint-search-guard";
+import {
+  providerCacheKey,
+  withProviderCache,
+} from "@/lib/provider-result-cache";
 
 const BREACHHUB_BASE = "https://breachhub.org";
 const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
@@ -38,6 +42,11 @@ const DEFAULT_TIMEOUT_MS = OSINT_PROVIDER_TIMEOUT_MS;
 const MAX_ROWS = 25_000;
 /** Per nested list / source bucket — was 50 and silently truncated large indexes. */
 const MAX_ROWS_PER_SOURCE = 10_000;
+/** Identical path+params within one process — avoids duplicate stealer/victim hits. */
+const BREACHHUB_GET_CACHE_TTL_MS = 45_000;
+/** Seeknow is often slow/flaky; fail fast and keep budget for primary indexes. */
+const SEEKNOW_TIMEOUT_MS = 4_500;
+const FLAKY_VENDOR_TIMEOUT_MS = 6_000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const IP_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
@@ -2026,62 +2035,69 @@ export async function breachHubGet(
   }
 
   const resolved = resolvePath(path, pathParams);
-  const url = new URL(
-    resolved.startsWith("http") ? resolved : `${BREACHHUB_BASE}${resolved}`,
-  );
-
-  url.searchParams.set("key", apiKey);
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
-      url.searchParams.set(key, value);
-    }
-  }
-
-  const started = Date.now();
-  const res = await fetchWithTimeout(url.toString(), {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "AnyaInt-BreachHub/1.0",
-    },
-    cache: "no-store",
-    timeoutMs,
+  const cacheKey = providerCacheKey("breachhub", {
+    path: resolved,
+    ...params,
   });
 
-  const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
-  const text = await readResponseText(res, remaining);
-  let data: Record<string, unknown> = {};
-
-  try {
-    data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-  } catch {
-    if (!res.ok) {
-      throw new Error(sanitizeBreachHubError(`HTTP ${res.status}`));
-    }
-    throw new Error(
-      publicSearchError("Invalid response from intelligence index."),
+  return withProviderCache(cacheKey, BREACHHUB_GET_CACHE_TTL_MS, async () => {
+    const url = new URL(
+      resolved.startsWith("http") ? resolved : `${BREACHHUB_BASE}${resolved}`,
     );
-  }
 
-  if (!res.ok) {
-    const msg =
-      (typeof data.message === "string" && data.message) ||
-      (typeof data.error === "string" && data.error) ||
-      `HTTP ${res.status}`;
+    url.searchParams.set("key", apiKey);
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== "") {
+        url.searchParams.set(key, value);
+      }
+    }
 
-    throw new Error(sanitizeBreachHubError(msg));
-  }
+    const started = Date.now();
+    const res = await fetchWithTimeout(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "AnyaInt-BreachHub/1.0",
+      },
+      cache: "no-store",
+      timeoutMs,
+    });
 
-  if (data.success === false) {
-    const msg =
-      (typeof data.message === "string" && data.message) ||
-      (typeof data.error === "string" && data.error) ||
-      "Search failed";
+    const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+    const text = await readResponseText(res, remaining);
+    let data: Record<string, unknown> = {};
 
-    throw new Error(sanitizeBreachHubError(msg));
-  }
+    try {
+      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      if (!res.ok) {
+        throw new Error(sanitizeBreachHubError(`HTTP ${res.status}`));
+      }
+      throw new Error(
+        publicSearchError("Invalid response from intelligence index."),
+      );
+    }
 
-  return data;
+    if (!res.ok) {
+      const msg =
+        (typeof data.message === "string" && data.message) ||
+        (typeof data.error === "string" && data.error) ||
+        `HTTP ${res.status}`;
+
+      throw new Error(sanitizeBreachHubError(msg));
+    }
+
+    if (data.success === false) {
+      const msg =
+        (typeof data.message === "string" && data.message) ||
+        (typeof data.error === "string" && data.error) ||
+        "Search failed";
+
+      throw new Error(sanitizeBreachHubError(msg));
+    }
+
+    return data;
+  });
 }
 
 function stripMetaFields(
@@ -2335,6 +2351,52 @@ type FanOutOptions = {
   concurrency?: number;
 };
 
+function endpointCallTimeoutMs(
+  endpoint: BreachHubEndpointDef,
+  baseTimeoutMs: number,
+): number {
+  const id = endpoint.id.toLowerCase();
+  const path = endpoint.path.toLowerCase();
+
+  if (id.startsWith("seeknow-") || path.includes("/seeknow/")) {
+    return Math.min(baseTimeoutMs, SEEKNOW_TIMEOUT_MS);
+  }
+
+  if (
+    id.includes("hudsonrock") ||
+    id.includes("datavoid") ||
+    id.includes("leakosint") ||
+    id.includes("snusbase") ||
+    id.includes("infodra")
+  ) {
+    return Math.min(baseTimeoutMs, FLAKY_VENDOR_TIMEOUT_MS);
+  }
+
+  return baseTimeoutMs;
+}
+
+function endpointRequestKey(
+  endpoint: BreachHubEndpointDef,
+  query: string,
+  kind: BreachHubQueryKind,
+): string | null {
+  const params = endpoint.buildParams(query, kind);
+
+  if (!params) return null;
+
+  const sorted = Object.keys(params)
+    .sort()
+    .map((key) => `${key}=${params[key] ?? ""}`)
+    .join("&");
+
+  return `${endpoint.path}?${sorted}`;
+}
+
+/**
+ * Worker-pool fan-out: starts the next endpoint as soon as a slot frees
+ * (unlike batch-wait), abandons the queue when the wall budget hits, and
+ * skips duplicate path+params within the same request.
+ */
 async function fanOutEndpoints(
   endpoints: BreachHubEndpointDef[],
   query: string,
@@ -2354,28 +2416,70 @@ async function fanOutEndpoints(
   const started = Date.now();
   const parts: SanitizedBreachResponse[] = [];
   let totalRows = 0;
-  let cursor = 0;
+  let stopQueue = false;
+
+  const seenKeys = new Set<string>();
+  const queue: BreachHubEndpointDef[] = [];
+
+  for (const endpoint of endpoints) {
+    const key = endpointRequestKey(endpoint, trimmed, kind);
+
+    if (!key || seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    queue.push(endpoint);
+  }
+
+  if (queue.length === 0) return null;
+
+  let next = 0;
 
   const runOne = async (endpoint: BreachHubEndpointDef) => {
-    const remaining = Math.max(1_500, budgetMs - (Date.now() - started));
-    const perCall = Math.min(timeoutMs, remaining);
+    const remaining = budgetMs - (Date.now() - started);
+
+    if (remaining < 800) {
+      stopQueue = true;
+
+      return;
+    }
+
+    const perCall = Math.min(
+      endpointCallTimeoutMs(endpoint, timeoutMs),
+      remaining,
+    );
     const value = await fetchEndpointSafe(endpoint, trimmed, kind, perCall);
 
     if (value && value.count > 0) {
       parts.push(value);
       totalRows += value.results.length;
+      if (minResults > 0 && totalRows >= minResults) {
+        stopQueue = true;
+      }
     }
   };
 
-  while (cursor < endpoints.length) {
-    if (Date.now() - started >= budgetMs) break;
-    if (minResults > 0 && totalRows >= minResults) break;
+  async function worker() {
+    for (;;) {
+      if (stopQueue || Date.now() - started >= budgetMs) {
+        stopQueue = true;
 
-    const batch = endpoints.slice(cursor, cursor + concurrency);
-    cursor += batch.length;
+        return;
+      }
 
-    await Promise.allSettled(batch.map((endpoint) => runOne(endpoint)));
+      const index = next;
+
+      next += 1;
+      if (index >= queue.length) return;
+
+      await runOne(queue[index]!);
+    }
   }
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, queue.length) },
+    () => worker(),
+  );
+
+  await Promise.all(workers);
 
   if (parts.length === 0) return null;
 
@@ -2494,12 +2598,12 @@ export async function fetchBreachHubAdditiveBreachSearch(
   // after a few dozen hits — that silently truncated large stealer/breach sets.
   return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 10_000), {
     minResults: 0,
-    budgetMs: Math.min(timeoutMs, 16_000),
-    concurrency: 6,
+    budgetMs: Math.min(timeoutMs, 14_000),
+    concurrency: 8,
   });
 }
 
-/** Stealer / infection indexes — primary + secondary for coverage. */
+/** Stealer / infection indexes — primary then secondary in one shared budget. */
 export async function fetchBreachHubAdditiveStealerSearch(
   query: string,
   kindHint?: string | null,
@@ -2507,28 +2611,21 @@ export async function fetchBreachHubAdditiveStealerSearch(
 ): Promise<SanitizedBreachResponse | null> {
   const kind = detectBreachHubQueryKind(query, kindHint);
   const { primary, secondary } = stealerEndpointsByTier(kind);
-  const budget = Math.min(timeoutMs, 22_000);
+  const budget = Math.min(timeoutMs, 18_000);
 
-  // Primary + secondary always run within budget; minResults=0 avoids stopping
-  // once a single source returns ~50–80 rows.
-  const first = await fanOutEndpoints(primary, query, kind, 10_000, {
-    minResults: 0,
-    budgetMs: Math.min(budget, 12_000),
-    concurrency: 6,
-  });
-
-  const remaining = Math.max(5_000, budget - 12_000);
-  const second = await fanOutEndpoints(secondary, query, kind, 7_000, {
-    minResults: 0,
-    budgetMs: remaining,
-    concurrency: 5,
-  });
-
-  if (!first && !second) return null;
-  if (!first) return second;
-  if (!second) return first;
-
-  return mergeSanitizedResponses(first, second);
+  // One worker pool: primary queued first, secondary fills free slots as
+  // primary calls finish — no sequential tier wait. minResults=0 keeps coverage.
+  return fanOutEndpoints(
+    [...primary, ...secondary],
+    query,
+    kind,
+    10_000,
+    {
+      minResults: 0,
+      budgetMs: budget,
+      concurrency: 8,
+    },
+  );
 }
 
 /** Combined breach + stealer. */
@@ -2568,8 +2665,8 @@ export async function fetchBreachHubByIds(
   // Specialty / by-ids: shorter budgets; allow large specialty payloads.
   return fanOutEndpoints(endpoints, query, kind, Math.min(timeoutMs, 8_000), {
     minResults: 0,
-    budgetMs: Math.min(timeoutMs, 10_000),
-    concurrency: 5,
+    budgetMs: Math.min(timeoutMs, 9_000),
+    concurrency: 7,
   });
 }
 
