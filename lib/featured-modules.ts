@@ -11,6 +11,8 @@ export type CatalogModule = {
   slug: string;
   hint: string;
   summary?: string;
+  /** In-module tools / submodules (Seekria sources, crypto suite, etc.). */
+  toolCount?: number;
 };
 
 export type CatalogLane = {
@@ -64,6 +66,7 @@ function toCatalogModule(
     slug: def.slug,
     hint: def.hint,
     summary: def.section === "AI Intelligence" ? def.tagline : undefined,
+    toolCount: def.tools?.length ?? 0,
   };
 }
 
@@ -76,7 +79,31 @@ export const CATALOG_LANES: CatalogLane[] = getHubSections().map((section) => ({
   ),
 }));
 
-export const CATALOG_MODULE_COUNT = ALL_SEARCH_MODULES.length;
+/** Live hub shells (sidebar modules), excluding coming-soon stubs. */
+export const CATALOG_LIVE_MODULES: SearchModuleDef[] = getHubSections()
+  .flatMap((section) => section.items)
+  .filter((module) => !module.comingSoon);
+
+/**
+ * Marketed capability count: each live module shell plus every in-module
+ * tool / submodule (e.g. Crypto Intel tools, Seekria sources).
+ */
+export function countModulesIncludingSubmodules(
+  modules: SearchModuleDef[],
+): number {
+  return modules.reduce((total, module) => {
+    if (module.comingSoon) return total;
+
+    return total + 1 + (module.tools?.length ?? 0);
+  }, 0);
+}
+
+export const CATALOG_MODULE_COUNT = countModulesIncludingSubmodules(
+  CATALOG_LIVE_MODULES,
+);
+
+/** Parent shells only (no submodule inflation). */
+export const CATALOG_SHELL_COUNT = CATALOG_LIVE_MODULES.length;
 
 export const AI_CATALOG_MODULES =
   CATALOG_LANES.find((lane) => lane.isAi)?.modules ?? [];
@@ -97,4 +124,4 @@ export const AI_MODULE_EXPLAINERS: Record<string, string> = {
     "Focused exposure pass for email, username, IP, or domain. Returns risk signals, leaked-credential context, and suggested next pivots for your case.",
 };
 
-export { AI_SEARCH_MODULES };
+export { AI_SEARCH_MODULES, ALL_SEARCH_MODULES };

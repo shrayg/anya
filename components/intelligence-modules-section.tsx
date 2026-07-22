@@ -44,6 +44,7 @@ export function IntelligenceModulesSection() {
         name: module.name,
         slug: module.slug,
         hint: module.hint,
+        toolCount: module.toolCount ?? 0,
         summary: lane.isAi
           ? AI_MODULE_EXPLAINERS[module.slug] ?? module.summary
           : undefined,

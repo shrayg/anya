@@ -16,6 +16,8 @@ export type ModuleCatalogItem = {
   hint: string;
   summary?: string;
   code?: string;
+  /** In-module tools counted toward marketed totals. */
+  toolCount?: number;
 };
 
 export type ModuleCatalogSection = {

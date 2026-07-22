@@ -99,7 +99,15 @@ function buildGraph(sections: ModuleCatalogSection[]): {
 } {
   const nodes: ExplorerNode[] = [];
   const edges: Edge[] = [];
-  const moduleTotal = sections.reduce((sum, s) => sum + s.items.length, 0);
+  const capabilityTotal = sections.reduce(
+    (sum, section) =>
+      sum +
+      section.items.reduce(
+        (laneSum, item) => laneSum + 1 + (item.toolCount ?? 0),
+        0,
+      ),
+    0,
+  );
 
   const centerX = 0;
   const centerY = 0;
@@ -110,7 +118,7 @@ function buildGraph(sections: ModuleCatalogSection[]): {
     id: "hub",
     type: "hub",
     position: { x: centerX - 44, y: centerY - 44 },
-    data: { count: moduleTotal, lanes: sections.length },
+    data: { count: capabilityTotal, lanes: sections.length },
     draggable: false,
     selectable: false,
   });
@@ -128,7 +136,10 @@ function buildGraph(sections: ModuleCatalogSection[]): {
       position: { x: laneX - 70, y: laneY - 18 },
       data: {
         title: section.title,
-        count: section.items.length,
+        count: section.items.reduce(
+          (sum, item) => sum + 1 + (item.toolCount ?? 0),
+          0,
+        ),
         featured: section.featured,
       },
       draggable: false,
@@ -329,7 +340,13 @@ export function ModuleGraphExplorer({
       .filter((section) => section.items.length > 0);
   }, [filter, sections]);
 
-  const visibleCount = filtered.reduce((sum, s) => sum + s.items.length, 0);
+  const capabilityCount = (items: ModuleCatalogSection["items"]) =>
+    items.reduce((sum, item) => sum + 1 + (item.toolCount ?? 0), 0);
+
+  const visibleCount = filtered.reduce(
+    (sum, section) => sum + capabilityCount(section.items),
+    0,
+  );
 
   return (
     <div className="mod-graph">
@@ -376,7 +393,7 @@ export function ModuleGraphExplorer({
               }
             >
               {section.title}
-              <em>{section.items.length}</em>
+              <em>{capabilityCount(section.items)}</em>
             </button>
           ))}
         </div>
