@@ -3,6 +3,8 @@ import type {
   SearchModuleDef,
 } from "@/lib/search-modules";
 import { composeModuleQuery } from "@/lib/search-modules";
+import { normalizeDomain } from "@/lib/domain-search";
+import { normalizeEmail } from "@/lib/proxynova-comb";
 
 export type SearchFieldTypeId =
   | "query"
@@ -38,7 +40,161 @@ export type ModuleSearchFieldRow = {
   id: string;
   type: SearchFieldTypeId;
   value: string;
+  /** When true, typing won't overwrite a manual type pick until the value is cleared. */
+  typeManual?: boolean;
 };
+
+/** Types that participate in value→type auto-detection. */
+const AUTO_DETECTABLE_TYPES = new Set<SearchFieldTypeId>([
+  "query",
+  "text",
+  "email",
+  "phone",
+  "username",
+  "ip",
+  "domain",
+  "url",
+  "discord-id",
+]);
+
+function looksLikeIpv4(value: string): boolean {
+  const parts = value.split(".");
+
+  if (parts.length !== 4) return false;
+
+  return parts.every(
+    (part) => /^\d{1,3}$/.test(part) && Number(part) >= 0 && Number(part) <= 255,
+  );
+}
+
+function looksLikeIpv6(value: string): boolean {
+  const bare = value.trim().split("%")[0] ?? "";
+
+  if (!bare.includes(":")) return false;
+  if (!/^[0-9a-fA-F:]+$/.test(bare)) return false;
+
+  const parts = bare.split(":");
+
+  if (bare.includes("::")) {
+    if (bare.indexOf("::") !== bare.lastIndexOf("::")) return false;
+    if (parts.length > 8) return false;
+
+    return parts.every(
+      (part) => part === "" || /^[0-9a-fA-F]{1,4}$/.test(part),
+    );
+  }
+
+  return (
+    parts.length >= 3 &&
+    parts.length <= 8 &&
+    parts.every((part) => /^[0-9a-fA-F]{1,4}$/.test(part))
+  );
+}
+
+function looksLikeIp(value: string): boolean {
+  const trimmed = value.trim();
+
+  if (!trimmed || /\s/.test(trimmed)) return false;
+
+  return looksLikeIpv4(trimmed) || looksLikeIpv6(trimmed);
+}
+
+function looksLikePhone(value: string): boolean {
+  const trimmed = value.trim();
+
+  if (!/^[\d\s+\-().]+$/.test(trimmed)) return false;
+
+  const digits = trimmed.replace(/\D/g, "");
+
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+function looksLikeUrl(value: string): boolean {
+  const trimmed = value.trim();
+
+  return /^https?:\/\/\S+/i.test(trimmed);
+}
+
+function looksLikeDiscordId(value: string): boolean {
+  return /^\d{17,20}$/.test(value.trim());
+}
+
+/**
+ * Infer a field type from free-typed input, constrained to `available` options.
+ * Priority: IP → Email → URL → Domain → Phone → Discord ID → Query/Text → current/fallback.
+ */
+export function detectSearchFieldType(
+  raw: string,
+  available: SearchFieldTypeId[],
+  fallback: SearchFieldTypeId = "query",
+): SearchFieldTypeId {
+  const allowed = new Set(available);
+  const pick = (id: SearchFieldTypeId) => (allowed.has(id) ? id : null);
+  const trimmed = raw.trim();
+
+  if (!trimmed) {
+    return pick("query") ?? pick("text") ?? fallback;
+  }
+
+  if (looksLikeIp(trimmed)) {
+    const hit = pick("ip");
+    if (hit) return hit;
+  }
+
+  if (normalizeEmail(trimmed)) {
+    const hit = pick("email");
+    if (hit) return hit;
+  }
+
+  if (looksLikeUrl(trimmed)) {
+    const hit = pick("url");
+    if (hit) return hit;
+  }
+
+  if (normalizeDomain(trimmed)) {
+    const hit = pick("domain");
+    if (hit) return hit;
+  }
+
+  if (looksLikePhone(trimmed)) {
+    const hit = pick("phone");
+    if (hit) return hit;
+  }
+
+  if (looksLikeDiscordId(trimmed)) {
+    const hit = pick("discord-id");
+    if (hit) return hit;
+  }
+
+  // Soft / free-text types keep their selection when nothing stronger matched.
+  // Strong pattern types (ip/email/domain/…) fall back to Query.
+  const softKeep = new Set<SearchFieldTypeId>([
+    "query",
+    "text",
+    "username",
+    "password",
+    "wallet",
+    "tx",
+    "hash",
+    "storage-id",
+    "name",
+  ]);
+
+  if (softKeep.has(fallback) && allowed.has(fallback)) {
+    return fallback;
+  }
+
+  return pick("query") ?? pick("text") ?? fallback;
+}
+
+export function shouldAutoDetectFieldType(
+  type: SearchFieldTypeId,
+  available: SearchFieldTypeId[],
+): boolean {
+  if (!AUTO_DETECTABLE_TYPES.has(type)) return false;
+
+  return available.some((id) => AUTO_DETECTABLE_TYPES.has(id));
+}
 
 export type ComposedModuleSearch = {
   /** Value sent to OSINT APIs as `query`. */
