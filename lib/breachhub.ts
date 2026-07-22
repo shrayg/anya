@@ -2125,6 +2125,14 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     buildParams: (query) => ({ id: query }),
   },
   {
+    id: "discord-export",
+    path: "/api/discord/export",
+    section: "user_lookup",
+    modes: ["specialty"],
+    kinds: ["discord"],
+    buildParams: (query) => ({ id: query }),
+  },
+  {
     id: "telegram-username",
     path: "/api/telegram/username",
     section: "user_lookup",
@@ -2135,7 +2143,7 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
 
       if (!cleaned || /^\d+$/.test(cleaned)) return null;
 
-      return { query: cleaned, mode: "username" };
+      return { query: cleaned, mode: "full" };
     },
   },
   {
@@ -3328,6 +3336,7 @@ export async function fetchBreachHubSpecialty(
       "discord-stalker",
       "discord-user",
       "discord-history",
+      "discord-export",
       "discord-snowflake",
       "cordcat",
       "cordcat-user",

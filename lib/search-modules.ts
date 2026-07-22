@@ -1062,6 +1062,26 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               apiType: "discord",
             },
             {
+              id: "discord-user",
+              label: "User lookup",
+              apiType: "discord/user",
+            },
+            {
+              id: "discord-history",
+              label: "Username history",
+              apiType: "discord/history",
+            },
+            {
+              id: "discord-export",
+              label: "Export pack",
+              apiType: "discord/export",
+            },
+            {
+              id: "discord-id-decode",
+              label: "ID decode",
+              apiType: "discord/snowflake",
+            },
+            {
               id: "seeknow-discord-user",
               label: "SeekNow user",
               apiType: "seeknow/discord/user",
@@ -2164,7 +2184,12 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType === "propertyradar" ||
     apiType.startsWith("propertyradar/") ||
     apiType === "telegram" ||
-    apiType.startsWith("telegram/")
+    apiType.startsWith("telegram/") ||
+    // Specialty Discord routes only — bare "discord" stays on /api/osint/discord.
+    apiType === "discord/user" ||
+    apiType === "discord/history" ||
+    apiType === "discord/export" ||
+    apiType === "discord/snowflake"
   ) {
     return `/api/${apiType}`;
   }
