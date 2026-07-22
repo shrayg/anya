@@ -1891,7 +1891,10 @@ export function getHubSections(): SearchModuleSection[] {
       if (cryptoIntel) {
         items.push(withSection(cryptoIntel, CRYPTO_INTEL_SECTION_TITLE));
       }
+      // Roadmap stubs stay in the catalog for /coming-soon routes but stay out of
+      // the live sidebar so Crypto Intel reads as one unified module.
       for (const item of cryptoRoadmap) {
+        if (item.comingSoon) continue;
         items.push(withSection(item, CRYPTO_INTEL_SECTION_TITLE));
       }
 

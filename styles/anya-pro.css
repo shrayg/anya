@@ -296,9 +296,15 @@ pre,
 }
 
 /* Constrained multi-field search — not full-bleed across the desk */
+.module-search .ui-panel-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .module-search-form {
   width: 100%;
-  max-width: 34rem;
+  max-width: 28rem;
 }
 
 .module-search-fields {
@@ -404,7 +410,7 @@ pre,
 
 .module-search-summary-form {
   width: 100%;
-  max-width: 34rem;
+  max-width: 28rem;
 }
 
 @media (max-width: 640px) {

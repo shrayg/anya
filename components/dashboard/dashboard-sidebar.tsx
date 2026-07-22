@@ -435,8 +435,9 @@ export function DashboardSidebar({ username }: { username: string }) {
       ...section,
       items: section.items.filter(
         (item) =>
-          item.name.toLowerCase().includes(query) ||
-          item.hint.toLowerCase().includes(query),
+          !item.comingSoon &&
+          (item.name.toLowerCase().includes(query) ||
+            item.hint.toLowerCase().includes(query)),
       ),
     }))
     .filter((section) => section.items.length > 0);
