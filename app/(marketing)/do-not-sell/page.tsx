@@ -19,7 +19,7 @@ export default function DoNotSellPage() {
           We do not sell personal information for money. We also do not share
           your search results with advertisers. Some US state privacy laws use
           broader definitions of “sale” or “share” that can include certain
-          cross-context advertising disclosures. Anya.Int does not currently run
+          cross-context advertising disclosures. Anya does not currently run
           third-party advertising pixels for behavioral ads on this site.
         </p>
         <p>

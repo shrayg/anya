@@ -581,7 +581,7 @@ function AuthForm() {
                   >
                     Acceptable Use Policy
                   </NextLink>
-                  . I confirm I am 18+ and will use Anya.Int only for lawful
+                  . I confirm I am 18+ and will use Anya only for lawful
                   purposes.
                 </span>
               </label>

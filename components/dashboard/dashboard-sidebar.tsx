@@ -484,18 +484,18 @@ export function DashboardSidebar({ username }: { username: string }) {
                   collapsed && "dash-sidebar-brand--collapsed",
                 )}
                 href={siteConfig.defaultWorkspacePath}
-                title={`${siteConfig.name} dashboard`}
+                title={`${siteConfig.navName} dashboard`}
               >
                 <Image
                   unoptimized
-                  alt={siteConfig.name}
+                  alt={siteConfig.navName}
                   className={siteLogoClassName}
                   height={32}
                   src={siteLogoSrc}
                   width={32}
                 />
                 <span className="dash-sidebar-label [font-family:var(--font-bruno-ace-sc)]">
-                  {siteConfig.name}
+                  {siteConfig.navName}
                 </span>
               </Link>
             </SidebarMenuButton>

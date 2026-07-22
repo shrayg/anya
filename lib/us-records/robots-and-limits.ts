@@ -1,7 +1,7 @@
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 export const PUBLIC_RECORDS_UA =
-  "Anya.Int/1.0 (+https://anyaint.com; public-records research; contact support@anyaint.com)";
+  "AnyaInt/1.0 (+https://anyaint.com; public-records research; contact support@anyaint.com)";
 
 export const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";

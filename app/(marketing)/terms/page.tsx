@@ -7,8 +7,8 @@ export default function TermsPage() {
       <LegalSection title="Agreement">
         <p>
           These Terms of Service (“Terms”) govern your access to and use of the
-          Anya.Int website, applications, APIs, and related services (the
-          “Service”) operated by Anya.Int (“we,” “us,” or “our”). By creating an
+          Anya website, applications, APIs, and related services (the
+          “Service”) operated by Anya (“we,” “us,” or “our”). By creating an
           account, purchasing a plan, or using the Service, you agree to these
           Terms, our{" "}
           <a
@@ -30,7 +30,7 @@ export default function TermsPage() {
 
       <LegalSection title="Who the Service is for">
         <p>
-          Anya.Int is an open-source intelligence platform intended for
+          Anya is an open-source intelligence platform intended for
           authorized investigative, cybersecurity, fraud-prevention, compliance,
           journalism, and other lawful professional uses. You must be at least
           18 years old and legally able to enter a contract.
@@ -71,7 +71,7 @@ export default function TermsPage() {
       <LegalSection title="Acceptable use and FCRA">
         <p>
           You must use the Service only for lawful purposes and in compliance
-          with our Acceptable Use Policy. Anya.Int is not a consumer reporting
+          with our Acceptable Use Policy. Anya is not a consumer reporting
           agency under the Fair Credit Reporting Act (FCRA). You may not use
           Service results for employment, tenant screening, credit, insurance,
           or any other FCRA-regulated decision.
@@ -110,7 +110,7 @@ export default function TermsPage() {
 
       <LegalSection title="Indemnity">
         <p>
-          You will defend and indemnify Anya.Int and its operators from claims,
+          You will defend and indemnify Anya and its operators from claims,
           losses, and expenses (including reasonable attorneys’ fees) arising
           from your use of the Service, your content or queries, or your
           violation of these Terms or applicable law.

@@ -4,9 +4,9 @@ import { siteConfig } from "@/config/site";
 export default function FaqPage() {
   return (
     <LegalPage title="FAQ" updated="July 15, 2026">
-      <LegalSection title="What is Anya.Int?">
+      <LegalSection title="What is Anya?">
         <p>
-          Anya.Int is an OSINT workspace for investigators and security
+          Anya is an OSINT workspace for investigators and security
           professionals. It helps you run lookups across identity, network,
           platform, financial metadata, and exposure intelligence modules, then
           file findings into cases.

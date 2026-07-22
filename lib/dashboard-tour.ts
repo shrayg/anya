@@ -13,7 +13,7 @@ export const DASHBOARD_TOUR_STORAGE_KEY = "anya-dashboard-tour-v1";
 export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
   {
     id: "welcome",
-    title: "Welcome to Anya.Int",
+    title: "Welcome to Anya",
     body: "Quick tour of the workspace — every search module, what it does, and where to run lookups. Takes under a minute.",
   },
   {

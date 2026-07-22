@@ -75,7 +75,8 @@ function stripProviderNames(text: string): string {
     .replace(/Room\s*101[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Anya\.search/gi, PUBLIC_BRAND)
     .replace(/Anya [A-Za-z ]+/gi, PUBLIC_AI_LABEL)
-    // Keep Anya.Int intact — bare "Anya" only.
+    // Collapse legacy Anya.Int / keep product name as PUBLIC_BRAND.
+    .replace(/Anya\.Int/gi, PUBLIC_BRAND)
     .replace(/Anya(?!\.Int\b)/gi, PUBLIC_BRAND)
     .replace(/GODSEYE_API_KEY/gi, "intelligence API key")
     .replace(/OSINTCAT_API_KEY/gi, "intelligence API key")

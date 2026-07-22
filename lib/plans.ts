@@ -238,7 +238,7 @@ export type ApiProduct = {
 export const API_PRODUCT: ApiProduct = {
   id: "api_access",
   name: "API Access",
-  description: "Programmatic access to Anya.Int intelligence endpoints",
+  description: "Programmatic access to Anya intelligence endpoints",
   monthlyPrice: 249.99,
   features: [
     "REST API for OSINT modules",

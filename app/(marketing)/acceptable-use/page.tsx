@@ -6,7 +6,7 @@ export default function AcceptableUsePage() {
       <LegalSection title="Purpose">
         <p>
           This Acceptable Use Policy (“AUP”) is part of our Terms of Service. It
-          describes prohibited uses of Anya.Int. Violations may lead to
+          describes prohibited uses of Anya. Violations may lead to
           immediate suspension, freeze, or termination without refund, and may
           be reported to authorities where required.
         </p>

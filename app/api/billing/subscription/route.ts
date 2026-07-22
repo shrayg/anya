@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
     try {
       if (provider === "square") {
         const link = await createSquareCheckout({
-          name: `Anya.Int ${plan.name}`,
+          name: `Anya ${plan.name}`,
           description:
             interval === "annual"
               ? `${plan.name} renewal billed annually`

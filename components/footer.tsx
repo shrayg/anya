@@ -102,7 +102,7 @@ export const Footer = () => {
                 reserved.
               </p>
               <p className="max-w-2xl text-xs leading-5 text-zinc-600">
-                Anya.Int is not a consumer reporting agency. Information returned
+                Anya is not a consumer reporting agency. Information returned
                 must not be used for employment, tenant, credit, insurance, or
                 any other FCRA-regulated decision.
               </p>

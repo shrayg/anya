@@ -172,7 +172,7 @@ export async function fetchPublicDsaSanctions(
     const res = await fetchWithTimeout(url.toString(), {
       headers: {
         Accept: "application/json",
-        "User-Agent": "Anya.Int/1.0 (+https://anyaint.com)",
+        "User-Agent": "AnyaInt/1.0 (+https://anyaint.com)",
       },
       cache: "no-store",
       timeoutMs: 12_000,

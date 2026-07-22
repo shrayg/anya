@@ -7,13 +7,13 @@ export type NavItem = {
 };
 
 export const siteConfig = {
-  name: "Anya.Int",
-  navName: "Anya.Int",
-  description: "Anya.Int | OSINT intelligence platform for investigators",
+  name: "Anya",
+  navName: "AnyaInt",
+  description: "Anya | OSINT intelligence platform for investigators",
   tagline: "OSINT intelligence platform for investigators",
   defaultWorkspacePath: "/dashboard/search/ai-search",
   /** Brand operator name used in legal copy (Snoop-style — no LLC string required on-site). */
-  legalEntityName: "Anya.Int",
+  legalEntityName: "Anya",
   legalContactEmail: "support@anyaint.com",
   privacyContactEmail: "support@anyaint.com",
   governingLawState: "Delaware",

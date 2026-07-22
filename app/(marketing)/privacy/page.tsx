@@ -6,12 +6,12 @@ export default function PrivacyPage() {
     <LegalPage title="Privacy Policy" updated="July 15, 2026">
       <LegalSection title="Overview">
         <p>
-          This Privacy Policy explains how Anya.Int (“we,” “us,” or “our”)
+          This Privacy Policy explains how Anya (“we,” “us,” or “our”)
           collects, uses, and shares information when you use anyaint.com and
           related services (the “Service”).
         </p>
         <p>
-          Anya.Int provides investigative intelligence tools. It is not a
+          Anya provides investigative intelligence tools. It is not a
           consumer reporting agency. Do not use outputs for FCRA-regulated
           decisions. See our Terms of Service.
         </p>

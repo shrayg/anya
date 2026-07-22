@@ -77,7 +77,7 @@ export async function notifySupportDiscord(payload: TicketWebhookPayload) {
   }
 
   const body = {
-    username: "Anya.Int Support",
+    username: "Anya Support",
     embeds: [
       {
         title,

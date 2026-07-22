@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
       const result = await finalizeCheckout({
         provider,
         paymentId: payment?.id,
-        name: `Anya.Int ${plan.name}`,
+        name: `Anya ${plan.name}`,
         description:
           interval === "annual"
             ? `${plan.name} plan billed annually`
@@ -291,7 +291,7 @@ export async function POST(request: NextRequest) {
       const result = await finalizeCheckout({
         provider,
         paymentId: payment?.id,
-        name: `Anya.Int ${pack.name}`,
+        name: `Anya ${pack.name}`,
         description: `$${creditTotal.toFixed(2)} investigation credit`,
         amountDollars: pack.price,
         meta,
@@ -335,7 +335,7 @@ export async function POST(request: NextRequest) {
       const result = await finalizeCheckout({
         provider,
         paymentId: payment?.id,
-        name: "Anya.Int API Access",
+        name: "Anya API Access",
         description: API_PRODUCT.description,
         amountDollars: price.value,
         meta,

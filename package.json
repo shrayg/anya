@@ -1,7 +1,7 @@
 {
   "name": "anya-int",
   "version": "1.0.0",
-  "description": "Anya.Int — OSINT intelligence platform for investigators",
+  "description": "Anya — OSINT intelligence platform for investigators",
   "type": "module",
   "private": true,
   "scripts": {

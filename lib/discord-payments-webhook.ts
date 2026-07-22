@@ -95,7 +95,7 @@ export async function notifyPaymentDiscord(payload: PaymentWebhookPayload) {
   }
 
   const body = {
-    username: "Anya.Int Payments",
+    username: "Anya Payments",
     embeds: [
       {
         title,

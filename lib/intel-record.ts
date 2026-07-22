@@ -179,6 +179,8 @@ export function isInternalSourceLabel(value: string): boolean {
     if (lower === "csint" || lower === "csint tools" || lower === "csint.pro")
       return true;
     if (lower === "anya.int" || lower === "@anya.int") return true;
+    if (lower === "anya" || lower === "@anya") return true;
+    if (lower === "anyaint" || lower === "@anyaint") return true;
     if (lower === "enkidu.int" || lower === "@enkidu.int") return true;
   }
 

@@ -63,7 +63,7 @@ export async function createOxapayInvoice(
     return_url: input.returnUrl,
     thanks_message:
       input.thanksMessage ??
-      "Payment received. Your Anya.Int access will unlock shortly.",
+      "Payment received. Your Anya access will unlock shortly.",
     sandbox: isOxapaySandbox(),
   };
 

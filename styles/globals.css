@@ -7532,7 +7532,7 @@ html[data-splash="active"] [data-splash-target] {
 .home-search {
   position: relative;
   z-index: 30;
-  width: min(100%, 52rem);
+  width: min(100%, 56rem);
   margin-inline: auto;
 }
 
