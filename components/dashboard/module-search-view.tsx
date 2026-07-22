@@ -1173,6 +1173,11 @@ export function ModuleSearchView({
           selectedToolId === "phone-index")
           ? "&kind=phone"
           : "";
+      const reconlyModeParam =
+        activeType === "reconly" &&
+        (selectedToolId === "reconly-fivem" || moduleDef.slug === "fivem")
+          ? "&mode=fivem"
+          : "";
       // Twitter uses dedicated OsintCat twitter-osint (+ BreachHub fallback).
       // Snusbase / IntelVault / etc. use top-level /api/<vendor> paths.
       const searchUrl =
