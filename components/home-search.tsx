@@ -330,26 +330,36 @@ export function HomeSearch() {
           <div className="home-search-module-row">
             <div className="home-search-locked-module">
               <button
-                aria-label={`${LOCKED_MODULE_COUNT} premium modules locked`}
+                aria-label="Purchase access to premium modules and unlock the full panel suite"
                 className="home-search-locked-trigger"
                 type="button"
               >
-                <LockKeyhole className="size-4" />
-                <strong>{LOCKED_MODULE_COUNT}</strong>
-                <span>Premium locked</span>
+                <LockKeyhole className="size-4 shrink-0" />
+                <span className="home-search-locked-trigger-copy">
+                  <strong>Purchase Access to Premium Modules</strong>
+                  <em>Unlock the full Panel Suite · {LOCKED_MODULE_COUNT} locked</em>
+                </span>
               </button>
 
               <div className="home-search-locked-popover" role="tooltip">
-                <div className="home-search-locked-heading">
-                  <span>Premium module directory</span>
-                  <strong>{LOCKED_MODULE_COUNT} locked</strong>
+                <div className="home-search-locked-popover-card">
+                  <div className="home-search-locked-heading">
+                    <span>Premium module directory</span>
+                    <strong>{LOCKED_MODULE_COUNT} locked</strong>
+                  </div>
+                  <ul className="home-search-locked-grid">
+                    {LOCKED_MODULES.map((module) => (
+                      <li key={module.slug}>{module.name}</li>
+                    ))}
+                  </ul>
+                  <Link
+                    className="home-search-locked-cta"
+                    href="/pricing"
+                  >
+                    Purchase Access to Premium Modules and unlock the full
+                    Panel Suite
+                  </Link>
                 </div>
-                <ul className="home-search-locked-grid">
-                  {LOCKED_MODULES.map((module) => (
-                    <li key={module.slug}>{module.name}</li>
-                  ))}
-                </ul>
-                <Link href="/pricing">Compare plans and unlock the panel</Link>
               </div>
             </div>
 
