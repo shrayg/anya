@@ -44,9 +44,9 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   "seekria-breaches": { slug: "breaches", tool: "seekria-email-breach" },
   "oathnet-roblox": { slug: "discord-id", tool: "discord-to-roblox" },
   melissa: { slug: "contact-enrich", tool: "melissa" },
-  /** Stealer-only vendors — never standalone hubs. */
-  "seeknow-stealer": { slug: "stealer-logs", tool: "seeknow-stealer" },
-  wentyn: { slug: "stealer-logs", tool: "wentyn" },
+  /** Stealer-only vendors — never standalone hubs; fold into All stealer indexes. */
+  "seeknow-stealer": { slug: "stealer-logs", tool: "all-stealers" },
+  wentyn: { slug: "stealer-logs", tool: "all-stealers" },
   /** Breach specialty vendors fold into Breaches chips. */
   "seeknow-search": { slug: "breaches", tool: "seeknow-search" },
   leaksight: { slug: "breaches", tool: "leaksight" },
@@ -245,7 +245,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "stealer-logs",
         "stealer",
         "IP, email, or domain",
-        "One stealer search — SeekNow, Wentyn, DataVoid, OathNet, Hudson Rock, OsintCat, BreachHub, and COMB indexes in a single fan-out. Vendor chips hit live specialty routes.",
+        "One stealer search — SeekNow, Wentyn, DataVoid, OathNet, Hudson Rock, OsintCat, BreachHub, and COMB indexes in a single fan-out.",
         undefined,
         undefined,
         {
@@ -254,71 +254,6 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               id: "all-stealers",
               label: "All stealer indexes",
               apiType: "stealer",
-            },
-            {
-              id: "seeknow-stealer",
-              label: "SeekNow stealer",
-              apiType: "seeknow/stealer",
-            },
-            {
-              id: "wentyn",
-              label: "Wentyn stealer",
-              apiType: "wentyn",
-            },
-            {
-              id: "datavoid-stealer",
-              label: "DataVoid stealer",
-              apiType: "datavoid/stealer",
-            },
-            {
-              id: "oathnet-stealer",
-              label: "OathNet stealer",
-              apiType: "oathnet/stealer",
-            },
-            {
-              id: "oathnet-victims",
-              label: "OathNet victims",
-              apiType: "oathnet/victims",
-            },
-            {
-              id: "oathnet-stealer-subdomain",
-              label: "OathNet stealer subdomain",
-              apiType: "oathnet/stealer-subdomain",
-            },
-            {
-              id: "hudsonrock-infection",
-              label: "Hudson Rock infection",
-              apiType: "hudsonrock/search-by-stealer/infection-analysis",
-            },
-            {
-              id: "hudsonrock-login-emails",
-              label: "Hudson Rock login emails",
-              apiType: "hudsonrock/search-by-login/emails",
-            },
-            {
-              id: "hudsonrock-login-usernames",
-              label: "Hudson Rock login usernames",
-              apiType: "hudsonrock/search-by-login/usernames",
-            },
-            {
-              id: "hudsonrock-keyword",
-              label: "Hudson Rock keyword",
-              apiType: "hudsonrock/search-by-keyword",
-            },
-            {
-              id: "hudsonrock-keyword-urls",
-              label: "Hudson Rock keyword URLs",
-              apiType: "hudsonrock/search-by-keyword/urls",
-            },
-            {
-              id: "hudsonrock-domain",
-              label: "Hudson Rock by domain",
-              apiType: "hudsonrock/search-by-domain",
-            },
-            {
-              id: "hudsonrock-ip",
-              label: "Hudson Rock by IP",
-              apiType: "hudsonrock/search-by-ip",
             },
           ],
         },
@@ -461,23 +396,23 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Email, phone, username, IP, or hash",
         "Merged into Breaches — available as the SeekNow search tool chip.",
       ),
-      // Legacy — hidden from hub; redirects to Stealer Logs?tool=seeknow-stealer
+      // Legacy — hidden from hub; redirects to Stealer Logs (All stealer indexes)
       mod(
         "Breach & Leaks",
         "SeekNow Stealer",
         "seeknow-stealer",
         "seeknow/stealer",
         "Email, username, or domain",
-        "Merged into Stealer Logs — stealer endpoints only live on the Stealer hub.",
+        "Merged into Stealer Logs — covered by All stealer indexes fan-out.",
       ),
-      // Legacy — hidden from hub; redirects to Stealer Logs?tool=wentyn
+      // Legacy — hidden from hub; redirects to Stealer Logs (All stealer indexes)
       mod(
         "Breach & Leaks",
         "Wentyn",
         "wentyn",
         "wentyn",
         "Email or domain",
-        "Merged into Stealer Logs — available as the Wentyn stealer tool chip.",
+        "Merged into Stealer Logs — covered by All stealer indexes fan-out.",
       ),
       // Legacy — hidden from hub; redirects to Breaches?tool=leaksight
       mod(
