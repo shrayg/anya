@@ -309,10 +309,10 @@ export function HomeShowcase() {
               <span>in the shadows.</span>
             </h2>
             <p className="home-showcase-lede">
-              Drop one signal — email, phone, username, Discord — and{" "}
-              {siteConfig.name} fans out across breach, stealer, social, and
-              public-record engines in parallel. Built for investigators who
-              need answers without the noise.
+              Start with one identifier — email, phone, username, or Discord
+              ID — and {siteConfig.name} fans out across breach, stealer,
+              social, and public-record engines in parallel. Built for
+              investigators who need clear answers without the noise.
             </p>
 
             <ul className="home-showcase-pills">
