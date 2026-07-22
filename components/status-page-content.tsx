@@ -180,7 +180,7 @@ export function StatusPageContent() {
   );
 
   return (
-    <section className="brutal-page brutal-status-page relative z-20 mx-auto w-full max-w-3xl px-2 pb-20 pt-2 md:pt-4">
+    <section className="brutal-page brutal-status-page relative z-20 mx-auto w-full max-w-3xl px-2 pb-20 pt-4 md:pt-6">
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-x-10 -top-16 h-64 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(240,164,184,0.12),transparent_70%)] blur-2xl"
