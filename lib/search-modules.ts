@@ -629,9 +629,9 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Identity",
         "Fraud Footprint",
         "fraud-footprint",
-        "seon-email",
-        "Email or phone",
-        "Email and phone reputation, deliverability, and fraud signals.",
+        "seon/email",
+        "Email, phone, IP, or BIN",
+        "Email, phone, IP, and BIN reputation, deliverability, and fraud signals.",
         undefined,
         undefined,
         {
@@ -639,13 +639,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             {
               id: "seon-email",
               label: "Email footprint",
-              apiType: "seon-email",
+              apiType: "seon/email",
             },
             {
               id: "seon-phone",
               label: "Phone footprint",
-              apiType: "seon-phone",
+              apiType: "seon/phone",
             },
+            { id: "seon-email-verification", label: "Email verification", apiType: "seon/email-verification" },
+            { id: "seon-ip", label: "IP footprint", apiType: "seon/ip" },
+            { id: "seon-bin", label: "BIN lookup", apiType: "seon/bin" },
             {
               id: "index-sweep",
               label: "Index Sweep",
@@ -765,6 +768,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "SeekNow IP",
               apiType: "seeknow/network/ip",
             },
+            {
+              id: "ipinfo",
+              label: "IPInfo",
+              apiType: "ipinfo",
+            },
           ],
         },
       ),
@@ -800,6 +808,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "shodan-host",
         "IPv4 or IPv6 address",
         "Open ports, services, banners, and host metadata for an IP.",
+      ),
+      mod(
+        "Network",
+        "IPInfo",
+        "ipinfo",
+        "ipinfo",
+        "IPv4 or IPv6 address",
+        "Geolocation, ASN, hostname, and org metadata via IPInfo.",
       ),
       mod(
         "Network",
@@ -1014,10 +1030,39 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "SeekNow → Roblox",
               apiType: "seeknow/discord/to-roblox",
             },
+            {
+              id: "reconly",
+              label: "Reconly",
+              apiType: "reconly",
+            },
           ],
         },
       ),
       mod(
+        "Platforms",
+        "Reconly",
+        "reconly",
+        "reconly",
+        "Discord ID, username, or email",
+        "Reconly Discord, username, email, and FiveM lookups.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "reconly-auto",
+              label: "Auto detect",
+              apiType: "reconly",
+            },
+            {
+              id: "reconly-fivem",
+              label: "FiveM",
+              apiType: "reconly",
+            },
+          ],
+        },
+      ),
+            mod(
         "Platforms",
         "Seekria Discord",
         "seekria-discord",
@@ -1543,6 +1588,22 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "fivem",
         "Linked Discord ID",
         "FiveM server intel via linked Discord ID.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "fivem-indexes",
+              label: "FiveM OSINT",
+              apiType: "fivem",
+            },
+            {
+              id: "reconly-fivem",
+              label: "Reconly FiveM",
+              apiType: "reconly",
+            },
+          ],
+        },
       ),
     ],
   },
@@ -1929,6 +1990,8 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "seeknow-search": "seeknow/search",
   "seeknow-stealer": "seeknow/stealer",
   wentyn: "wentyn",
+  reconly: "reconly",
+  ipinfo: "ipinfo",
   melissa: "melissa",
   leaksight: "leaksight",
   inf0sec: "inf0sec",
@@ -1944,9 +2007,12 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "password-search": "breach",
   "name-search": "breach",
   "email-analyze": "email-analyze",
-  "fraud-footprint": "seon-email",
-  "seon-email": "seon-email",
-  "seon-phone": "seon-phone",
+  "fraud-footprint": "seon/email",
+  "seon-email": "seon/email",
+  "seon-phone": "seon/phone",
+  "seon-email-verification": "seon/email-verification",
+  "seon-ip": "seon/ip",
+  "seon-bin": "seon/bin",
   breachbase: "breaches",
   "oathnet-roblox": "oathnet-roblox",
   "contact-enrich": "contact-enrich",
@@ -2030,11 +2096,15 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType.startsWith("room101/") ||
     apiType === "notalivex" ||
     apiType.startsWith("notalivex/") ||
+    apiType === "seon" ||
+    apiType.startsWith("seon/") ||
     apiType === "wentyn" ||
+    apiType === "reconly" ||
     apiType === "melissa" ||
     apiType === "leaksight" ||
     apiType === "inf0sec" ||
     apiType === "vin" ||
+    apiType === "ipinfo" ||
     apiType === "github" ||
     apiType === "datavoid" ||
     apiType.startsWith("datavoid/") ||
@@ -2148,6 +2218,9 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "seeknow-search": true,
   "seeknow-stealer": true,
   wentyn: true,
+  reconly: true,
+  ipinfo: true,
+  datavoid: true,
   melissa: true,
   leaksight: true,
   inf0sec: true,
