@@ -8,9 +8,10 @@ export function Toaster() {
       closeButton
       richColors
       expand={false}
-      offset={18}
-      position="top-right"
+      offset={0}
+      position="top-center"
       theme="dark"
+      className="anya-sonner-toaster"
       toastOptions={{
         classNames: {
           toast:
