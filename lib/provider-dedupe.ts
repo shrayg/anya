@@ -202,6 +202,13 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
       "Additive fan-out via BreachHub /api/wentyn; optional WENTYN_API_KEY for GET /api/wentyn",
   },
   {
+    vendor: "Memory.lol",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Specialty via BreachHub /api/memory; optional MEMORY_API_KEY for GET /api/memory",
+  },
+  {
     vendor: "Reconly",
     primary: "breachhub",
     fallback: "none",

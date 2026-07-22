@@ -1929,6 +1929,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "seeknow-search": "seeknow/search",
   "seeknow-stealer": "seeknow/stealer",
   wentyn: "wentyn",
+  melissa: "melissa",
   leaksight: "leaksight",
   inf0sec: "inf0sec",
   datavoid: "datavoid/recovery",
@@ -1949,6 +1950,12 @@ const SLUG_API_ROUTES: Record<string, string> = {
   breachbase: "breaches",
   "oathnet-roblox": "oathnet-roblox",
   "contact-enrich": "contact-enrich",
+  propertyradar: "propertyradar/search",
+  "propertyradar-search": "propertyradar/search",
+  "propertyradar-persons": "propertyradar/persons",
+  "propertyradar-phone": "propertyradar/phone",
+  "propertyradar-email": "propertyradar/email",
+  "propertyradar-skiptrace": "propertyradar/skiptrace",
   "shodan-host": "shodan-host",
   "site-pentest": "site-pentest",
   "tiktok-recon": "tiktok-recon",
@@ -2024,12 +2031,15 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType === "notalivex" ||
     apiType.startsWith("notalivex/") ||
     apiType === "wentyn" ||
+    apiType === "melissa" ||
     apiType === "leaksight" ||
     apiType === "inf0sec" ||
     apiType === "vin" ||
     apiType === "github" ||
     apiType === "datavoid" ||
-    apiType.startsWith("datavoid/")
+    apiType.startsWith("datavoid/") ||
+    apiType === "propertyradar" ||
+    apiType.startsWith("propertyradar/")
   ) {
     return `/api/${apiType}`;
   }
@@ -2138,6 +2148,7 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "seeknow-search": true,
   "seeknow-stealer": true,
   wentyn: true,
+  melissa: true,
   leaksight: true,
   inf0sec: true,
   "seekria-breaches": true,
@@ -2158,6 +2169,12 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   breachbase: true,
   "oathnet-roblox": true,
   "contact-enrich": true,
+  propertyradar: true,
+  "propertyradar-search": true,
+  "propertyradar-persons": true,
+  "propertyradar-phone": true,
+  "propertyradar-email": true,
+  "propertyradar-skiptrace": true,
   "account-finder": true,
   "handle-sweep": true,
   "crypto-wallet": true,
