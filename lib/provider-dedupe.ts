@@ -31,6 +31,8 @@
  * | SeekNow                     | Direct key  | BreachHub /api/seeknow/*         |
  * | Room101                     | Direct key  | BreachHub /api/room101/*         |
  * | Wentyn                      | BreachHub   | direct WENTYN_API_KEY (site route)|
+ * | Reconly                     | BreachHub   | direct RECONLY_API_KEY (site route)|
+ * | NBRS                        | Direct key  | BreachHub /api/nbrs/roblox       |
  * | Memory.lol                  | BreachHub   | direct MEMORY_API_KEY (site route)|
  * | LeakSight                   | BreachHub   | direct LEAKSIGHT_API_KEY (site route)|
  * | Inf0sec                     | BreachHub   | direct INF0SEC_API_KEY (site route)|
@@ -39,6 +41,7 @@
  * When INTELVAULT_API_KEY is set, also skip BH IntelVault catalog ids.
  * When SEEKNOW_API_KEY is set, skip BH SeekNow catalog ids (direct owns vendor).
  * When ROOM101_API_KEY is set, skip BH Room101 catalog ids (direct owns vendor).
+ * When NBRS_API_KEY is set, skip BH nbrs-roblox (direct owns vendor).
  */
 
 import { isBreachVipEnabled } from "@/lib/breachvip";
@@ -59,6 +62,13 @@ function hasDirectRoom101KeyEnv(): boolean {
   if (process.env.ROOM101_ENABLED === "false") return false;
 
   return Boolean(process.env.ROOM101_API_KEY?.trim());
+}
+
+/** Env-only - avoid importing lib/nbrs (pulls breachhub -> circular). */
+function hasDirectNbrsKeyEnv(): boolean {
+  if (process.env.NBRS_ENABLED === "false") return false;
+
+  return Boolean(process.env.NBRS_API_KEY?.trim());
 }
 
 const SKIP_SEEKNOW_WHEN_DIRECT = [
@@ -90,6 +100,8 @@ const SKIP_ROOM101_WHEN_DIRECT = [
   "room101-search",
   "room101-subreddit",
 ] as const;
+
+const SKIP_NBRS_WHEN_DIRECT = ["nbrs-roblox"] as const;
 
 /** Always skip — mirrors a direct BreachHub catalog vendor in the same fan-out. */
 const SKIP_INTELBASE_MIRRORS = [
@@ -190,6 +202,13 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
       "Additive fan-out via BreachHub /api/wentyn; optional WENTYN_API_KEY for GET /api/wentyn",
   },
   {
+    vendor: "Reconly",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Additive fan-out via BreachHub /api/reconly; optional RECONLY_API_KEY for GET /api/reconly",
+  },
+  {
     vendor: "LeakSight",
     primary: "breachhub",
     fallback: "none",
@@ -202,6 +221,13 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     fallback: "none",
     notes:
       "Additive fan-out via BreachHub /api/inf0sec; optional INF0SEC_API_KEY for GET /api/inf0sec",
+  },,
+  {
+    vendor: "NBRS",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Direct NBRS_API_KEY owns vendor; else BreachHub /api/nbrs/roblox; site GET /api/nbrs/roblox",
   },
 ];
 

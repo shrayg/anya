@@ -1178,7 +1178,7 @@ export function ModuleSearchView({
       const searchUrl =
         moduleDef.slug === "twitter"
           ? `/api/osintcat/twitter-osint?query=${encodeURIComponent(searchQuery)}${moduleParam}`
-          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}`;
+          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}${reconlyModeParam}`;
       const searchResponse = await fetch(searchUrl, { signal });
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};

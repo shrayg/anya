@@ -221,6 +221,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Wentyn stealer",
               apiType: "wentyn",
             },
+            {
+              id: "datavoid-stealer",
+              label: "DataVoid stealer",
+              apiType: "datavoid/stealer",
+            },
           ],
         },
       ),
@@ -337,6 +342,84 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "inf0sec",
         "Email, username, phone, IP, domain, or Discord ID",
         "Inf0sec multi-module lookup — leaks, IP info, domain, username, HLR, NPD, Discord, and CFX.",
+      ),
+      mod(
+        "Breach & Leaks",
+        "DataVoid",
+        "datavoid",
+        "datavoid/recovery",
+        "Email, username, phone, name, VIN, address, Discord ID, or URL",
+        "DataVoid recovery, people (US/CA/IL), stealer, automotive, company, geo, social, and gaming lookups.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "recovery",
+              label: "Recovery",
+              apiType: "datavoid/recovery",
+            },
+            { id: "us", label: "US people", apiType: "datavoid/us" },
+            { id: "ca", label: "Canada people", apiType: "datavoid/ca" },
+            { id: "il", label: "Israel people", apiType: "datavoid/il" },
+            {
+              id: "stealer",
+              label: "Stealer",
+              apiType: "datavoid/stealer",
+            },
+            {
+              id: "automotive",
+              label: "Automotive",
+              apiType: "datavoid/automotive",
+            },
+            {
+              id: "automotive-check",
+              label: "Automotive check",
+              apiType: "datavoid/automotive/check",
+            },
+            {
+              id: "company",
+              label: "Company",
+              apiType: "datavoid/company",
+            },
+            {
+              id: "discord",
+              label: "Discord",
+              apiType: "datavoid/discord",
+            },
+            {
+              id: "twitter",
+              label: "Twitter / X",
+              apiType: "datavoid/twitter",
+            },
+            { id: "fivem", label: "FiveM", apiType: "datavoid/fivem" },
+            {
+              id: "roblox",
+              label: "Roblox",
+              apiType: "datavoid/roblox",
+            },
+            {
+              id: "geocode",
+              label: "Geocode",
+              apiType: "datavoid/geocode",
+            },
+            {
+              id: "reverse-geocode",
+              label: "Reverse geocode",
+              apiType: "datavoid/reverse-geocode",
+            },
+            {
+              id: "instagram",
+              label: "Instagram",
+              apiType: "datavoid/instagram",
+            },
+            {
+              id: "google-docs",
+              label: "Google Docs",
+              apiType: "datavoid/google-docs",
+            },
+          ],
+        },
       ),
       mod(
         "Breach & Leaks",
@@ -617,6 +700,31 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Validate and enrich contact records — names, phones, emails, and addresses.",
         undefined,
         undefined,
+        {
+          lawfulUseNotice: true,
+          tools: [
+            {
+              id: "contact-enrich",
+              label: "Contact enrich",
+              apiType: "contact-enrich",
+            },
+            {
+              id: "melissa",
+              label: "Melissa lookup",
+              apiType: "melissa",
+            },
+          ],
+        },
+      ),
+      mod(
+        "Identity",
+        "Melissa Lookup",
+        "melissa",
+        "melissa",
+        "Email, phone, IP, name, or address",
+        "Melissa contact enrichment — validate and expand names, phones, emails, IPs, and addresses.",
+        undefined,
+        undefined,
         { lawfulUseNotice: true },
       ),
     ],
@@ -744,6 +852,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "bank",
         "Bank name, US state code, or FDIC cert #",
         "Search US FDIC-insured institutions — metadata only, not account balances.",
+      ),
+      mod(
+        "Financial & Assets",
+        "Checko",
+        "checko",
+        "checko",
+        "INN, OGRN, or OKPO",
+        "Russian company registry (EGRUL) lookup by tax ID (INN), OGRN, or OKPO.",
       ),
       mod(
         "Financial & Assets",
@@ -1234,9 +1350,35 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Platforms",
         "Telegram",
         "telegram",
-        "breach",
-        "Telegram @username",
-        "Telegram handle and channel footprint search.",
+        "telegram/username",
+        "Telegram @username, numeric ID, or phone",
+        "Telegram username, ID, and phone lookups via specialty indexes.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "tg-username",
+              label: "Username",
+              apiType: "telegram/username",
+            },
+            {
+              id: "tg-id",
+              label: "User ID",
+              apiType: "telegram/id",
+            },
+            {
+              id: "tg-phone",
+              label: "Phone",
+              apiType: "telegram/phone",
+            },
+            {
+              id: "tg-indexes",
+              label: "Leak indexes",
+              apiType: "breach",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -1789,6 +1931,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   wentyn: "wentyn",
   leaksight: "leaksight",
   inf0sec: "inf0sec",
+  datavoid: "datavoid/recovery",
   "seekria-breaches": "seekria/email-breach",
   "seekria-discord": "seekria/discord",
   "seekria-roblox": "seekria/roblox",
@@ -1835,7 +1978,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   snapchat: "breachhub",
   tiktok: "breach",
   twitter: "breach",
-  github: "breach",
+  github: "github",
   tinder: "breach",
   bumble: "breach",
   hinge: "breach",
@@ -1883,7 +2026,10 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType === "wentyn" ||
     apiType === "leaksight" ||
     apiType === "inf0sec" ||
-    apiType === "vin"
+    apiType === "vin" ||
+    apiType === "github" ||
+    apiType === "datavoid" ||
+    apiType.startsWith("datavoid/")
   ) {
     return `/api/${apiType}`;
   }
