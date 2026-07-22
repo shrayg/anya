@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 import NextLink from "next/link";
-import { Headphones, LifeBuoy, Mail, MessageCircle } from "lucide-react";
+import { Headphones, LifeBuoy, Mail } from "lucide-react";
+import { SiTelegram } from "react-icons/si";
 
 import { Reveal } from "@/components/craft/reveal";
 import { siteConfig } from "@/config/site";
@@ -25,7 +26,7 @@ const CHANNELS = [
     body: "Quick questions and community updates. Response times vary by volume.",
     href: siteConfig.links.telegram,
     cta: "Open Telegram",
-    icon: MessageCircle,
+    icon: SiTelegram,
     external: true,
   },
 ] as const;
