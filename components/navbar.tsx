@@ -112,27 +112,36 @@ function AccountMenu({
 
   const itemClass =
     "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-white/75 transition hover:bg-white/[0.08] hover:text-white";
+  const initial = username.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="nav-account relative">
       <button
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex max-w-[11.5rem] items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-sm text-gray-300 transition hover:border-white/22 hover:bg-white/[0.08] hover:text-white lg:max-w-[14rem]"
+        aria-label={`Account menu for ${username}`}
+        className={clsx("nav-account-trigger", open && "is-open")}
         type="button"
         onClick={toggle}
       >
-        {planLabel ? (
-          <span className="shrink-0 rounded-md bg-[var(--anya-blush-soft)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-anya-accent">
-            {planLabel}
-          </span>
-        ) : null}
-        <span className="min-w-0 truncate font-medium">{username}</span>
+        <span aria-hidden className="nav-account-avatar">
+          {initial}
+        </span>
+        <span className="nav-account-meta">
+          {planLabel ? (
+            <span className="nav-account-plan">{planLabel}</span>
+          ) : (
+            <span className="nav-account-plan nav-account-plan--muted">
+              Account
+            </span>
+          )}
+          <span className="nav-account-username">{username}</span>
+        </span>
         <svg
           aria-hidden
           className={clsx(
-            "size-3.5 shrink-0 text-white/45 transition-transform duration-200",
-            open && "rotate-180",
+            "nav-account-chevron",
+            open && "is-open",
           )}
           fill="none"
           viewBox="0 0 24 24"
@@ -150,7 +159,7 @@ function AccountMenu({
       {visible ? (
         <div
           className={clsx(
-            "absolute top-[calc(100%+8px)] z-50 min-w-[11.5rem] overflow-hidden rounded-xl border border-white/[0.1] bg-black/80 p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-[opacity,transform] duration-150 ease-out",
+            "nav-account-menu absolute top-[calc(100%+8px)] z-50 min-w-[12.5rem] overflow-hidden p-1.5 transition-[opacity,transform] duration-150 ease-out",
             align === "right" ? "right-0" : "left-0",
             open
               ? "translate-y-0 opacity-100"
@@ -449,18 +458,13 @@ export const Navbar = () => {
           className="hidden basis-auto md:flex md:min-w-0 md:justify-self-end"
           justify="end"
         >
-          <NavbarItem className="flex min-w-0 shrink items-center gap-2">
+          <NavbarItem className="nav-auth-cluster flex min-w-0 shrink items-center gap-2">
             {username ? (
               <>
-                <AccountMenu
-                  username={username}
-                  planLabel={planLabel}
-                  onLogout={handleLogout}
-                />
                 {showWorkspace ? (
                   <Button
                     as={NextLink}
-                    className="shrink-0 font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
+                    className="nav-dashboard-cta shrink-0 font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
                     href={workspacePath}
                     radius="full"
                     variant="solid"
@@ -468,6 +472,11 @@ export const Navbar = () => {
                     Dashboard
                   </Button>
                 ) : null}
+                <AccountMenu
+                  username={username}
+                  planLabel={planLabel}
+                  onLogout={handleLogout}
+                />
               </>
             ) : (
               <>

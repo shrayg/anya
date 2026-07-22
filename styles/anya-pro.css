@@ -45,6 +45,151 @@ pre,
   font-feature-settings: "ss01" on, "ss02" on;
 }
 
+/* —— Marketing nav: account + dashboard cluster —— */
+.nav-auth-cluster {
+  --nav-action-h: 2.5rem;
+}
+
+.nav-dashboard-cta {
+  height: var(--nav-action-h) !important;
+  min-height: var(--nav-action-h) !important;
+  padding-inline: 1.15rem !important;
+  font-size: 0.8125rem !important;
+  letter-spacing: -0.015em;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 10px 24px -16px rgba(0, 0, 0, 0.55);
+}
+
+.nav-account-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: var(--nav-action-h, 2.5rem);
+  max-width: 13.5rem;
+  padding: 0 0.7rem 0 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)),
+    rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 10px 24px -18px rgba(0, 0, 0, 0.65);
+  color: #e4e4e7;
+  transition:
+    border-color 0.18s var(--anya-ease),
+    background 0.18s var(--anya-ease),
+    box-shadow 0.18s var(--anya-ease);
+}
+
+.nav-account-trigger:hover,
+.nav-account-trigger:focus-visible,
+.nav-account-trigger.is-open {
+  border-color: rgba(255, 255, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    rgba(0, 0, 0, 0.5);
+  outline: none;
+}
+
+.nav-account-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 18%, transparent);
+  color: var(--anya-blush);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.nav-account-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  line-height: 1.05;
+}
+
+.nav-account-plan {
+  max-width: 7.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--anya-blush) 88%, white);
+}
+
+.nav-account-plan--muted {
+  color: #71717a;
+  letter-spacing: 0.1em;
+}
+
+.nav-account-username {
+  max-width: 7.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f4f4f5;
+  filter: blur(5px);
+  transition: filter 0.2s var(--anya-ease);
+  user-select: none;
+}
+
+.nav-account-trigger:hover .nav-account-username,
+.nav-account-trigger:focus-visible .nav-account-username,
+.nav-account-trigger.is-open .nav-account-username {
+  filter: blur(0);
+  user-select: text;
+}
+
+.nav-account-chevron {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.4);
+  transition: transform 0.2s var(--anya-ease), color 0.18s var(--anya-ease);
+}
+
+.nav-account-chevron.is-open {
+  transform: rotate(180deg);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-account-menu {
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(6, 6, 8, 0.92);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+@media (max-width: 767px) {
+  .nav-account-trigger {
+    max-width: 11.5rem;
+    height: 2.35rem;
+    padding-right: 0.55rem;
+  }
+
+  .nav-account-avatar {
+    width: 1.55rem;
+    height: 1.55rem;
+  }
+}
+
 /* —— Dashboard chrome —— */
 .dash-shell {
   color: var(--anya-ink);
