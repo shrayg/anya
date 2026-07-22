@@ -110,7 +110,7 @@ export function ModuleSearchFields({
               type="button"
               onClick={() => removeRow(row.id)}
             >
-              <X className="size-3.5" />
+              <X className="size-4" />
             </button>
           </div>
         ))}
@@ -123,7 +123,7 @@ export function ModuleSearchFields({
           type="button"
           onClick={addRow}
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-4" />
           Add field
         </button>
         <div className="module-search-form-submit-group">

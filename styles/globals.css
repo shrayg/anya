@@ -5285,10 +5285,10 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .module-coming-soon {
-  max-width: 28rem;
+  max-width: 36rem;
   border: 1px dashed color-mix(in srgb, var(--anya-blush) 25%, transparent);
   background: rgba(0, 0, 0, 0.4);
-  padding: 2rem 1.75rem;
+  padding: 2.35rem 2rem;
   text-align: center;
 }
 

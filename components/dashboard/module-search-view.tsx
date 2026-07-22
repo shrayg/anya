@@ -2492,12 +2492,12 @@ export function ModuleSearchView({
             onSubmit={handleSearch}
           >
             {isSummary ? (
-              <div className="module-search-summary-form space-y-3">
+              <div className="module-search-summary-form space-y-4">
                 <AutofillDecoyFields />
                 <textarea
                   {...TEXTAREA_AUTOFILL_SHIELD}
                   readOnly
-                  className="ui-input min-h-[7rem] w-full resize-y font-mono text-sm"
+                  className="ui-input w-full resize-y font-mono"
                   data-tour="search-input"
                   name="osint-summary-query"
                   placeholder="Paste intel, JSON, logs, or case notes…"
