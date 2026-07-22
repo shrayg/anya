@@ -411,7 +411,7 @@ export function PricingPageContent({
                         )}
                       </div>
 
-                      <ul className="mt-5 flex-1 space-y-2">
+                      <ul className="mt-5 flex min-h-0 flex-1 flex-col space-y-2">
                         {plan.features.map((feature) => (
                           <li key={feature} className="flex items-start gap-2">
                             <CheckCircle className="mt-0.5 size-3.5 shrink-0 text-[var(--anya-blush)]" />
@@ -422,9 +422,10 @@ export function PricingPageContent({
                         ))}
                       </ul>
 
+                      <div className="mt-auto pt-5">
                       <LiquidButton
                         className={clsx(
-                          "mt-5 h-10 w-full text-sm font-semibold",
+                          "h-10 w-full text-sm font-semibold",
                           plan.highlighted && "liquid-glass-button--accent",
                         )}
                         disabled={busyId === plan.id}
@@ -451,6 +452,7 @@ export function PricingPageContent({
                             ? "Contact Sales"
                             : "Get Started"}
                       </LiquidButton>
+                      </div>
                     </article>
                   </div>
                 );
