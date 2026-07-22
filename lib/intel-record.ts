@@ -57,6 +57,7 @@ const INTERNAL_SOURCE_LABELS = new Set([
   "nbrs",
   "reconly",
   "leaksight",
+  "checko",
   "index",
 ]);
 

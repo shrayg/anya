@@ -36,6 +36,7 @@
  * | Memory.lol                  | BreachHub   | direct MEMORY_API_KEY (site route)|
  * | LeakSight                   | BreachHub   | direct LEAKSIGHT_API_KEY (site route)|
  * | Inf0sec                     | BreachHub   | direct INF0SEC_API_KEY (site route)|
+ * | Checko                      | BreachHub   | direct CHECKO_API_KEY (site route)|
  *
  * Within BreachHub only: always skip IntelBase * mirrors of direct BH vendors.
  * When INTELVAULT_API_KEY is set, also skip BH IntelVault catalog ids.
@@ -228,13 +229,20 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     fallback: "none",
     notes:
       "Additive fan-out via BreachHub /api/inf0sec; optional INF0SEC_API_KEY for GET /api/inf0sec",
-  },,
+  },
   {
     vendor: "NBRS",
     primary: "breachhub",
     fallback: "none",
     notes:
       "Direct NBRS_API_KEY owns vendor; else BreachHub /api/nbrs/roblox; site GET /api/nbrs/roblox",
+  },
+  {
+    vendor: "Checko",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Specialty via BreachHub /api/checko; optional CHECKO_API_KEY for GET /api/checko (native api.checko.ru /v2/company)",
   },
 ];
 
