@@ -29,7 +29,7 @@ export default function Home() {
           </p>
         </HomeReturnReveal>
 
-        <HomeReturnReveal className="w-full max-w-[56rem]" delay={0.08}>
+        <HomeReturnReveal className="w-full max-w-[72rem]" delay={0.08}>
           <HomeSearch />
         </HomeReturnReveal>
       </section>
