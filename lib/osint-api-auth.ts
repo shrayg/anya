@@ -41,6 +41,7 @@ export function resolveOsintModuleSlug(
     ip: "ip",
     intelx: "intelx",
     breach: "stealer-logs",
+    stealer: "stealer-logs",
     discord: "discord-id",
     "discord/profile": "discord-id",
     "discord/user": "discord-id",

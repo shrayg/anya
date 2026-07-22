@@ -243,9 +243,9 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Stealer Intel",
         "Stealer Logs",
         "stealer-logs",
-        "breach",
+        "stealer",
         "IP, email, or domain",
-        "Stealer indexes and COMB breach data â€” search by IP, email, or domain.",
+        "One stealer search — SeekNow, Wentyn, DataVoid, OathNet, Hudson Rock, OsintCat, BreachHub, and COMB indexes in a single fan-out. Vendor chips hit live specialty routes.",
         undefined,
         undefined,
         {
@@ -253,7 +253,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             {
               id: "all-stealers",
               label: "All stealer indexes",
-              apiType: "breach",
+              apiType: "stealer",
             },
             {
               id: "seeknow-stealer",
@@ -2399,7 +2399,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "phone-index": "index-sweep",
   ip: "ip",
   intelx: "intelx",
-  "stealer-logs": "breach",
+  "stealer-logs": "stealer",
   phone: "breach",
   username: "breach",
   steam: "breach",
