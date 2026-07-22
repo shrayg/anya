@@ -39,6 +39,7 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   "seekria-roblox": { slug: "roblox", tool: "seekria-roblox" },
   "seekria-footprint": { slug: "username", tool: "seekria-footprint" },
   "oathnet-roblox": { slug: "discord-id", tool: "discord-to-roblox" },
+  melissa: { slug: "contact-enrich", tool: "melissa" },
 };
 
 /** Sidebar hides these — they remain in the catalog for redirects / deep links. */
@@ -751,13 +752,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           ],
         },
       ),
+      // Legacy — hidden from hub; redirects to Contact Enrich?tool=melissa
       mod(
         "Identity",
         "Melissa Lookup",
         "melissa",
         "melissa",
         "Email, phone, IP, name, or address",
-        "Melissa contact enrichment â€” validate and expand names, phones, emails, IPs, and addresses.",
+        "Merged into Contact Enrich — available as the Melissa lookup tool chip.",
         undefined,
         undefined,
         { lawfulUseNotice: true },

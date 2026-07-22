@@ -242,7 +242,7 @@ function buildCriteriaFromInput(
   }
 
   const criteria: CriteriaItem[] = [];
-  const push = (name: string; value: unknown) => {
+  const push = (name: string, value: unknown) => {
     criteria.push({ name, value });
   };
 

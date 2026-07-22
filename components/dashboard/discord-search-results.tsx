@@ -17,6 +17,7 @@ import clsx from "clsx";
 
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { IntelSignalLoader } from "@/components/dashboard/intel-signal-loader";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { resolveDiscordBadges } from "@/lib/discord-badges";
 import type {
@@ -768,9 +769,14 @@ function DsaBlock({
 export function DiscordSearchResults({
   result,
   blurResults = false,
+  loadingMore = false,
+  progressLabel = "",
 }: {
   result: DiscordSearchResult;
   blurResults?: boolean;
+  /** True while more Discord fan-out modules are still settling. */
+  loadingMore?: boolean;
+  progressLabel?: string;
 }) {
   const {
     profile,
@@ -833,6 +839,14 @@ export function DiscordSearchResults({
 
   return (
     <div className="discord-id-shell">
+      {loadingMore ? (
+        <IntelSignalLoader
+          active
+          stage={progressLabel || "Assembling Discord fan-out"}
+          title="Discord ID"
+          variant="compact"
+        />
+      ) : null}
       <div className="discord-id-stats">
         <button
           aria-pressed={dataTab === "breaches"}

@@ -226,6 +226,7 @@ export function ModuleSearchView({
     beginJob,
     completeJob,
     failJob,
+    setJobProgress,
     getJob,
     getLatestJobForModule,
   } = useSearchJobs();
@@ -372,6 +373,8 @@ export function ModuleSearchView({
   const [instagramLoadingMore, setInstagramLoadingMore] = useState(false);
   const [instagramProgressLabel, setInstagramProgressLabel] = useState("");
   const instagramLoadGenRef = useRef(0);
+  const [discordLoadingMore, setDiscordLoadingMore] = useState(false);
+  const [discordProgressLabel, setDiscordProgressLabel] = useState("");
   const [structuredResult, setStructuredResult] =
     useState<StructuredResult | null>(null);
   const [rawResult, setRawResult] = useState("");
@@ -469,6 +472,8 @@ export function ModuleSearchView({
     setInstagramEnriching(false);
     setInstagramLoadingMore(false);
     setInstagramProgressLabel("");
+    setDiscordLoadingMore(false);
+    setDiscordProgressLabel("");
     setStructuredResult(null);
     setRawResult("");
     setLastSearchLabel("");
@@ -1166,6 +1171,273 @@ export function ModuleSearchView({
 
     // stealer-logs keeps email/domain/IP on /api/osint/breach so victims +
     // machine view stay available (do not divert domains to /domains).
+
+    const discordHasSignal = (discordData: DiscordSearchResult) => {
+      const hasProfile = Boolean(
+        discordData.profile &&
+          discordData.profile.username &&
+          discordData.profile.username !== "Unknown",
+      );
+      const hasLeaks = (discordData.leaks?.count ?? 0) > 0;
+      const hasRoblox = Boolean(
+        discordData.robloxLink &&
+          (discordData.robloxLink.username ||
+            discordData.robloxLink.userId ||
+            discordData.robloxLink.profileUrl),
+      );
+      const hasEnrichment = Boolean(
+        discordData.enrichment &&
+          typeof discordData.enrichment === "object" &&
+          Object.keys(discordData.enrichment).length > 0,
+      );
+      const hasFivem = (discordData.fivem?.count ?? 0) > 0;
+      const hasDsa = (discordData.dsa?.count ?? 0) > 0;
+      const hasGuilds =
+        (discordData.guilds?.count ?? 0) > 0 ||
+        (discordData.guilds?.items?.length ?? 0) > 0;
+      const hasConnections =
+        (discordData.connections?.length ?? 0) > 0 ||
+        (discordData.usernameHistory?.length ?? 0) > 0;
+      const hasContacts = Boolean(
+        discordData.contacts?.email ||
+          discordData.contacts?.phone ||
+          discordData.contacts?.ip,
+      );
+
+      return (
+        hasProfile ||
+        hasLeaks ||
+        hasRoblox ||
+        hasEnrichment ||
+        hasFivem ||
+        hasDsa ||
+        hasGuilds ||
+        hasConnections ||
+        hasContacts
+      );
+    };
+
+    // Discord ID main fan-out: stream NDJSON partials so results paint early.
+    if (activeType === "discord") {
+      try {
+        const searchUrl = `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(moduleDef.slug)}&stream=1`;
+        const searchResponse = await fetch(searchUrl, {
+          signal,
+          headers: { Accept: "application/x-ndjson" },
+        });
+
+        if (signal.aborted) return;
+
+        if (!searchResponse.ok) {
+          const responseText = await searchResponse.text();
+          let data: Record<string, unknown> = {};
+
+          try {
+            data = responseText
+              ? (JSON.parse(responseText) as Record<string, unknown>)
+              : {};
+          } catch {
+            /* ignore */
+          }
+
+          commitFail(
+            sanitizePublicText(
+              typeof data.error === "string" ? data.error : "Search failed.",
+            ),
+          );
+
+          return;
+        }
+
+        const contentType = searchResponse.headers.get("content-type") ?? "";
+        let finalDiscord: DiscordSearchResult | null = null;
+        let streamError: string | null = null;
+
+        if (
+          contentType.includes("ndjson") &&
+          searchResponse.body
+        ) {
+          const reader = searchResponse.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          if (isMountedRef.current) {
+            setDiscordLoadingMore(true);
+            setDiscordProgressLabel("Assembling Discord fan-out…");
+            setJobProgress(jobId, "Discord OSINT · starting");
+            setEmptyResult("");
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+            // Soft shell so the compact loader paints before the first module settles.
+            setDiscordResult({
+              id: searchQuery,
+              profile: {
+                id: searchQuery,
+                username: "Unknown",
+                globalName: null,
+                displayName: searchQuery,
+                avatarUrl: "",
+                bannerUrl: null,
+                accentColor: null,
+                createdAt: new Date(
+                  Number(BigInt(searchQuery) >> 22n) + 1_420_070_400_000,
+                ).toISOString(),
+                badges: [],
+                discriminator: "0",
+                bio: null,
+                nitro: false,
+                clanTag: null,
+                clanBadgeUrl: null,
+                avatarDecorationUrl: null,
+                nameplate: null,
+                profilePreviewUrl: `https://discord.com/users/${encodeURIComponent(searchQuery)}`,
+              },
+              leaks: { count: 0, results: [] },
+              fivem: { count: 0, accounts: [], bans: [] },
+              dsa: { count: 0, sanctions: [] },
+              enrichment: null,
+              robloxLink: null,
+              guilds: { count: 0, items: [] },
+              connections: [],
+              contacts: undefined,
+              usernameHistory: [],
+            });
+          }
+
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+            if (signal.aborted) return;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+
+              if (!trimmedLine) continue;
+
+              let event: {
+                type?: string;
+                module?: string;
+                done?: number;
+                total?: number;
+                error?: string;
+                result?: DiscordSearchResult;
+              };
+
+              try {
+                event = JSON.parse(trimmedLine) as typeof event;
+              } catch {
+                continue;
+              }
+
+              if (event.type === "error") {
+                streamError =
+                  typeof event.error === "string"
+                    ? event.error
+                    : "Search failed.";
+                if (event.result) finalDiscord = event.result;
+                continue;
+              }
+
+              if (
+                (event.type === "partial" || event.type === "done") &&
+                event.result
+              ) {
+                finalDiscord = event.result;
+
+                if (event.type === "partial" && isMountedRef.current) {
+                  const moduleLabel =
+                    typeof event.module === "string" && event.module
+                      ? event.module
+                      : "module";
+                  const progress =
+                    typeof event.done === "number" &&
+                    typeof event.total === "number"
+                      ? `${event.done}/${event.total}`
+                      : "";
+                  const label = progress
+                    ? `Discord OSINT · ${moduleLabel} (${progress})`
+                    : `Discord OSINT · ${moduleLabel}`;
+
+                  setDiscordProgressLabel(label);
+                  setJobProgress(jobId, label);
+
+                  if (discordHasSignal(event.result)) {
+                    setEmptyResult("");
+                    setDiscordResult(event.result);
+                    setRawResult(JSON.stringify(event.result, null, 2));
+                    setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          const responseText = await searchResponse.text();
+          let data: Record<string, unknown> = {};
+
+          try {
+            data = responseText
+              ? (JSON.parse(responseText) as Record<string, unknown>)
+              : {};
+          } catch {
+            commitFail("Search returned an unexpected response. Try again.");
+
+            return;
+          }
+
+          finalDiscord = data as DiscordSearchResult;
+        }
+
+        if (signal.aborted) return;
+
+        if (isMountedRef.current) {
+          setDiscordLoadingMore(false);
+          setDiscordProgressLabel("");
+        }
+
+        if (streamError && !finalDiscord) {
+          commitFail(sanitizePublicText(streamError));
+
+          return;
+        }
+
+        if (!finalDiscord || !discordHasSignal(finalDiscord)) {
+          commitEmpty(
+            streamError ||
+              (finalDiscord as { error?: string } | null)?.error ||
+              "No results were found.",
+          );
+
+          return;
+        }
+
+        commitSuccess(
+          {
+            discordResult: finalDiscord,
+            rawResult: JSON.stringify(finalDiscord, null, 2),
+          },
+          JSON.stringify(finalDiscord),
+        );
+      } catch (err) {
+        if (signal.aborted) return;
+        if (isMountedRef.current) {
+          setDiscordLoadingMore(false);
+          setDiscordProgressLabel("");
+        }
+        commitFail(
+          err instanceof Error && err.message
+            ? sanitizePublicText(err.message)
+            : "Search failed.",
+        );
+      }
+
+      return;
+    }
 
     try {
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
@@ -2778,6 +3050,8 @@ export function ModuleSearchView({
           ) : discordResult ? (
             <DiscordSearchResults
               blurResults={blurResults}
+              loadingMore={discordLoadingMore}
+              progressLabel={discordProgressLabel}
               result={discordResult}
             />
           ) : domainResult ? (
