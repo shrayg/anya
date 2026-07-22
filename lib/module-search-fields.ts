@@ -192,7 +192,7 @@ export function getModuleSearchFieldOptions(
     return uniqueOptions([WALLET, TX, COMMON_QUERY]);
   }
 
-  if (slug === "ip" || slug === "shodan-host" || slug === "geolocate") {
+  if (slug === "ip" || slug === "shodan-host" || slug === "ipinfo" || slug === "geolocate") {
     return uniqueOptions([IP, DOMAIN, COMMON_QUERY]);
   }
 

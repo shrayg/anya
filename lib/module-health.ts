@@ -92,6 +92,7 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "combo-lookup": { kind: "any", providers: ["breachhub", "csint"] },
   snusbase: { kind: "any", providers: ["breachhub", "csint"] },
   "ip-whois": { kind: "any", providers: ["breachhub"] },
+  ipinfo: { kind: "any", providers: ["breachhub"] },
   "password-search": {
     kind: "any",
     providers: ["godseye", "breachvip", "csint", "breachhub"],
