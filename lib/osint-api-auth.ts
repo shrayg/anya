@@ -127,6 +127,7 @@ export function resolveOsintModuleSlug(
     melissa: "contact-enrich",
     reconly: "reconly",
     memory: "memory",
+    medal: "username",
     leaksight: "breaches",
     inf0sec: "breaches",
     checko: "checko",

@@ -2171,6 +2171,7 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType.startsWith("seon/") ||
     apiType === "wentyn" ||
     apiType === "memory" ||
+    apiType === "medal" ||
     apiType === "reconly" ||
     apiType === "melissa" ||
     apiType === "leaksight" ||
