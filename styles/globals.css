@@ -3468,6 +3468,7 @@ html[data-splash="active"] [data-splash-target] {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(6, 6, 8, 0.92);
   overflow: hidden;
+  overscroll-behavior: contain;
   box-shadow: 8px 8px 0 rgba(195, 211, 230, 0.08);
 }
 
@@ -3541,6 +3542,7 @@ html[data-splash="active"] [data-splash-target] {
   flex-direction: column;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.28);
 }
@@ -3671,6 +3673,7 @@ html[data-splash="active"] [data-splash-target] {
   margin: 0;
   padding: 0.25rem 0;
   overflow: auto;
+  overscroll-behavior: contain;
   min-height: 0;
 }
 
