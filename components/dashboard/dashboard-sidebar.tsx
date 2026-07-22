@@ -126,7 +126,7 @@ const mainNav: NavItem[] = [
 
 const footerNav: NavItem[] = [
   { name: "Account", href: "/dashboard/account", icon: UserRound },
-  { name: "Support", href: "/dashboard/support", icon: LifeBuoy },
+  { name: "Support", href: "/support", icon: LifeBuoy },
   { name: "Pricing", href: "/pricing", icon: CreditCard },
   { name: "Status", href: "/status", icon: Activity },
 ];
@@ -148,10 +148,6 @@ function isNavActive(item: NavItem, pathname: string) {
   if (item.name === "Admin Dashboard" || item.name === "Helper Dashboard") {
     return pathname.startsWith("/dashboard/settings");
   }
-  if (item.name === "Support") {
-    return pathname.startsWith("/dashboard/support");
-  }
-
   return pathname === item.href;
 }
 

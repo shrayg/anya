@@ -32,8 +32,7 @@ export function FrozenAccountOverlay({ username }: { username: string }) {
         </h2>
         <p className="frozen-account-overlay__text">
           Access to {siteConfig.name} is paused for <strong>{username}</strong>.
-          Open a support ticket on Telegram and our team will review your
-          account.
+          Contact us on Telegram or email and our team will review your account.
         </p>
         <div className="frozen-account-overlay__actions">
           <a
@@ -47,7 +46,7 @@ export function FrozenAccountOverlay({ username }: { username: string }) {
           </a>
           <a
             className="frozen-account-overlay__btn frozen-account-overlay__btn--secondary"
-            href="/dashboard/support"
+            href="/support"
           >
             Support page
           </a>

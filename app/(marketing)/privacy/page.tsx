@@ -71,7 +71,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           Operational notification channels (for example, internal alerts about
-          support tickets or successful payments) are used so our team can help
+          support requests or successful payments) are used so our team can help
           you. They are not used to sell or rent your personal information, and
           we do not send your search results to advertisers.
         </p>

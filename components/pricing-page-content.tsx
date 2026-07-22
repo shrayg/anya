@@ -432,7 +432,7 @@ export function PricingPageContent({
                         type="button"
                         onClick={() => {
                           if (plan.customPricing) {
-                            router.push("/dashboard/support");
+                            router.push("/support");
 
                             return;
                           }

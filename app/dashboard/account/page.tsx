@@ -157,15 +157,8 @@ export default function AccountPage() {
         >
           Support
         </Link>{" "}
-        or open a ticket in the{" "}
-        <Link
-          className="text-zinc-400 underline-offset-4 hover:underline"
-          href="/dashboard/support"
-        >
-          panel desk
-        </Link>
-        . {siteConfig.name} account tools stay inside your authenticated
-        workspace.
+        for email and Telegram. {siteConfig.name} account tools stay inside your
+        authenticated workspace.
       </p>
     </div>
   );

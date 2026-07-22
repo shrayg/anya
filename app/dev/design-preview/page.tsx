@@ -183,7 +183,7 @@ export default function DesignPreviewPage() {
                   Pricing
                 </span>
               </Link>
-              <Link className="dash-nav-link" href="/dashboard/support">
+              <Link className="dash-nav-link" href="/support">
                 <span className="flex items-center gap-2">
                   <LifeBuoy className="size-4 opacity-70" />
                   Support
