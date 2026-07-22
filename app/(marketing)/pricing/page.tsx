@@ -21,7 +21,7 @@ export default function PricingPage() {
     <>
       <HomeBackground />
 
-      <section className="brutal-page brutal-pricing-page relative z-20 mx-auto w-full max-w-6xl px-2 pb-24 pt-2 md:pt-4">
+      <section className="brutal-page brutal-pricing-page relative z-20 mx-auto w-full max-w-6xl px-2 pb-24 pt-4 md:pt-6">
         <Reveal mode="mount">
           <header className="brutal-page-header mb-12 space-y-5">
             <p className="craft-kicker">

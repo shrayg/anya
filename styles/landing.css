@@ -2117,11 +2117,11 @@
 }
 
 /* Public route system: hard edges, ruled surfaces, no generic pills. */
-.marketing-canvas [class*="rounded"] {
+:is(.marketing-canvas, .brutal-page) [class*="rounded"] {
   border-radius: 0 !important;
 }
 
-.marketing-canvas
+:is(.marketing-canvas, .brutal-page)
   :where(
     .ui-panel,
     .ui-input,
@@ -2133,7 +2133,12 @@
     .craft-cta,
     .anya-pill,
     .pricing-plan-card,
-    .pricing-plan-cta
+    .pricing-plan-cta,
+    .pricing-option-card,
+    .pricing-control-strip,
+    .pricing-interval-strip,
+    .pricing-popular-badge,
+    .support-channel
   ) {
   border-radius: 0 !important;
 }
@@ -2146,14 +2151,16 @@
 
 .brutal-page {
   position: relative;
-  /* Marketing layout already clears the floating nav — keep this tight. */
-  padding-top: 0.35rem !important;
+  /* Clear the floating nav without the old huge gap */
+  padding-top: 1.75rem !important;
+  overflow: visible;
 }
 
 .brutal-page::before {
   position: absolute;
   z-index: -1;
-  top: 0;
+  /* Start below the header rule so the grid doesn't eat the top line. */
+  top: 4.5rem;
   right: 0;
   left: 0;
   height: 11rem;
@@ -2163,23 +2170,40 @@
   background-size: 48px 48px;
   mask-image: linear-gradient(#000, transparent);
   content: "";
+  pointer-events: none;
 }
 
 .brutal-page-header {
   position: relative;
-  padding-top: 1.4rem;
-  border-top: 1px solid var(--anya-line);
+  z-index: 1;
+  overflow: visible;
+  padding-top: 2.15rem;
+  /* Keep the rule inside the box so Reveal opacity/transform can't clip it. */
+  border-top: 1px solid rgba(244, 241, 243, 0.28);
   text-align: left !important;
+  background-image: linear-gradient(
+    to right,
+    var(--anya-pink-bright) 0,
+    var(--anya-pink-bright) 7.5rem,
+    rgba(244, 241, 243, 0.28) 7.5rem,
+    rgba(244, 241, 243, 0.28) 100%
+  );
+  background-repeat: no-repeat;
+  background-position: top left;
+  background-size: 100% 1px;
 }
 
 .brutal-page-header::before {
   position: absolute;
-  top: -1px;
+  top: 0;
   left: 0;
-  width: 6rem;
+  z-index: 2;
+  width: 7.5rem;
   height: 1px;
-  background: var(--anya-pink);
+  background: var(--anya-pink-bright);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--anya-pink) 55%, transparent);
   content: "";
+  pointer-events: none;
 }
 
 .brutal-page-header :where(.craft-kicker, .anya-hero-kicker) {
@@ -2212,7 +2236,8 @@
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-interval-strip {
   padding: 0 !important;
   overflow: hidden;
-  border-color: var(--anya-line) !important;
+  border: 1px solid var(--anya-line) !important;
+  border-radius: 0 !important;
   background: #080809 !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
@@ -2246,6 +2271,7 @@
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-interval-strip
   > button {
+  border-radius: 0 !important;
   border-right: 1px solid var(--anya-line);
   box-shadow: none !important;
   font-family: var(--font-anya-mono), monospace;
@@ -2265,28 +2291,28 @@
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-grid {
   gap: 1px !important;
-  padding: 1.35rem 1px 1px !important;
+  padding: 1.35rem 0 0 !important;
   overflow: visible;
-  background: linear-gradient(
-    to bottom,
-    transparent 0 1.35rem,
-    var(--anya-line) 1.35rem 100%
-  );
+  border: 1px solid var(--anya-line);
+  background: var(--anya-line);
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-grid > div {
   padding-top: 0 !important;
   overflow: visible;
   background: var(--anya-black);
+  box-shadow: none;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-popular-badge {
   top: 0 !important;
   border-radius: 0 !important;
+  transform: translate(-50%, -100%) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card {
   border: 0 !important;
+  border-radius: 0 !important;
   border-top: 1px solid var(--anya-line) !important;
   background: #0a0a0b !important;
   box-shadow: none !important;
@@ -2296,7 +2322,7 @@
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-plan-shell.is-highlighted
   .pricing-option-card {
-  border-top-color: rgba(195, 211, 230, 0.6) !important;
+  border-top-color: rgba(216, 230, 244, 0.75) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card:hover {

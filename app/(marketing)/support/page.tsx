@@ -33,7 +33,7 @@ const CHANNELS = [
 
 export default function SupportPage() {
   return (
-    <div className="brutal-page brutal-support-page relative z-20 mx-auto w-full max-w-4xl px-2 pb-24 pt-2 md:pt-4">
+    <div className="brutal-page brutal-support-page relative z-20 mx-auto w-full max-w-4xl px-2 pb-24 pt-4 md:pt-6">
       <Reveal mode="mount">
         <header className="brutal-page-header mb-14 space-y-5">
           <p className="craft-kicker">
