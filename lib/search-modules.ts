@@ -324,6 +324,22 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
       ),
       mod(
         "Breach & Leaks",
+        "LeakSight",
+        "leaksight",
+        "leaksight",
+        "Email, username, phone, IP, domain, or URL",
+        "LeakSight breach and leak lookup — email, username, password, phone, IP, domain, HWID, and specialty indexes.",
+      ),
+      mod(
+        "Breach & Leaks",
+        "Inf0sec",
+        "inf0sec",
+        "inf0sec",
+        "Email, username, phone, IP, domain, or Discord ID",
+        "Inf0sec multi-module lookup — leaks, IP info, domain, username, HLR, NPD, Discord, and CFX.",
+      ),
+      mod(
+        "Breach & Leaks",
         "Seekria Breaches",
         "seekria-breaches",
         "seekria/email-breach",
@@ -1771,6 +1787,8 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "seeknow-search": "seeknow/search",
   "seeknow-stealer": "seeknow/stealer",
   wentyn: "wentyn",
+  leaksight: "leaksight",
+  inf0sec: "inf0sec",
   "seekria-breaches": "seekria/email-breach",
   "seekria-discord": "seekria/discord",
   "seekria-roblox": "seekria/roblox",
@@ -1862,7 +1880,9 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType.startsWith("room101/") ||
     apiType === "notalivex" ||
     apiType.startsWith("notalivex/") ||
-    apiType === "wentyn"
+    apiType === "wentyn" ||
+    apiType === "leaksight" ||
+    apiType === "inf0sec"
   ) {
     return `/api/${apiType}`;
   }
@@ -1971,6 +1991,8 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "seeknow-search": true,
   "seeknow-stealer": true,
   wentyn: true,
+  leaksight: true,
+  inf0sec: true,
   "seekria-breaches": true,
   "seekria-discord": true,
   "seekria-roblox": true,

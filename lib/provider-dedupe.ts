@@ -31,6 +31,9 @@
  * | SeekNow                     | Direct key  | BreachHub /api/seeknow/*         |
  * | Room101                     | Direct key  | BreachHub /api/room101/*         |
  * | Wentyn                      | BreachHub   | direct WENTYN_API_KEY (site route)|
+ * | Memory.lol                  | BreachHub   | direct MEMORY_API_KEY (site route)|
+ * | LeakSight                   | BreachHub   | direct LEAKSIGHT_API_KEY (site route)|
+ * | Inf0sec                     | BreachHub   | direct INF0SEC_API_KEY (site route)|
  *
  * Within BreachHub only: always skip IntelBase * mirrors of direct BH vendors.
  * When INTELVAULT_API_KEY is set, also skip BH IntelVault catalog ids.
@@ -185,6 +188,20 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     fallback: "none",
     notes:
       "Additive fan-out via BreachHub /api/wentyn; optional WENTYN_API_KEY for GET /api/wentyn",
+  },
+  {
+    vendor: "LeakSight",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Additive fan-out via BreachHub /api/leaksight; optional LEAKSIGHT_API_KEY for GET /api/leaksight (no CSINT mirror; intelbase-leaksight always skipped)",
+  },
+  {
+    vendor: "Inf0sec",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Additive fan-out via BreachHub /api/inf0sec; optional INF0SEC_API_KEY for GET /api/inf0sec",
   },
 ];
 

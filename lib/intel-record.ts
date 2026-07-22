@@ -51,6 +51,8 @@ const INTERNAL_SOURCE_LABELS = new Set([
   "room101",
   "room 101",
   "wentyn",
+  "reconly",
+  "leaksight",
   "index",
 ]);
 
