@@ -225,7 +225,7 @@ export function resolveOsintModuleSlug(
     "seekria/laby-stats": "minecraft",
     "seekria/minecraft-texture": "minecraft",
     "seekria/tiktok-lookup": "tiktok-recon",
-    "seekria/tiktok-breach": "tiktok-recon",
+    "seekria/tiktok-breach": "breaches",
     "seekria/snusbase-breach": "breaches",
     "seekria/leakcheck-breach": "breaches",
     "osintcat/database-search": "stealer-logs",

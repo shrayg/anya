@@ -38,8 +38,19 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   "seekria-discord": { slug: "discord-id" },
   "seekria-roblox": { slug: "roblox", tool: "seekria-roblox" },
   "seekria-footprint": { slug: "username", tool: "seekria-footprint" },
+  "seekria-fivem": { slug: "fivem", tool: "seekria-fivem" },
+  "seekria-minecraft": { slug: "minecraft", tool: "seekria-minecraft" },
+  "seekria-domain": { slug: "domain", tool: "seekria-domain" },
+  "seekria-breaches": { slug: "breaches", tool: "seekria-email-breach" },
   "oathnet-roblox": { slug: "discord-id", tool: "discord-to-roblox" },
   melissa: { slug: "contact-enrich", tool: "melissa" },
+  /** Stealer-only vendors — never standalone hubs. */
+  "seeknow-stealer": { slug: "stealer-logs", tool: "seeknow-stealer" },
+  wentyn: { slug: "stealer-logs", tool: "wentyn" },
+  /** Breach specialty vendors fold into Breaches chips. */
+  "seeknow-search": { slug: "breaches", tool: "seeknow-search" },
+  leaksight: { slug: "breaches", tool: "leaksight" },
+  inf0sec: { slug: "breaches", tool: "inf0sec" },
 };
 
 /** Sidebar hides these — they remain in the catalog for redirects / deep links. */
@@ -259,6 +270,56 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "DataVoid stealer",
               apiType: "datavoid/stealer",
             },
+            {
+              id: "oathnet-stealer",
+              label: "OathNet stealer",
+              apiType: "oathnet/stealer",
+            },
+            {
+              id: "oathnet-victims",
+              label: "OathNet victims",
+              apiType: "oathnet/victims",
+            },
+            {
+              id: "oathnet-stealer-subdomain",
+              label: "OathNet stealer subdomain",
+              apiType: "oathnet/stealer-subdomain",
+            },
+            {
+              id: "hudsonrock-infection",
+              label: "Hudson Rock infection",
+              apiType: "hudsonrock/search-by-stealer/infection-analysis",
+            },
+            {
+              id: "hudsonrock-login-emails",
+              label: "Hudson Rock login emails",
+              apiType: "hudsonrock/search-by-login/emails",
+            },
+            {
+              id: "hudsonrock-login-usernames",
+              label: "Hudson Rock login usernames",
+              apiType: "hudsonrock/search-by-login/usernames",
+            },
+            {
+              id: "hudsonrock-keyword",
+              label: "Hudson Rock keyword",
+              apiType: "hudsonrock/search-by-keyword",
+            },
+            {
+              id: "hudsonrock-keyword-urls",
+              label: "Hudson Rock keyword URLs",
+              apiType: "hudsonrock/search-by-keyword/urls",
+            },
+            {
+              id: "hudsonrock-domain",
+              label: "Hudson Rock by domain",
+              apiType: "hudsonrock/search-by-domain",
+            },
+            {
+              id: "hudsonrock-ip",
+              label: "Hudson Rock by IP",
+              apiType: "hudsonrock/search-by-ip",
+            },
           ],
         },
       ),
@@ -274,6 +335,82 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breaches",
         "Email, username, or search term",
         "Unified breach search â€” Comb, Breach Index, and every connected leak provider in one module.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "all-breaches",
+              label: "All breach indexes",
+              apiType: "breaches",
+            },
+            {
+              id: "seeknow-search",
+              label: "SeekNow search",
+              apiType: "seeknow/search",
+            },
+            {
+              id: "leaksight",
+              label: "LeakSight",
+              apiType: "leaksight",
+            },
+            {
+              id: "inf0sec",
+              label: "Inf0sec leaks",
+              apiType: "inf0sec",
+            },
+            {
+              id: "nosint-search",
+              label: "Nosint search",
+              apiType: "nosint/search",
+            },
+            {
+              id: "oathnet-breach",
+              label: "OathNet breach",
+              apiType: "oathnet/breach",
+            },
+            {
+              id: "oathnet-holehe",
+              label: "OathNet Holehe",
+              apiType: "oathnet/holehe",
+            },
+            {
+              id: "oathnet-ghunt",
+              label: "OathNet GHunt",
+              apiType: "oathnet/ghunt",
+            },
+            {
+              id: "seekria-email-breach",
+              label: "Seekria email breach",
+              apiType: "seekria/email-breach",
+            },
+            {
+              id: "seekria-username-breach",
+              label: "Seekria username breach",
+              apiType: "seekria/username-breach",
+            },
+            {
+              id: "seekria-phone-breach",
+              label: "Seekria phone breach",
+              apiType: "seekria/phone-breach",
+            },
+            {
+              id: "seekria-snusbase-breach",
+              label: "Snusbase (via Seekria)",
+              apiType: "seekria/snusbase-breach",
+            },
+            {
+              id: "seekria-leakcheck-breach",
+              label: "LeakCheck (via Seekria)",
+              apiType: "seekria/leakcheck-breach",
+            },
+            {
+              id: "seekria-tiktok-breach",
+              label: "Seekria TikTok breach",
+              apiType: "seekria/tiktok-breach",
+            },
+          ],
+        },
       ),
       mod(
         "Breach & Leaks",
@@ -315,74 +452,58 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Email, username, IP, hash, or password",
         "Search the primary credential breach index.",
       ),
+      // Legacy — hidden from hub; redirects to Breaches?tool=seeknow-search
       mod(
         "Breach & Leaks",
         "SeekNow Search",
         "seeknow-search",
         "seeknow/search",
         "Email, phone, username, IP, or hash",
-        "SeekNow breach and dark-web search â€” email, phone, username, IP, and hash indexes.",
-        undefined,
-        undefined,
-        {
-          tools: [
-            {
-              id: "seeknow-search",
-              label: "Breach search",
-              apiType: "seeknow/search",
-            },
-            {
-              id: "seeknow-stealer",
-              label: "Stealer logs",
-              apiType: "seeknow/stealer",
-            },
-            {
-              id: "seeknow-email-check",
-              label: "Email check",
-              apiType: "seeknow/network/email-check",
-            },
-          ],
-        },
+        "Merged into Breaches — available as the SeekNow search tool chip.",
       ),
+      // Legacy — hidden from hub; redirects to Stealer Logs?tool=seeknow-stealer
       mod(
         "Breach & Leaks",
         "SeekNow Stealer",
         "seeknow-stealer",
         "seeknow/stealer",
         "Email, username, or domain",
-        "SeekNow stealer-log search against infected-device credential dumps.",
+        "Merged into Stealer Logs — stealer endpoints only live on the Stealer hub.",
       ),
+      // Legacy — hidden from hub; redirects to Stealer Logs?tool=wentyn
       mod(
         "Breach & Leaks",
         "Wentyn",
         "wentyn",
         "wentyn",
         "Email or domain",
-        "Wentyn stealer-log search by email or domain.",
+        "Merged into Stealer Logs — available as the Wentyn stealer tool chip.",
       ),
+      // Legacy — hidden from hub; redirects to Breaches?tool=leaksight
       mod(
         "Breach & Leaks",
         "LeakSight",
         "leaksight",
         "leaksight",
         "Email, username, phone, IP, domain, or URL",
-        "LeakSight breach and leak lookup â€” email, username, password, phone, IP, domain, HWID, and specialty indexes.",
+        "Merged into Breaches — available as the LeakSight tool chip.",
       ),
+      // Legacy — hidden from hub; redirects to Breaches?tool=inf0sec
       mod(
         "Breach & Leaks",
         "Inf0sec",
         "inf0sec",
         "inf0sec",
         "Email, username, phone, IP, domain, or Discord ID",
-        "Inf0sec multi-module lookup â€” leaks, IP info, domain, username, HLR, NPD, Discord, and CFX.",
+        "Merged into Breaches — available as the Inf0sec leaks tool chip.",
       ),
       mod(
         "Breach & Leaks",
         "DataVoid",
         "datavoid",
         "datavoid/recovery",
-        "Email, username, phone, name, VIN, address, Discord ID, or URL",
-        "DataVoid recovery, people (US/CA/IL), stealer, automotive, company, geo, social, and gaming lookups.",
+        "Email, username, phone, name, or company",
+        "DataVoid people and company recovery (US/CA/IL). Stealer, Discord, Roblox, and other specialties live on their primary hubs.",
         undefined,
         undefined,
         {
@@ -396,102 +517,21 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             { id: "ca", label: "Canada people", apiType: "datavoid/ca" },
             { id: "il", label: "Israel people", apiType: "datavoid/il" },
             {
-              id: "stealer",
-              label: "Stealer",
-              apiType: "datavoid/stealer",
-            },
-            {
-              id: "automotive",
-              label: "Automotive",
-              apiType: "datavoid/automotive",
-            },
-            {
-              id: "automotive-check",
-              label: "Automotive check",
-              apiType: "datavoid/automotive/check",
-            },
-            {
               id: "company",
               label: "Company",
               apiType: "datavoid/company",
             },
-            {
-              id: "discord",
-              label: "Discord",
-              apiType: "datavoid/discord",
-            },
-            {
-              id: "twitter",
-              label: "Twitter / X",
-              apiType: "datavoid/twitter",
-            },
-            { id: "fivem", label: "FiveM", apiType: "datavoid/fivem" },
-            {
-              id: "roblox",
-              label: "Roblox",
-              apiType: "datavoid/roblox",
-            },
-            {
-              id: "geocode",
-              label: "Geocode",
-              apiType: "datavoid/geocode",
-            },
-            {
-              id: "reverse-geocode",
-              label: "Reverse geocode",
-              apiType: "datavoid/reverse-geocode",
-            },
-            {
-              id: "instagram",
-              label: "Instagram",
-              apiType: "datavoid/instagram",
-            },
-            {
-              id: "google-docs",
-              label: "Google Docs",
-              apiType: "datavoid/google-docs",
-            },
           ],
         },
       ),
+      // Legacy — hidden from hub; redirects to Breaches?tool=seekria-email-breach
       mod(
         "Breach & Leaks",
         "Seekria Breaches",
         "seekria-breaches",
         "seekria/email-breach",
         "Email, username, or phone",
-        "Seekria breach indexes â€” email, username, phone, plus Seekria-proxied Snusbase and LeakCheck.",
-        undefined,
-        undefined,
-        {
-          tools: [
-            {
-              id: "email-breach",
-              label: "Email breach",
-              apiType: "seekria/email-breach",
-            },
-            {
-              id: "username-breach",
-              label: "Username breach",
-              apiType: "seekria/username-breach",
-            },
-            {
-              id: "phone-breach",
-              label: "Phone breach",
-              apiType: "seekria/phone-breach",
-            },
-            {
-              id: "snusbase-breach",
-              label: "Snusbase (via Seekria)",
-              apiType: "seekria/snusbase-breach",
-            },
-            {
-              id: "leakcheck-breach",
-              label: "LeakCheck (via Seekria)",
-              apiType: "seekria/leakcheck-breach",
-            },
-          ],
-        },
+        "Merged into Breaches — Seekria breach indexes are tool chips on the primary Breaches hub.",
       ),
       mod(
         "Breach & Leaks",
@@ -531,6 +571,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               id: "seekria-email-osint",
               label: "Seekria email OSINT",
               apiType: "seekria/email-osint",
+            },
+            {
+              id: "seeknow-email-check",
+              label: "SeekNow email check",
+              apiType: "seeknow/network/email-check",
             },
           ],
         },
@@ -853,6 +898,31 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Seekria IP",
               apiType: "seekria/ip",
             },
+            {
+              id: "oathnet-ip",
+              label: "OathNet IP",
+              apiType: "oathnet/ip-info",
+            },
+            {
+              id: "nosint-ip",
+              label: "Nosint IP",
+              apiType: "nosint/ip",
+            },
+            {
+              id: "seon-ip",
+              label: "SEON IP",
+              apiType: "seon/ip",
+            },
+            {
+              id: "datavoid-geocode",
+              label: "DataVoid geocode",
+              apiType: "datavoid/geocode",
+            },
+            {
+              id: "datavoid-reverse-geocode",
+              label: "DataVoid reverse geocode",
+              apiType: "datavoid/reverse-geocode",
+            },
           ],
         },
       ),
@@ -877,6 +947,21 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               id: "seeknow-domain-whois",
               label: "SeekNow WHOIS",
               apiType: "seeknow/domain/whois",
+            },
+            {
+              id: "seekria-domain",
+              label: "Seekria domain",
+              apiType: "seekria/domain-lookup",
+            },
+            {
+              id: "seekria-dns",
+              label: "Seekria DNS",
+              apiType: "seekria/dns-resolver",
+            },
+            {
+              id: "oathnet-extract-subdomain",
+              label: "OathNet subdomain extract",
+              apiType: "oathnet/extract-subdomain",
             },
           ],
         },
@@ -998,6 +1083,23 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "vin",
         "17-character vehicle VIN",
         "Decode make, model, year, and specs via NHTSA.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "vin-nhtsa", label: "NHTSA decode", apiType: "vin" },
+            {
+              id: "datavoid-automotive",
+              label: "DataVoid automotive",
+              apiType: "datavoid/automotive",
+            },
+            {
+              id: "datavoid-automotive-check",
+              label: "DataVoid automotive check",
+              apiType: "datavoid/automotive/check",
+            },
+          ],
+        },
       ),
       mod(
         "Financial & Assets",
@@ -1154,6 +1256,21 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Discord → Roblox",
               apiType: "oathnet-roblox",
             },
+            {
+              id: "datavoid-discord",
+              label: "DataVoid Discord",
+              apiType: "datavoid/discord",
+            },
+            {
+              id: "oathnet-discord-userinfo",
+              label: "OathNet userinfo",
+              apiType: "oathnet/discord-userinfo",
+            },
+            {
+              id: "oathnet-discord-history",
+              label: "OathNet username history",
+              apiType: "oathnet/discord-username-history",
+            },
           ],
         },
       ),
@@ -1204,26 +1321,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "seekria-minecraft",
         "seekria/minecraft",
         "Minecraft username or UUID",
-        "Seekria Minecraft OSINT â€” UUID, name history, skins, LabyMod, and breach cross-reference.",
-        undefined,
-        undefined,
-        {
-          tools: [
-            { id: "minecraft", label: "Player lookup", apiType: "seekria/minecraft" },
-            { id: "minecraft-osint", label: "Full OSINT", apiType: "seekria/minecraft-osint" },
-            { id: "name-history", label: "Name history", apiType: "seekria/name-history" },
-            { id: "laby-stats", label: "LabyMod stats", apiType: "seekria/laby-stats" },
-            { id: "minecraft-texture", label: "Skin / cape", apiType: "seekria/minecraft-texture" },
-          ],
-        },
+        "Merged into Minecraft — Seekria tools are chips on the primary Minecraft hub.",
       ),
+      // Legacy — hidden from hub; redirects to FiveM?tool=seekria-fivem
       mod(
         "Platforms",
         "Seekria FiveM",
         "seekria-fivem",
         "seekria/fivem",
         "Username, IP, Discord ID, license, Steam, or UUID",
-        "Seekria FiveM player lookup â€” server history, identifiers, and breach cross-reference.",
+        "Merged into FiveM — available as the Seekria FiveM tool chip.",
       ),
       mod(
         "Platforms",
@@ -1233,21 +1340,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "IPv4 address",
         "Merged into IP — available as the Seekria IP tool chip.",
       ),
+      // Legacy — hidden from hub; redirects to Domain?tool=seekria-domain
       mod(
         "Platforms",
         "Seekria Domain",
         "seekria-domain",
         "seekria/domain-lookup",
         "Domain name",
-        "Seekria domain WHOIS / DNS and hosting metadata, plus DNS resolver.",
-        undefined,
-        undefined,
-        {
-          tools: [
-            { id: "domain-lookup", label: "Domain lookup", apiType: "seekria/domain-lookup" },
-            { id: "dns-resolver", label: "DNS resolver", apiType: "seekria/dns-resolver" },
-          ],
-        },
+        "Merged into Domain — available as Seekria domain / DNS tool chips.",
       ),
       // Legacy — hidden from hub; redirects to Username?tool=seekria-footprint
       mod(
@@ -1424,6 +1524,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Seekria Roblox",
               apiType: "seekria/roblox",
             },
+            {
+              id: "datavoid-roblox",
+              label: "DataVoid Roblox",
+              apiType: "datavoid/roblox",
+            },
+            {
+              id: "oathnet-roblox-userinfo",
+              label: "OathNet Roblox",
+              apiType: "oathnet/roblox-userinfo",
+            },
           ],
         },
       ),
@@ -1453,6 +1563,36 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "SeekNow Minecraft",
               apiType: "seeknow/gaming/minecraft",
             },
+            {
+              id: "seekria-minecraft",
+              label: "Seekria Minecraft",
+              apiType: "seekria/minecraft",
+            },
+            {
+              id: "seekria-minecraft-osint",
+              label: "Seekria Minecraft OSINT",
+              apiType: "seekria/minecraft-osint",
+            },
+            {
+              id: "seekria-name-history",
+              label: "Seekria name history",
+              apiType: "seekria/name-history",
+            },
+            {
+              id: "seekria-laby-stats",
+              label: "Seekria LabyMod",
+              apiType: "seekria/laby-stats",
+            },
+            {
+              id: "seekria-minecraft-texture",
+              label: "Seekria skin / cape",
+              apiType: "seekria/minecraft-texture",
+            },
+            {
+              id: "oathnet-mc-history",
+              label: "OathNet MC history",
+              apiType: "oathnet/mc-history",
+            },
           ],
         },
       ),
@@ -1463,6 +1603,18 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breach",
         "Steam ID or profile link",
         "Find Steam IDs, aliases, and linked accounts.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "steam-indexes", label: "Leak indexes", apiType: "breach" },
+            {
+              id: "oathnet-steam",
+              label: "OathNet Steam",
+              apiType: "oathnet/steam",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -1485,6 +1637,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "SeekNow Xbox",
               apiType: "seeknow/gaming/xbox",
             },
+            {
+              id: "oathnet-xbox",
+              label: "OathNet Xbox",
+              apiType: "oathnet/xbox",
+            },
           ],
         },
       ),
@@ -1505,6 +1662,22 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breachhub",
         "Google Docs / Drive URL",
         "Extract metadata and exposure signals from Google Docs links.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "google-docs-indexes",
+              label: "Docs indexes",
+              apiType: "breachhub",
+            },
+            {
+              id: "datavoid-google-docs",
+              label: "DataVoid Google Docs",
+              apiType: "datavoid/google-docs",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
@@ -1569,6 +1742,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "SeekNow Twitter",
               apiType: "seeknow/username/twitter",
             },
+            {
+              id: "datavoid-twitter",
+              label: "DataVoid Twitter",
+              apiType: "datavoid/twitter",
+            },
           ],
         },
       ),
@@ -1587,6 +1765,27 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "instagram",
         "Instagram user or profile link",
         "Profile intel plus follower and following list export.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "instagram-live",
+              label: "Instagram OSINT",
+              apiType: "instagram",
+            },
+            {
+              id: "instagram-id",
+              label: "Instagram ID",
+              apiType: "instagram/id",
+            },
+            {
+              id: "datavoid-instagram",
+              label: "DataVoid Instagram",
+              apiType: "datavoid/instagram",
+            },
+          ],
+        },
       ),
       mod(
         "Platforms",
