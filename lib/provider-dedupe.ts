@@ -19,7 +19,7 @@
  * | BreachBase                  | BreachHub   | CSINT /breachbase                |
  * | Shodan host                 | BreachHub   | CSINT /shodan/host               |
  * | Melissa                     | BreachHub   | CSINT /melissa/lookup            |
- * | SEON email / phone          | BreachHub   | CSINT /seon/*                    |
+ * | SEON email / phone / IP / BIN (SEON_API_KEY)          | BreachHub   | CSINT /seon/*                    |
  * | OsintCat database / stalker | BreachHub   | direct OSINTCAT_API_KEY          |
  * | OsintCat twitter / machine  | BreachHub   | (no CSINT equivalent)            |
  * | CordCat                     | BreachHub   | direct CORDCAT_API_KEY           |
@@ -31,6 +31,7 @@
  * | SeekNow                     | Direct key  | BreachHub /api/seeknow/*         |
  * | Room101                     | Direct key  | BreachHub /api/room101/*         |
  * | Wentyn                      | BreachHub   | direct WENTYN_API_KEY (site route)|
+ * | Telegram                    | BreachHub   | direct TELEGRAM_API_KEY (site route)|
  * | Reconly                     | BreachHub   | direct RECONLY_API_KEY (site route)|
  * | NBRS                        | Direct key  | BreachHub /api/nbrs/roblox       |
  * | Memory.lol                  | BreachHub   | direct MEMORY_API_KEY (site route)|
@@ -151,7 +152,7 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
   { vendor: "BreachBase", primary: "breachhub", fallback: "csint" },
   { vendor: "Shodan host", primary: "breachhub", fallback: "csint" },
   { vendor: "Melissa", primary: "breachhub", fallback: "csint" },
-  { vendor: "SEON email/phone", primary: "breachhub", fallback: "csint" },
+  { vendor: "SEON email/phone/IP/BIN (SEON_API_KEY)", primary: "breachhub", fallback: "csint" },
   {
     vendor: "OsintCat database/stalker",
     primary: "breachhub",
@@ -201,6 +202,13 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     fallback: "none",
     notes:
       "Additive fan-out via BreachHub /api/wentyn; optional WENTYN_API_KEY for GET /api/wentyn",
+  },
+  {
+    vendor: "Telegram",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Specialty /api/telegram/{username|id|phone}; optional TELEGRAM_API_KEY else BreachHub proxy",
   },
   {
     vendor: "Memory.lol",

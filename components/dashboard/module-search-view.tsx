@@ -993,13 +993,32 @@ export function ModuleSearchView({
       }
       if (moduleDef.slug === "fraud-footprint") {
         const tool = moduleDef.tools?.find((t) => t.id === selectedToolId);
-        const api = tool?.apiType || "seon-email";
+        const api = tool?.apiType || "seon/email";
 
-        if (api === "seon-email" && !normalizeEmail(trimmed)) {
+        if (
+          (api === "seon-email" ||
+            api === "seon/email" ||
+            api === "seon/email-verification") &&
+          !normalizeEmail(trimmed)
+        ) {
           return "Enter a valid email address.";
         }
-        if (api === "seon-phone" && !isPhoneQuery(trimmed)) {
+        if (
+          (api === "seon-phone" || api === "seon/phone") &&
+          !isPhoneQuery(trimmed)
+        ) {
           return "Enter a valid phone number (10–15 digits).";
+        }
+        if (
+          api === "seon/ip" &&
+          !/^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$|^[0-9a-f:]+$/i.test(
+            trimmed,
+          )
+        ) {
+          return "Enter a valid IP address.";
+        }
+        if (api === "seon/bin" && !/^\d{6,8}$/.test(trimmed)) {
+          return "Enter a valid 6-8 digit BIN.";
         }
       }
       if (moduleDef.slug === "fivem" && !isDiscordSnowflake(trimmed)) {
