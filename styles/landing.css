@@ -2306,8 +2306,15 @@
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-popular-badge {
   top: 0 !important;
+  left: 50% !important;
   border-radius: 0 !important;
-  transform: translate(-50%, -50%) !important;
+  /* Fully above the card edge; +1px rests on the top border */
+  transform: translate(-50%, calc(-100% + 1px)) !important;
+}
+
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-plan-shell.is-highlighted {
+  padding-top: 1.35rem !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card {

@@ -348,12 +348,6 @@ export function PricingPageContent({
                       plan.highlighted && "is-highlighted",
                     )}
                   >
-                    {plan.highlighted ? (
-                      <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap border border-[var(--anya-blush)]/45 bg-[var(--anya-blush)]/30 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-md shadow-[color-mix(in_srgb,var(--anya-blush)_20%,transparent)] backdrop-blur-md">
-                        Most Popular
-                      </span>
-                    ) : null}
-
                     <article
                       className={clsx(
                         "pricing-option-card relative flex h-full flex-col border bg-white/[0.04] p-5 transition hover:bg-white/[0.07]",
@@ -362,6 +356,11 @@ export function PricingPageContent({
                           : "border-white/10",
                       )}
                     >
+                      {plan.highlighted ? (
+                        <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-0 z-20 whitespace-nowrap border border-[var(--anya-blush)]/45 bg-[#0a0a0b] px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white">
+                          Most Popular
+                        </span>
+                      ) : null}
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-bold text-white">
                           {plan.name}
