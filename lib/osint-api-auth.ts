@@ -104,6 +104,7 @@ export function resolveOsintModuleSlug(
     "seeknow/search": "breaches",
     "seeknow/stealer": "stealer-logs",
     wentyn: "stealer-logs",
+    melissa: "contact-enrich",
     reconly: "reconly",
     memory: "memory",
     leaksight: "breaches",
