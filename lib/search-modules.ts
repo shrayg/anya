@@ -216,6 +216,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "SeekNow stealer",
               apiType: "seeknow/stealer",
             },
+            {
+              id: "wentyn",
+              label: "Wentyn stealer",
+              apiType: "wentyn",
+            },
           ],
         },
       ),
@@ -308,6 +313,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "seeknow/stealer",
         "Email, username, or domain",
         "SeekNow stealer-log search against infected-device credential dumps.",
+      ),
+      mod(
+        "Breach & Leaks",
+        "Wentyn",
+        "wentyn",
+        "wentyn",
+        "Email or domain",
+        "Wentyn stealer-log search by email or domain.",
       ),
       mod(
         "Breach & Leaks",
@@ -1757,6 +1770,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "ip-whois": "snusbase/ip-whois",
   "seeknow-search": "seeknow/search",
   "seeknow-stealer": "seeknow/stealer",
+  wentyn: "wentyn",
   "seekria-breaches": "seekria/email-breach",
   "seekria-discord": "seekria/discord",
   "seekria-roblox": "seekria/roblox",
@@ -1847,7 +1861,8 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType === "room101" ||
     apiType.startsWith("room101/") ||
     apiType === "notalivex" ||
-    apiType.startsWith("notalivex/")
+    apiType.startsWith("notalivex/") ||
+    apiType === "wentyn"
   ) {
     return `/api/${apiType}`;
   }
@@ -1955,6 +1970,7 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "ip-whois": true,
   "seeknow-search": true,
   "seeknow-stealer": true,
+  wentyn: true,
   "seekria-breaches": true,
   "seekria-discord": true,
   "seekria-roblox": true,

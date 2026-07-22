@@ -12,7 +12,7 @@ export const PUBLIC_INTEL_SOURCE = siteConfig.name;
  * Keep in sync with INTERNAL_SOURCE_LABELS in intel-record.ts.
  */
 const PROVIDER_PATTERN =
-  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|breachhub|breach\s*hub|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|hudsonrock|hudson\s*rock|xosint|seekria|seeknow|see-?know|room\s*101|room101|anya\.search|anya search|anya crypto ai|anya /gi;
+  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|breachhub|breach\s*hub|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|hudsonrock|hudson\s*rock|xosint|seekria|seeknow|see-?know|room\s*101|room101|wentyn|anya\.search|anya search|anya crypto ai|anya /gi;
 
 const POWERED_BY_PROVIDER =
   /powered\s+by\s+(?:csint(?:\.pro)?(?:\s+tools)?|godseye|osintcat|shodan|intelx|oathnet|snusbase|breachvip|breachhub|breachbase|seon|cordcat|leakcheck|hackcheck)[^,.\n]*/gi;

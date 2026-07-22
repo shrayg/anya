@@ -30,6 +30,7 @@
  * | IntelVault                  | Direct key  | BreachHub /api/intelvault*       |
  * | SeekNow                     | Direct key  | BreachHub /api/seeknow/*         |
  * | Room101                     | Direct key  | BreachHub /api/room101/*         |
+ * | Wentyn                      | BreachHub   | direct WENTYN_API_KEY (site route)|
  *
  * Within BreachHub only: always skip IntelBase * mirrors of direct BH vendors.
  * When INTELVAULT_API_KEY is set, also skip BH IntelVault catalog ids.
@@ -177,6 +178,13 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     fallback: "csint",
     notes:
       "Direct ROOM101_API_KEY owns vendor; else BreachHub /api/room101/*; CSINT /reddit after BH miss",
+  },
+  {
+    vendor: "Wentyn",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Additive fan-out via BreachHub /api/wentyn; optional WENTYN_API_KEY for GET /api/wentyn",
   },
 ];
 

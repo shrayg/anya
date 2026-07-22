@@ -97,6 +97,7 @@ export function resolveOsintModuleSlug(
     "snusbase/ip-whois": "ip-whois",
     "seeknow/search": "breaches",
     "seeknow/stealer": "stealer-logs",
+    wentyn: "stealer-logs",
     "seeknow/discord/user": "discord-id",
     "seeknow/discord/to-roblox": "discord-id",
     "seeknow/username/github": "github",
