@@ -20,7 +20,7 @@ export default function Home() {
             className={brandTitleClassName}
             data-splash-target
             disabled
-            text={siteConfig.name}
+            text={siteConfig.navName}
           />
           <p className="max-w-2xl px-2 text-base leading-7 text-gray-300 md:text-lg md:leading-8">
             {siteConfig.tagline}. Create an account, run authorized lookups
