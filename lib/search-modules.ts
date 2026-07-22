@@ -1451,6 +1451,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
       ),
       mod(
         "Platforms",
+        "X Name History",
+        "memory",
+        "memory",
+        "X / Twitter @username or numeric ID",
+        "Historical screen-name timeline for X and legacy Twitter accounts.",
+      ),
+      mod(
+        "Platforms",
         "Instagram",
         "instagram",
         "instagram",
@@ -1990,6 +1998,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "seeknow-search": "seeknow/search",
   "seeknow-stealer": "seeknow/stealer",
   wentyn: "wentyn",
+  memory: "memory",
   reconly: "reconly",
   ipinfo: "ipinfo",
   melissa: "melissa",
@@ -2099,6 +2108,7 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType === "seon" ||
     apiType.startsWith("seon/") ||
     apiType === "wentyn" ||
+    apiType === "memory" ||
     apiType === "reconly" ||
     apiType === "melissa" ||
     apiType === "leaksight" ||
@@ -2218,6 +2228,7 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "seeknow-search": true,
   "seeknow-stealer": true,
   wentyn: true,
+  memory: true,
   reconly: true,
   ipinfo: true,
   datavoid: true,
