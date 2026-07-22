@@ -330,15 +330,13 @@ export function HomeSearch() {
           <div className="home-search-module-row">
             <div className="home-search-locked-module">
               <button
-                aria-label="Purchase access to premium modules and unlock the full panel suite"
+                aria-label={`${LOCKED_MODULE_COUNT} premium modules locked`}
                 className="home-search-locked-trigger"
                 type="button"
               >
-                <LockKeyhole className="size-4 shrink-0" />
-                <span className="home-search-locked-trigger-copy">
-                  <strong>Purchase Access to Premium Modules</strong>
-                  <em>Unlock the full Panel Suite · {LOCKED_MODULE_COUNT} locked</em>
-                </span>
+                <LockKeyhole className="size-4" />
+                <strong>{LOCKED_MODULE_COUNT}</strong>
+                <span>Premium locked</span>
               </button>
 
               <div className="home-search-locked-popover" role="tooltip">
@@ -352,10 +350,7 @@ export function HomeSearch() {
                       <li key={module.slug}>{module.name}</li>
                     ))}
                   </ul>
-                  <Link
-                    className="home-search-locked-cta"
-                    href="/pricing"
-                  >
+                  <Link className="home-search-locked-cta" href="/pricing">
                     Purchase Access to Premium Modules and unlock the full
                     Panel Suite
                   </Link>

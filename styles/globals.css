@@ -89,11 +89,16 @@
   }
 }
 
-/* Hero brand mark — keep descenders (y) visible under background-clip text */
-[data-splash-target] {
-  overflow: visible !important;
-  line-height: 1.28 !important;
-  padding-bottom: 0.18em;
+/* Sonner — match Anya dark chrome */
+[data-sonner-toaster][data-theme="dark"] {
+  --normal-bg: rgba(9, 10, 12, 0.94);
+  --normal-border: rgba(255, 255, 255, 0.1);
+  --normal-text: #f4f4f5;
+  font-family: inherit;
+}
+
+[data-sonner-toast].anya-sonner-toast {
+  border-radius: 0.9rem !important;
 }
 
 /*
@@ -7628,52 +7633,40 @@ html[data-splash="active"] [data-splash-target] {
 .home-search-locked-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  max-width: min(100%, 22rem);
-  min-height: 2.85rem;
-  padding: 0.55rem 0.95rem;
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 45%, transparent);
-  border-radius: 0.85rem;
-  background: color-mix(in srgb, var(--anya-blush) 12%, transparent);
+  gap: 0.45rem;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 40%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--anya-blush) 10%, transparent);
   color: var(--anya-blush);
-  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 600;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
     color 0.15s ease;
 }
 
-.home-search-locked-trigger-copy {
-  display: grid;
-  gap: 0.12rem;
-  min-width: 0;
+.home-search-locked-trigger strong {
+  font-variant-numeric: tabular-nums;
 }
 
-.home-search-locked-trigger-copy strong {
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  color: #fff;
-}
-
-.home-search-locked-trigger-copy em {
-  font-style: normal;
-  font-size: 0.66rem;
-  line-height: 1.25;
-  color: rgba(212, 212, 216, 0.88);
+.home-search-locked-trigger span {
+  color: rgba(212, 212, 216, 0.92);
+  font-weight: 600;
 }
 
 .home-search-locked-module:hover .home-search-locked-trigger,
 .home-search-locked-module:focus-within .home-search-locked-trigger {
-  border-color: color-mix(in srgb, var(--anya-blush) 65%, transparent);
-  background: color-mix(in srgb, var(--anya-blush) 20%, transparent);
+  border-color: color-mix(in srgb, var(--anya-blush) 60%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 18%, transparent);
   color: #fff;
 }
 
-.home-search-locked-module:hover .home-search-locked-trigger-copy em,
-.home-search-locked-module:focus-within .home-search-locked-trigger-copy em {
-  color: rgba(244, 244, 245, 0.92);
+.home-search-locked-module:hover .home-search-locked-trigger span,
+.home-search-locked-module:focus-within .home-search-locked-trigger span {
+  color: #fff;
 }
 
 /* Flush to trigger; padding-bottom is the invisible hover bridge */
@@ -7682,7 +7675,7 @@ html[data-splash="active"] [data-splash-target] {
   z-index: 80;
   bottom: 100%;
   left: 0;
-  width: min(40rem, calc(100vw - 2rem));
+  width: min(44rem, calc(100vw - 2rem));
   padding: 0 0 0.75rem;
   overflow: visible;
   background: transparent;
@@ -7696,9 +7689,8 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .home-search-locked-popover-card {
-  max-height: min(52vh, 24rem);
   padding: 1rem;
-  overflow: auto;
+  overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0.95rem;
   background: rgba(10, 10, 12, 0.98);
@@ -7734,16 +7726,16 @@ html[data-splash="active"] [data-splash-target] {
   display: grid;
   margin: 0;
   padding: 0.85rem 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem 0.9rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem 0.85rem;
   list-style: none;
 }
 
 .home-search-locked-grid li {
   overflow: hidden;
   color: rgba(180, 180, 188, 0.98);
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: 0.7rem;
+  line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -7782,10 +7774,6 @@ html[data-splash="active"] [data-splash-target] {
     width: min(100vw - 2rem, 24rem);
   }
 
-  .home-search-locked-popover-card {
-    max-height: 48vh;
-  }
-
   .home-search-input-wrap {
     gap: 0.45rem;
     padding: 0.4rem 0.4rem 0.4rem 0.75rem;
@@ -7802,13 +7790,9 @@ html[data-splash="active"] [data-splash-target] {
   }
 
   .home-search-locked-trigger {
-    max-width: 100%;
-    min-height: 2.65rem;
-    padding: 0.45rem 0.75rem;
-  }
-
-  .home-search-locked-trigger-copy strong {
-    font-size: 0.72rem;
+    min-height: 2.15rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.75rem;
   }
 
   .home-search-locked-cta {
