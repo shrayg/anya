@@ -1882,7 +1882,8 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType.startsWith("notalivex/") ||
     apiType === "wentyn" ||
     apiType === "leaksight" ||
-    apiType === "inf0sec"
+    apiType === "inf0sec" ||
+    apiType === "vin"
   ) {
     return `/api/${apiType}`;
   }
