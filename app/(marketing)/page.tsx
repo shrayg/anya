@@ -14,9 +14,9 @@ export default function Home() {
     <>
       <HomeBackground />
 
-      {/* One viewport on load — title + search pack under the nav; stats stay below */}
-      <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-start gap-5 px-4 pb-16 pt-4 text-center md:gap-6 md:pt-8">
-        <HomeReturnReveal className="flex max-w-5xl flex-col items-center gap-3 overflow-visible md:gap-4">
+      {/* Hero sits ~40% up from the bottom of the first viewport */}
+      <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-end gap-8 px-4 pb-[min(40svh,22rem)] pt-10 text-center md:gap-10">
+        <HomeReturnReveal className="flex max-w-5xl flex-col items-center gap-5 overflow-visible md:gap-6">
           <ShinyText
             className={brandTitleClassName}
             data-splash-target
