@@ -345,20 +345,20 @@ export function PricingPageContent({
                     key={plan.id}
                     className={clsx(
                       "pricing-plan-shell relative h-full",
-                      plan.highlighted && "is-highlighted pt-3",
+                      plan.highlighted && "is-highlighted",
                     )}
                   >
                     {plan.highlighted ? (
-                      <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-[var(--anya-blush)]/45 bg-[var(--anya-blush)]/30 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-md shadow-[color-mix(in_srgb,var(--anya-blush)_20%,transparent)] backdrop-blur-md">
+                      <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap border border-[var(--anya-blush)]/45 bg-[var(--anya-blush)]/30 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-md shadow-[color-mix(in_srgb,var(--anya-blush)_20%,transparent)] backdrop-blur-md">
                         Most Popular
                       </span>
                     ) : null}
 
                     <article
                       className={clsx(
-                        "pricing-option-card relative flex h-full flex-col rounded-2xl border bg-white/[0.04] p-5 backdrop-blur-md transition hover:bg-white/[0.07]",
+                        "pricing-option-card relative flex h-full flex-col border bg-white/[0.04] p-5 transition hover:bg-white/[0.07]",
                         plan.highlighted
-                          ? "border-[var(--anya-blush)]/40 shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_18%,transparent)] ring-1 ring-[var(--anya-blush)]/25"
+                          ? "border-[var(--anya-blush)]/40"
                           : "border-white/10",
                       )}
                     >
@@ -494,7 +494,7 @@ export function PricingPageContent({
                     <article
                       key={pack.id}
                       className={clsx(
-                        "pricing-credit-card group relative flex h-full flex-col overflow-hidden rounded-2xl border p-6",
+                        "pricing-credit-card group relative flex h-full flex-col overflow-hidden border p-6",
                         pack.highlighted
                           ? "border-[var(--anya-blush)]/45 bg-gradient-to-b from-[color-mix(in_srgb,var(--anya-blush)_14%,transparent)] to-white/[0.03] shadow-[0_0_0_1px_color-mix(in_srgb,var(--anya-blush)_20%,transparent),0_24px_48px_-28px_rgba(0,0,0,0.75)]"
                           : "border-white/10 bg-white/[0.03] hover:border-white/20",
@@ -595,9 +595,9 @@ export function PricingPageContent({
                 const price = getApiPrice(interval);
 
                 return (
-                  <article className="pricing-api-card mx-auto max-w-2xl rounded-2xl border border-[var(--anya-blush)]/30 bg-gradient-to-br from-[color-mix(in_srgb,var(--anya-blush)_12%,transparent)] via-white/[0.04] to-transparent p-8 backdrop-blur-md">
+                  <article className="pricing-api-card mx-auto max-w-2xl border border-[var(--anya-blush)]/30 bg-gradient-to-br from-[color-mix(in_srgb,var(--anya-blush)_12%,transparent)] via-white/[0.04] to-transparent p-8">
                     <div className="flex items-center gap-3">
-                      <div className="rounded-xl border border-[var(--anya-blush)]/30 bg-[var(--anya-blush)]/20 p-3">
+                      <div className="border border-[var(--anya-blush)]/30 bg-[var(--anya-blush)]/20 p-3">
                         <Code2 className="size-6 text-[color-mix(in_srgb,var(--anya-blush)_70%,white)]" />
                       </div>
                       <div>

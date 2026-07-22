@@ -2290,43 +2290,43 @@
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-grid {
-  gap: 1px !important;
+  gap: 1rem !important;
   padding: 1.35rem 0 0 !important;
   overflow: visible;
-  border: 1px solid var(--anya-line);
-  background: var(--anya-line);
+  border: 0;
+  background: transparent;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-grid > div {
   padding-top: 0 !important;
   overflow: visible;
-  background: var(--anya-black);
+  background: transparent;
   box-shadow: none;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-popular-badge {
   top: 0 !important;
   border-radius: 0 !important;
-  transform: translate(-50%, -100%) !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card {
-  border: 0 !important;
+  border: 1px solid var(--anya-line) !important;
   border-radius: 0 !important;
-  border-top: 1px solid var(--anya-line) !important;
   background: #0a0a0b !important;
-  box-shadow: none !important;
+  box-shadow: 12px 12px 0 rgba(195, 211, 230, 0.055) !important;
   backdrop-filter: none !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-plan-shell.is-highlighted
   .pricing-option-card {
-  border-top-color: rgba(216, 230, 244, 0.75) !important;
+  border-color: rgba(216, 230, 244, 0.55) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card:hover {
   background: #101012 !important;
+  border-color: rgba(216, 230, 244, 0.4) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-intro {
@@ -2345,8 +2345,9 @@
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-card {
   position: relative;
   min-height: auto;
-  border-radius: 1rem !important;
-  backdrop-filter: blur(12px);
+  border-radius: 0 !important;
+  box-shadow: 12px 12px 0 rgba(195, 211, 230, 0.055);
+  backdrop-filter: none;
   transition:
     border-color 0.2s ease,
     transform 0.2s ease,
@@ -2442,8 +2443,18 @@
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .ui-btn,
-.brutal-pricing-page .ui-btn {
+.brutal-pricing-page .ui-btn,
+.brutal-pricing-page .liquid-glass-button,
+.brutal-pricing-page .liquid-glass-button__glass,
+.brutal-pricing-page .pricing-option-card button,
+.brutal-pricing-page .pricing-api-card button,
+.brutal-pricing-page .pricing-credit-card button {
+  border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .ui-btn,
+.brutal-pricing-page .ui-btn {
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.62rem;
   letter-spacing: 0.06em;
