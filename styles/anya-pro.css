@@ -168,11 +168,11 @@ pre,
 .nav-dashboard-cta {
   height: var(--nav-action-h) !important;
   min-height: var(--nav-action-h) !important;
-  padding-inline: 1.1rem !important;
+  padding-inline: 1.15rem !important;
   font-size: 0.8125rem !important;
   letter-spacing: -0.015em;
   gap: 0.4rem !important;
-  border-radius: 0 !important;
+  border-radius: 9999px !important;
   justify-content: center !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.22) inset,

@@ -91,7 +91,7 @@ function DashboardCta({
           "nav-dashboard-cta nav-dashboard-cta--locked shrink-0 font-semibold",
           className,
         )}
-        radius="none"
+        radius="full"
         variant="solid"
         onPress={onLockedPress}
       >
@@ -110,7 +110,7 @@ function DashboardCta({
         className,
       )}
       href={href}
-      radius="none"
+      radius="full"
       variant="solid"
       onPress={onNavigate}
     >

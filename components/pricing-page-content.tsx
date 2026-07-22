@@ -350,14 +350,14 @@ export function PricingPageContent({
                   >
                     <article
                       className={clsx(
-                        "pricing-option-card relative flex h-full flex-col border bg-white/[0.04] p-5 transition hover:bg-white/[0.07]",
+                        "pricing-option-card relative flex h-full flex-col rounded-2xl border bg-white/[0.04] p-5 backdrop-blur-md transition hover:bg-white/[0.07]",
                         plan.highlighted
                           ? "border-[var(--anya-blush)]/40"
                           : "border-white/10",
                       )}
                     >
                       {plan.highlighted ? (
-                        <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-0 z-20 whitespace-nowrap border border-[var(--anya-blush)]/45 bg-[#0a0a0b] px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white">
+                        <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-0 z-20 whitespace-nowrap rounded-full border border-[var(--anya-blush)]/45 bg-[#0a0a0b]/90 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white backdrop-blur-md">
                           Most Popular
                         </span>
                       ) : null}

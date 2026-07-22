@@ -3832,7 +3832,7 @@ html[data-splash="active"] [data-splash-target] {
   min-height: 2.65rem;
   padding: 0.7rem 1rem;
   border: 1px solid color-mix(in srgb, var(--anya-blush) 45%, transparent);
-  border-radius: 0;
+  border-radius: 9999px;
   background: color-mix(in srgb, var(--anya-blush) 16%, transparent);
   color: var(--anya-blush);
   font-size: 0.9rem;
@@ -3978,7 +3978,7 @@ html[data-splash="active"] [data-splash-target] {
   grid-template-columns: 1fr;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0;
+  border-radius: 1rem;
   background:
     linear-gradient(
       165deg,
@@ -3987,7 +3987,7 @@ html[data-splash="active"] [data-splash-target] {
     );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    12px 12px 0 rgba(195, 211, 230, 0.05);
+    0 18px 40px rgba(0, 0, 0, 0.28);
 }
 
 @media (min-width: 720px) {
@@ -4109,6 +4109,7 @@ html[data-splash="active"] [data-splash-target] {
   min-height: 2.1rem;
   padding: 0.35rem 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
   background: rgba(255, 255, 255, 0.03);
   color: #d4d4d8;
   font-size: 0.78rem;
@@ -4134,6 +4135,7 @@ html[data-splash="active"] [data-splash-target] {
   gap: 0.45rem;
   min-height: 2.65rem;
   padding: 0.65rem 1.1rem;
+  border-radius: 9999px;
   font-size: 0.88rem;
   font-weight: 650;
   text-decoration: none;
@@ -4170,11 +4172,12 @@ html[data-splash="active"] [data-splash-target] {
   gap: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
     rgba(8, 9, 12, 0.96);
   box-shadow:
-    12px 12px 0 rgba(195, 211, 230, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
@@ -4283,6 +4286,7 @@ html[data-splash="active"] [data-splash-target] {
   display: grid;
   gap: 0.4rem;
   border: 1px solid color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  border-radius: 0.9rem;
   background: rgba(0, 0, 0, 0.35);
 }
 
@@ -4293,6 +4297,7 @@ html[data-splash="active"] [data-splash-target] {
   gap: 0.75rem;
   padding: 0.55rem 0.6rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.7rem;
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -4313,6 +4318,7 @@ html[data-splash="active"] [data-splash-target] {
 .home-agent-badge {
   flex-shrink: 0;
   padding: 0.18rem 0.45rem;
+  border-radius: 9999px;
   font-family: var(--font-anya-mono), ui-monospace, monospace;
   font-size: 0.58rem;
   font-weight: 700;

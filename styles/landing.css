@@ -2116,9 +2116,22 @@
   text-align: right;
 }
 
-/* Public route system: hard edges, ruled surfaces, no generic pills. */
-:is(.marketing-canvas, .brutal-page) [class*="rounded"] {
-  border-radius: 0 !important;
+/* Public marketing: soft liquid-glass radii (match nav chips). */
+:is(.marketing-canvas, .brutal-page) [class*="rounded-full"] {
+  border-radius: 9999px !important;
+}
+
+:is(.marketing-canvas, .brutal-page) [class*="rounded-2xl"] {
+  border-radius: 1rem !important;
+}
+
+:is(.marketing-canvas, .brutal-page) [class*="rounded-xl"] {
+  border-radius: 0.85rem !important;
+}
+
+:is(.marketing-canvas, .brutal-page) [class*="rounded-lg"],
+:is(.marketing-canvas, .brutal-page) [class*="rounded-md"] {
+  border-radius: 0.65rem !important;
 }
 
 :is(.marketing-canvas, .brutal-page)
@@ -2140,13 +2153,18 @@
     .pricing-popular-badge,
     .support-channel
   ) {
-  border-radius: 0 !important;
+  border-radius: 1rem !important;
+}
+
+:is(.marketing-canvas, .brutal-page) .pricing-popular-badge,
+:is(.marketing-canvas, .brutal-page) .anya-pill {
+  border-radius: 9999px !important;
 }
 
 .anya-landing .home-search-input-wrap,
 .anya-landing .home-search-submit,
 .anya-landing .starter-search-mode {
-  border-radius: 0 !important;
+  border-radius: 1rem !important;
 }
 
 .brutal-page {
@@ -2231,16 +2249,20 @@
   display: none;
 }
 
-/* Brutal pricing chrome — keep scoped so classic /pricing stays soft. */
+/* Soft liquid-glass pricing chrome */
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-control-strip,
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-interval-strip {
-  padding: 0 !important;
+  padding: 0.25rem !important;
   overflow: hidden;
-  border: 1px solid var(--anya-line) !important;
-  border-radius: 0 !important;
-  background: #080809 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 9999px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    rgba(8, 10, 14, 0.72) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 12px 28px -18px rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(18px) saturate(1.3) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-interval-strip {
@@ -2271,8 +2293,8 @@
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-interval-strip
   > button {
-  border-radius: 0 !important;
-  border-right: 1px solid var(--anya-line);
+  border-radius: 9999px !important;
+  border-right: 0;
   box-shadow: none !important;
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.62rem;
@@ -2307,7 +2329,7 @@
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-popular-badge {
   top: 0 !important;
   left: 50% !important;
-  border-radius: 0 !important;
+  border-radius: 9999px !important;
   /* Fully above the card edge; +1px rests on the top border */
   transform: translate(-50%, calc(-100% + 1px)) !important;
 }
@@ -2318,22 +2340,28 @@
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card {
-  border: 1px solid var(--anya-line) !important;
-  border-radius: 0 !important;
-  background: #0a0a0b !important;
-  box-shadow: 12px 12px 0 rgba(195, 211, 230, 0.055) !important;
-  backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 1.15rem !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    rgba(10, 10, 12, 0.88) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 18px 40px -24px rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(1.2) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-plan-shell.is-highlighted
   .pricing-option-card {
-  border-color: rgba(216, 230, 244, 0.55) !important;
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card:hover {
-  background: #101012 !important;
-  border-color: rgba(216, 230, 244, 0.4) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    rgba(14, 14, 16, 0.92) !important;
+  border-color: rgba(216, 230, 244, 0.35) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-intro {
@@ -2352,9 +2380,11 @@
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-card {
   position: relative;
   min-height: auto;
-  border-radius: 0 !important;
-  box-shadow: 12px 12px 0 rgba(195, 211, 230, 0.055);
-  backdrop-filter: none;
+  border-radius: 1.15rem !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 18px 40px -24px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(16px) saturate(1.2);
   transition:
     border-color 0.2s ease,
     transform 0.2s ease,
@@ -2429,8 +2459,29 @@
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-api-card {
-  border-radius: 0 !important;
-  box-shadow: 12px 12px 0 rgba(195, 211, 230, 0.055);
+  border-radius: 1.25rem !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 22px 48px -28px rgba(0, 0, 0, 0.8);
+}
+
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .ui-btn,
+.brutal-pricing-page .ui-btn,
+.brutal-pricing-page .liquid-glass-button,
+.brutal-pricing-page .liquid-glass-button__glass,
+.brutal-pricing-page .pricing-option-card button,
+.brutal-pricing-page .pricing-api-card button,
+.brutal-pricing-page .pricing-credit-card button {
+  border-radius: 9999px !important;
+}
+
+:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .ui-btn,
+.brutal-pricing-page .ui-btn {
+  box-shadow: none !important;
+  font-family: var(--font-anya-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .status-timeline-segment {
@@ -2447,25 +2498,6 @@
     opacity: 1;
     transform: scaleY(1);
   }
-}
-
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .ui-btn,
-.brutal-pricing-page .ui-btn,
-.brutal-pricing-page .liquid-glass-button,
-.brutal-pricing-page .liquid-glass-button__glass,
-.brutal-pricing-page .pricing-option-card button,
-.brutal-pricing-page .pricing-api-card button,
-.brutal-pricing-page .pricing-credit-card button {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .ui-btn,
-.brutal-pricing-page .ui-btn {
-  font-family: var(--font-anya-mono), monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .brutal-status-page > div[aria-hidden] {
