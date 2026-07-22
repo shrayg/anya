@@ -5993,12 +5993,14 @@ html[data-splash="active"] [data-splash-target] {
   height: 100%;
 }
 
-.discord-id-col-main .discord-leak-wrap {
+.discord-id-col-main .discord-leak-wrap,
+.discord-id-col-main .anya-result-stack {
   flex: 1 1 auto;
   min-height: 0;
 }
 
-.discord-id-col-main .discord-leak-list {
+.discord-id-col-main .discord-leak-list,
+.discord-id-col-main .anya-result-list {
   flex: 1 1 auto;
 }
 
@@ -6126,6 +6128,24 @@ html[data-splash="active"] [data-splash-target] {
   padding: 0.85rem 1rem 1rem;
   display: flex;
   flex-direction: column;
+}
+
+.discord-id-data-body .anya-result-stack {
+  gap: 0.75rem;
+}
+
+.discord-id-data-body .anya-result-list {
+  gap: 0.7rem;
+}
+
+.discord-id-data-body .anya-breach-card,
+.discord-id-data-body .anya-result-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    165deg,
+    rgba(22, 22, 26, 0.96) 0%,
+    rgba(12, 12, 14, 0.98) 100%
+  );
 }
 
 .discord-id-data-panel .anya-search-empty--inset {

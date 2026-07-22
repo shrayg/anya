@@ -190,7 +190,7 @@ const ERROR_RESULT_KEY = /error|exception|failure|failed/i;
 
 /** Nested objects worth expanding into labeled field groups. */
 const EXPANDABLE_OBJECT_KEY =
-  /^(ip_?geolocation|geolocation|geo|discord_?profile|profile|medal|database_?leaks|osint_?data|avatar_?decoration_?data|primary_?guild|clan)$/i;
+  /^(ip_?geolocation|geolocation|geo|discord_?profile|profile|medal|database_?leaks|osint_?data|avatar_?decoration_?data|primary_?guild|clan|user|account|location|network)$/i;
 
 /** Long prose / list fields — render as full-width text blocks. */
 const BLOCK_TEXT_KEY =
@@ -257,7 +257,7 @@ function shouldExpandObject(key: string, obj: Record<string, unknown>): boolean 
 
   const keys = Object.keys(obj).filter((k) => !isHiddenResultKey(k));
 
-  if (keys.length < 2 || keys.length > 24) return false;
+  if (keys.length < 2 || keys.length > 36) return false;
 
   return keys.every((k) => {
     const v = obj[k];
@@ -300,7 +300,19 @@ function formatValue(value: unknown): string {
     return value
       .map((item) => {
         if (item && typeof item === "object") {
-          return sanitizePublicText(JSON.stringify(item));
+          const obj = item as Record<string, unknown>;
+          const parts: string[] = [];
+
+          for (const [nestedKey, nestedVal] of Object.entries(obj)) {
+            if (isHiddenResultKey(nestedKey)) continue;
+
+            const nestedFormatted = formatScalarValue(nestedVal);
+
+            if (!nestedFormatted) continue;
+            parts.push(`${humanizeKey(nestedKey)}: ${nestedFormatted}`);
+          }
+
+          return sanitizePublicText(parts.slice(0, 6).join(" · "));
         }
 
         return sanitizePublicText(String(item));

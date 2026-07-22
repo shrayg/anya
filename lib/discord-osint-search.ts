@@ -38,6 +38,7 @@ import {
   type SanitizedBreachResponse,
 } from "@/lib/osintcat";
 import { withPrimaryFallback } from "@/lib/provider-dedupe";
+import { consolidateDiscordLeakResults } from "@/lib/intel-record";
 
 export type DiscordOsintProgressEvent =
   | {
@@ -213,7 +214,7 @@ export async function runDiscordOsintSearch(
   let doneCount = 0;
 
   const assemble = (): DiscordSearchResult => {
-    const leaks = mergeSanitizedResponses(
+    const mergedLeaks = mergeSanitizedResponses(
       osintLeaks,
       godseyeLeaks,
       breachVipLeaks,
@@ -222,6 +223,8 @@ export async function runDiscordOsintSearch(
       cordCatBreachLeaks(cordQuery),
       breachHubLeaks ?? { count: 0, results: [] },
     );
+    const leakRows = consolidateDiscordLeakResults(mergedLeaks.results, query);
+    const leaks = { count: leakRows.length, results: leakRows };
 
     const fivemFromGodsEye = fivemIntel.records ?? [];
     const fivemFromCord = cordCatFivemRecords(cordQuery);
@@ -229,12 +232,13 @@ export async function runDiscordOsintSearch(
       breachHubFivem && Array.isArray(breachHubFivem.results)
         ? breachHubFivem.results
         : [];
-    const fivemMerged =
+    const fivemRaw =
       fivemFromGodsEye.length > 0
         ? fivemFromGodsEye
         : fivemFromBh.length > 0
           ? fivemFromBh
           : fivemFromCord;
+    const fivemMerged = consolidateDiscordLeakResults(fivemRaw, query);
     const cordFivemTotal =
       typeof cordQuery?.fivem?.data?.total === "number"
         ? cordQuery.fivem.data.total

@@ -1062,7 +1062,36 @@ pre,
   background: rgba(0, 0, 0, 0.22);
 }
 
+/* Result pop-in — visible as streamed modules land */
+@keyframes anya-result-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
+.anya-pop-in {
+  --pop-i: 0;
+  animation: anya-result-pop-in 0.52s cubic-bezier(0.22, 1.18, 0.36, 1) both;
+  animation-delay: calc(var(--pop-i) * 60ms);
+  transform-origin: center top;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anya-pop-in {
+    animation: none;
+    will-change: auto;
+  }
+}
 
 /* —— Selection / focus polish —— */
 ::selection {
