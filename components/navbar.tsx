@@ -510,15 +510,17 @@ export const Navbar = () => {
   return (
     <>
       <div className="anya-floating-nav-shell">
+        <div className="anya-floating-nav-island">
       <HeroUINavbar
         classNames={{
-          base: "anya-floating-nav border-none bg-transparent shadow-none",
+          base: "anya-floating-nav !bg-transparent !border-none !shadow-none !backdrop-blur-none",
           // Fixed 3-zone grid — avoids absolute-center overlapping brand/account on medium widths.
           wrapper:
-            "anya-marketing-nav-wrapper max-w-7xl px-3 sm:px-4 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3",
+            "anya-marketing-nav-wrapper !max-w-none px-3 sm:px-4 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3",
         }}
+        isBlurred={false}
         isMenuOpen={menuOpen}
-        maxWidth="xl"
+        maxWidth="full"
         onMenuOpenChange={setMenuOpen}
         position="static"
       >
@@ -738,6 +740,7 @@ export const Navbar = () => {
           </div>
         </NavbarMenu>
       </HeroUINavbar>
+        </div>
       </div>
     </>
   );

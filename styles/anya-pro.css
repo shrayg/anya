@@ -59,37 +59,52 @@ pre,
   z-index: 60;
   display: flex;
   justify-content: center;
-  padding: 0 0.75rem;
+  padding: 0 0.85rem;
+  background: transparent !important;
   pointer-events: none;
 }
 
-.anya-floating-nav-shell > * {
+.anya-floating-nav-island {
   pointer-events: auto;
-  width: 100%;
-  max-width: 72rem;
+  width: min(68rem, calc(100vw - 1.7rem));
+  border-radius: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02)),
+    rgba(8, 10, 14, 0.72);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 22px 50px -22px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  overflow: hidden;
 }
 
-header.anya-floating-nav,
-.anya-floating-nav {
+/* Kill HeroUI full-bleed header chrome so only the island shows */
+.anya-floating-nav-shell header,
+.anya-floating-nav-shell header.anya-floating-nav,
+.anya-floating-nav-shell .anya-floating-nav,
+.anya-floating-nav-island > header,
+.anya-floating-nav-island [data-slot="base"] {
   width: 100% !important;
-  max-width: 72rem;
-  margin-inline: auto;
-  border-radius: 1.25rem !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    rgba(6, 8, 12, 0.72) !important;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 18px 48px -20px rgba(0, 0, 0, 0.75),
-    0 0 0 1px rgba(0, 0, 0, 0.35) !important;
-  backdrop-filter: blur(22px) saturate(1.35);
-  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  max-width: none !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .anya-floating-nav [data-slot="wrapper"],
 .anya-floating-nav .anya-marketing-nav-wrapper {
   min-height: 3.35rem;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .nav-credits-chip {
