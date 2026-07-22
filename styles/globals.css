@@ -3820,7 +3820,7 @@ html[data-splash="active"] [data-splash-target] {
   min-height: 2.65rem;
   padding: 0.7rem 1rem;
   border: 1px solid color-mix(in srgb, var(--anya-blush) 45%, transparent);
-  border-radius: 0.8rem;
+  border-radius: 0;
   background: color-mix(in srgb, var(--anya-blush) 16%, transparent);
   color: var(--anya-blush);
   font-size: 0.9rem;

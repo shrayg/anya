@@ -91,12 +91,12 @@ function DashboardCta({
           "nav-dashboard-cta nav-dashboard-cta--locked shrink-0 font-semibold",
           className,
         )}
-        radius="full"
+        radius="none"
         variant="solid"
         onPress={onLockedPress}
       >
-        <Lock aria-hidden className="size-3.5" />
-        Dashboard
+        <Lock aria-hidden className="size-3.5 shrink-0" />
+        Panel
       </Button>
     );
   }
@@ -110,13 +110,13 @@ function DashboardCta({
         className,
       )}
       href={href}
-      radius="full"
+      radius="none"
       variant="solid"
       onPress={onNavigate}
     >
-      <span className="relative inline-flex size-3.5 items-center justify-center">
-        <AnimatePresence mode="wait" initial={false}>
-          {unlocking ? (
+      {unlocking ? (
+        <span className="relative inline-flex size-3.5 shrink-0 items-center justify-center">
+          <AnimatePresence mode="wait" initial={false}>
             <motion.span
               key="unlock"
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
@@ -127,18 +127,10 @@ function DashboardCta({
             >
               <Unlock aria-hidden className="size-3.5" />
             </motion.span>
-          ) : (
-            <motion.span
-              key="idle"
-              animate={{ opacity: 1 }}
-              className="absolute inset-0"
-              exit={{ opacity: 0 }}
-              initial={{ opacity: 0 }}
-            />
-          )}
-        </AnimatePresence>
-      </span>
-      Dashboard
+          </AnimatePresence>
+        </span>
+      ) : null}
+      Panel
     </Button>
   );
 }

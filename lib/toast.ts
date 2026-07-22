@@ -5,7 +5,7 @@ export const toast = sonnerToast;
 
 export function toastUpgradePanel() {
   toast.message("Upgrade to unlock the panel", {
-    description: "Professional and higher plans include the workspace dashboard.",
+    description: "Professional and higher plans include Panel access.",
     action: {
       label: "View plans",
       onClick: () => {
@@ -17,7 +17,7 @@ export function toastUpgradePanel() {
 
 export function toastSignInForPanel() {
   toast.message("Sign in to unlock the panel", {
-    description: "Log in with a Professional+ plan to open the dashboard.",
+    description: "Log in with a Professional+ plan to open Panel.",
     action: {
       label: "Log in",
       onClick: () => {

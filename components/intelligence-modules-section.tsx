@@ -69,7 +69,7 @@ export function IntelligenceModulesSection() {
           </p>
         </div>
         <Link className="mod-cta" href={siteConfig.defaultWorkspacePath}>
-          Open workspace
+          Panel
           <ArrowUpRight className="size-4" />
         </Link>
       </header>
