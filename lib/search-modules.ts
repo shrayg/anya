@@ -2187,6 +2187,8 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType === "telegram" ||
     apiType.startsWith("telegram/") ||
     apiType === "snapchat" ||
+    // Specialty Instagram ID only — bare "instagram" stays on /api/osint/instagram.
+    apiType === "instagram/id" ||
     // Specialty Discord routes only — bare "discord" stays on /api/osint/discord.
     apiType === "discord/user" ||
     apiType === "discord/history" ||

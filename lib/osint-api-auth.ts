@@ -49,6 +49,7 @@ export function resolveOsintModuleSlug(
     "discord/snowflake": "discord-id",
     roblox: "roblox",
     instagram: "instagram",
+    "instagram/id": "instagram",
     reddit: "reddit",
     minecraft: "minecraft",
     fivem: "fivem",
