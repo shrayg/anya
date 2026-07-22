@@ -22,6 +22,38 @@ export const CRYPTO_INTEL_LEGACY_REDIRECT_SLUGS = new Set(
   Object.keys(CRYPTO_INTEL_LEGACY_TOOL_BY_SLUG),
 );
 
+/**
+ * Duplicate intent modules folded into one primary search surface.
+ * Old URLs redirect to the primary slug (optional `?tool=`).
+ */
+export const INTENT_UNIFIED_REDIRECTS: Record<
+  string,
+  { slug: string; tool?: string }
+> = {
+  "account-finder": { slug: "username", tool: "account-finder" },
+  "handle-sweep": { slug: "username", tool: "handle-sweep" },
+  "phone-index": { slug: "phone", tool: "phone-index" },
+  ipinfo: { slug: "ip", tool: "ipinfo" },
+  "seekria-ip": { slug: "ip", tool: "seekria-ip" },
+  "seekria-discord": { slug: "discord-id" },
+  "seekria-roblox": { slug: "roblox", tool: "seekria-roblox" },
+  "seekria-footprint": { slug: "username", tool: "seekria-footprint" },
+  "oathnet-roblox": { slug: "discord-id", tool: "discord-to-roblox" },
+};
+
+/** Sidebar hides these — they remain in the catalog for redirects / deep links. */
+export const INTENT_HUB_HIDDEN_SLUGS = new Set(
+  Object.keys(INTENT_UNIFIED_REDIRECTS),
+);
+
+export function getIntentUnifiedRedirect(
+  slug: string | null | undefined,
+): { slug: string; tool?: string } | null {
+  if (!slug) return null;
+
+  return INTENT_UNIFIED_REDIRECTS[slug.toLowerCase()] ?? null;
+}
+
 export type ModuleTool = {
   id: string;
   label: string;
@@ -590,16 +622,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Account Finder",
         "account-finder",
         "username-accounts",
-        "Username â€” Web Profiles + Handle Sweep",
-        "Username â†’ accounts across parallel Anya sources: Web Profiles and Handle Sweep.",
+        "Username — Web Profiles + Handle Sweep",
+        "Merged into Username — available as the Account finder tool chip.",
       ),
       mod(
         "Identity",
         "Handle Sweep",
         "handle-sweep",
         "handle-sweep",
-        "Username â€” deep public profile sweep",
-        "Deep username sweep across hundreds of public profile URL patterns.",
+        "Username — deep public profile sweep",
+        "Merged into Username — available as the Handle Sweep tool chip.",
       ),
       mod(
         "Identity",
@@ -622,8 +654,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Phone Index",
         "phone-index",
         "index-sweep",
-        "Phone â€” every format variant, strict quoted search",
-        "Phone Index Sweep: every format variant (202-555-0123, (202) 555-0123, +1â€¦, etc.) searched strictly across public indexed platforms.",
+        "Phone — every format variant, strict quoted search",
+        "Merged into Phone — available as the Phone Index tool chip.",
       ),
       mod(
         "Identity",
@@ -814,6 +846,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "IPInfo",
               apiType: "ipinfo",
             },
+            {
+              id: "seekria-ip",
+              label: "Seekria IP",
+              apiType: "seekria/ip",
+            },
           ],
         },
       ),
@@ -849,14 +886,39 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "shodan-host",
         "IPv4 or IPv6 address",
         "Open ports, services, banners, and host metadata for an IP.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "host", label: "Host", apiType: "shodan/host" },
+            { id: "search", label: "Search", apiType: "shodan/search" },
+            { id: "dns", label: "DNS", apiType: "shodan/dns" },
+            {
+              id: "dns-resolve",
+              label: "DNS resolve",
+              apiType: "shodan/dns/resolve",
+            },
+            {
+              id: "dns-reverse",
+              label: "DNS reverse",
+              apiType: "shodan/dns/reverse",
+            },
+            {
+              id: "honeyscore",
+              label: "Honeyscore",
+              apiType: "shodan/honeyscore",
+            },
+          ],
+        },
       ),
+      // Legacy — hidden from hub; redirects to IP?tool=ipinfo
       mod(
         "Network",
         "IPInfo",
         "ipinfo",
         "ipinfo",
         "IPv4 or IPv6 address",
-        "Geolocation, ASN, hostname, and org metadata via IPInfo.",
+        "Merged into IP — available as the IPInfo tool chip.",
       ),
       mod(
         "Network",
@@ -893,6 +955,15 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "bin",
         "First 6â€“8 digits of a card number",
         "Identify issuing bank, card type, brand, and country from a BIN.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            { id: "bin-osint", label: "BIN indexes", apiType: "bin" },
+            { id: "binlist", label: "Binlist", apiType: "binlist" },
+            { id: "seon-bin", label: "SEON BIN", apiType: "seon/bin" },
+          ],
+        },
       ),
       mod(
         "Financial & Assets",
@@ -1051,7 +1122,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "discord-id",
         "discord",
         "Discord ID",
-        "Live profile, server memberships, linked accounts, and indexed leak records.",
+        "One Discord ID search — live profile plus SeekNow, Seekria, Reconly, CordCat, OathNet, and leak indexes in a single fan-out.",
         undefined,
         undefined,
         {
@@ -1060,11 +1131,6 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               id: "discord-live",
               label: "Discord OSINT",
               apiType: "discord",
-            },
-            {
-              id: "discord-user",
-              label: "User lookup",
-              apiType: "discord/user",
             },
             {
               id: "discord-history",
@@ -1082,19 +1148,9 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               apiType: "discord/snowflake",
             },
             {
-              id: "seeknow-discord-user",
-              label: "SeekNow user",
-              apiType: "seeknow/discord/user",
-            },
-            {
-              id: "seeknow-discord-roblox",
-              label: "SeekNow â†’ Roblox",
-              apiType: "seeknow/discord/to-roblox",
-            },
-            {
-              id: "reconly",
-              label: "Reconly",
-              apiType: "reconly",
+              id: "discord-to-roblox",
+              label: "Discord → Roblox",
+              apiType: "oathnet-roblox",
             },
           ],
         },
@@ -1104,8 +1160,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Reconly",
         "reconly",
         "reconly",
-        "Discord ID, username, or email",
-        "Reconly Discord, username, email, and FiveM lookups.",
+        "Username, email, or FiveM identifier",
+        "Reconly username, email, and FiveM lookups (Discord ID runs via Discord OSINT).",
         undefined,
         undefined,
         {
@@ -1123,22 +1179,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           ],
         },
       ),
-            mod(
+      // Legacy catalog entries — hidden from hub; URLs redirect to primary intents.
+      mod(
         "Platforms",
         "Seekria Discord",
         "seekria-discord",
         "seekria/discord",
         "Discord snowflake ID",
-        "Seekria Discord lookup â€” Medal, Roblox, FiveM logs, profile, and stealer pivots.",
-        undefined,
-        undefined,
-        {
-          tools: [
-            { id: "discord", label: "Discord OSINT", apiType: "seekria/discord" },
-            { id: "discord-profile", label: "Profile", apiType: "seekria/discord-profile" },
-            { id: "discord-to-rat", label: "Stealer / RAT", apiType: "seekria/discord-to-rat" },
-          ],
-        },
+        "Merged into Discord ID — Seekria fans out with the main Discord OSINT search.",
       ),
       mod(
         "Platforms",
@@ -1146,7 +1194,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "seekria-roblox",
         "seekria/roblox",
         "Roblox username",
-        "Seekria Roblox profile lookup â€” username, avatar, and account metadata.",
+        "Merged into Roblox — available as a tool chip on the primary Roblox search.",
       ),
       mod(
         "Platforms",
@@ -1181,7 +1229,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "seekria-ip",
         "seekria/ip",
         "IPv4 address",
-        "Seekria IP intelligence â€” geolocation, ASN, VPN/proxy flags, and breach checks.",
+        "Merged into IP — available as the Seekria IP tool chip.",
       ),
       mod(
         "Platforms",
@@ -1199,13 +1247,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           ],
         },
       ),
+      // Legacy — hidden from hub; redirects to Username?tool=seekria-footprint
       mod(
         "Platforms",
         "Seekria Footprint",
         "seekria-footprint",
         "seekria/user-footprint",
         "Username",
-        "Seekria cross-platform user footprint â€” accounts, socials, and indexed pivots.",
+        "Merged into Username — available as the Seekria footprint tool chip.",
       ),
       mod(
         "Platforms",
@@ -1359,20 +1408,31 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           tools: [
             { id: "roblox-indexes", label: "Leak indexes", apiType: "roblox" },
             {
+              id: "nbrs-roblox",
+              label: "NBRS Roblox",
+              apiType: "nbrs/roblox",
+            },
+            {
               id: "seeknow-roblox",
               label: "SeekNow Roblox",
               apiType: "seeknow/gaming/roblox",
             },
+            {
+              id: "seekria-roblox",
+              label: "Seekria Roblox",
+              apiType: "seekria/roblox",
+            },
           ],
         },
       ),
+      // Legacy — hidden from hub; redirects to Discord ID?tool=discord-to-roblox
       mod(
         "Platforms",
-        "Discord â†’ Roblox",
+        "Discord → Roblox",
         "oathnet-roblox",
         "oathnet-roblox",
         "Discord ID",
-        "Resolve the Roblox account linked to a Discord user ID.",
+        "Merged into Discord ID — available as the Discord → Roblox tool chip.",
       ),
       mod(
         "Platforms",
@@ -1532,7 +1592,31 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "snapchat",
         "snapchat",
         "Snapchat user or profile link",
-        "Snapchat username and link pivots.",
+        "Snapchat username and link pivots via specialty indexes.",
+        undefined,
+        undefined,
+        {
+          tools: [
+            {
+              id: "snapchat-live",
+              label: "Snapchat lookup",
+              apiType: "snapchat",
+            },
+            {
+              id: "snapchat-indexes",
+              label: "Leak indexes",
+              apiType: "breach",
+            },
+          ],
+        },
+      ),
+      mod(
+        "Platforms",
+        "Medal",
+        "medal",
+        "medal",
+        "Medal.tv username or profile URL",
+        "Medal.tv profile lookup via specialty indexes.",
       ),
       mod(
         "Platforms",
@@ -2120,6 +2204,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   telegram: "telegram/username",
   instagram: "instagram",
   snapchat: "snapchat",
+  medal: "medal",
   tiktok: "breach",
   twitter: "breach",
   github: "github",
@@ -2187,6 +2272,17 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType === "telegram" ||
     apiType.startsWith("telegram/") ||
     apiType === "snapchat" ||
+    apiType === "nbrs" ||
+    apiType.startsWith("nbrs/") ||
+    apiType === "nosint" ||
+    apiType.startsWith("nosint/") ||
+    apiType === "binlist" ||
+    apiType === "hudsonrock" ||
+    apiType.startsWith("hudsonrock/") ||
+    apiType === "oathnet" ||
+    apiType.startsWith("oathnet/") ||
+    apiType === "shodan" ||
+    apiType.startsWith("shodan/") ||
     // Specialty Instagram ID only — bare "instagram" stays on /api/osint/instagram.
     apiType === "instagram/id" ||
     // Specialty Discord routes only — bare "discord" stays on /api/osint/discord.
@@ -2251,6 +2347,7 @@ export function getHubSections(): SearchModuleSection[] {
     if (section.title === "Dating Apps") {
       const items = section.items.filter(
         (item) =>
+          !INTENT_HUB_HIDDEN_SLUGS.has(item.slug) &&
           !(isTinderLiveSlug(item.slug) && !isTinderLiveEnabled()) &&
           !(isHingeLiveSlug(item.slug) && !isHingeLiveEnabled()),
       );
@@ -2265,16 +2362,28 @@ export function getHubSections(): SearchModuleSection[] {
           title: section.title,
           items: [
             withSection(cryptoIntel, CRYPTO_WALLET_FALLBACK_SECTION),
-            ...section.items,
+            ...section.items.filter(
+              (item) => !INTENT_HUB_HIDDEN_SLUGS.has(item.slug),
+            ),
           ],
         });
       } else {
-        sections.push(section);
+        sections.push({
+          title: section.title,
+          items: section.items.filter(
+            (item) => !INTENT_HUB_HIDDEN_SLUGS.has(item.slug),
+          ),
+        });
       }
       continue;
     }
 
-    sections.push(section);
+    sections.push({
+      title: section.title,
+      items: section.items.filter(
+        (item) => !INTENT_HUB_HIDDEN_SLUGS.has(item.slug),
+      ),
+    });
   }
 
   return sections;
@@ -2380,6 +2489,7 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   telegram: true,
   instagram: true,
   snapchat: true,
+  medal: true,
   tiktok: true,
   "tiktok-recon": true,
   "share-resolver": true,
