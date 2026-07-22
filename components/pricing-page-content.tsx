@@ -594,9 +594,9 @@ export function PricingPageContent({
                 const price = getApiPrice(interval);
 
                 return (
-                  <article className="pricing-api-card mx-auto max-w-2xl border border-[var(--anya-blush)]/30 bg-gradient-to-br from-[color-mix(in_srgb,var(--anya-blush)_12%,transparent)] via-white/[0.04] to-transparent p-8">
+                  <article className="pricing-api-card mx-auto max-w-2xl rounded-2xl border border-[var(--anya-blush)]/30 bg-gradient-to-br from-[color-mix(in_srgb,var(--anya-blush)_12%,transparent)] via-white/[0.04] to-transparent p-8 backdrop-blur-md">
                     <div className="flex items-center gap-3">
-                      <div className="border border-[var(--anya-blush)]/30 bg-[var(--anya-blush)]/20 p-3">
+                      <div className="rounded-xl border border-[var(--anya-blush)]/30 bg-[var(--anya-blush)]/20 p-3">
                         <Code2 className="size-6 text-[color-mix(in_srgb,var(--anya-blush)_70%,white)]" />
                       </div>
                       <div>
