@@ -46,8 +46,8 @@ const CHANNELS = [
 
 export default function SupportPage() {
   return (
-    <div className="brutal-page brutal-support-page relative z-20 mx-auto w-full max-w-4xl px-2 pb-24 pt-6 md:pt-10">
-      <Reveal>
+    <div className="brutal-page brutal-support-page relative z-20 mx-auto w-full max-w-4xl px-2 pb-24 pt-2 md:pt-4">
+      <Reveal mode="mount">
         <header className="brutal-page-header mb-14 space-y-5">
           <p className="craft-kicker">
             <LifeBuoy className="size-3.5" />
@@ -62,7 +62,7 @@ export default function SupportPage() {
         </header>
       </Reveal>
 
-      <Reveal delay={0.06}>
+      <Reveal delay={0.06} mode="mount">
         <section className="craft-surface mb-12 p-6 sm:p-8">
           <div className="flex items-start gap-4">
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-pink-300/30 bg-pink-500/15">
@@ -88,7 +88,7 @@ export default function SupportPage() {
           const Icon = channel.icon;
 
           return (
-            <Reveal key={channel.title} delay={0.08 + index * 0.05}>
+            <Reveal key={channel.title} delay={0.08 + index * 0.05} mode="mount">
               <a
                 className="support-channel group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-pink-300/35 hover:bg-pink-500/[0.07]"
                 href={channel.href}
@@ -114,7 +114,7 @@ export default function SupportPage() {
         })}
       </section>
 
-      <Reveal delay={0.2}>
+      <Reveal delay={0.2} mode="mount">
         <section className="mt-14 border border-dashed border-white/15 bg-white/[0.02] px-6 py-10 text-center">
           <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
             <Headphones className="size-4 text-zinc-400" />

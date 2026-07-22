@@ -10,7 +10,7 @@ export default function MarketingLayout({
     <div className="relative flex min-h-screen flex-col">
       <Navbar />
       {/* Extra top pad so content clears the floating nav island */}
-      <main className="container mx-auto flex max-w-7xl flex-grow flex-col px-6 pt-24">
+      <main className="container mx-auto flex max-w-7xl flex-grow flex-col px-6 pt-20">
         {children}
       </main>
       <Footer />

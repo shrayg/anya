@@ -21,30 +21,23 @@ export default function PricingPage() {
     <>
       <HomeBackground />
 
-      <section className="brutal-page brutal-pricing-page relative z-20 mx-auto w-full max-w-6xl px-2 pb-24 pt-6 md:pt-10">
-        <Reveal>
-          <header className="brutal-page-header mb-10 space-y-5 text-center">
-            <div className="mb-1 flex flex-wrap items-center justify-center gap-3">
-              <span className="craft-kicker anya-hero-kicker">
-                <CreditCard className="size-3.5" />
-                Plans & pricing
-              </span>
-              <span className="anya-pill">
-                Choose the tier that fits your workflow
-              </span>
-            </div>
-            <h1 className="craft-display font-[family-name:var(--font-bruno-ace-sc)] text-3xl tracking-wide text-white sm:text-5xl">
-              Simple monthly pricing
-            </h1>
-            <p className="craft-lede mx-auto max-w-2xl text-sm text-zinc-400 sm:text-base">
-              Subscriptions for investigators, credit packs for pay-per-use
-              modules, and API access for automation — billed monthly or
-              annually via Square.
+      <section className="brutal-page brutal-pricing-page relative z-20 mx-auto w-full max-w-6xl px-2 pb-24 pt-2 md:pt-4">
+        <Reveal mode="mount">
+          <header className="brutal-page-header mb-12 space-y-5">
+            <p className="craft-kicker">
+              <CreditCard className="size-3.5" />
+              Plans & pricing
+            </p>
+            <h1 className="craft-display text-4xl md:text-6xl">Pricing</h1>
+            <p className="craft-lede">
+              Subscriptions for investigators, credit packs at about $1 per
+              credit, and API access for automation — billed monthly or annually
+              via Square.
             </p>
           </header>
         </Reveal>
 
-        <Reveal delay={0.08}>
+        <Reveal delay={0.08} mode="mount">
           <PricingPageContent authenticated={authenticated} />
         </Reveal>
       </section>

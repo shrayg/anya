@@ -2146,16 +2146,17 @@
 
 .brutal-page {
   position: relative;
-  padding-top: 7.5rem !important;
+  /* Marketing layout already clears the floating nav — keep this tight. */
+  padding-top: 0.35rem !important;
 }
 
 .brutal-page::before {
   position: absolute;
   z-index: -1;
-  top: 4.8rem;
+  top: 0;
   right: 0;
   left: 0;
-  height: 10rem;
+  height: 11rem;
   background:
     linear-gradient(rgba(244, 241, 243, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(244, 241, 243, 0.035) 1px, transparent 1px);
@@ -2203,14 +2204,7 @@
 }
 
 .brutal-pricing-page .brutal-page-header .anya-pill {
-  border: 1px solid var(--anya-line);
-  background: transparent;
-  box-shadow: none;
-  color: #918c91;
-  font-family: var(--font-anya-mono), monospace;
-  font-size: 0.55rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: none;
 }
 
 /* Brutal pricing chrome — keep scoped so classic /pricing stays soft. */

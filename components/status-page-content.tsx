@@ -180,13 +180,13 @@ export function StatusPageContent() {
   );
 
   return (
-    <section className="brutal-page brutal-status-page relative z-20 mx-auto w-full max-w-3xl px-2 pb-20 pt-6 md:pt-10">
+    <section className="brutal-page brutal-status-page relative z-20 mx-auto w-full max-w-3xl px-2 pb-20 pt-2 md:pt-4">
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-x-10 -top-16 h-64 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(240,164,184,0.12),transparent_70%)] blur-2xl"
       />
 
-      <Reveal>
+      <Reveal mode="mount">
         <header className="brutal-page-header relative mb-10 space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <p className="craft-kicker">
@@ -206,7 +206,7 @@ export function StatusPageContent() {
         </header>
       </Reveal>
 
-      <Reveal delay={0.08}>
+      <Reveal delay={0.08} mode="mount">
         <div
           className={clsx(
             "relative mb-10 overflow-hidden rounded-2xl border px-5 py-5 sm:px-6",
@@ -305,7 +305,7 @@ export function StatusPageContent() {
               </div>
             ))
           : groups.map(([group, services], groupIndex) => (
-              <Reveal key={group} delay={0.12 + groupIndex * 0.07}>
+              <Reveal key={group} delay={0.12 + groupIndex * 0.07} mode="mount">
                 <div key={group} className="space-y-3">
                   <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
                     {group}
