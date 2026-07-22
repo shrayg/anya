@@ -14,8 +14,9 @@ export default function Home() {
     <>
       <HomeBackground />
 
-      {/* Keep our search hero */}
-      <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-end gap-8 px-4 pb-[min(10svh,5rem)] pt-28 text-center md:gap-10 md:pb-[min(12svh,7rem)] md:pt-36">
+      {/* Search hero — spacer pushes AnyaInt + search into the lower viewport */}
+      <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center gap-8 px-4 pb-10 text-center md:gap-10 md:pb-12">
+        <div className="min-h-[min(36svh,18rem)] w-full shrink-0 md:min-h-[min(40svh,22rem)]" aria-hidden />
         <Reveal
           className="flex max-w-5xl flex-col items-center gap-5 overflow-visible md:gap-6"
           mode="mount"

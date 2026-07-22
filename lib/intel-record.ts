@@ -973,8 +973,8 @@ function softMergeDiscordNearDupes(results: unknown[]): unknown[] {
     const softKey = discordSoftGroupKey(entry);
     const ip = extractFingerprintIp(entry);
     const group = groups.get(softKey) ?? {
-      withIp: new Map(),
-      noIp: [],
+      withIp: new Map<string, { entry: unknown; order: number }>(),
+      noIp: [] as unknown[],
       order,
     };
 

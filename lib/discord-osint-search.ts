@@ -12,7 +12,10 @@ import {
   fetchBreachHubRaw,
   fetchBreachHubSpecialty,
 } from "@/lib/breachhub";
-import { fetchCordCatQuery } from "@/lib/cordcat";
+import {
+  fetchCordCatQuery,
+  type CordCatQueryResponse,
+} from "@/lib/cordcat";
 import {
   extractCsintDiscordLookupLeaks,
   fetchCsintDiscordLookup,
@@ -50,16 +53,14 @@ export type DiscordOsintProgressEvent =
     }
   | { type: "done"; result: DiscordSearchResult };
 
-function cordCatFivemRecords(
-  query: Awaited<ReturnType<typeof fetchCordCatQuery>>,
-) {
+function cordCatFivemRecords(query: CordCatQueryResponse | null) {
   const results = query?.fivem?.data?.results;
 
   return Array.isArray(results) ? results : [];
 }
 
 function cordCatBreachLeaks(
-  query: Awaited<ReturnType<typeof fetchCordCatQuery>>,
+  query: CordCatQueryResponse | null,
 ): { count: number; results: unknown[] } {
   const breach = query?.breach;
 
@@ -199,7 +200,8 @@ export async function runDiscordOsintSearch(
     searchData: null,
     records: [],
   };
-  let cordQuery: Awaited<ReturnType<typeof fetchCordCatQuery>> = null;
+  let cordQuery: CordCatQueryResponse | null = null;
+  let cordStatements: unknown;
   let breachHubLeaks: SanitizedBreachResponse | null = null;
   let breachHubFivem: SanitizedBreachResponse | null = null;
   let osintCatStalker: Record<string, unknown> | null = null;
@@ -395,6 +397,7 @@ export async function runDiscordOsintSearch(
       .catch(() => null)
       .then((value) => {
         cordQuery = value;
+        cordStatements = value?.statements;
         emit("cordcat");
       }),
 
@@ -435,7 +438,7 @@ export async function runDiscordOsintSearch(
 
   await Promise.allSettled(tasks);
 
-  dsa = await resolveDsa(query, cordQuery?.statements).catch(() => ({
+  dsa = await resolveDsa(query, cordStatements).catch(() => ({
     count: 0,
     sanctions: [],
   }));
