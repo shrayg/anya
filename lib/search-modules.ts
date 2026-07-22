@@ -1530,7 +1530,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Platforms",
         "Snapchat",
         "snapchat",
-        "breach",
+        "snapchat",
         "Snapchat user or profile link",
         "Snapchat username and link pivots.",
       ),
@@ -2119,7 +2119,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "notalivex-renaper": "notalivex/ar_rena/renaper",
   telegram: "telegram/username",
   instagram: "instagram",
-  snapchat: "breachhub",
+  snapchat: "snapchat",
   tiktok: "breach",
   twitter: "breach",
   github: "github",
@@ -2185,6 +2185,7 @@ export function resolveSearchApiPath(apiType: string): string {
     apiType.startsWith("propertyradar/") ||
     apiType === "telegram" ||
     apiType.startsWith("telegram/") ||
+    apiType === "snapchat" ||
     // Specialty Discord routes only — bare "discord" stays on /api/osint/discord.
     apiType === "discord/user" ||
     apiType === "discord/history" ||

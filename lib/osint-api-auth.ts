@@ -136,6 +136,7 @@ export function resolveOsintModuleSlug(
     "telegram/username": "telegram",
     "telegram/id": "telegram",
     "telegram/phone": "telegram",
+    snapchat: "snapchat",
     "seeknow/discord/user": "discord-id",
     "seeknow/discord/to-roblox": "discord-id",
     "seeknow/username/github": "github",
