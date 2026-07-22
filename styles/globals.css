@@ -4382,17 +4382,17 @@ html[data-splash="active"] [data-splash-target] {
   color: #71717a;
 }
 
-.home-agent-findings {
+.home-agent-hits {
   position: relative;
   z-index: 1;
   margin: 0.25rem 0.9rem 0.9rem;
   padding: 0.55rem;
   display: grid;
-  gap: 0.4rem;
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 38%, rgba(251, 146, 60, 0.35));
+  gap: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.95rem;
   background: rgba(0, 0, 0, 0.42);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 40px -18px color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 .home-agent-findings-head {
@@ -4407,57 +4407,61 @@ html[data-splash="active"] [data-splash-target] {
   color: #71717a;
 }
 
-.home-agent-finding {
-  display: flex;
+.home-agent-hit {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.58rem 0.65rem;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 0.7rem;
-  background: rgba(255, 255, 255, 0.03);
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.025);
 }
 
-.home-agent-finding p {
-  margin: 0 0 0.15rem;
+.home-agent-hit code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
-  color: #71717a;
+  font-size: 0.72rem;
+  color: #e4e4e7;
 }
 
-.home-agent-finding strong {
-  font-size: 0.8rem;
-  font-weight: 650;
-  color: #f4f4f5;
-}
-
-.home-agent-badge {
+.home-agent-hit-lane {
   flex-shrink: 0;
-  padding: 0.2rem 0.5rem;
-  border-radius: 9999px;
+  min-width: 4.6rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.35rem;
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.58rem;
-  font-weight: 700;
+  font-size: 0.55rem;
+  font-weight: 650;
   letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  color: #a1a1aa;
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.home-agent-badge--med {
-  border: 1px solid rgba(96, 165, 250, 0.45);
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.12);
+.home-agent-hit-lane--breach {
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  color: color-mix(in srgb, var(--anya-blush) 70%, #fff);
 }
 
-.home-agent-badge--high {
-  border: 1px solid rgba(251, 146, 60, 0.45);
-  color: #fdba74;
-  background: rgba(249, 115, 22, 0.12);
-}
-
-.home-agent-badge--crit {
-  border: 1px solid rgba(248, 113, 113, 0.45);
+.home-agent-hit-lane--stealer {
+  border-color: rgba(248, 113, 113, 0.4);
   color: #fca5a5;
-  background: rgba(239, 68, 68, 0.12);
+}
+
+.home-agent-hit-lane--discord {
+  border-color: rgba(129, 140, 248, 0.4);
+  color: #c7d2fe;
+}
+
+.home-agent-hit-lane--username,
+.home-agent-hit-lane--specialty {
+  border-color: rgba(134, 239, 172, 0.35);
+  color: #bbf7d0;
 }
 
 .home-agent-footer {

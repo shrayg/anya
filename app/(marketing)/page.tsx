@@ -36,7 +36,7 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {/* Mira-style product story + live agent demo + stats */}
+      {/* Product story + Anya fan-out agent mock + honest scale stats */}
       <Reveal mode="mount">
         <HomeShowcase />
       </Reveal>

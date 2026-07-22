@@ -15,43 +15,43 @@ import Link from "next/link";
 import { CATALOG_MODULE_COUNT } from "@/lib/featured-modules";
 import { siteConfig } from "@/config/site";
 
-const SCAN_STEPS = [
-  { id: "geo", label: "Identity resolve", ms: "38ms" },
-  { id: "stealer", label: "Stealer / breach fan-out", ms: "91ms" },
-  { id: "social", label: "Platform username map", ms: "74ms" },
-  { id: "records", label: "Public records pivot", ms: "112ms" },
+/** Matches `stats-section` / `getPlatformStats` username-site fallback. */
+const USERNAME_PLATFORM_FALLBACK = 223;
+
+const FANOUT_STEPS = [
+  { id: "breach", label: "breach-index", ms: "42ms", hits: 12 },
+  { id: "stealer", label: "stealer-logs", ms: "88ms", hits: 3 },
+  { id: "discord", label: "discord-recon", ms: "61ms", hits: 4 },
+  { id: "specialty", label: "specialty-maps", ms: "104ms", hits: 2 },
 ] as const;
 
-const FINDINGS = [
+const LIVE_HITS = [
   {
-    key: "accounts",
-    label: "LINKED ACCOUNTS",
-    value: "14 profiles · 6 platforms",
-    tone: "med" as const,
-    badge: "MED",
+    key: "b1",
+    lane: "breach",
+    text: "adobe2013 · email credential hit",
   },
   {
-    key: "breach",
-    label: "BREACH EXPOSURE",
-    value: "3 collections · credential hits",
-    tone: "crit" as const,
-    badge: "CRIT",
+    key: "s1",
+    lane: "stealer",
+    text: "RedLine · cookie domain match",
   },
   {
-    key: "records",
-    label: "PUBLIC SIGNALS",
-    value: "2 court / address matches",
-    tone: "high" as const,
-    badge: "HIGH",
+    key: "d1",
+    lane: "discord",
+    text: "user resolve · linked phone pivot",
   },
   {
-    key: "score",
-    label: "CONFIDENCE",
-    value: "82 / 100 correlation score",
-    tone: "med" as const,
-    badge: "MED",
+    key: "u1",
+    lane: "username",
+    text: "github · twitter · steam handles",
   },
-];
+  {
+    key: "sp1",
+    lane: "specialty",
+    text: "minecraft · roblox profile map",
+  },
+] as const;
 
 const PILLS = [
   { icon: Zap, label: "Sub-second lookups" },
@@ -59,23 +59,44 @@ const PILLS = [
   { icon: Hexagon, label: `${CATALOG_MODULE_COUNT}+ live modules` },
 ] as const;
 
-const SHOWCASE_STATS = [
-  { value: "4.2B+", label: "Records indexed" },
-  { value: String(CATALOG_MODULE_COUNT), label: "Intelligence modules" },
-  { value: "99.9%", label: "Platform uptime" },
-  { value: "320ms", label: "P95 response" },
-] as const;
+type ShowcaseStat = {
+  key: string;
+  value: string;
+  label: string;
+};
 
-function toneClass(tone: "med" | "crit" | "high") {
-  if (tone === "crit") return "home-agent-badge--crit";
-  if (tone === "high") return "home-agent-badge--high";
-  return "home-agent-badge--med";
+const FALLBACK_STATS: ShowcaseStat[] = [
+  {
+    key: "coverage",
+    value: String(CATALOG_MODULE_COUNT + USERNAME_PLATFORM_FALLBACK),
+    label: "Lookup surfaces",
+  },
+  {
+    key: "modules",
+    value: String(CATALOG_MODULE_COUNT),
+    label: "Intelligence modules",
+  },
+  {
+    key: "uptime",
+    value: "99.9%",
+    label: "Platform uptime",
+  },
+  {
+    key: "p95",
+    value: "320ms",
+    label: "P95 response",
+  },
+];
+
+function laneClass(lane: (typeof LIVE_HITS)[number]["lane"]) {
+  return `home-agent-hit-lane home-agent-hit-lane--${lane}`;
 }
 
 function SignalAgentDemo() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.35 });
   const [step, setStep] = useState(0);
+  const [hitCount, setHitCount] = useState(0);
   const [done, setDone] = useState(false);
   const [cycle, setCycle] = useState(0);
 
@@ -83,25 +104,42 @@ function SignalAgentDemo() {
     if (!inView) return;
 
     setStep(0);
+    setHitCount(0);
     setDone(false);
 
     const timers: number[] = [];
-    SCAN_STEPS.forEach((_, index) => {
+    FANOUT_STEPS.forEach((_, index) => {
       timers.push(
-        window.setTimeout(() => setStep(index + 1), 280 + index * 480),
+        window.setTimeout(() => setStep(index + 1), 260 + index * 420),
+      );
+    });
+    LIVE_HITS.forEach((_, index) => {
+      timers.push(
+        window.setTimeout(
+          () => setHitCount(index + 1),
+          520 + index * 340,
+        ),
       );
     });
     timers.push(
-      window.setTimeout(() => setDone(true), 280 + SCAN_STEPS.length * 480 + 220),
+      window.setTimeout(
+        () => setDone(true),
+        260 + FANOUT_STEPS.length * 420 + 900,
+      ),
     );
     timers.push(
-      window.setTimeout(() => setCycle((c) => c + 1), 280 + SCAN_STEPS.length * 480 + 2800),
+      window.setTimeout(
+        () => setCycle((c) => c + 1),
+        260 + FANOUT_STEPS.length * 420 + 3200,
+      ),
     );
 
     return () => timers.forEach((id) => window.clearTimeout(id));
   }, [inView, cycle]);
 
-  const progress = Math.min(100, (step / SCAN_STEPS.length) * 100);
+  const progress = Math.min(100, (step / FANOUT_STEPS.length) * 100);
+  const totalHits = FANOUT_STEPS.reduce((sum, item) => sum + item.hits, 0);
+  const visibleHits = LIVE_HITS.slice(0, hitCount);
 
   return (
     <div ref={ref} className="home-agent" aria-hidden>
@@ -115,11 +153,11 @@ function SignalAgentDemo() {
           <span />
         </div>
         <p className="home-agent-title">
-          {siteConfig.navName.toUpperCase()} AGENT
-          <span> / target@signal.io</span>
+          {siteConfig.navName.toUpperCase()} FAN-OUT
+          <span> / email seed</span>
         </p>
         <span className={`home-agent-status ${done ? "is-live" : "is-run"}`}>
-          {done ? "complete" : "scanning"}
+          {done ? "settled" : "streaming"}
         </span>
       </div>
 
@@ -131,7 +169,7 @@ function SignalAgentDemo() {
       </div>
 
       <ul className="home-agent-steps">
-        {SCAN_STEPS.map((item, index) => {
+        {FANOUT_STEPS.map((item, index) => {
           const complete = step > index;
           const active = step === index + 1 && !done;
 
@@ -154,7 +192,11 @@ function SignalAgentDemo() {
               </span>
               <span className="home-agent-step-label">{item.label}</span>
               <span className="home-agent-step-ms">
-                {complete || active ? item.ms : "—"}
+                {complete
+                  ? `${item.hits} hits · ${item.ms}`
+                  : active
+                    ? "probing…"
+                    : "queued"}
               </span>
             </motion.li>
           );
@@ -162,34 +204,31 @@ function SignalAgentDemo() {
       </ul>
 
       <AnimatePresence mode="wait">
-        {step >= 2 ? (
+        {hitCount > 0 ? (
           <motion.div
-            key={`findings-${cycle}`}
+            key={`hits-${cycle}`}
             animate={{ opacity: 1, y: 0 }}
-            className="home-agent-findings"
+            className="home-agent-hits"
             exit={{ opacity: 0, y: 6 }}
             initial={{ opacity: 0, y: 14 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="home-agent-findings-head">
-              <span>Live correlation</span>
-              <span>{done ? "5 findings" : "collecting…"}</span>
+              <span>Module hit stream</span>
+              <span>
+                {done ? `${totalHits} hits` : `${hitCount} incoming…`}
+              </span>
             </div>
-            {FINDINGS.map((finding, index) => (
+            {visibleHits.map((hit, index) => (
               <motion.div
-                key={finding.key}
+                key={hit.key}
                 animate={{ opacity: 1, x: 0 }}
-                className="home-agent-finding"
+                className="home-agent-hit"
                 initial={{ opacity: 0, x: 10 }}
-                transition={{ delay: 0.08 + index * 0.1, duration: 0.35 }}
+                transition={{ delay: 0.04 + index * 0.06, duration: 0.3 }}
               >
-                <div>
-                  <p>{finding.label}</p>
-                  <strong>{finding.value}</strong>
-                </div>
-                <span className={`home-agent-badge ${toneClass(finding.tone)}`}>
-                  · {finding.badge}
-                </span>
+                <span className={laneClass(hit.lane)}>{hit.lane}</span>
+                <code>{hit.text}</code>
               </motion.div>
             ))}
           </motion.div>
@@ -198,12 +237,14 @@ function SignalAgentDemo() {
 
       <div className="home-agent-footer">
         <span className={done ? "is-live" : undefined}>
-          {done ? "COMPLETE" : "RUNNING"}
+          {done ? "SETTLED" : "FAN-OUT"}
         </span>
-        <span>{done ? "412ms" : "…"}</span>
-        <span>4/4 engines</span>
+        <span>{done ? "295ms" : "…"}</span>
+        <span>
+          {Math.min(step, FANOUT_STEPS.length)}/{FANOUT_STEPS.length} modules
+        </span>
         <span className="home-agent-footer-accent">
-          {done ? "5 findings" : "awaiting"}
+          {done ? `${totalHits} hits` : "awaiting"}
         </span>
       </div>
     </div>
@@ -211,6 +252,51 @@ function SignalAgentDemo() {
 }
 
 export function HomeShowcase() {
+  const [stats, setStats] = useState<ShowcaseStat[]>(FALLBACK_STATS);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/stats", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then(
+        (
+          data: {
+            stats?: Array<{
+              key: string;
+              label: string;
+              value: string;
+            }>;
+          } | null,
+        ) => {
+          if (cancelled || !data?.stats?.length) return;
+
+          const live = data.stats.slice(0, 3).map((stat) => ({
+            key: stat.key,
+            value: stat.value,
+            label: stat.label,
+          }));
+
+          // Keep marketing P95 as the fourth slot; first three come from
+          // /api/stats (live indexed records when providers respond, else
+          // honest catalog coverage — never a fabricated "4.2B").
+          setStats([
+            ...live,
+            {
+              key: "p95",
+              value: "320ms",
+              label: "P95 response",
+            },
+          ]);
+        },
+      )
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section className="home-showcase relative z-20 w-full">
       <div className="home-showcase-veil" aria-hidden />
@@ -225,8 +311,8 @@ export function HomeShowcase() {
             <p className="home-showcase-lede">
               Drop one signal — email, phone, username, Discord — and{" "}
               {siteConfig.name} fans out across breach, stealer, social, and
-              public-record engines. Built for Meta/TikTok buyers and the
-              Discord kids who already know how deep this goes.
+              public-record engines in parallel. Built for investigators who
+              need answers without the noise.
             </p>
 
             <ul className="home-showcase-pills">
@@ -256,8 +342,8 @@ export function HomeShowcase() {
         </div>
 
         <div className="home-showcase-stats" role="list">
-          {SHOWCASE_STATS.map((stat) => (
-            <div key={stat.label} className="home-showcase-stat" role="listitem">
+          {stats.map((stat) => (
+            <div key={stat.key} className="home-showcase-stat" role="listitem">
               <strong>{stat.value}</strong>
               <span>{stat.label}</span>
             </div>
