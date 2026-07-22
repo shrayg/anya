@@ -62,7 +62,6 @@ export function StatsSection() {
   return (
     <section className="by-numbers relative z-20 mx-auto w-full max-w-6xl px-4 py-14 md:px-6 md:py-16">
       <div className="by-numbers-head">
-        <p className="by-numbers-kicker">By the numbers</p>
         <h2 className="by-numbers-title">The scale behind the speed</h2>
       </div>
 
