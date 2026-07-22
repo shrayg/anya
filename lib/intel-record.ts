@@ -46,6 +46,8 @@ const INTERNAL_SOURCE_LABELS = new Set([
   "cord.cat",
   "cord cat",
   "melissa",
+  "propertyradar",
+  "property radar",
   "infostealer",
   "info stealer",
   "room101",
