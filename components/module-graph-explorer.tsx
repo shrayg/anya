@@ -1,44 +1,25 @@
 "use client";
 
-import {
-  Background,
-  Controls,
-  Handle,
-  Position,
-  ReactFlow,
-  ReactFlowProvider,
-  useReactFlow,
-  type Edge,
-  type Node,
-  type NodeProps,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 import clsx from "clsx";
-import { Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowUpRight, Search } from "lucide-react";
+import Link from "next/link";
 import {
-  memo,
-  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
-  type MouseEvent,
+  type CSSProperties,
 } from "react";
 
-import type { ModuleCatalogSection } from "@/components/module-catalog";
+import type {
+  ModuleCatalogItem,
+  ModuleCatalogSection,
+} from "@/components/module-catalog";
+import { CATALOG_MODULE_COUNT } from "@/lib/featured-modules";
 import {
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
 } from "@/lib/search-autofill-shield";
-
-type HubData = { count: number; lanes: number };
-type LaneData = { title: string; count: number; featured?: boolean };
-type ModuleData = { name: string; slug: string; hint: string; lane: string };
-
-type ExplorerNode =
-  | Node<HubData, "hub">
-  | Node<LaneData, "lane">
-  | Node<ModuleData, "module">;
 
 const LANE_ACCENTS = [
   "#c3d3e6",
@@ -53,266 +34,12 @@ const LANE_ACCENTS = [
   "#e7e5e4",
 ];
 
-function HubNode({ data }: NodeProps<Node<HubData, "hub">>) {
-  return (
-    <div className="mod-graph-hub">
-      <Handle className="!opacity-0" position={Position.Top} type="source" />
-      <Handle className="!opacity-0" position={Position.Right} type="source" />
-      <Handle className="!opacity-0" position={Position.Bottom} type="source" />
-      <Handle className="!opacity-0" position={Position.Left} type="source" />
-      <strong>{data.count}</strong>
-      <span>modules</span>
-      <small>{data.lanes} lanes</small>
-    </div>
-  );
+function capabilityCount(items: ModuleCatalogItem[]) {
+  return items.reduce((sum, item) => sum + 1 + (item.toolCount ?? 0), 0);
 }
 
-function LaneNode({ data }: NodeProps<Node<LaneData, "lane">>) {
-  return (
-    <div className={clsx("mod-graph-lane", data.featured && "is-featured")}>
-      <Handle className="!opacity-0" position={Position.Left} type="target" />
-      <Handle className="!opacity-0" position={Position.Right} type="source" />
-      <p>{data.title}</p>
-      <span>{data.count}</span>
-    </div>
-  );
-}
-
-function ModuleNode({ data }: NodeProps<Node<ModuleData, "module">>) {
-  return (
-    <div className="mod-graph-module" title={data.hint}>
-      <Handle className="!opacity-0" position={Position.Left} type="target" />
-      <span>{data.name}</span>
-    </div>
-  );
-}
-
-const nodeTypes = {
-  hub: memo(HubNode),
-  lane: memo(LaneNode),
-  module: memo(ModuleNode),
-};
-
-function buildGraph(sections: ModuleCatalogSection[]): {
-  nodes: ExplorerNode[];
-  edges: Edge[];
-} {
-  const nodes: ExplorerNode[] = [];
-  const edges: Edge[] = [];
-  const capabilityTotal = sections.reduce(
-    (sum, section) =>
-      sum +
-      section.items.reduce(
-        (laneSum, item) => laneSum + 1 + (item.toolCount ?? 0),
-        0,
-      ),
-    0,
-  );
-
-  const centerX = 0;
-  const centerY = 0;
-  const laneCount = Math.max(sections.length, 1);
-  const radius = Math.max(200, 80 + laneCount * 16);
-
-  nodes.push({
-    id: "hub",
-    type: "hub",
-    position: { x: centerX - 44, y: centerY - 44 },
-    data: { count: capabilityTotal, lanes: sections.length },
-    draggable: false,
-    selectable: false,
-  });
-
-  sections.forEach((section, index) => {
-    const angle = (index / laneCount) * Math.PI * 2 - Math.PI / 2;
-    const laneX = centerX + Math.cos(angle) * radius;
-    const laneY = centerY + Math.sin(angle) * radius;
-    const laneId = `lane-${index}`;
-    const accent = LANE_ACCENTS[index % LANE_ACCENTS.length];
-
-    nodes.push({
-      id: laneId,
-      type: "lane",
-      position: { x: laneX - 70, y: laneY - 18 },
-      data: {
-        title: section.title,
-        count: section.items.reduce(
-          (sum, item) => sum + 1 + (item.toolCount ?? 0),
-          0,
-        ),
-        featured: section.featured,
-      },
-      draggable: false,
-      style: { ["--lane-accent" as string]: accent },
-    });
-
-    edges.push({
-      id: `e-hub-${laneId}`,
-      source: "hub",
-      target: laneId,
-      style: { stroke: `${accent}55`, strokeWidth: 1.25 },
-    });
-
-    const cols = section.items.length > 8 ? 3 : section.items.length > 4 ? 2 : 1;
-    const outwardX = Math.cos(angle);
-    const outwardY = Math.sin(angle);
-    const tangentX = -Math.sin(angle);
-    const tangentY = Math.cos(angle);
-    const clusterDepth = 72;
-    const cellW = 102;
-    const cellH = 32;
-
-    section.items.forEach((item, itemIndex) => {
-      const col = itemIndex % cols;
-      const row = Math.floor(itemIndex / cols);
-      const localX = (col - (cols - 1) / 2) * cellW;
-      const localY = row * cellH;
-      const mx =
-        laneX +
-        outwardX * clusterDepth +
-        tangentX * localX +
-        outwardX * localY * 0.12;
-      const my =
-        laneY +
-        outwardY * clusterDepth +
-        tangentY * localX +
-        outwardY * localY * 0.12;
-      const moduleId = `mod-${index}-${item.slug}`;
-
-      nodes.push({
-        id: moduleId,
-        type: "module",
-        position: { x: mx - 48, y: my - 12 },
-        data: {
-          name: item.name,
-          slug: item.slug,
-          hint: item.hint,
-          lane: section.title,
-        },
-        draggable: false,
-      });
-
-      edges.push({
-        id: `e-${laneId}-${moduleId}`,
-        source: laneId,
-        target: moduleId,
-        style: { stroke: `${accent}30`, strokeWidth: 1 },
-      });
-    });
-  });
-
-  return { nodes, edges };
-}
-
-function FitViewOnChange({ revision }: { revision: string }) {
-  const { fitView } = useReactFlow();
-
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      fitView({ padding: 0.16, duration: 220 });
-    }, 40);
-    return () => window.clearTimeout(id);
-  }, [fitView, revision]);
-
-  return null;
-}
-
-function ModuleGraphCanvas({
-  sections,
-  activeLane,
-  setActiveLane,
-}: {
-  sections: ModuleCatalogSection[];
-  activeLane: string | null;
-  setActiveLane: (lane: string | null) => void;
-}) {
-  const router = useRouter();
-  const [hoverHint, setHoverHint] = useState<string | null>(null);
-
-  const focused = useMemo(() => {
-    if (!activeLane) return sections;
-    return sections.filter((section) => section.title === activeLane);
-  }, [activeLane, sections]);
-
-  const graph = useMemo(() => buildGraph(focused), [focused]);
-  const revision = useMemo(
-    () =>
-      `${activeLane ?? "all"}:${focused.map((s) => `${s.title}:${s.items.length}`).join("|")}`,
-    [activeLane, focused],
-  );
-
-  const onNodeClick = useCallback(
-    (_event: MouseEvent, node: Node) => {
-      if (node.type === "module") {
-        const slug = (node.data as ModuleData).slug;
-        if (slug) router.push(`/dashboard/search/${slug}`);
-        return;
-      }
-      if (node.type === "lane") {
-        const title = (node.data as LaneData).title;
-        setActiveLane(activeLane === title ? null : title);
-      }
-      if (node.type === "hub") {
-        setActiveLane(null);
-      }
-    },
-    [activeLane, router, setActiveLane],
-  );
-
-  const onNodeMouseEnter = useCallback((_event: MouseEvent, node: Node) => {
-    if (node.type === "module") {
-      const data = node.data as ModuleData;
-      setHoverHint(`${data.name} — ${data.hint}`);
-      return;
-    }
-    if (node.type === "lane") {
-      const data = node.data as LaneData;
-      setHoverHint(`${data.title} · ${data.count} modules — click to focus`);
-    }
-  }, []);
-
-  const onNodeMouseLeave = useCallback(() => {
-    setHoverHint(null);
-  }, []);
-
-  return (
-    <>
-      <div className="mod-graph-canvas">
-        <ReactFlow
-          fitView
-          nodes={graph.nodes}
-          edges={graph.edges}
-          nodeTypes={nodeTypes}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable
-          panOnScroll
-          zoomOnScroll
-          minZoom={0.35}
-          maxZoom={1.6}
-          fitViewOptions={{ padding: 0.16 }}
-          proOptions={{ hideAttribution: true }}
-          onNodeClick={onNodeClick}
-          onNodeMouseEnter={onNodeMouseEnter}
-          onNodeMouseLeave={onNodeMouseLeave}
-          defaultEdgeOptions={{ animated: false }}
-        >
-          <FitViewOnChange revision={revision} />
-          <Background color="#ffffff08" gap={22} size={1} />
-          <Controls
-            showInteractive={false}
-            className="!border-white/10 !bg-zinc-950/90 !shadow-xl [&>button]:!border-white/10 [&>button]:!bg-zinc-900 [&>button]:!text-white"
-          />
-        </ReactFlow>
-      </div>
-      <div className="mod-graph-footer">
-        <p>
-          {hoverHint ??
-            "Click a module to open it · click a lane to focus · scroll to zoom"}
-        </p>
-      </div>
-    </>
-  );
+function laneAccent(index: number) {
+  return LANE_ACCENTS[index % LANE_ACCENTS.length];
 }
 
 export function ModuleGraphExplorer({
@@ -321,7 +48,9 @@ export function ModuleGraphExplorer({
   sections: ModuleCatalogSection[];
 }) {
   const [filter, setFilter] = useState("");
-  const [activeLane, setActiveLane] = useState<string | null>(null);
+  const [hoveredLane, setHoveredLane] = useState<string | null>(null);
+  const [pinnedLane, setPinnedLane] = useState<string | null>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase().trim();
@@ -340,13 +69,50 @@ export function ModuleGraphExplorer({
       .filter((section) => section.items.length > 0);
   }, [filter, sections]);
 
-  const capabilityCount = (items: ModuleCatalogSection["items"]) =>
-    items.reduce((sum, item) => sum + 1 + (item.toolCount ?? 0), 0);
+  const activeLaneTitle = pinnedLane ?? hoveredLane;
+  const activeSection =
+    filtered.find((section) => section.title === activeLaneTitle) ?? null;
+  const activeIndex = activeSection
+    ? filtered.findIndex((section) => section.title === activeSection.title)
+    : -1;
 
-  const visibleCount = filtered.reduce(
+  const totalShown = filtered.reduce(
     (sum, section) => sum + capabilityCount(section.items),
     0,
   );
+
+  useEffect(() => {
+    return () => {
+      if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    };
+  }, []);
+
+  const clearHoverSoon = () => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    leaveTimer.current = setTimeout(() => setHoveredLane(null), 140);
+  };
+
+  const keepHover = (title: string) => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    setHoveredLane(title);
+  };
+
+  // Drop a pin if that lane disappeared from the filter
+  useEffect(() => {
+    if (
+      pinnedLane &&
+      !filtered.some((section) => section.title === pinnedLane)
+    ) {
+      setPinnedLane(null);
+    }
+  }, [filtered, pinnedLane]);
+
+  // When filtering to a single lane match, auto-show that lane's list
+  useEffect(() => {
+    if (filter.trim() && filtered.length === 1) {
+      setHoveredLane(filtered[0].title);
+    }
+  }, [filter, filtered]);
 
   return (
     <div className="mod-graph">
@@ -365,49 +131,173 @@ export function ModuleGraphExplorer({
             value={filter}
           />
         </label>
-
-        <div
-          className="mod-graph-lanes"
-          role="tablist"
-          aria-label="Module lanes"
-        >
-          <button
-            className={clsx("mod-graph-chip", !activeLane && "is-active")}
-            type="button"
-            onClick={() => setActiveLane(null)}
-          >
-            All
-          </button>
-          {sections.map((section) => (
-            <button
-              key={section.title}
-              className={clsx(
-                "mod-graph-chip",
-                activeLane === section.title && "is-active",
-              )}
-              type="button"
-              onClick={() =>
-                setActiveLane((current) =>
-                  current === section.title ? null : section.title,
-                )
-              }
-            >
-              {section.title}
-              <em>{capabilityCount(section.items)}</em>
-            </button>
-          ))}
-        </div>
-
-        <p className="mod-graph-count">{visibleCount} shown</p>
+        <p className="mod-graph-count">
+          {totalShown || CATALOG_MODULE_COUNT} modules · {filtered.length} lanes
+        </p>
       </div>
 
-      <ReactFlowProvider>
-        <ModuleGraphCanvas
-          activeLane={activeLane}
-          sections={filtered}
-          setActiveLane={setActiveLane}
-        />
-      </ReactFlowProvider>
+      <div className="mod-graph-body">
+        <div className="mod-graph-stage" aria-label="Module lanes">
+          <svg
+            aria-hidden
+            className="mod-graph-spokes"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {filtered.map((section, index) => {
+              const angle =
+                (index / Math.max(filtered.length, 1)) * Math.PI * 2 -
+                Math.PI / 2;
+              const x = 50 + Math.cos(angle) * 34;
+              const y = 50 + Math.sin(angle) * 34;
+              const accent = laneAccent(index);
+              const active = activeLaneTitle === section.title;
+
+              return (
+                <line
+                  key={section.title}
+                  className={clsx(
+                    "mod-graph-spoke",
+                    active && "is-active",
+                  )}
+                  x1="50"
+                  y1="50"
+                  x2={x}
+                  y2={y}
+                  stroke={accent}
+                />
+              );
+            })}
+          </svg>
+
+          <div className="mod-graph-hub-core">
+            <strong>{totalShown || CATALOG_MODULE_COUNT}</strong>
+            <span>modules</span>
+            <small>{filtered.length} lanes</small>
+          </div>
+
+          {filtered.map((section, index) => {
+            const angle =
+              (index / Math.max(filtered.length, 1)) * Math.PI * 2 -
+              Math.PI / 2;
+            const x = 50 + Math.cos(angle) * 34;
+            const y = 50 + Math.sin(angle) * 34;
+            const accent = laneAccent(index);
+            const active = activeLaneTitle === section.title;
+            const pinned = pinnedLane === section.title;
+            const count = capabilityCount(section.items);
+
+            return (
+              <button
+                key={section.title}
+                type="button"
+                className={clsx(
+                  "mod-graph-orbit",
+                  active && "is-active",
+                  pinned && "is-pinned",
+                  section.featured && "is-featured",
+                )}
+                style={
+                  {
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    "--lane-accent": accent,
+                  } as CSSProperties
+                }
+                onMouseEnter={() => keepHover(section.title)}
+                onMouseLeave={clearHoverSoon}
+                onFocus={() => keepHover(section.title)}
+                onBlur={clearHoverSoon}
+                onClick={() =>
+                  setPinnedLane((current) =>
+                    current === section.title ? null : section.title,
+                  )
+                }
+              >
+                <span className="mod-graph-orbit-label">{section.title}</span>
+                <span className="mod-graph-orbit-count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <aside
+          className={clsx(
+            "mod-graph-panel",
+            activeSection ? "is-open" : "is-empty",
+          )}
+          onMouseEnter={() => {
+            if (activeLaneTitle) keepHover(activeLaneTitle);
+          }}
+          onMouseLeave={clearHoverSoon}
+        >
+          {activeSection ? (
+            <>
+              <header className="mod-graph-panel-head">
+                <div>
+                  <p
+                    className="mod-graph-panel-kicker"
+                    style={
+                      {
+                        color:
+                          activeIndex >= 0
+                            ? laneAccent(activeIndex)
+                            : undefined,
+                      } as CSSProperties
+                    }
+                  >
+                    {activeSection.title}
+                  </p>
+                  <h3>
+                    {capabilityCount(activeSection.items)} modules
+                    {pinnedLane === activeSection.title ? (
+                      <span className="mod-graph-panel-pin"> pinned</span>
+                    ) : null}
+                  </h3>
+                  {activeSection.description ? (
+                    <p className="mod-graph-panel-desc">
+                      {activeSection.description}
+                    </p>
+                  ) : null}
+                </div>
+                {pinnedLane === activeSection.title ? (
+                  <button
+                    className="mod-graph-panel-clear"
+                    type="button"
+                    onClick={() => setPinnedLane(null)}
+                  >
+                    Unpin
+                  </button>
+                ) : null}
+              </header>
+
+              <ul className="mod-graph-panel-list">
+                {activeSection.items.map((item) => (
+                  <li key={item.slug}>
+                    <Link
+                      className="mod-graph-panel-item"
+                      href={`/dashboard/search/${item.slug}`}
+                    >
+                      <span className="mod-graph-panel-item-copy">
+                        <strong>{item.name}</strong>
+                        <small>{item.hint}</small>
+                      </span>
+                      <ArrowUpRight className="size-3.5 shrink-0 opacity-50" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <div className="mod-graph-panel-empty">
+              <p>Hover a lane</p>
+              <span>
+                Module lists open here. Click a lane to pin it open.
+              </span>
+            </div>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }

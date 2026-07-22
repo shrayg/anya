@@ -65,7 +65,7 @@ export function IntelligenceModulesSection() {
             {CATALOG_MODULE_COUNT} live modules
           </h2>
           <p className="mod-explorer-text">
-            Pan, zoom, filter by lane, or click any node to open it.
+            Hover a lane to browse its modules. Click to pin the list open.
           </p>
         </div>
         <Link className="mod-cta" href={siteConfig.defaultWorkspacePath}>
