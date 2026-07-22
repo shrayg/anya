@@ -5116,8 +5116,8 @@ html[data-splash="active"] [data-splash-target] {
 
 .module-search-hero {
   position: relative;
-  max-width: 40rem;
-  margin-bottom: 2rem;
+  max-width: 56rem;
+  margin-bottom: 2.25rem;
 }
 
 .module-search-section {
@@ -5135,16 +5135,19 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .module-search-tagline {
-  margin-top: 0.5rem;
-  font-size: 0.9375rem;
+  margin-top: 0.6rem;
+  font-size: 0.975rem;
   line-height: 1.55;
   color: rgba(161, 161, 170, 1);
+  max-width: 42rem;
 }
 
 .module-search-hint {
-  margin-top: 0.35rem;
+  margin-top: 0.4rem;
   font-size: 0.8125rem;
+  line-height: 1.45;
   color: rgba(113, 113, 122, 1);
+  max-width: 36rem;
 }
 
 .module-search-card {

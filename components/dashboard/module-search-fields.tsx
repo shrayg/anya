@@ -91,7 +91,7 @@ export function ModuleSearchFields({
               {...SEARCH_AUTOFILL_SHIELD}
               autoFocus={index === 0}
               readOnly
-              className="ui-input module-search-field-input font-mono text-sm"
+              className="ui-input module-search-field-input font-mono"
               data-tour={index === 0 ? "search-input" : undefined}
               disabled={disabled}
               name={`osint-field-${row.id}`}
@@ -129,7 +129,7 @@ export function ModuleSearchFields({
         <div className="module-search-form-submit-group">
           {extraActions}
           <button
-            className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
+            className="ui-btn ui-btn-primary shrink-0"
             data-tour="search-submit"
             disabled={!canSubmit || isSearching || disabled}
             type="submit"

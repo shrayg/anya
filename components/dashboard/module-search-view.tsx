@@ -2508,7 +2508,7 @@ export function ModuleSearchView({
                 <div className="module-search-form-actions">
                   <span />
                   <button
-                    className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
+                    className="ui-btn ui-btn-primary shrink-0"
                     data-tour="search-submit"
                     disabled={
                       !query.trim() || isSearching || Boolean(moduleLocked)
