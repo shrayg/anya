@@ -69,15 +69,8 @@ export default function FaqPage() {
           >
             Support
           </a>{" "}
-          page for email, Telegram, and ticket options. Logged-in users can also
-          open tickets from the dashboard support area (
-          <a
-            className="text-zinc-100 underline-offset-4 hover:underline"
-            href="/dashboard/support"
-          >
-            /dashboard/support
-          </a>
-          ). Direct email: {siteConfig.links.supportEmail}.
+          page for email and Telegram. Direct email:{" "}
+          {siteConfig.links.supportEmail}.
         </p>
       </LegalSection>
     </LegalPage>

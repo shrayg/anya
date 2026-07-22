@@ -33,8 +33,7 @@ const faqs = [
   },
   {
     question: "Where can I get help?",
-    answer:
-      "Use the dashboard ticket desk for account and investigation-workflow help, check the live status page for provider availability, or contact the Telegram community.",
+    answer: `Email ${siteConfig.links.supportEmail} for billing and account help, check the live status page for provider availability, or reach the Telegram community for quick questions.`,
   },
 ];
 

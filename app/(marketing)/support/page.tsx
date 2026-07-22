@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 
 import NextLink from "next/link";
-import {
-  Headphones,
-  LifeBuoy,
-  Mail,
-  MessageCircle,
-  Ticket,
-} from "lucide-react";
+import { Headphones, LifeBuoy, Mail, MessageCircle } from "lucide-react";
 
 import { Reveal } from "@/components/craft/reveal";
 import { siteConfig } from "@/config/site";
@@ -34,14 +28,6 @@ const CHANNELS = [
     icon: MessageCircle,
     external: true,
   },
-  {
-    title: "Ticket desk",
-    body: "Professional and Ultimate members open tracked tickets from the panel.",
-    href: "/dashboard/support",
-    cta: "Open ticket desk",
-    icon: Ticket,
-    external: false,
-  },
 ] as const;
 
 export default function SupportPage() {
@@ -55,40 +41,22 @@ export default function SupportPage() {
           </p>
           <h1 className="craft-display text-4xl md:text-6xl">Support</h1>
           <p className="craft-lede">
-            Billing, access, and product help for {siteConfig.name}. Start here
-            — then escalate to email, Telegram, or an in-panel ticket when you
-            need a tracked thread.
+            Billing, access, and product help for {siteConfig.name}. Start with
+            email or Telegram — we&apos;ll take it from there.
           </p>
         </header>
       </Reveal>
 
-      <Reveal delay={0.06} mode="mount">
-        <section className="craft-surface mb-12 p-6 sm:p-8">
-          <div className="flex items-start gap-4">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-pink-300/30 bg-pink-500/15">
-              <LifeBuoy className="size-5 text-pink-200" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-white">
-                Crypto payment still pending?
-              </h2>
-              <p className="max-w-2xl text-sm leading-6 text-zinc-400">
-                Network confirmation can take a few minutes. If access has not
-                unlocked after a reasonable wait, contact us with your username,
-                plan, and approximate payment time. Do not send seed phrases or
-                private keys.
-              </p>
-            </div>
-          </div>
-        </section>
-      </Reveal>
-
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2">
         {CHANNELS.map((channel, index) => {
           const Icon = channel.icon;
 
           return (
-            <Reveal key={channel.title} delay={0.08 + index * 0.05} mode="mount">
+            <Reveal
+              key={channel.title}
+              delay={0.06 + index * 0.05}
+              mode="mount"
+            >
               <a
                 className="support-channel group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-pink-300/35 hover:bg-pink-500/[0.07]"
                 href={channel.href}
@@ -114,7 +82,28 @@ export default function SupportPage() {
         })}
       </section>
 
-      <Reveal delay={0.2} mode="mount">
+      <Reveal delay={0.16} mode="mount">
+        <section className="craft-surface mt-10 p-6 sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-pink-300/30 bg-pink-500/15">
+              <LifeBuoy className="size-5 text-pink-200" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-white">
+                Crypto payment still pending?
+              </h2>
+              <p className="max-w-2xl text-sm leading-6 text-zinc-400">
+                Network confirmation can take a few minutes. If access has not
+                unlocked after a reasonable wait, contact us with your username,
+                plan, and approximate payment time. Do not send seed phrases or
+                private keys.
+              </p>
+            </div>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal delay={0.22} mode="mount">
         <section className="mt-14 border border-dashed border-white/15 bg-white/[0.02] px-6 py-10 text-center">
           <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
             <Headphones className="size-4 text-zinc-400" />
@@ -135,8 +124,7 @@ export default function SupportPage() {
             >
               status page
             </NextLink>{" "}
-            before opening a ticket. Panel access requires Professional or
-            Ultimate.
+            before reaching out. Panel access requires Professional or higher.
           </p>
         </section>
       </Reveal>
