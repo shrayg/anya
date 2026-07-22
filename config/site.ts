@@ -14,7 +14,7 @@ export const siteConfig = {
   tagline: "Look people up. Connect the trail. Keep the file.",
   /** Homepage hero lede under the wordmark. */
   heroLede:
-    "Drop an email, phone, username, or Discord ID and pull what’s connected — accounts, exposure, and public records in one place. Built for investigators running real cases and anyone who needs answers without the noise.",
+    "Drop an email, phone, username, or Discord ID and pull what's connected — accounts, exposure, and public records in one place. Built for investigators running real cases and anyone who needs answers without the noise.",
   defaultWorkspacePath: "/dashboard/search/ai-search",
   /** Brand operator name used in legal copy (Snoop-style — no LLC string required on-site). */
   legalEntityName: "Anya",
