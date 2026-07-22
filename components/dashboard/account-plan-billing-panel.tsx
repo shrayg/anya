@@ -100,14 +100,16 @@ export function AccountPlanBillingPanel({
 
   if (!isPaid && !stats?.planEndsAt) {
     return (
-      <section className="mb-8 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <h3 className="text-sm font-semibold text-white">Plan & billing</h3>
-        <p className="mt-1 text-xs text-zinc-500">
-          You are on the free plan. Upgrade on Pricing for higher quotas and
-          premium modules. Credits stay on your account for pay-per-use tools.
-        </p>
-        <div className="mt-4">
-          <a className="anya-link-btn" href="/pricing">
+      <section className="account-card account-billing">
+        <header className="account-card-head">
+          <h2>Plan & billing</h2>
+          <p>
+            You are on the free plan. Upgrade on Pricing for higher quotas and
+            premium modules. Credits stay on your account for pay-per-use tools.
+          </p>
+        </header>
+        <div className="account-billing-actions">
+          <a className="account-btn-primary" href="/pricing">
             View plans
           </a>
         </div>
@@ -116,19 +118,22 @@ export function AccountPlanBillingPanel({
   }
 
   return (
-    <section className="mb-8 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-      <h3 className="text-sm font-semibold text-white">Plan & billing</h3>
-      <p className="mt-1 text-xs text-zinc-500">
-        Current access:{" "}
-        <span className="capitalize text-zinc-300">{planLabel}</span>
-        {stats?.billingInterval || profile.billingInterval
-          ? ` · billed ${stats?.billingInterval ?? profile.billingInterval}`
-          : null}
-        {planEndsAt ? ` · period ends ${formatPlanEndDate(planEndsAt)}` : null}.
-      </p>
+    <section className="account-card account-billing">
+      <header className="account-card-head">
+        <h2>Plan & billing</h2>
+        <p>
+          Current access:{" "}
+          <span className="capitalize text-zinc-300">{planLabel}</span>
+          {stats?.billingInterval || profile.billingInterval
+            ? ` · billed ${stats?.billingInterval ?? profile.billingInterval}`
+            : null}
+          {planEndsAt ? ` · period ends ${formatPlanEndDate(planEndsAt)}` : null}
+          .
+        </p>
+      </header>
 
       {cancelAtPeriodEnd ? (
-        <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-100">
+        <p className="account-billing-alert">
           Cancellation scheduled. You keep access until{" "}
           {planEndsAt
             ? formatPlanEndDate(planEndsAt)
@@ -146,7 +151,7 @@ export function AccountPlanBillingPanel({
       ) : null}
       {error ? <p className="mt-3 text-xs text-rose-300">{error}</p> : null}
 
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="account-billing-actions">
         <Button
           className="h-10 border border-pink-300/35 bg-pink-500 text-sm font-semibold text-white shadow-lg shadow-pink-500/20"
           isDisabled={Boolean(busy)}
@@ -187,7 +192,7 @@ export function AccountPlanBillingPanel({
           </Button>
         )}
 
-        <a className="anya-link-btn" href="/pricing">
+        <a className="account-btn-ghost" href="/pricing">
           Change plan / credits
         </a>
       </div>

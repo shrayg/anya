@@ -104,37 +104,37 @@ export function AccountSecurityPanel({
           : "rounded-[0.85rem] border border-white/[0.07] bg-[#141417] p-3",
       )}
     >
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
         <div>
-          <div className="mb-2 flex items-center gap-1.5">
+          <div className="mb-2.5 flex items-center gap-1.5">
             <Shield className="size-3.5 text-zinc-400" />
-            <h3 className="text-xs font-semibold text-zinc-200">Profile</h3>
+            <h3 className="text-sm font-semibold text-zinc-200">Profile</h3>
           </div>
           <label className="text-[10px] uppercase tracking-wide text-zinc-600">
             Username
           </label>
-          <p className="mt-1 rounded-md border border-white/10 bg-[#0c0c0e] px-2.5 py-1.5 text-sm text-white">
+          <p className="mt-1 rounded-lg border border-white/10 bg-[#0c0c0e] px-3 py-2 text-sm text-white">
             {username}
           </p>
         </div>
 
         <div>
-          <div className="mb-2 flex items-center gap-1.5">
+          <div className="mb-2.5 flex items-center gap-1.5">
             <Mail className="size-3.5 text-zinc-400" />
-            <h3 className="text-xs font-semibold text-zinc-200">
+            <h3 className="text-sm font-semibold text-zinc-200">
               Recovery email
             </h3>
           </div>
           <div className="flex gap-2">
             <input
-              className="h-8 min-w-0 flex-1 rounded-md border border-white/10 bg-[#0c0c0e] px-2.5 text-xs text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
+              className="h-9 min-w-0 flex-1 rounded-lg border border-white/10 bg-[#0c0c0e] px-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
               placeholder="you@example.com"
               type="email"
               value={recoveryEmail}
               onChange={(e) => setRecoveryEmail(e.target.value)}
             />
             <button
-              className="h-8 shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-2.5 text-[11px] font-medium text-zinc-200 transition hover:bg-white/[0.08] disabled:opacity-50"
+              className="h-9 shrink-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-zinc-200 transition hover:bg-white/[0.08] disabled:opacity-50"
               disabled={emailBusy}
               type="button"
               onClick={() => void saveRecoveryEmail()}
@@ -143,34 +143,34 @@ export function AccountSecurityPanel({
             </button>
           </div>
           {emailMsg ? (
-            <p className="mt-1 text-[10px] text-emerald-300">{emailMsg}</p>
+            <p className="mt-1.5 text-xs text-emerald-300">{emailMsg}</p>
           ) : null}
           {emailErr ? (
-            <p className="mt-1 text-[10px] text-red-300">{emailErr}</p>
+            <p className="mt-1.5 text-xs text-red-300">{emailErr}</p>
           ) : null}
         </div>
 
         <div>
-          <div className="mb-2 flex items-center gap-1.5">
+          <div className="mb-2.5 flex items-center gap-1.5">
             <KeyRound className="size-3.5 text-zinc-400" />
-            <h3 className="text-xs font-semibold text-zinc-200">Password</h3>
+            <h3 className="text-sm font-semibold text-zinc-200">Password</h3>
           </div>
-          <p className="mb-2 text-[10px] text-zinc-600">
+          <p className="mb-2.5 text-xs text-zinc-600">
             {passwordRequirementsHint()}
           </p>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <input
               autoComplete="current-password"
-              className="h-8 rounded-md border border-white/10 bg-[#0c0c0e] px-2.5 text-xs text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
+              className="h-9 rounded-lg border border-white/10 bg-[#0c0c0e] px-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
               placeholder="Current"
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               <input
                 autoComplete="new-password"
-                className="h-8 rounded-md border border-white/10 bg-[#0c0c0e] px-2.5 text-xs text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
+                className="h-9 rounded-lg border border-white/10 bg-[#0c0c0e] px-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
                 placeholder="New"
                 type="password"
                 value={newPassword}
@@ -178,7 +178,7 @@ export function AccountSecurityPanel({
               />
               <input
                 autoComplete="new-password"
-                className="h-8 rounded-md border border-white/10 bg-[#0c0c0e] px-2.5 text-xs text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
+                className="h-9 rounded-lg border border-white/10 bg-[#0c0c0e] px-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
                 placeholder="Confirm"
                 type="password"
                 value={confirmPassword}
@@ -186,7 +186,7 @@ export function AccountSecurityPanel({
               />
             </div>
             <button
-              className="h-8 w-fit rounded-md border border-white/10 bg-white/[0.04] px-2.5 text-[11px] font-medium text-zinc-200 transition hover:bg-white/[0.08] disabled:opacity-50"
+              className="h-9 w-fit rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-zinc-200 transition hover:bg-white/[0.08] disabled:opacity-50"
               disabled={passwordBusy}
               type="button"
               onClick={() => void changePassword()}
@@ -195,10 +195,10 @@ export function AccountSecurityPanel({
             </button>
           </div>
           {passwordMsg ? (
-            <p className="mt-1 text-[10px] text-emerald-300">{passwordMsg}</p>
+            <p className="mt-1.5 text-xs text-emerald-300">{passwordMsg}</p>
           ) : null}
           {passwordErr ? (
-            <p className="mt-1 text-[10px] text-red-300">{passwordErr}</p>
+            <p className="mt-1.5 text-xs text-red-300">{passwordErr}</p>
           ) : null}
         </div>
       </div>

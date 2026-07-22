@@ -263,7 +263,7 @@ function AccountMenu({
         >
           <NextLink
             className={itemClass}
-            href="/dashboard/account"
+            href="/account"
             role="menuitem"
             onClick={() => {
               close();
@@ -596,16 +596,16 @@ export const Navbar = () => {
                 {creditBalance != null ? (
                   <CreditBalanceChip balance={creditBalance} />
                 ) : null}
-                <AccountMenu
-                  username={username}
-                  planLabel={planLabel}
-                  onLogout={handleLogout}
-                />
                 <DashboardCta
                   href={workspacePath}
                   locked={!showWorkspace}
                   unlocking={dashboardUnlocking}
                   onLockedPress={handleLockedDashboard}
+                />
+                <AccountMenu
+                  username={username}
+                  planLabel={planLabel}
+                  onLogout={handleLogout}
                 />
               </>
             ) : (

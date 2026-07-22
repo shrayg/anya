@@ -18,7 +18,6 @@ import {
   Search,
   Shield,
   Sparkles,
-  UserRound,
 } from "lucide-react";
 import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -125,7 +124,6 @@ const mainNav: NavItem[] = [
 ];
 
 const footerNav: NavItem[] = [
-  { name: "Account", href: "/dashboard/account", icon: UserRound },
   { name: "Support", href: "/support", icon: LifeBuoy },
   { name: "Pricing", href: "/pricing", icon: CreditCard },
   { name: "Status", href: "/status", icon: Activity },
@@ -134,9 +132,6 @@ const footerNav: NavItem[] = [
 function isNavActive(item: NavItem, pathname: string) {
   if (item.name === "Case ID") {
     return pathname.startsWith("/dashboard/cases");
-  }
-  if (item.name === "Account") {
-    return pathname.startsWith("/dashboard/account");
   }
   if (
     item.name === "Settings" ||
@@ -407,7 +402,7 @@ export function DashboardSidebar({ username }: { username: string }) {
     return items;
   }, [profile.canAccessHelperDashboard, profile.canManageWorkspace]);
 
-  const accountHref = "/dashboard/account";
+  const accountHref = "/account";
 
   const isModuleLocked = (slug: string) =>
     !checkModuleAccess(plan, slug, { balance }).allowed;

@@ -44,8 +44,9 @@ export function Reveal({
     return (
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        className={clsx(className)}
+        className={clsx("overflow-visible", className)}
         initial={{ opacity: 0, y }}
+        style={{ overflow: "visible" }}
         transition={transition}
         {...props}
       >
@@ -56,8 +57,9 @@ export function Reveal({
 
   return (
     <motion.div
-      className={clsx(className)}
+      className={clsx("overflow-visible", className)}
       initial={{ opacity: 0, y }}
+      style={{ overflow: "visible" }}
       transition={transition}
       viewport={{ once: true, margin: "-8% 0px" }}
       whileInView={{ opacity: 1, y: 0 }}

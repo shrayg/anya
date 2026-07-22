@@ -307,9 +307,7 @@ pre,
   user-select: none;
 }
 
-.nav-account-trigger:hover .nav-account-username,
-.nav-account-trigger:focus-visible .nav-account-username,
-.nav-account-trigger.is-open .nav-account-username {
+.nav-account-trigger:hover .nav-account-username {
   filter: blur(0);
   user-select: text;
 }

@@ -23,7 +23,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!canManageWorkspace && !canAccessHelperDashboard) {
-      router.replace("/dashboard/account");
+      router.replace("/account");
     }
   }, [canAccessHelperDashboard, canManageWorkspace, router]);
 

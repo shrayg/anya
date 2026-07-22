@@ -64,6 +64,8 @@ export async function middleware(request: NextRequest) {
   const isApi = pathname.startsWith("/api/");
   const isOsintApi = pathname.startsWith("/api/osint/");
   const isDashboard = pathname.startsWith("/dashboard");
+  const isAccountPage = pathname === "/account" || pathname.startsWith("/account/");
+  const needsSession = isDashboard || isOsintApi || isAccountPage;
 
   // --- CSRF for state-changing /api/* (except signed webhooks / cron) ---
   if (isApi && isMutatingMethod(method) && !isCsrfExemptPath(pathname)) {
@@ -84,8 +86,8 @@ export async function middleware(request: NextRequest) {
   if (!isApi || !isMutatingMethod(method)) {
     const passthrough = withCsrfCookie(request, NextResponse.next());
 
-    // Auth gate only for dashboard + OSINT APIs (existing behavior).
-    if (!isDashboard && !isOsintApi) {
+    // Auth gate for dashboard, account page, and OSINT APIs.
+    if (!needsSession) {
       return passthrough;
     }
 
@@ -101,8 +103,9 @@ export async function middleware(request: NextRequest) {
 
       // Prefer marketing home over login when session is missing/expired
       // (e.g. browser restores a /dashboard* tab after close).
+      const loginTarget = isAccountPage ? "/auth?action=login" : "/";
       return stripFingerprintHeaders(
-        NextResponse.redirect(new URL("/", request.url)),
+        NextResponse.redirect(new URL(loginTarget, request.url)),
       );
     }
 
@@ -117,8 +120,9 @@ export async function middleware(request: NextRequest) {
         );
       }
 
+      const loginTarget = isAccountPage ? "/auth?action=login" : "/";
       return stripFingerprintHeaders(
-        NextResponse.redirect(new URL("/", request.url)),
+        NextResponse.redirect(new URL(loginTarget, request.url)),
       );
     }
   }

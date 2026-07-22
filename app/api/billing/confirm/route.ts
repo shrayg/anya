@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
 
     if ("type" in result && result.type === "api_access") {
       return NextResponse.redirect(
-        `${baseUrl}/dashboard/account?billing=success`,
+        `${baseUrl}/account?billing=success`,
       );
     }
 
