@@ -2,6 +2,7 @@
 
 import { HomeBackground } from "@/components/home-background";
 import { HomeSearch } from "@/components/home-search";
+import { HomeShowcase } from "@/components/home-showcase";
 import { IntelligenceModulesSection } from "@/components/intelligence-modules-section";
 import { StatsSection } from "@/components/stats-section";
 import ShinyText from "@/components/shiny-text";
@@ -36,9 +37,14 @@ export default function Home() {
         </Reveal>
       </section>
 
+      <Reveal delay={0.1} mode="mount">
+        <HomeShowcase />
+      </Reveal>
+
       <Reveal delay={0.14} mode="mount">
         <StatsSection />
       </Reveal>
+
       <Reveal delay={0.2} mode="mount">
         <IntelligenceModulesSection />
       </Reveal>
