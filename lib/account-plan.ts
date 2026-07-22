@@ -60,14 +60,28 @@ export function formatAvailableSearches(stats: UserStats | null) {
   return String(Math.max(stats.quota - stats.usage.last24h, 0));
 }
 
-/** Display User.balance as spendable credits (USD). */
+/** Display User.balance as USD. */
 export function formatBalance(balance: number | undefined) {
   if (balance === undefined) return "$0.00";
 
   return `$${balance.toFixed(2)}`;
 }
 
-export const formatCredits = formatBalance;
+/**
+ * Display User.balance as credits (1 credit ≈ $1).
+ * Whole amounts drop trailing zeros; fractional keep two decimals.
+ */
+export function formatCredits(balance: number | undefined) {
+  const value = balance ?? 0;
+
+  if (!Number.isFinite(value)) return "0";
+
+  if (Number.isInteger(value) || Math.abs(value - Math.round(value)) < 1e-9) {
+    return String(Math.round(value));
+  }
+
+  return value.toFixed(2);
+}
 
 export function formatCountdown(ms: number): string {
   if (!Number.isFinite(ms) || ms <= 0) return "00:00:00";

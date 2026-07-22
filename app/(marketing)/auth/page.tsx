@@ -342,7 +342,7 @@ function AuthForm() {
   return (
     <motion.section
       animate={{ opacity: 1 }}
-      className="brutal-page brutal-auth-page relative z-20 flex min-h-[calc(100vh-12rem)] items-center justify-center px-4 py-12"
+      className="brutal-page brutal-auth-page relative z-20 flex w-full flex-1 items-center justify-center px-4"
       initial={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
     >
@@ -632,7 +632,7 @@ export default function AuthPage() {
       <HomeBackground />
       <Suspense
         fallback={
-          <div className="relative z-20 flex min-h-[calc(100vh-12rem)] items-center justify-center text-sm text-zinc-500">
+          <div className="brutal-auth-page relative z-20 flex w-full flex-1 items-center justify-center text-sm text-zinc-500">
             <Clock className="mr-2 size-4 animate-spin text-anya-accent" />
             Loading…
           </div>

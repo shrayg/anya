@@ -60,12 +60,12 @@ export function IntelligenceModulesSection() {
     <section className="mod-shell relative z-20 mx-auto w-full max-w-6xl px-4 py-10 md:px-6 md:py-12">
       <header className="mod-explorer-head">
         <div>
-          <p className="mod-kicker mod-kicker--tight">Module graph</p>
+          <p className="mod-kicker mod-kicker--tight">Module directory</p>
           <h2 className="mod-explorer-title">
             {CATALOG_MODULE_COUNT} live modules
           </h2>
           <p className="mod-explorer-text">
-            Hover a lane to browse its modules. Click to pin the list open.
+            Pick a lane on the left. Open any module from the list.
           </p>
         </div>
         <Link className="mod-cta" href={siteConfig.defaultWorkspacePath}>

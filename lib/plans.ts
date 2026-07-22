@@ -63,8 +63,12 @@ export const AI_MODULE_SLUGS = new Set([
 ]);
 
 export const PAY_PER_USE_MODULE_SLUGS = new Set(["intelx", "stealer-logs"]);
+/** USD charged per pay-per-use search (module rates may change; balance is credit-denominated). */
 export const PAY_PER_USE_COST = 0.25;
 export const PROFESSIONAL_INTELX_DAILY_LIMIT = 5;
+
+/** Account balance unit: 1 credit ≈ $1 USD. Pack prices mirror credit counts. */
+export const CREDIT_USD_VALUE = 1;
 
 /** Public-records modules require Professional panel access (not Free/Starter homepage set). */
 export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
@@ -187,22 +191,22 @@ export type CreditPack = {
   highlighted?: boolean;
 };
 
-/** Credit packs top up User.balance (USD) for pay-per-use modules. */
+/** Credit packs top up User.balance (1 credit ≈ $1) for pay-per-use modules. */
 export const CREDIT_PACKS: CreditPack[] = [
   {
     id: "credits_10",
     name: "Starter Pack",
     credits: 10,
     price: 10,
-    description: "40 IntelX / Stealer searches at $0.25 each",
+    description: "10 credits — enough to try pay-per-use modules",
   },
   {
     id: "credits_25",
     name: "Investigator Pack",
     credits: 25,
     price: 25,
-    bonusCredits: 2.5,
-    description: "$25 + $2.50 bonus credit",
+    bonusCredits: 3,
+    description: "25 credits + 3 bonus — best for regular casework",
     highlighted: true,
   },
   {
@@ -210,8 +214,8 @@ export const CREDIT_PACKS: CreditPack[] = [
     name: "Ops Pack",
     credits: 50,
     price: 50,
-    bonusCredits: 7.5,
-    description: "$50 + $7.50 bonus credit",
+    bonusCredits: 8,
+    description: "50 credits + 8 bonus — higher-volume investigations",
   },
   {
     id: "credits_100",
@@ -219,7 +223,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     credits: 100,
     price: 100,
     bonusCredits: 20,
-    description: "$100 + $20 bonus credit",
+    description: "100 credits + 20 bonus — teams and heavy usage",
   },
 ];
 
@@ -427,7 +431,7 @@ export function checkModuleAccess(
       if (balance < PAY_PER_USE_COST) {
         return {
           allowed: false,
-          reason: `Stealer Logs cost $${PAY_PER_USE_COST.toFixed(2)} per search. Top up credits on the Pricing page.`,
+          reason: `Stealer Logs costs ${PAY_PER_USE_COST} credits per search. Top up on the Pricing page.`,
           requiresBalance: true,
           balanceCost: PAY_PER_USE_COST,
         };

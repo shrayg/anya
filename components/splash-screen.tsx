@@ -49,6 +49,9 @@ export const SplashScreen = () => {
 
   useLayoutEffect(() => {
     if (!isHome) {
+      // First paint on a non-home route (or any leave from home) means the
+      // entrance veil already had its chance — never re-lock on a later Home visit.
+      started.current = true;
       setPhase("done");
 
       return;

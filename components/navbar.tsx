@@ -25,20 +25,122 @@ import { Link } from "@heroui/link";
 import NextLink from "next/link";
 import clsx from "clsx";
 import Image from "next/image";
+import { AnimatePresence, motion } from "framer-motion";
+import { Lock, Sparkles, Unlock } from "lucide-react";
 
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
+import { formatCredits } from "@/lib/account-plan";
 import {
   getAppLandingPath,
   getPlanDefinition,
   hasWorkspaceDashboardAccess,
   resolveUserPlan,
 } from "@/lib/plans";
+import { toast, toastSignInForPanel, toastUpgradePanel } from "@/lib/toast";
+
+const DASHBOARD_UNLOCK_KEY = "anya:dashboard-unlock";
 
 function isNavActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function CreditBalanceChip({
+  balance,
+  className,
+}: {
+  balance: number;
+  className?: string;
+}) {
+  return (
+    <NextLink
+      className={clsx("nav-credits-chip", className)}
+      href="/pricing?tab=credits"
+      title="Buy credits"
+    >
+      <Sparkles aria-hidden className="nav-credits-chip-icon" />
+      <span className="nav-credits-chip-value tabular-nums">
+        {formatCredits(balance)}
+      </span>
+      <span className="nav-credits-chip-label">credits</span>
+    </NextLink>
+  );
+}
+
+function DashboardCta({
+  locked,
+  unlocking,
+  href,
+  onLockedPress,
+  onNavigate,
+  className,
+}: {
+  locked: boolean;
+  unlocking?: boolean;
+  href: string;
+  onLockedPress: () => void;
+  onNavigate?: () => void;
+  className?: string;
+}) {
+  if (locked) {
+    return (
+      <Button
+        className={clsx(
+          "nav-dashboard-cta nav-dashboard-cta--locked shrink-0 font-semibold",
+          className,
+        )}
+        radius="full"
+        variant="solid"
+        onPress={onLockedPress}
+      >
+        <Lock aria-hidden className="size-3.5" />
+        Dashboard
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      as={NextLink}
+      className={clsx(
+        "nav-dashboard-cta shrink-0 font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]",
+        unlocking && "nav-dashboard-cta--unlocking",
+        className,
+      )}
+      href={href}
+      radius="full"
+      variant="solid"
+      onPress={onNavigate}
+    >
+      <span className="relative inline-flex size-3.5 items-center justify-center">
+        <AnimatePresence mode="wait" initial={false}>
+          {unlocking ? (
+            <motion.span
+              key="unlock"
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              className="absolute inset-0 flex items-center justify-center"
+              exit={{ scale: 0.6, opacity: 0 }}
+              initial={{ scale: 0.4, rotate: -25, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 420, damping: 18 }}
+            >
+              <Unlock aria-hidden className="size-3.5" />
+            </motion.span>
+          ) : (
+            <motion.span
+              key="idle"
+              animate={{ opacity: 1 }}
+              className="absolute inset-0"
+              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+            />
+          )}
+        </AnimatePresence>
+      </span>
+      Dashboard
+    </Button>
+  );
 }
 
 function AccountMenu({
@@ -246,8 +348,10 @@ export const Navbar = () => {
   const pathname = usePathname();
   const [username, setUsername] = useState<string | null>(null);
   const [planLabel, setPlanLabel] = useState<string | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [workspacePath, setWorkspacePath] = useState("/dashboard/search/ai-search");
   const [showWorkspace, setShowWorkspace] = useState(false);
+  const [dashboardUnlocking, setDashboardUnlocking] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pillNavRef = useRef<HTMLElement>(null);
   const pillTabRefs = useRef<(HTMLElement | null)[]>([]);
@@ -336,23 +440,55 @@ export const Navbar = () => {
             canManageWorkspace: data.canManageWorkspace,
           };
           setPlanLabel(getPlanDefinition(resolveUserPlan(user)).name);
-          setShowWorkspace(hasWorkspaceDashboardAccess(user));
+          const hasDash = hasWorkspaceDashboardAccess(user);
+          setShowWorkspace(hasDash);
           setWorkspacePath(getAppLandingPath(user));
+          setCreditBalance(
+            typeof data.user.balance === "number" ? data.user.balance : 0,
+          );
+
+          if (hasDash && typeof window !== "undefined") {
+            try {
+              if (sessionStorage.getItem(DASHBOARD_UNLOCK_KEY) === "1") {
+                sessionStorage.removeItem(DASHBOARD_UNLOCK_KEY);
+                setDashboardUnlocking(true);
+                toast.success("Panel unlocked", {
+                  description: "Your dashboard is ready — welcome in.",
+                });
+                window.setTimeout(() => setDashboardUnlocking(false), 2800);
+              }
+            } catch {
+              /* ignore */
+            }
+          }
+
           return;
         }
 
         setUsername(null);
         setPlanLabel(null);
+        setCreditBalance(null);
         setShowWorkspace(false);
         setWorkspacePath("/dashboard/search/ai-search");
       })
       .catch(() => {
         setUsername(null);
         setPlanLabel(null);
+        setCreditBalance(null);
         setShowWorkspace(false);
         setWorkspacePath("/dashboard/search/ai-search");
       });
   }, []);
+
+  const handleLockedDashboard = useCallback(() => {
+    if (!username) {
+      toastSignInForPanel();
+
+      return;
+    }
+
+    toastUpgradePanel();
+  }, [username]);
 
   useEffect(() => {
     loadAuth();
@@ -367,22 +503,24 @@ export const Navbar = () => {
     await apiFetch("/api/auth/logout", { method: "POST" });
     setUsername(null);
     setPlanLabel(null);
+    setCreditBalance(null);
     window.location.href = "/";
   };
 
   return (
     <>
+      <div className="anya-floating-nav-shell">
       <HeroUINavbar
         classNames={{
-          base: "border-b border-white/[0.06] bg-black/55 backdrop-blur-xl backdrop-saturate-150",
+          base: "anya-floating-nav border-none bg-transparent shadow-none",
           // Fixed 3-zone grid — avoids absolute-center overlapping brand/account on medium widths.
           wrapper:
-            "anya-marketing-nav-wrapper max-w-7xl px-4 sm:px-6 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3",
+            "anya-marketing-nav-wrapper max-w-7xl px-3 sm:px-4 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3",
         }}
         isMenuOpen={menuOpen}
         maxWidth="xl"
         onMenuOpenChange={setMenuOpen}
-        position="sticky"
+        position="static"
       >
         {/* Left — brand */}
         <NavbarContent className="basis-auto md:min-w-0 md:justify-self-start" justify="start">
@@ -461,25 +599,28 @@ export const Navbar = () => {
           <NavbarItem className="nav-auth-cluster flex min-w-0 shrink items-center gap-2">
             {username ? (
               <>
-                {showWorkspace ? (
-                  <Button
-                    as={NextLink}
-                    className="nav-dashboard-cta shrink-0 font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
-                    href={workspacePath}
-                    radius="full"
-                    variant="solid"
-                  >
-                    Dashboard
-                  </Button>
+                {creditBalance != null ? (
+                  <CreditBalanceChip balance={creditBalance} />
                 ) : null}
                 <AccountMenu
                   username={username}
                   planLabel={planLabel}
                   onLogout={handleLogout}
                 />
+                <DashboardCta
+                  href={workspacePath}
+                  locked={!showWorkspace}
+                  unlocking={dashboardUnlocking}
+                  onLockedPress={handleLockedDashboard}
+                />
               </>
             ) : (
               <>
+                <DashboardCta
+                  href="/pricing"
+                  locked
+                  onLockedPress={handleLockedDashboard}
+                />
                 <Button
                   as={NextLink}
                   className="font-medium text-white/70"
@@ -505,12 +646,20 @@ export const Navbar = () => {
 
         <NavbarContent className="basis-1 gap-2 pl-2 md:hidden" justify="end">
           {username ? (
-            <AccountMenu
-              username={username}
-              planLabel={planLabel}
-              onLogout={handleLogout}
-              onNavigate={() => setMenuOpen(false)}
-            />
+            <>
+              {creditBalance != null ? (
+                <CreditBalanceChip
+                  balance={creditBalance}
+                  className="nav-credits-chip--compact"
+                />
+              ) : null}
+              <AccountMenu
+                username={username}
+                planLabel={planLabel}
+                onLogout={handleLogout}
+                onNavigate={() => setMenuOpen(false)}
+              />
+            </>
           ) : null}
           <NavbarMenuToggle className="text-white/80" />
         </NavbarContent>
@@ -551,20 +700,26 @@ export const Navbar = () => {
             })}
             <NavbarMenuItem className="mt-4 flex flex-col gap-2">
               {username ? (
-                showWorkspace ? (
-                  <Button
-                    as={NextLink}
-                    className="font-semibold bg-anya-accent text-black"
-                    href={workspacePath}
-                    radius="full"
-                    variant="solid"
-                    onPress={() => setMenuOpen(false)}
-                  >
-                    Dashboard
-                  </Button>
-                ) : null
+                <DashboardCta
+                  href={workspacePath}
+                  locked={!showWorkspace}
+                  unlocking={dashboardUnlocking}
+                  onLockedPress={() => {
+                    setMenuOpen(false);
+                    handleLockedDashboard();
+                  }}
+                  onNavigate={() => setMenuOpen(false)}
+                />
               ) : (
                 <>
+                  <DashboardCta
+                    href="/pricing"
+                    locked
+                    onLockedPress={() => {
+                      setMenuOpen(false);
+                      handleLockedDashboard();
+                    }}
+                  />
                   <Button as={NextLink} href="/auth?action=login" radius="full" variant="light">
                     Login
                   </Button>
@@ -583,6 +738,7 @@ export const Navbar = () => {
           </div>
         </NavbarMenu>
       </HeroUINavbar>
+      </div>
     </>
   );
 };

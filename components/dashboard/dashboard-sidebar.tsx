@@ -17,6 +17,7 @@ import {
   PanelLeftOpen,
   Search,
   Shield,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import clsx from "clsx";
@@ -34,7 +35,7 @@ import {
 } from "@/lib/search-modules";
 import { isCryptoIntelEnabled } from "@/lib/crypto-intel/enabled";
 import { checkModuleAccess, resolveUserPlan } from "@/lib/plans";
-import { getPlanDisplayLabel } from "@/lib/account-plan";
+import { getPlanDisplayLabel, formatCredits } from "@/lib/account-plan";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import {
   SearchJobsSidebarButton,
@@ -730,7 +731,7 @@ export function DashboardSidebar({ username }: { username: string }) {
               >
                 {username.charAt(0).toUpperCase()}
               </Link>
-              <div className="dash-sidebar-user-meta min-w-0">
+                <div className="dash-sidebar-user-meta min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <p className="truncate text-sm font-medium text-white">
                     {username}
@@ -744,6 +745,19 @@ export function DashboardSidebar({ username }: { username: string }) {
                       ? planLabel
                       : "Investigator"}
                 </p>
+                {!collapsed ? (
+                  <Link
+                    className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-[11px] text-zinc-400 transition hover:text-[var(--anya-blush)]"
+                    href="/pricing?tab=credits"
+                    title="Buy credits"
+                  >
+                    <Sparkles className="size-3 shrink-0 text-[var(--anya-blush)]" />
+                    <span className="tabular-nums font-medium text-zinc-300">
+                      {formatCredits(balance)}
+                    </span>
+                    <span>credits</span>
+                  </Link>
+                ) : null}
               </div>
             </div>
             <button

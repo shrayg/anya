@@ -28,6 +28,7 @@ import {
   getPricingPlans,
   type BillingInterval,
 } from "@/lib/plans";
+import { toast } from "@/lib/toast";
 
 type PricingTab = "subscriptions" | "credits" | "api";
 
@@ -59,6 +60,35 @@ export function PricingPageContent({
   const [billingChecking, setBillingChecking] = useState(false);
   const [pendingCheckout, setPendingCheckout] =
     useState<PendingCheckout | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+
+    if (tabParam === "credits" || tabParam === "api" || tabParam === "subscriptions") {
+      setTab(tabParam);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated) {
+      setCreditBalance(null);
+
+      return;
+    }
+
+    fetch("/api/auth/me", { cache: "no-store", credentials: "include" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data?.authenticated && typeof data.user?.balance === "number") {
+          setCreditBalance(data.user.balance);
+        }
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [authenticated, billingStatus]);
 
   function replaceBillingQuery(next: BillingStatusKind | null) {
     if (typeof window === "undefined") return;
@@ -83,6 +113,14 @@ export function PricingPageContent({
       if (data?.confirmed) {
         setBillingStatus("success");
         replaceBillingQuery("success");
+        try {
+          sessionStorage.setItem("anya:dashboard-unlock", "1");
+        } catch {
+          /* ignore */
+        }
+        toast.success("Payment confirmed", {
+          description: "Your plan or credits are active.",
+        });
 
         return true;
       }
@@ -100,6 +138,17 @@ export function PricingPageContent({
     const kind = billingStatusFromQuery(status);
 
     setBillingStatus(kind);
+
+    if (kind === "success") {
+      try {
+        sessionStorage.setItem("anya:dashboard-unlock", "1");
+      } catch {
+        /* ignore */
+      }
+      toast.success("Payment confirmed", {
+        description: "Your plan or credits are active.",
+      });
+    }
 
     if (kind !== "pending") return;
 
@@ -411,60 +460,119 @@ export function PricingPageContent({
           )}
 
           {tab === "credits" && (
-            <div className="pricing-credit-view mt-8">
-              <p className="pricing-credit-intro mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400">
-                Credits top up your account balance for pay-per-use modules like
-                Stealer Logs (${(0.25).toFixed(2)} / search). Credits never
-                expire.
-              </p>
+            <div className="pricing-credit-view mt-10">
+              <div className="pricing-credit-hero mx-auto mb-8 max-w-2xl text-center">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400">
+                  <Sparkles className="size-3.5 text-[var(--anya-blush)]" />
+                  1 credit ≈ $1
+                </div>
+                <p className="pricing-credit-intro text-sm leading-relaxed text-zinc-400">
+                  Top up once, spend across pay-per-use modules. Credits never
+                  expire
+                  {creditBalance != null ? (
+                    <>
+                      {" "}
+                      · your balance is{" "}
+                      <span className="font-medium text-white tabular-nums">
+                        {creditBalance % 1 === 0
+                          ? creditBalance.toFixed(0)
+                          : creditBalance.toFixed(2)}{" "}
+                        credits
+                      </span>
+                    </>
+                  ) : null}
+                  .
+                </p>
+              </div>
+
               <div className="pricing-credit-grid grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {CREDIT_PACKS.map((pack, index) => {
                   const total = getCreditPackTotal(pack);
+                  const bonus = pack.bonusCredits ?? 0;
 
                   return (
                     <article
                       key={pack.id}
                       className={clsx(
-                        "pricing-credit-card flex h-full flex-col rounded-2xl border bg-white/[0.04] p-5 backdrop-blur-md",
+                        "pricing-credit-card group relative flex h-full flex-col overflow-hidden rounded-2xl border p-6",
                         pack.highlighted
-                          ? "border-[var(--anya-blush)]/40 shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_18%,transparent)]"
-                          : "border-white/10",
+                          ? "border-[var(--anya-blush)]/45 bg-gradient-to-b from-[color-mix(in_srgb,var(--anya-blush)_14%,transparent)] to-white/[0.03] shadow-[0_0_0_1px_color-mix(in_srgb,var(--anya-blush)_20%,transparent),0_24px_48px_-28px_rgba(0,0,0,0.75)]"
+                          : "border-white/10 bg-white/[0.03] hover:border-white/20",
                       )}
                     >
+                      {pack.highlighted ? (
+                        <span className="absolute right-4 top-4 rounded-full bg-[var(--anya-blush)]/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0c1019]">
+                          Popular
+                        </span>
+                      ) : null}
+
                       <div className="pricing-credit-head">
-                        <span>PACK / {String(index + 1).padStart(2, "0")}</span>
-                        <h3 className="text-lg font-bold text-white">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                          <Sparkles className="size-3 text-[var(--anya-blush)]" />
+                          Pack {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <h3 className="mt-3 text-xl font-semibold tracking-tight text-white">
                           {pack.name}
                         </h3>
+                        <p className="mt-1.5 text-sm leading-snug text-zinc-400">
+                          {pack.description}
+                        </p>
                       </div>
-                      <p className="mt-1 text-xs text-zinc-400">
-                        {pack.description}
-                      </p>
-                      <div className="pricing-credit-value mt-4">
-                        <AnimatedPrice
-                          className="text-3xl font-bold text-white tabular-nums"
-                          duration={0.65}
-                          value={pack.price}
-                        />
-                        <i>ONE-TIME</i>
+
+                      <div className="pricing-credit-value mt-6">
+                        <div className="flex items-baseline gap-1.5">
+                          <AnimatedPrice
+                            className="text-4xl font-semibold tracking-tight text-white tabular-nums"
+                            duration={0.65}
+                            value={pack.price}
+                          />
+                          <span className="text-sm text-zinc-500">USD</span>
+                        </div>
+                        <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-300">
+                          <Sparkles className="size-3.5 shrink-0 text-[var(--anya-blush)]" />
+                          <span className="tabular-nums font-medium text-white">
+                            {total}
+                          </span>{" "}
+                          credits total
+                          {bonus > 0 ? (
+                            <span className="text-emerald-400/90">
+                              · +{bonus} bonus
+                            </span>
+                          ) : null}
+                        </p>
                       </div>
-                      <div className="pricing-credit-ledger">
-                        <span>
-                          ACCOUNT CREDIT <strong>${total.toFixed(2)}</strong>
-                        </span>
-                        <span>
-                          BONUS{" "}
-                          <strong>
-                            {pack.bonusCredits
-                              ? `$${pack.bonusCredits.toFixed(2)}`
-                              : "—"}
+
+                      <ul className="pricing-credit-ledger mt-5 space-y-2 border-t border-white/8 pt-4 text-sm text-zinc-400">
+                        <li className="flex items-center justify-between gap-3">
+                          <span>Base credits</span>
+                          <strong className="font-medium text-white tabular-nums">
+                            {pack.credits}
                           </strong>
-                        </span>
-                      </div>
+                        </li>
+                        <li className="flex items-center justify-between gap-3">
+                          <span>Bonus</span>
+                          <strong className="font-medium text-white tabular-nums">
+                            {bonus > 0 ? `+${bonus}` : "—"}
+                          </strong>
+                        </li>
+                        <li className="flex items-center justify-between gap-3">
+                          <span>You receive</span>
+                          <strong className="font-medium text-[var(--anya-blush)] tabular-nums">
+                            {total} credits
+                          </strong>
+                        </li>
+                      </ul>
+
                       <Button
-                        className="mt-auto h-10 w-full border border-white/15 bg-white/10 text-sm font-semibold text-white"
+                        className={clsx(
+                          "mt-6 h-11 w-full text-sm font-semibold",
+                          pack.highlighted
+                            ? "bg-[var(--anya-blush)] text-[#0c1019] hover:bg-[var(--anya-blush-hover)]"
+                            : "border border-white/15 bg-white/10 text-white hover:bg-white/15",
+                        )}
                         isDisabled={busyId === pack.id}
                         isLoading={busyId === pack.id}
+                        radius="lg"
                         onPress={() =>
                           requestCheckout(
                             { type: "credits", packId: pack.id },
@@ -472,7 +580,7 @@ export function PricingPageContent({
                           )
                         }
                       >
-                        Buy credits
+                        Buy {total} credits
                       </Button>
                     </article>
                   );

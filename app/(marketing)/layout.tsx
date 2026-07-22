@@ -7,9 +7,10 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative flex flex-col min-h-screen">
+    <div className="relative flex min-h-screen flex-col">
       <Navbar />
-      <main className="container mx-auto max-w-7xl pt-16 px-6 flex-grow">
+      {/* Extra top pad so content clears the floating nav island */}
+      <main className="container mx-auto flex max-w-7xl flex-grow flex-col px-6 pt-24">
         {children}
       </main>
       <Footer />

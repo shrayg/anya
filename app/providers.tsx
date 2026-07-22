@@ -8,8 +8,10 @@ import { HeroUIProvider } from "@heroui/system";
 import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
+import { AdminPaymentToasts } from "@/components/admin-payment-toasts";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { SplashScreen } from "@/components/splash-screen";
+import { Toaster } from "@/components/ui/sonner";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -41,6 +43,8 @@ export function Providers({ children, themeProps }: ProvidersProps) {
         </Suspense>
         <SplashScreen />
         {children}
+        <Toaster />
+        <AdminPaymentToasts />
       </NextThemesProvider>
     </HeroUIProvider>
   );
