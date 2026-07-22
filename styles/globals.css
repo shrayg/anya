@@ -3694,68 +3694,34 @@ html[data-splash="active"] [data-splash-target] {
 
 .mod-map {
   position: relative;
-  padding: 1.1rem 0 0.5rem;
+  padding: 0.35rem 0 0.5rem;
 }
 
-.mod-map::before {
-  content: "";
-  position: absolute;
-  top: 3.2rem;
-  left: 50%;
-  width: 1px;
-  height: calc(100% - 3.2rem);
-  transform: translateX(-50%);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--anya-blush) 30%, rgba(255, 255, 255, 0.14)),
-    transparent 92%
-  );
-  opacity: 0.75;
-  pointer-events: none;
-}
-
-.mod-map-hub {
-  position: relative;
-  z-index: 1;
+.mod-map-rail {
   display: grid;
-  justify-items: center;
-  gap: 0.24rem;
-  width: fit-content;
-  min-width: 12rem;
-  margin: 0 auto 1.15rem;
-  padding: 0.62rem 1rem 0.56rem;
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 24%, rgba(255, 255, 255, 0.12));
-  border-radius: 999px;
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--anya-blush) 12%, rgba(255, 255, 255, 0.03)),
-      rgba(0, 0, 0, 0.62) 62%
-    );
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  grid-template-columns: minmax(1.5rem, 1fr) auto minmax(1.5rem, 1fr);
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0 0 1rem;
 }
 
-.mod-map-hub-dot {
-  width: 0.46rem;
-  height: 0.46rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--anya-blush) 82%, white);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--anya-blush) 16%, transparent);
+.mod-map-rail span {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.14),
+    transparent
+  );
 }
 
-.mod-map-hub p {
+.mod-map-rail p {
   margin: 0;
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(161, 161, 170, 1);
-}
-
-.mod-map-hub strong {
-  margin: 0;
-  font-size: 0.86rem;
-  letter-spacing: 0.04em;
-  color: #fff;
+  color: rgba(113, 113, 122, 1);
+  white-space: nowrap;
 }
 
 .mod-map-grid {
@@ -3798,18 +3764,6 @@ html[data-splash="active"] [data-splash-target] {
   border-color: color-mix(in srgb, var(--anya-blush) 22%, rgba(255, 255, 255, 0.14));
   transform: translateY(-2px);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.3);
-}
-
-.mod-map-node::before {
-  content: "";
-  position: absolute;
-  top: -0.92rem;
-  left: 50%;
-  width: 1px;
-  height: 0.92rem;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.12);
-  opacity: 0.75;
 }
 
 .mod-map-node--featured {
@@ -3933,33 +3887,19 @@ html[data-splash="active"] [data-splash-target] {
   color: rgba(113, 113, 122, 1);
 }
 
-@keyframes mod-map-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
-}
-
 @media (max-width: 700px) {
   .mod-map {
-    padding-top: 0.65rem;
+    padding-top: 0.15rem;
   }
 
-  .mod-map::before {
-    display: none;
+  .mod-map-rail {
+    gap: 0.55rem;
+    margin-bottom: 0.85rem;
   }
 
-  .mod-map-hub {
-    min-width: 0;
-    width: 100%;
-    border-radius: 0.9rem;
-  }
-
-  .mod-map-node::before {
-    display: none;
+  .mod-map-rail p {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
   }
 }
 

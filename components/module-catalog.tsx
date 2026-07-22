@@ -145,15 +145,19 @@ export function ModuleCatalog({
   }
 
   if (variant === "mindmap") {
+    const moduleCount = sections.reduce(
+      (sum, section) => sum + section.items.length,
+      0,
+    );
+
     return (
       <div className="mod-map" role="list">
-        <div className="mod-map-hub">
-          <span className="mod-map-hub-dot" />
-          <p>Module lanes</p>
-          <strong>
-            {sections.reduce((sum, section) => sum + section.items.length, 0)}{" "}
-            live modules
-          </strong>
+        <div className="mod-map-rail" aria-hidden>
+          <span />
+          <p>
+            {moduleCount} modules · {sections.length} lanes
+          </p>
+          <span />
         </div>
 
         <div className="mod-map-grid">
