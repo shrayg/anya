@@ -9,8 +9,12 @@ export type NavItem = {
 export const siteConfig = {
   name: "Anya",
   navName: "AnyaInt",
-  description: "Anya | OSINT intelligence platform for investigators",
-  tagline: "OSINT intelligence platform for investigators",
+  description:
+    "Anya | Look people up across socials, exposure, and public records",
+  tagline: "Look people up. Connect the trail. Keep the file.",
+  /** Homepage hero lede under the wordmark. */
+  heroLede:
+    "Drop an email, phone, username, or Discord ID and pull what’s connected — accounts, exposure, and public records in one place. Built for investigators running real cases and anyone who needs answers without the noise.",
   defaultWorkspacePath: "/dashboard/search/ai-search",
   /** Brand operator name used in legal copy (Snoop-style — no LLC string required on-site). */
   legalEntityName: "Anya",

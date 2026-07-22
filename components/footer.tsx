@@ -39,8 +39,8 @@ export const Footer = () => {
               </p>
             </div>
             <p className="text-sm leading-6 text-zinc-400">
-              {siteConfig.tagline}. Built for authorized investigative and
-              security research use.
+              {siteConfig.tagline} For authorized research and investigative
+              use.
             </p>
             <p className="text-sm text-zinc-500">
               <a

@@ -24,8 +24,7 @@ export default function Home() {
             text={siteConfig.navName}
           />
           <p className="max-w-2xl px-2 text-sm leading-6 text-gray-300 md:text-base md:leading-7">
-            {siteConfig.tagline}. Create an account, run authorized lookups
-            across exposure and social modules, and file intel into cases.
+            {siteConfig.heroLede}
           </p>
         </HomeReturnReveal>
 
