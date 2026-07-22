@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
+  Code2,
   Database,
   Hexagon,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
@@ -16,49 +16,54 @@ import { CATALOG_MODULE_COUNT } from "@/lib/featured-modules";
 import { siteConfig } from "@/config/site";
 
 const SCAN_STEPS = [
-  { id: "email", label: "Email exposure sweep" },
-  { id: "phone", label: "Phone & carrier pivot" },
-  { id: "social", label: "Username / platform map" },
-  { id: "breach", label: "Breach & stealer indexes" },
+  { id: "geo", label: "Identity resolve", ms: "38ms" },
+  { id: "stealer", label: "Stealer / breach fan-out", ms: "91ms" },
+  { id: "social", label: "Platform username map", ms: "74ms" },
+  { id: "records", label: "Public records pivot", ms: "112ms" },
 ] as const;
 
 const FINDINGS = [
   {
-    key: "geo",
+    key: "accounts",
     label: "LINKED ACCOUNTS",
-    value: "14 profiles across 6 platforms",
+    value: "14 profiles · 6 platforms",
     tone: "med" as const,
     badge: "MED",
   },
   {
-    key: "abuse",
-    label: "BREACH HITS",
-    value: "3 collections · 2019–2024",
+    key: "breach",
+    label: "BREACH EXPOSURE",
+    value: "3 collections · credential hits",
     tone: "crit" as const,
     badge: "CRIT",
   },
   {
-    key: "ports",
-    label: "PUBLIC RECORDS",
-    value: "2 court / address signals",
+    key: "records",
+    label: "PUBLIC SIGNALS",
+    value: "2 court / address matches",
     tone: "high" as const,
     badge: "HIGH",
+  },
+  {
+    key: "score",
+    label: "CONFIDENCE",
+    value: "82 / 100 correlation score",
+    tone: "med" as const,
+    badge: "MED",
   },
 ];
 
 const PILLS = [
-  {
-    icon: Zap,
-    label: "Sub-second lookups",
-  },
-  {
-    icon: Database,
-    label: "Breach + stealer coverage",
-  },
-  {
-    icon: Hexagon,
-    label: `${CATALOG_MODULE_COUNT} intelligence modules`,
-  },
+  { icon: Zap, label: "Sub-second lookups" },
+  { icon: Database, label: "Breach + stealer indexes" },
+  { icon: Hexagon, label: `${CATALOG_MODULE_COUNT}+ live modules` },
+] as const;
+
+const SHOWCASE_STATS = [
+  { value: "4.2B+", label: "Records indexed" },
+  { value: String(CATALOG_MODULE_COUNT), label: "Intelligence modules" },
+  { value: "99.9%", label: "Platform uptime" },
+  { value: "320ms", label: "P95 response" },
 ] as const;
 
 function toneClass(tone: "med" | "crit" | "high") {
@@ -69,9 +74,10 @@ function toneClass(tone: "med" | "crit" | "high") {
 
 function SignalAgentDemo() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-12% 0px" });
+  const inView = useInView(ref, { amount: 0.35 });
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
+  const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
     if (!inView) return;
@@ -82,25 +88,26 @@ function SignalAgentDemo() {
     const timers: number[] = [];
     SCAN_STEPS.forEach((_, index) => {
       timers.push(
-        window.setTimeout(() => {
-          setStep(index + 1);
-        }, 420 + index * 520),
+        window.setTimeout(() => setStep(index + 1), 280 + index * 480),
       );
     });
     timers.push(
-      window.setTimeout(
-        () => setDone(true),
-        420 + SCAN_STEPS.length * 520 + 280,
-      ),
+      window.setTimeout(() => setDone(true), 280 + SCAN_STEPS.length * 480 + 220),
+    );
+    timers.push(
+      window.setTimeout(() => setCycle((c) => c + 1), 280 + SCAN_STEPS.length * 480 + 2800),
     );
 
-    return () => {
-      timers.forEach((id) => window.clearTimeout(id));
-    };
-  }, [inView]);
+    return () => timers.forEach((id) => window.clearTimeout(id));
+  }, [inView, cycle]);
+
+  const progress = Math.min(100, (step / SCAN_STEPS.length) * 100);
 
   return (
     <div ref={ref} className="home-agent" aria-hidden>
+      <div className="home-agent-glow" />
+      <div className="home-agent-scanline" />
+
       <div className="home-agent-chrome">
         <div className="home-agent-dots" aria-hidden>
           <span />
@@ -109,11 +116,18 @@ function SignalAgentDemo() {
         </div>
         <p className="home-agent-title">
           {siteConfig.navName.toUpperCase()} AGENT
-          <span> / target@signal</span>
+          <span> / target@signal.io</span>
         </p>
-        <span className={`home-agent-status ${done ? "is-live" : ""}`}>
+        <span className={`home-agent-status ${done ? "is-live" : "is-run"}`}>
           {done ? "complete" : "scanning"}
         </span>
+      </div>
+
+      <div className="home-agent-progress">
+        <motion.span
+          animate={{ width: `${done ? 100 : progress}%` }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+        />
       </div>
 
       <ul className="home-agent-steps">
@@ -123,50 +137,58 @@ function SignalAgentDemo() {
 
           return (
             <motion.li
-              key={item.id}
-              animate={{ opacity: complete || active || step > index ? 1 : 0.35 }}
+              key={`${item.id}-${cycle}`}
+              animate={{ opacity: 1, x: 0 }}
               className={
-                complete ? "is-complete" : active ? "is-active" : undefined
+                complete ? "is-complete" : active ? "is-active" : "is-pending"
               }
-              initial={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.35, delay: index * 0.04 }}
+              initial={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.4, delay: index * 0.05 }}
             >
               <span className="home-agent-step-icon">
                 {complete ? (
-                  <Check className="size-3.5" strokeWidth={2.5} />
+                  <Check className="size-3.5" strokeWidth={2.75} />
                 ) : (
                   <span className="home-agent-pulse" />
                 )}
               </span>
-              <span>{item.label}</span>
+              <span className="home-agent-step-label">{item.label}</span>
+              <span className="home-agent-step-ms">
+                {complete || active ? item.ms : "—"}
+              </span>
             </motion.li>
           );
         })}
       </ul>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {step >= 2 ? (
           <motion.div
+            key={`findings-${cycle}`}
             animate={{ opacity: 1, y: 0 }}
             className="home-agent-findings"
-            exit={{ opacity: 0 }}
-            initial={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 14 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           >
+            <div className="home-agent-findings-head">
+              <span>Live correlation</span>
+              <span>{done ? "5 findings" : "collecting…"}</span>
+            </div>
             {FINDINGS.map((finding, index) => (
               <motion.div
                 key={finding.key}
                 animate={{ opacity: 1, x: 0 }}
                 className="home-agent-finding"
-                initial={{ opacity: 0, x: 8 }}
-                transition={{ delay: 0.12 + index * 0.12, duration: 0.35 }}
+                initial={{ opacity: 0, x: 10 }}
+                transition={{ delay: 0.08 + index * 0.1, duration: 0.35 }}
               >
                 <div>
                   <p>{finding.label}</p>
                   <strong>{finding.value}</strong>
                 </div>
                 <span className={`home-agent-badge ${toneClass(finding.tone)}`}>
-                  {finding.badge}
+                  · {finding.badge}
                 </span>
               </motion.div>
             ))}
@@ -178,10 +200,10 @@ function SignalAgentDemo() {
         <span className={done ? "is-live" : undefined}>
           {done ? "COMPLETE" : "RUNNING"}
         </span>
-        <span>{done ? "412ms" : "—"}</span>
+        <span>{done ? "412ms" : "…"}</span>
         <span>4/4 engines</span>
         <span className="home-agent-footer-accent">
-          {done ? "5 findings" : "…"}
+          {done ? "5 findings" : "awaiting"}
         </span>
       </div>
     </div>
@@ -190,45 +212,57 @@ function SignalAgentDemo() {
 
 export function HomeShowcase() {
   return (
-    <section className="home-showcase relative z-20 mx-auto w-full max-w-6xl px-4 py-16 md:px-6 md:py-24">
-      <div className="home-showcase-grid">
-        <div className="home-showcase-copy">
-          <p className="home-showcase-kicker">
-            <Sparkles className="size-3.5" />
-            Built for speed and depth
-          </p>
-          <h2 className="home-showcase-title">
-            Uncover the trail.
-            <span>Keep the file clean.</span>
-          </h2>
-          <p className="home-showcase-lede">
-            One signal in — email, phone, username, Discord — and {siteConfig.name}{" "}
-            fans out across exposure, platforms, and public records. Retail-ready
-            when you need answers fast. Operator-grade when you need the full
-            map.
-          </p>
+    <section className="home-showcase relative z-20 w-full">
+      <div className="home-showcase-veil" aria-hidden />
+      <div className="home-showcase-inner mx-auto w-full max-w-6xl px-4 py-20 md:px-6 md:py-28">
+        <div className="home-showcase-grid">
+          <div className="home-showcase-copy">
+            <p className="home-showcase-kicker">OSINT that moves</p>
+            <h2 className="home-showcase-title">
+              Uncover truth
+              <span>in the shadows.</span>
+            </h2>
+            <p className="home-showcase-lede">
+              Drop one signal — email, phone, username, Discord — and{" "}
+              {siteConfig.name} fans out across breach, stealer, social, and
+              public-record engines. Built for Meta/TikTok buyers and the
+              Discord kids who already know how deep this goes.
+            </p>
 
-          <ul className="home-showcase-pills">
-            {PILLS.map(({ icon: Icon, label }) => (
-              <li key={label}>
-                <Icon className="size-3.5 shrink-0" aria-hidden />
-                {label}
-              </li>
-            ))}
-          </ul>
+            <ul className="home-showcase-pills">
+              {PILLS.map(({ icon: Icon, label }) => (
+                <li key={label}>
+                  <span className="home-showcase-pill-icon">
+                    <Icon className="size-3.5" aria-hidden />
+                  </span>
+                  {label}
+                </li>
+              ))}
+            </ul>
 
-          <div className="home-showcase-actions">
-            <Link className="home-showcase-cta" href="/auth?action=register">
-              Get started
-              <ArrowRight className="size-4" />
-            </Link>
-            <Link className="home-showcase-cta-ghost" href="/pricing">
-              View plans
-            </Link>
+            <div className="home-showcase-actions">
+              <Link className="home-showcase-cta" href="/auth?action=register">
+                Get started
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link className="home-showcase-cta-ghost" href="/pricing">
+                <Code2 className="size-3.5" aria-hidden />
+                View plans
+              </Link>
+            </div>
           </div>
+
+          <SignalAgentDemo />
         </div>
 
-        <SignalAgentDemo />
+        <div className="home-showcase-stats" role="list">
+          {SHOWCASE_STATS.map((stat) => (
+            <div key={stat.label} className="home-showcase-stat" role="listitem">
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
