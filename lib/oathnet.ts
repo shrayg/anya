@@ -117,7 +117,6 @@ export function oathnetModuleSlug(resolved: OathnetResolved): string {
 
   switch (resolved.endpoint) {
     case "discord-to-roblox":
-      return "oathnet-roblox";
     case "discord-userinfo":
     case "discord-username-history":
       return "discord-id";
@@ -131,6 +130,8 @@ export function oathnetModuleSlug(resolved: OathnetResolved): string {
       return "minecraft";
     case "ip-info":
       return "ip";
+    case "extract-subdomain":
+      return "domain";
     case "holehe":
     case "ghunt":
     case "breach":

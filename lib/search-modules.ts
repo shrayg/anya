@@ -1956,6 +1956,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Reconly FiveM",
               apiType: "reconly",
             },
+            {
+              id: "seekria-fivem",
+              label: "Seekria FiveM",
+              apiType: "seekria/fivem",
+            },
+            {
+              id: "datavoid-fivem",
+              label: "DataVoid FiveM",
+              apiType: "datavoid/fivem",
+            },
           ],
         },
       ),

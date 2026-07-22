@@ -48,7 +48,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     access = await requireOsintAccess(req, fallback);
   }
   if (access instanceof NextResponse && access.status === 400) {
-    access = await requireOsintAccess(req, "oathnet-roblox");
+    access = await requireOsintAccess(req, "stealer-logs");
   }
   if (access instanceof NextResponse) return access;
 

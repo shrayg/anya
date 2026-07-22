@@ -90,10 +90,8 @@ export function isHudsonRockEnabled(): boolean {
 export function hudsonRockModuleSlugForEndpoint(
   endpoint: HudsonRockEndpoint,
 ): string {
-  if (endpoint.includes("domain")) return "domains";
-  if (endpoint.includes("ip")) return "ip";
-  if (endpoint.includes("stealer")) return "stealer-logs";
-
+  // Hudson Rock is stealer/infection intel — always gate under Stealer Logs.
+  void endpoint;
   return "stealer-logs";
 }
 
