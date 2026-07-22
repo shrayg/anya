@@ -80,7 +80,10 @@ import { DiscordSearchResults } from "@/components/dashboard/discord-search-resu
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { StealerLogsSearchResults } from "@/components/dashboard/stealer-logs-search-results";
 import type { StealerArchiveEntry } from "@/lib/breachhub";
-import type { StealerCredentialRow } from "@/lib/stealer-logs-view";
+import {
+  extractStealerCredentialRows,
+  type StealerCredentialRow,
+} from "@/lib/stealer-logs-view";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
 import { DomainSearchResults } from "@/components/dashboard/domain-search-results";
 import {
@@ -226,6 +229,7 @@ export function ModuleSearchView({
     beginJob,
     completeJob,
     failJob,
+    setJobProgress,
     getJob,
     getLatestJobForModule,
   } = useSearchJobs();
@@ -372,6 +376,8 @@ export function ModuleSearchView({
   const [instagramLoadingMore, setInstagramLoadingMore] = useState(false);
   const [instagramProgressLabel, setInstagramProgressLabel] = useState("");
   const instagramLoadGenRef = useRef(0);
+  const [discordLoadingMore, setDiscordLoadingMore] = useState(false);
+  const [discordProgressLabel, setDiscordProgressLabel] = useState("");
   const [structuredResult, setStructuredResult] =
     useState<StructuredResult | null>(null);
   const [rawResult, setRawResult] = useState("");
@@ -469,6 +475,8 @@ export function ModuleSearchView({
     setInstagramEnriching(false);
     setInstagramLoadingMore(false);
     setInstagramProgressLabel("");
+    setDiscordLoadingMore(false);
+    setDiscordProgressLabel("");
     setStructuredResult(null);
     setRawResult("");
     setLastSearchLabel("");
@@ -993,13 +1001,32 @@ export function ModuleSearchView({
       }
       if (moduleDef.slug === "fraud-footprint") {
         const tool = moduleDef.tools?.find((t) => t.id === selectedToolId);
-        const api = tool?.apiType || "seon-email";
+        const api = tool?.apiType || "seon/email";
 
-        if (api === "seon-email" && !normalizeEmail(trimmed)) {
+        if (
+          (api === "seon-email" ||
+            api === "seon/email" ||
+            api === "seon/email-verification") &&
+          !normalizeEmail(trimmed)
+        ) {
           return "Enter a valid email address.";
         }
-        if (api === "seon-phone" && !isPhoneQuery(trimmed)) {
+        if (
+          (api === "seon-phone" || api === "seon/phone") &&
+          !isPhoneQuery(trimmed)
+        ) {
           return "Enter a valid phone number (10–15 digits).";
+        }
+        if (
+          api === "seon/ip" &&
+          !/^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$|^[0-9a-f:]+$/i.test(
+            trimmed,
+          )
+        ) {
+          return "Enter a valid IP address.";
+        }
+        if (api === "seon/bin" && !/^\d{6,8}$/.test(trimmed)) {
+          return "Enter a valid 6-8 digit BIN.";
         }
       }
       if (moduleDef.slug === "fivem" && !isDiscordSnowflake(trimmed)) {
@@ -1145,8 +1172,519 @@ export function ModuleSearchView({
       activeType = selectedTool.apiType;
     }
 
-    // stealer-logs keeps email/domain/IP on /api/osint/breach so victims +
-    // machine view stay available (do not divert domains to /domains).
+    // stealer-logs uses /api/osint/stealer (multi-source fan-out + victims).
+
+    const discordHasSignal = (discordData: DiscordSearchResult) => {
+      const hasProfile = Boolean(
+        discordData.profile &&
+          discordData.profile.username &&
+          discordData.profile.username !== "Unknown",
+      );
+      const hasLeaks = (discordData.leaks?.count ?? 0) > 0;
+      const hasRoblox = Boolean(
+        discordData.robloxLink &&
+          (discordData.robloxLink.username ||
+            discordData.robloxLink.userId ||
+            discordData.robloxLink.profileUrl),
+      );
+      const hasEnrichment = Boolean(
+        discordData.enrichment &&
+          typeof discordData.enrichment === "object" &&
+          Object.keys(discordData.enrichment).length > 0,
+      );
+      const hasFivem = (discordData.fivem?.count ?? 0) > 0;
+      const hasDsa = (discordData.dsa?.count ?? 0) > 0;
+      const hasGuilds =
+        (discordData.guilds?.count ?? 0) > 0 ||
+        (discordData.guilds?.items?.length ?? 0) > 0;
+      const hasConnections =
+        (discordData.connections?.length ?? 0) > 0 ||
+        (discordData.usernameHistory?.length ?? 0) > 0;
+      const hasContacts = Boolean(
+        discordData.contacts?.email ||
+          discordData.contacts?.phone ||
+          discordData.contacts?.ip,
+      );
+
+      return (
+        hasProfile ||
+        hasLeaks ||
+        hasRoblox ||
+        hasEnrichment ||
+        hasFivem ||
+        hasDsa ||
+        hasGuilds ||
+        hasConnections ||
+        hasContacts
+      );
+    };
+
+    // Discord ID main fan-out: stream NDJSON partials so results paint early.
+    if (activeType === "discord") {
+      try {
+        const searchUrl = `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(moduleDef.slug)}&stream=1`;
+        const searchResponse = await fetch(searchUrl, {
+          signal,
+          headers: { Accept: "application/x-ndjson" },
+        });
+
+        if (signal.aborted) return;
+
+        if (!searchResponse.ok) {
+          const responseText = await searchResponse.text();
+          let data: Record<string, unknown> = {};
+
+          try {
+            data = responseText
+              ? (JSON.parse(responseText) as Record<string, unknown>)
+              : {};
+          } catch {
+            /* ignore */
+          }
+
+          commitFail(
+            sanitizePublicText(
+              typeof data.error === "string" ? data.error : "Search failed.",
+            ),
+          );
+
+          return;
+        }
+
+        const contentType = searchResponse.headers.get("content-type") ?? "";
+        let finalDiscord: DiscordSearchResult | null = null;
+        let streamError: string | null = null;
+
+        if (
+          contentType.includes("ndjson") &&
+          searchResponse.body
+        ) {
+          const reader = searchResponse.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          if (isMountedRef.current) {
+            setDiscordLoadingMore(true);
+            setDiscordProgressLabel("Assembling Discord fan-out…");
+            setJobProgress(jobId, "Discord OSINT · starting");
+            setEmptyResult("");
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+            // Soft shell so the compact loader paints before the first module settles.
+            setDiscordResult({
+              id: searchQuery,
+              profile: {
+                id: searchQuery,
+                username: "Unknown",
+                globalName: null,
+                displayName: searchQuery,
+                avatarUrl: "",
+                bannerUrl: null,
+                accentColor: null,
+                createdAt: new Date(
+                  Number(BigInt(searchQuery) >> 22n) + 1_420_070_400_000,
+                ).toISOString(),
+                badges: [],
+                discriminator: "0",
+                bio: null,
+                nitro: false,
+                clanTag: null,
+                clanBadgeUrl: null,
+                avatarDecorationUrl: null,
+                nameplate: null,
+                profilePreviewUrl: `https://discord.com/users/${encodeURIComponent(searchQuery)}`,
+              },
+              leaks: { count: 0, results: [] },
+              fivem: { count: 0, accounts: [], bans: [] },
+              dsa: { count: 0, sanctions: [] },
+              enrichment: null,
+              robloxLink: null,
+              guilds: { count: 0, items: [] },
+              connections: [],
+              contacts: undefined,
+              usernameHistory: [],
+            });
+          }
+
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+            if (signal.aborted) return;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+
+              if (!trimmedLine) continue;
+
+              let event: {
+                type?: string;
+                module?: string;
+                done?: number;
+                total?: number;
+                error?: string;
+                result?: DiscordSearchResult;
+              };
+
+              try {
+                event = JSON.parse(trimmedLine) as typeof event;
+              } catch {
+                continue;
+              }
+
+              if (event.type === "error") {
+                streamError =
+                  typeof event.error === "string"
+                    ? event.error
+                    : "Search failed.";
+                if (event.result) finalDiscord = event.result;
+                continue;
+              }
+
+              if (
+                (event.type === "partial" || event.type === "done") &&
+                event.result
+              ) {
+                finalDiscord = event.result;
+
+                if (event.type === "partial" && isMountedRef.current) {
+                  const moduleLabel =
+                    typeof event.module === "string" && event.module
+                      ? event.module
+                      : "module";
+                  const progress =
+                    typeof event.done === "number" &&
+                    typeof event.total === "number"
+                      ? `${event.done}/${event.total}`
+                      : "";
+                  const label = progress
+                    ? `Discord OSINT · ${moduleLabel} (${progress})`
+                    : `Discord OSINT · ${moduleLabel}`;
+
+                  setDiscordProgressLabel(label);
+                  setJobProgress(jobId, label);
+
+                  if (discordHasSignal(event.result)) {
+                    setEmptyResult("");
+                    setDiscordResult(event.result);
+                    setRawResult(JSON.stringify(event.result, null, 2));
+                    setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          const responseText = await searchResponse.text();
+          let data: Record<string, unknown> = {};
+
+          try {
+            data = responseText
+              ? (JSON.parse(responseText) as Record<string, unknown>)
+              : {};
+          } catch {
+            commitFail("Search returned an unexpected response. Try again.");
+
+            return;
+          }
+
+          finalDiscord = data as DiscordSearchResult;
+        }
+
+        if (signal.aborted) return;
+
+        if (isMountedRef.current) {
+          setDiscordLoadingMore(false);
+          setDiscordProgressLabel("");
+        }
+
+        if (streamError && !finalDiscord) {
+          commitFail(sanitizePublicText(streamError));
+
+          return;
+        }
+
+        if (!finalDiscord || !discordHasSignal(finalDiscord)) {
+          commitEmpty(
+            streamError ||
+              (finalDiscord as { error?: string } | null)?.error ||
+              "No results were found.",
+          );
+
+          return;
+        }
+
+        commitSuccess(
+          {
+            discordResult: finalDiscord,
+            rawResult: JSON.stringify(finalDiscord, null, 2),
+          },
+          JSON.stringify(finalDiscord),
+        );
+      } catch (err) {
+        if (signal.aborted) return;
+        if (isMountedRef.current) {
+          setDiscordLoadingMore(false);
+          setDiscordProgressLabel("");
+        }
+        commitFail(
+          err instanceof Error && err.message
+            ? sanitizePublicText(err.message)
+            : "Search failed.",
+        );
+      }
+
+      return;
+    }
+
+    // Stealer Logs hub: stream NDJSON partials so credentials/archives paint early.
+    if (activeType === "stealer") {
+      try {
+        const searchUrl = `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(moduleDef.slug)}&stream=1`;
+        const searchResponse = await fetch(searchUrl, {
+          signal,
+          headers: { Accept: "application/x-ndjson" },
+        });
+
+        if (signal.aborted) return;
+
+        if (!searchResponse.ok) {
+          const responseText = await searchResponse.text();
+          let data: Record<string, unknown> = {};
+
+          try {
+            data = responseText
+              ? (JSON.parse(responseText) as Record<string, unknown>)
+              : {};
+          } catch {
+            /* ignore */
+          }
+
+          commitFail(
+            sanitizePublicText(
+              typeof data.error === "string"
+                ? data.error
+                : `Search failed (HTTP ${searchResponse.status}). Try again.`,
+            ),
+          );
+
+          return;
+        }
+
+        const contentType = searchResponse.headers.get("content-type") ?? "";
+        type StealerStreamPayload = {
+          query?: string;
+          count?: number;
+          results?: unknown[];
+          credentials?: StealerCredentialRow[];
+          archives?: StealerArchiveEntry[];
+          message?: string;
+          error?: string;
+        };
+        let finalStealer: StealerStreamPayload | null = null;
+        let streamError: string | null = null;
+
+        const applyStealerPayload = (
+          payload: StealerStreamPayload,
+          opts?: { progress?: string },
+        ) => {
+          const results = Array.isArray(payload.results) ? payload.results : [];
+          const credentials = Array.isArray(payload.credentials)
+            ? payload.credentials
+            : [];
+          const archives = Array.isArray(payload.archives)
+            ? payload.archives
+            : [];
+          const count =
+            typeof payload.count === "number"
+              ? payload.count
+              : Math.max(credentials.length, results.length, archives.length);
+
+          if (isMountedRef.current) {
+            if (opts?.progress) {
+              setJobProgress(jobId, opts.progress);
+            }
+            setEmptyResult("");
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+            setStealerResult({
+              credentials,
+              archives,
+              count,
+              fallbackRecords:
+                results.length > 0 && credentials.length === 0
+                  ? formatSearchRecords(results)
+                  : [],
+            });
+            setResultCount(count);
+            setRawResult(JSON.stringify(payload, null, 2));
+          }
+        };
+
+        if (contentType.includes("ndjson") && searchResponse.body) {
+          const reader = searchResponse.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          if (isMountedRef.current) {
+            setJobProgress(jobId, "Stealer OSINT · starting");
+            setEmptyResult("");
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+            setStealerResult({
+              credentials: [],
+              archives: [],
+              count: 0,
+              fallbackRecords: [],
+            });
+          }
+
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+            if (signal.aborted) return;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+
+              if (!trimmedLine) continue;
+
+              let event: {
+                type?: string;
+                module?: string;
+                done?: number;
+                total?: number;
+                error?: string;
+                result?: StealerStreamPayload;
+              };
+
+              try {
+                event = JSON.parse(trimmedLine) as typeof event;
+              } catch {
+                continue;
+              }
+
+              if (event.type === "error") {
+                streamError =
+                  typeof event.error === "string"
+                    ? event.error
+                    : "Search failed.";
+                if (event.result) finalStealer = event.result;
+                continue;
+              }
+
+              if (
+                (event.type === "partial" || event.type === "done") &&
+                event.result
+              ) {
+                finalStealer = event.result;
+
+                if (event.type === "partial" && isMountedRef.current) {
+                  const moduleLabel =
+                    typeof event.module === "string" && event.module
+                      ? event.module
+                      : "module";
+                  const progress =
+                    typeof event.done === "number" &&
+                    typeof event.total === "number"
+                      ? `Stealer OSINT · ${moduleLabel} (${event.done}/${event.total})`
+                      : `Stealer OSINT · ${moduleLabel}`;
+
+                  applyStealerPayload(event.result, { progress });
+                }
+              }
+            }
+          }
+        } else {
+          const responseText = await searchResponse.text();
+          try {
+            finalStealer = JSON.parse(responseText) as StealerStreamPayload;
+          } catch {
+            commitFail("Search returned an unexpected response. Try again.");
+
+            return;
+          }
+        }
+
+        if (signal.aborted) return;
+
+        if (streamError && !finalStealer) {
+          commitFail(sanitizePublicText(streamError));
+
+          return;
+        }
+
+        if (!finalStealer) {
+          commitEmpty(streamError || "No results were found.");
+
+          return;
+        }
+
+        const results = Array.isArray(finalStealer.results)
+          ? finalStealer.results
+          : [];
+        const credentials = Array.isArray(finalStealer.credentials)
+          ? finalStealer.credentials
+          : [];
+        const archives = Array.isArray(finalStealer.archives)
+          ? finalStealer.archives
+          : [];
+
+        if (
+          results.length === 0 &&
+          credentials.length === 0 &&
+          archives.length === 0
+        ) {
+          commitEmpty(
+            streamError ||
+              finalStealer.message ||
+              finalStealer.error ||
+              "No results were found.",
+          );
+
+          return;
+        }
+
+        const count =
+          typeof finalStealer.count === "number"
+            ? finalStealer.count
+            : Math.max(credentials.length, results.length, archives.length);
+
+        commitSuccess(
+          {
+            stealerResult: {
+              credentials,
+              archives,
+              count,
+              fallbackRecords:
+                results.length > 0 && credentials.length === 0
+                  ? formatSearchRecords(results)
+                  : [],
+            },
+            resultCount: count,
+            rawResult: JSON.stringify(finalStealer, null, 2),
+          },
+          JSON.stringify(finalStealer),
+        );
+      } catch (err) {
+        if (signal.aborted) return;
+        commitFail(
+          err instanceof Error && err.message
+            ? sanitizePublicText(err.message)
+            : "Search failed.",
+        );
+      }
+
+      return;
+    }
 
     try {
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
@@ -1173,12 +1711,17 @@ export function ModuleSearchView({
           selectedToolId === "phone-index")
           ? "&kind=phone"
           : "";
+      const reconlyModeParam =
+        activeType === "reconly" &&
+        (selectedToolId === "reconly-fivem" || moduleDef.slug === "fivem")
+          ? "&mode=fivem"
+          : "";
       // Twitter uses dedicated OsintCat twitter-osint (+ BreachHub fallback).
       // Snusbase / IntelVault / etc. use top-level /api/<vendor> paths.
       const searchUrl =
         moduleDef.slug === "twitter"
           ? `/api/osintcat/twitter-osint?query=${encodeURIComponent(searchQuery)}${moduleParam}`
-          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}`;
+          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}${reconlyModeParam}`;
       const searchResponse = await fetch(searchUrl, { signal });
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
@@ -1216,6 +1759,71 @@ export function ModuleSearchView({
 
       const serialized = JSON.stringify(data);
       const markNoResults = commitEmpty;
+
+      // Vendor stealer chips (SeekNow / Wentyn / DataVoid / …) — normalize into
+      // the stealer credentials/archives view used by the All-stealers hub.
+      if (
+        moduleDef.slug === "stealer-logs" &&
+        activeType !== "breach" &&
+        activeType !== "stealer"
+      ) {
+        const vendor = data as {
+          results?: unknown[];
+          count?: number;
+          message?: string;
+          error?: string;
+          credentials?: StealerCredentialRow[];
+          archives?: StealerArchiveEntry[];
+        };
+        const results = Array.isArray(vendor.results) ? vendor.results : [];
+        const credentials = Array.isArray(vendor.credentials)
+          ? vendor.credentials
+          : extractStealerCredentialRows(results, searchQuery);
+        const archives = Array.isArray(vendor.archives) ? vendor.archives : [];
+
+        if (
+          results.length === 0 &&
+          credentials.length === 0 &&
+          archives.length === 0
+        ) {
+          markNoResults(vendor.message || vendor.error);
+
+          return;
+        }
+
+        commitSuccess(
+          {
+            stealerResult: {
+              credentials,
+              archives,
+              count:
+                typeof vendor.count === "number"
+                  ? vendor.count
+                  : Math.max(
+                      credentials.length,
+                      results.length,
+                      archives.length,
+                    ),
+              fallbackRecords:
+                results.length > 0 && credentials.length === 0
+                  ? formatSearchRecords(results)
+                  : [],
+            },
+            resultCount:
+              typeof vendor.count === "number"
+                ? vendor.count
+                : Math.max(
+                    credentials.length,
+                    results.length,
+                    archives.length,
+                  ),
+            rawResult: JSON.stringify(data, null, 2),
+          },
+          serialized,
+        );
+
+        return;
+      }
 
       if (activeType === "breaches") {
         const breachData = data as CombSearchResult & {
@@ -2754,6 +3362,8 @@ export function ModuleSearchView({
           ) : discordResult ? (
             <DiscordSearchResults
               blurResults={blurResults}
+              loadingMore={discordLoadingMore}
+              progressLabel={discordProgressLabel}
               result={discordResult}
             />
           ) : domainResult ? (

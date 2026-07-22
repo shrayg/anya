@@ -1,10 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
-import { fetchBreachHubSpecialty } from "@/lib/breachhub";
-import { decodeVin } from "@/lib/vin-decode";
-import { PUBLIC_INTEL_SOURCE } from "@/lib/public-branding";
+import {
+  OSINT_ROUTE_DEADLINE_MS,
+  withDeadline,
+} from "@/lib/osint-search-guard";
+import { lookupVin } from "@/lib/vin";
 
+/** Legacy alias — prefer GET /api/vin. */
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "vin");
 
@@ -17,17 +20,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [result, breachHub] = await Promise.all([
-      decodeVin(query),
-      fetchBreachHubSpecialty("vin", query).catch(() => null),
-    ]);
+    const result = await withDeadline(
+      lookupVin(query),
+      OSINT_ROUTE_DEADLINE_MS,
+    );
 
-    return NextResponse.json({
-      ...result,
-      ...(breachHub && breachHub.count > 0
-        ? { indexHits: breachHub, sources: [PUBLIC_INTEL_SOURCE] }
-        : {}),
-    });
+    return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "VIN decode failed";
 

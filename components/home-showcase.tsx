@@ -3,289 +3,410 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  AtSign,
+  BadgeCheck,
+  BriefcaseBusiness,
   Check,
-  FolderOpen,
-  Layers,
-  Search,
-  Shield,
+  CircleUserRound,
+  Database,
+  FileSearch,
+  Fingerprint,
+  FolderLock,
+  Globe2,
+  Hash,
+  KeyRound,
+  Layers3,
+  Link2,
+  LockKeyhole,
+  Network,
+  ScanSearch,
+  ShieldCheck,
+  Smartphone,
   Sparkles,
-  Users,
 } from "lucide-react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
-import { CATALOG_MODULE_COUNT } from "@/lib/featured-modules";
 import { siteConfig } from "@/config/site";
 
-const SCAN_STEPS = [
-  { id: "resolve", label: "Normalize input signal", ms: "24ms" },
-  { id: "fanout", label: "Fan out across indexes", ms: "86ms" },
-  { id: "link", label: "Link accounts & aliases", ms: "61ms" },
-  { id: "pack", label: "Pack into case-ready hits", ms: "44ms" },
+const PANEL_MODULES = [
+  { label: "Identity search", icon: Fingerprint },
+  { label: "Breach & stealer", icon: KeyRound },
+  { label: "Platform intelligence", icon: AtSign },
+  { label: "Public records", icon: FileSearch },
+  { label: "Network & assets", icon: Network },
 ] as const;
 
-const FINDINGS = [
+const PANEL_FINDINGS = [
   {
-    key: "accounts",
-    label: "CONNECTED PROFILES",
-    value: "11 handles across social + gaming",
-    tone: "med" as const,
-    badge: "LINK",
+    label: "Identity cluster",
+    value: "3 aliases resolved",
+    meta: "high confidence",
+    icon: CircleUserRound,
   },
   {
-    key: "exposure",
-    label: "EXPOSURE",
-    value: "2 breach sets · password reuse risk",
-    tone: "crit" as const,
-    badge: "HOT",
+    label: "Connected accounts",
+    value: "7 profiles linked",
+    meta: "4 platforms",
+    icon: Link2,
   },
   {
-    key: "records",
-    label: "RECORDS",
-    value: "Address + filing pivot available",
-    tone: "high" as const,
-    badge: "OPEN",
-  },
-] as const;
-
-const FLOW = [
-  {
-    icon: Search,
-    title: "Search once",
-    body: "Email, phone, username, Discord — one field, then Anya decides which engines to wake.",
-  },
-  {
-    icon: Layers,
-    title: "Read the trail",
-    body: "Hits come back linked: accounts, exposure, and public signals in one readable stack.",
-  },
-  {
-    icon: FolderOpen,
-    title: "File the case",
-    body: "Pin what matters into a dossier. Notes, exports, and follow-ups stay with the target.",
+    label: "Exposure signal",
+    value: "2 breach references",
+    meta: "review advised",
+    icon: Database,
   },
 ] as const;
 
-const AUDIENCES = [
+const ENTRY_POINTS = [
+  { label: "Email", example: "name@domain.com", icon: AtSign },
+  { label: "Phone", example: "+1 555 012 0142", icon: Smartphone },
+  { label: "Username", example: "northstar_01", icon: CircleUserRound },
+  { label: "Discord", example: "123456789012345678", icon: Hash },
+] as const;
+
+const QUESTIONS = [
   {
-    icon: Shield,
-    title: "Investigators & teams",
-    body: "Panel access, case filing, and module depth for people who live in this work.",
+    title: "Can I trust this person?",
+    body: "Review public signals around a date, caregiver, seller, new contact, or professional relationship before trust becomes risk.",
+    icon: ShieldCheck,
+    index: "01",
   },
   {
-    icon: Users,
-    title: "Operators & community",
-    body: "Fast lookups when you need a clean answer — without a 40-tab circus.",
+    title: "Where else do they appear?",
+    body: "Follow usernames, aliases, email addresses, phone numbers, and platform IDs across the open web.",
+    icon: Globe2,
+    index: "02",
+  },
+  {
+    title: "Has this identity been exposed?",
+    body: "Surface breach and stealer-log references with enough context to understand what needs attention.",
+    icon: LockKeyhole,
+    index: "03",
+  },
+  {
+    title: "What connects the evidence?",
+    body: "Cross-reference profiles, records, infrastructure, and assets without losing the path that produced each finding.",
+    icon: Layers3,
+    index: "04",
   },
 ] as const;
 
-function toneClass(tone: "med" | "crit" | "high") {
-  if (tone === "crit") return "home-agent-badge--crit";
-  if (tone === "high") return "home-agent-badge--high";
-  return "home-agent-badge--med";
-}
+const TRUST_POINTS = [
+  {
+    title: "Context stays attached",
+    body: "Source labels, confidence cues, and the original query travel with every finding.",
+    icon: BadgeCheck,
+  },
+  {
+    title: "Sensitive details stay controlled",
+    body: "Disclosure controls help prevent accidental exposure while reviewing or sharing a screen.",
+    icon: FolderLock,
+  },
+  {
+    title: "Built for lawful investigation",
+    body: "Clear acceptable-use boundaries keep the product focused on legitimate research and safety work.",
+    icon: BriefcaseBusiness,
+  },
+] as const;
 
-function SignalAgentDemo() {
+function PanelPreview() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.4 });
-  const [step, setStep] = useState(0);
-  const [done, setDone] = useState(false);
-  const [cycle, setCycle] = useState(0);
+  const inView = useInView(ref, { amount: 0.35 });
+  const reduceMotion = useReducedMotion();
+  const [stage, setStage] = useState(0);
 
   useEffect(() => {
     if (!inView) return;
 
-    setStep(0);
-    setDone(false);
+    if (reduceMotion) {
+      setStage(4);
 
-    const timers: number[] = [];
-    SCAN_STEPS.forEach((_, index) => {
-      timers.push(
-        window.setTimeout(() => setStep(index + 1), 320 + index * 460),
-      );
-    });
-    timers.push(
-      window.setTimeout(() => setDone(true), 320 + SCAN_STEPS.length * 460 + 200),
-    );
-    timers.push(
-      window.setTimeout(() => setCycle((c) => c + 1), 320 + SCAN_STEPS.length * 460 + 3200),
-    );
+      return;
+    }
 
-    return () => timers.forEach((id) => window.clearTimeout(id));
-  }, [inView, cycle]);
+    setStage(0);
+    const timers = [
+      window.setTimeout(() => setStage(1), 260),
+      window.setTimeout(() => setStage(2), 720),
+      window.setTimeout(() => setStage(3), 1180),
+      window.setTimeout(() => setStage(4), 1640),
+    ];
 
-  const progress = Math.min(100, (step / SCAN_STEPS.length) * 100);
-  const showFindings = step >= 2;
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [inView, reduceMotion]);
 
   return (
-    <div ref={ref} className="home-agent" aria-hidden>
-      <div className="home-agent-chrome">
-        <div className="home-agent-dots" aria-hidden>
+    <div
+      ref={ref}
+      aria-label="Illustrative AnyaInt Panel investigation"
+      className="anya-panel-preview"
+    >
+      <div className="anya-panel-preview__topbar">
+        <div aria-hidden className="anya-panel-preview__dots">
           <span />
           <span />
           <span />
         </div>
-        <p className="home-agent-title">
-          {siteConfig.navName} · live pass
-        </p>
-        <span className={`home-agent-status ${done ? "is-live" : "is-run"}`}>
-          {done ? "ready" : "running"}
+        <span>{siteConfig.navName} / PANEL</span>
+        <span className={stage === 4 ? "is-ready" : "is-running"}>
+          {stage === 4 ? "CASE READY" : "CORRELATING"}
         </span>
       </div>
 
-      <div className="home-agent-progress">
-        <motion.span
-          animate={{ width: `${done ? 100 : progress}%` }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        />
-      </div>
-
-      <div className="home-agent-body">
-        <ul className="home-agent-steps">
-          {SCAN_STEPS.map((item, index) => {
-            const complete = step > index;
-            const active = step === index + 1 && !done;
-
-            return (
-              <li
-                key={item.id}
-                className={
-                  complete ? "is-complete" : active ? "is-active" : "is-pending"
-                }
-              >
-                <span className="home-agent-step-icon">
-                  {complete ? (
-                    <Check className="size-3.5" strokeWidth={2.75} />
-                  ) : (
-                    <span className="home-agent-pulse" />
-                  )}
-                </span>
-                <span className="home-agent-step-label">{item.label}</span>
-                <span className="home-agent-step-ms">
-                  {complete || active ? item.ms : "—"}
-                </span>
+      <div className="anya-panel-preview__shell">
+        <aside
+          aria-label="Panel modules"
+          className="anya-panel-preview__sidebar"
+        >
+          <div className="anya-panel-preview__mark">
+            <ScanSearch aria-hidden />
+            <span>MODULES</span>
+          </div>
+          <ul>
+            {PANEL_MODULES.map(({ label, icon: Icon }, index) => (
+              <li key={label} className={index === 0 ? "is-active" : undefined}>
+                <Icon aria-hidden />
+                <span>{label}</span>
+                {index === 0 ? (
+                  <span className="anya-panel-preview__live" />
+                ) : null}
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ul>
+          <div className="anya-panel-preview__case-count">
+            <span>OPEN CASE</span>
+            <strong>ANYA-0172</strong>
+          </div>
+        </aside>
 
-        <div className="home-agent-findings-slot">
-          <div className="home-agent-findings">
-            <div className="home-agent-findings-head">
-              <span>Packed hits</span>
-              <span>
-                {!showFindings ? "waiting" : done ? "3 stacked" : "filling…"}
-              </span>
+        <div className="anya-panel-preview__main">
+          <div className="anya-panel-preview__query">
+            <SearchQueryIcon />
+            <div>
+              <span>ACTIVE QUERY</span>
+              <strong>alex.morgan@example.com</strong>
             </div>
-            {FINDINGS.map((finding, index) => {
-              const visible = showFindings && (done || step >= index + 2);
+            <span className="anya-panel-preview__query-state">
+              {stage === 4 ? "8 SOURCES" : `${Math.min(stage * 2, 6)} / 8`}
+            </span>
+          </div>
 
-              return (
-                <motion.div
-                  key={`${finding.key}-${cycle}`}
-                  animate={{ opacity: visible ? 1 : 0.22 }}
-                  className="home-agent-finding"
-                  initial={false}
-                  transition={{ duration: 0.28 }}
+          <div className="anya-panel-preview__workspace">
+            <div className="anya-panel-preview__identity">
+              <div className="anya-panel-preview__profile">
+                <div aria-hidden className="anya-panel-preview__avatar">
+                  AM
+                </div>
+                <div>
+                  <span>RESOLVED SUBJECT</span>
+                  <strong>Alex Morgan</strong>
+                  <p>Identity cluster assembled from public signals</p>
+                </div>
+                <div className="anya-panel-preview__confidence">
+                  <strong>{stage >= 3 ? "92" : "--"}</strong>
+                  <span>CONFIDENCE</span>
+                </div>
+              </div>
+
+              <div aria-hidden className="anya-panel-preview__graph">
+                <svg role="presentation" viewBox="0 0 620 220">
+                  <path d="M95 45 C190 45 210 107 310 107" />
+                  <path d="M95 175 C190 175 220 115 310 107" />
+                  <path d="M525 40 C430 40 410 102 310 107" />
+                  <path d="M525 178 C430 178 410 118 310 107" />
+                </svg>
+                <span className="anya-panel-preview__node anya-panel-preview__node--email">
+                  EMAIL
+                </span>
+                <span className="anya-panel-preview__node anya-panel-preview__node--alias">
+                  ALIAS
+                </span>
+                <span className="anya-panel-preview__node anya-panel-preview__node--social">
+                  SOCIAL
+                </span>
+                <span className="anya-panel-preview__node anya-panel-preview__node--record">
+                  RECORD
+                </span>
+                <motion.span
+                  animate={{
+                    scale: stage >= 2 ? 1 : 0.84,
+                    opacity: stage >= 1 ? 1 : 0.35,
+                  }}
+                  className="anya-panel-preview__node anya-panel-preview__node--subject"
+                  transition={{ duration: 0.32 }}
                 >
-                  <div>
-                    <p>{finding.label}</p>
-                    <strong>{finding.value}</strong>
-                  </div>
-                  <span
-                    className={`home-agent-badge ${toneClass(finding.tone)}`}
-                  >
-                    {finding.badge}
-                  </span>
-                </motion.div>
-              );
-            })}
+                  SUBJECT
+                </motion.span>
+              </div>
+            </div>
+
+            <div className="anya-panel-preview__findings">
+              <div className="anya-panel-preview__findings-head">
+                <span>FINDINGS</span>
+                <span>{stage === 4 ? "3 VERIFIED" : "BUILDING"}</span>
+              </div>
+              {PANEL_FINDINGS.map(
+                ({ label, value, meta, icon: Icon }, index) => {
+                  const visible = stage >= index + 2;
+
+                  return (
+                    <motion.div
+                      key={label}
+                      animate={{
+                        opacity: visible ? 1 : 0.22,
+                        y: visible ? 0 : 8,
+                      }}
+                      className="anya-panel-preview__finding"
+                      initial={false}
+                      transition={{ duration: 0.28 }}
+                    >
+                      <Icon aria-hidden />
+                      <div>
+                        <span>{label}</span>
+                        <strong>
+                          {visible ? value : "Waiting for source response"}
+                        </strong>
+                      </div>
+                      <span>{visible ? meta : "queued"}</span>
+                    </motion.div>
+                  );
+                },
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="home-agent-footer">
-        <span className={done ? "is-live" : undefined}>
-          {done ? "PASS COMPLETE" : "PASS RUNNING"}
+      <div className="anya-panel-preview__footer">
+        <span>
+          <i className={stage === 4 ? "is-ready" : undefined} />
+          {stage === 4 ? "CORRELATION COMPLETE" : "QUERYING PROVIDERS"}
         </span>
-        <span>{done ? "215ms" : "…"}</span>
-        <span>engines hot</span>
+        <span>ILLUSTRATIVE WORKSPACE</span>
       </div>
     </div>
   );
 }
 
-/** Product story + fixed agent panel under the search hero. */
+function SearchQueryIcon() {
+  return (
+    <span aria-hidden className="anya-panel-preview__query-icon">
+      <ScanSearch />
+    </span>
+  );
+}
+
+function SignalRouter({ moduleCount }: { moduleCount: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { amount: 0.45 });
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div ref={ref} className="anya-signal-router">
+      <div className="anya-signal-router__inputs">
+        {ENTRY_POINTS.map(({ label, example, icon: Icon }, index) => (
+          <motion.div
+            key={label}
+            animate={inView ? { opacity: 1, x: 0 } : { opacity: 0.4, x: -10 }}
+            className="anya-signal-router__input"
+            transition={{
+              delay: reduceMotion ? 0 : index * 0.08,
+              duration: 0.35,
+            }}
+          >
+            <Icon aria-hidden />
+            <div>
+              <span>{label}</span>
+              <code>{example}</code>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <div aria-hidden className="anya-signal-router__rail">
+        <span />
+      </div>
+
+      <motion.div
+        animate={
+          inView ? { opacity: 1, scale: 1 } : { opacity: 0.4, scale: 0.96 }
+        }
+        className="anya-signal-router__core"
+        transition={{ delay: reduceMotion ? 0 : 0.28, duration: 0.4 }}
+      >
+        <Sparkles aria-hidden />
+        <span>ANYA CROSS-REFERENCE</span>
+        <strong>{moduleCount} intelligence modules</strong>
+      </motion.div>
+    </div>
+  );
+}
+
 export function HomeShowcase() {
   return (
-    <section className="home-band home-showcase relative z-20 w-full">
-      <div className="home-band-inner mx-auto grid w-full max-w-6xl gap-10 px-4 py-20 md:grid-cols-2 md:items-center md:gap-12 md:px-6 md:py-24">
-        <div className="home-showcase-copy">
-          <p className="home-kicker">
-            <Sparkles className="size-3.5" />
-            After the search bar
+    <section className="anya-story anya-story--proof relative z-20 w-full">
+      <div className="anya-story__inner">
+        <header className="anya-story__split-head">
+          <div>
+            <p className="anya-story__eyebrow">FROM SIGNAL TO CONTEXT</p>
+            <h2>
+              Know who you&apos;re
+              <span>dealing with.</span>
+            </h2>
+          </div>
+          <p>
+            Start with one piece of information. Anya follows the connected
+            trail across identities, exposure, public records, and online
+            accounts—then arranges what matters in one readable workspace.
           </p>
-          <h2 className="home-title">
-            One input.
-            <span>A readable trail.</span>
-          </h2>
-          <p className="home-lede">
-            {siteConfig.name} is not a raw dump factory. You run a lookup, we
-            stitch the connected surface — accounts, exposure, records — then
-            you decide what belongs in the case.
-          </p>
-          <ul className="home-pill-row">
-            <li>{CATALOG_MODULE_COUNT}+ modules</li>
-            <li>Case filing</li>
-            <li>Retail + operator</li>
-          </ul>
-          <div className="home-actions">
-            <Link className="home-btn-primary" href="/auth?action=register">
-              Create account
-              <ArrowRight className="size-4" />
-            </Link>
-            <Link className="home-btn-ghost" href="/pricing">
-              See plans
-            </Link>
+        </header>
+
+        <PanelPreview />
+
+        <div className="anya-proof-rail" role="list">
+          <div role="listitem">
+            <ScanSearch aria-hidden />
+            <span>ONE ENTRY POINT</span>
+            <strong>Search the signal you already have</strong>
+          </div>
+          <div role="listitem">
+            <Network aria-hidden />
+            <span>CROSS-SOURCE CONTEXT</span>
+            <strong>See how the findings connect</strong>
+          </div>
+          <div role="listitem">
+            <FolderLock aria-hidden />
+            <span>CASE-READY OUTPUT</span>
+            <strong>Keep the evidence and its source</strong>
           </div>
         </div>
-
-        <SignalAgentDemo />
       </div>
     </section>
   );
 }
 
-export function HomeHowItWorks() {
+export function HomeHowItWorks({ moduleCount }: { moduleCount: number }) {
   return (
-    <section className="home-band relative z-20 w-full">
-      <div className="home-band-inner mx-auto w-full max-w-6xl px-4 py-16 md:px-6 md:py-20">
-        <header className="home-section-head">
-          <p className="home-kicker">How it runs</p>
-          <h2 className="home-title home-title--sm">
-            Search → trail → case
+    <section className="anya-story anya-story--router relative z-20 w-full">
+      <div className="anya-story__inner anya-story__router-grid">
+        <div className="anya-story__copy">
+          <p className="anya-story__eyebrow">START WITH WHAT YOU KNOW</p>
+          <h2>
+            One clue becomes
+            <span>a connected map.</span>
           </h2>
-          <p className="home-lede">
-            Three moves. No dashboard archaeology just to find where a hit went.
+          <p>
+            You do not need to understand every database before you search. Anya
+            recognizes the input, routes it to the relevant modules, and brings
+            the useful signals back together.
           </p>
-        </header>
-
-        <ol className="home-flow-grid">
-          {FLOW.map((item, index) => {
-            const Icon = item.icon;
-
-            return (
-              <li key={item.title} className="home-flow-card">
-                <span className="home-flow-num">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <Icon className="home-flow-icon" aria-hidden />
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </li>
-            );
-          })}
-        </ol>
+          <Link className="anya-story__text-link" href="/auth?action=register">
+            Run a search
+            <ArrowRight aria-hidden />
+          </Link>
+        </div>
+        <SignalRouter moduleCount={moduleCount} />
       </div>
     </section>
   );
@@ -293,47 +414,50 @@ export function HomeHowItWorks() {
 
 export function HomeAudiences() {
   return (
-    <section className="home-band home-band--tint relative z-20 w-full">
-      <div className="home-band-inner mx-auto w-full max-w-6xl px-4 py-16 md:px-6 md:py-20">
-        <header className="home-section-head">
-          <p className="home-kicker">Who it’s for</p>
-          <h2 className="home-title home-title--sm">
-            Two crowds. Same product.
+    <section className="anya-story anya-story--questions relative z-20 w-full">
+      <div className="anya-story__inner">
+        <header className="anya-story__section-head">
+          <p className="anya-story__eyebrow">QUESTIONS HAVE STAKES</p>
+          <h2>
+            Answers for real life.
+            <span>Depth for real investigations.</span>
           </h2>
+          <p>
+            A clear first answer when you need reassurance. A deeper trail when
+            every alias, source, and pivot matters.
+          </p>
         </header>
 
-        <div className="home-audience-grid">
-          {AUDIENCES.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <article key={item.title} className="home-audience-card">
-                <Icon className="size-5 text-[var(--anya-blush)]" aria-hidden />
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </article>
-            );
-          })}
+        <div className="anya-question-grid">
+          {QUESTIONS.map(({ title, body, icon: Icon, index }) => (
+            <article key={title} className="anya-question-card">
+              <span className="anya-question-card__index">{index}</span>
+              <Icon aria-hidden />
+              <h3>{title}</h3>
+              <p>{body}</p>
+              <span aria-hidden className="anya-question-card__line" />
+            </article>
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-export function HomeStatsStrip() {
+export function HomeStatsStrip({ moduleCount }: { moduleCount: number }) {
   const stats = [
-    { value: String(CATALOG_MODULE_COUNT), label: "Live modules" },
-    { value: "223+", label: "Username platforms" },
-    { value: "Panel", label: "Case workspace" },
-    { value: "24/7", label: "Status watched" },
+    { value: String(moduleCount), label: "Live intelligence modules" },
+    { value: "223+", label: "Username surfaces" },
+    { value: "1", label: "Connected case workspace" },
+    { value: "24/7", label: "Provider health watch" },
   ] as const;
 
   return (
-    <section className="home-band relative z-20 w-full">
-      <div className="home-band-inner mx-auto w-full max-w-6xl px-4 pb-6 pt-4 md:px-6">
-        <div className="home-stats" role="list">
+    <section className="anya-story anya-story--scale relative z-20 w-full">
+      <div className="anya-story__inner">
+        <div className="anya-scale-strip" role="list">
           {stats.map((stat) => (
-            <div key={stat.label} className="home-stat" role="listitem">
+            <div key={stat.label} role="listitem">
               <strong>{stat.value}</strong>
               <span>{stat.label}</span>
             </div>
@@ -344,32 +468,60 @@ export function HomeStatsStrip() {
   );
 }
 
+export function HomeTrust() {
+  return (
+    <section className="anya-story anya-story--trust relative z-20 w-full">
+      <div className="anya-story__inner anya-trust-grid">
+        <div className="anya-story__copy">
+          <p className="anya-story__eyebrow">POWER WITHOUT AMBIGUITY</p>
+          <h2>
+            Evidence you can
+            <span>understand and defend.</span>
+          </h2>
+          <p>
+            Anya is built to support judgment—not replace it. Every useful hit
+            should be reviewable, attributable, and handled with care.
+          </p>
+        </div>
+
+        <div className="anya-trust-list">
+          {TRUST_POINTS.map(({ title, body, icon: Icon }) => (
+            <article key={title}>
+              <span>
+                <Icon aria-hidden />
+              </span>
+              <div>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </div>
+              <Check aria-hidden />
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function HomeFinalCta() {
   return (
-    <section className="home-band relative z-20 w-full">
-      <div className="home-band-inner mx-auto w-full max-w-6xl px-4 py-16 md:px-6 md:py-20">
-        <div className="home-final-cta">
+    <section className="anya-story anya-story--final relative z-20 w-full">
+      <div className="anya-story__inner">
+        <div className="anya-final-card">
           <div>
-            <p className="home-kicker">Ready</p>
-            <h2 className="home-title home-title--sm">
-              Run the next lookup in Panel.
-            </h2>
-            <p className="home-lede">
-              Start on the homepage search, then unlock the full module map when
-              you need depth.
+            <p className="anya-story__eyebrow">START WITH ONE SIGNAL</p>
+            <h2>See what connects.</h2>
+            <p>
+              Run an entry search now, or open Panel when the investigation
+              needs every module and a place to keep the work.
             </p>
           </div>
-          <div className="home-actions">
-            <Link
-              className="home-btn-primary"
-              href={siteConfig.defaultWorkspacePath}
-            >
-              Open Panel
-              <ArrowRight className="size-4" />
+          <div className="anya-final-card__actions">
+            <Link href="/auth?action=register">
+              Create account
+              <ArrowRight aria-hidden />
             </Link>
-            <Link className="home-btn-ghost" href="/pricing">
-              Pricing
-            </Link>
+            <Link href="/pricing">Compare plans</Link>
           </div>
         </div>
       </div>

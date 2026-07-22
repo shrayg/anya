@@ -74,9 +74,11 @@ export const CATALOG_LANES: CatalogLane[] = getHubSections().map((section) => ({
   label: section.title,
   description: LANE_DESCRIPTION[section.title],
   isAi: section.title === "AI Intelligence",
-  modules: section.items.map((item, index) =>
-    toCatalogModule(item, index, LANE_PREFIX[section.title] ?? "MOD"),
-  ),
+  modules: section.items
+    .filter((item) => !item.comingSoon)
+    .map((item, index) =>
+      toCatalogModule(item, index, LANE_PREFIX[section.title] ?? "MOD"),
+    ),
 }));
 
 /** Live hub shells (sidebar modules), excluding coming-soon stubs. */

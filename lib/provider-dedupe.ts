@@ -19,7 +19,7 @@
  * | BreachBase                  | BreachHub   | CSINT /breachbase                |
  * | Shodan host                 | BreachHub   | CSINT /shodan/host               |
  * | Melissa                     | BreachHub   | CSINT /melissa/lookup            |
- * | SEON email / phone          | BreachHub   | CSINT /seon/*                    |
+ * | SEON email / phone / IP / BIN (SEON_API_KEY)          | BreachHub   | CSINT /seon/*                    |
  * | OsintCat database / stalker | BreachHub   | direct OSINTCAT_API_KEY          |
  * | OsintCat twitter / machine  | BreachHub   | (no CSINT equivalent)            |
  * | CordCat                     | BreachHub   | direct CORDCAT_API_KEY           |
@@ -30,11 +30,20 @@
  * | IntelVault                  | Direct key  | BreachHub /api/intelvault*       |
  * | SeekNow                     | Direct key  | BreachHub /api/seeknow/*         |
  * | Room101                     | Direct key  | BreachHub /api/room101/*         |
+ * | Wentyn                      | BreachHub   | direct WENTYN_API_KEY (site route)|
+ * | Telegram                    | BreachHub   | direct TELEGRAM_API_KEY (site route)|
+ * | Reconly                     | BreachHub   | direct RECONLY_API_KEY (site route)|
+ * | NBRS                        | Direct key  | BreachHub /api/nbrs/roblox       |
+ * | Memory.lol                  | BreachHub   | direct MEMORY_API_KEY (site route)|
+ * | LeakSight                   | BreachHub   | direct LEAKSIGHT_API_KEY (site route)|
+ * | Inf0sec                     | BreachHub   | direct INF0SEC_API_KEY (site route)|
+ * | Checko                      | BreachHub   | direct CHECKO_API_KEY (site route)|
  *
  * Within BreachHub only: always skip IntelBase * mirrors of direct BH vendors.
  * When INTELVAULT_API_KEY is set, also skip BH IntelVault catalog ids.
  * When SEEKNOW_API_KEY is set, skip BH SeekNow catalog ids (direct owns vendor).
  * When ROOM101_API_KEY is set, skip BH Room101 catalog ids (direct owns vendor).
+ * When NBRS_API_KEY is set, skip BH nbrs-roblox (direct owns vendor).
  */
 
 import { isBreachVipEnabled } from "@/lib/breachvip";
@@ -55,6 +64,13 @@ function hasDirectRoom101KeyEnv(): boolean {
   if (process.env.ROOM101_ENABLED === "false") return false;
 
   return Boolean(process.env.ROOM101_API_KEY?.trim());
+}
+
+/** Env-only - avoid importing lib/nbrs (pulls breachhub -> circular). */
+function hasDirectNbrsKeyEnv(): boolean {
+  if (process.env.NBRS_ENABLED === "false") return false;
+
+  return Boolean(process.env.NBRS_API_KEY?.trim());
 }
 
 const SKIP_SEEKNOW_WHEN_DIRECT = [
@@ -86,6 +102,8 @@ const SKIP_ROOM101_WHEN_DIRECT = [
   "room101-search",
   "room101-subreddit",
 ] as const;
+
+const SKIP_NBRS_WHEN_DIRECT = ["nbrs-roblox"] as const;
 
 /** Always skip — mirrors a direct BreachHub catalog vendor in the same fan-out. */
 const SKIP_INTELBASE_MIRRORS = [
@@ -134,7 +152,7 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
   { vendor: "BreachBase", primary: "breachhub", fallback: "csint" },
   { vendor: "Shodan host", primary: "breachhub", fallback: "csint" },
   { vendor: "Melissa", primary: "breachhub", fallback: "csint" },
-  { vendor: "SEON email/phone", primary: "breachhub", fallback: "csint" },
+  { vendor: "SEON email/phone/IP/BIN (SEON_API_KEY)", primary: "breachhub", fallback: "csint" },
   {
     vendor: "OsintCat database/stalker",
     primary: "breachhub",
@@ -177,6 +195,62 @@ export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
     fallback: "csint",
     notes:
       "Direct ROOM101_API_KEY owns vendor; else BreachHub /api/room101/*; CSINT /reddit after BH miss",
+  },
+  {
+    vendor: "Wentyn",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Additive fan-out via BreachHub /api/wentyn; optional WENTYN_API_KEY for GET /api/wentyn",
+  },
+  {
+    vendor: "Telegram",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Specialty /api/telegram/{username|id|phone}; optional TELEGRAM_API_KEY else BreachHub proxy",
+  },
+  {
+    vendor: "Memory.lol",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Specialty via BreachHub /api/memory; optional MEMORY_API_KEY for GET /api/memory",
+  },
+  {
+    vendor: "Reconly",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Additive fan-out via BreachHub /api/reconly; optional RECONLY_API_KEY for GET /api/reconly",
+  },
+  {
+    vendor: "LeakSight",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Additive fan-out via BreachHub /api/leaksight; optional LEAKSIGHT_API_KEY for GET /api/leaksight (no CSINT mirror; intelbase-leaksight always skipped)",
+  },
+  {
+    vendor: "Inf0sec",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Additive fan-out via BreachHub /api/inf0sec; optional INF0SEC_API_KEY for GET /api/inf0sec",
+  },
+  {
+    vendor: "NBRS",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Direct NBRS_API_KEY owns vendor; else BreachHub /api/nbrs/roblox; site GET /api/nbrs/roblox",
+  },
+  {
+    vendor: "Checko",
+    primary: "breachhub",
+    fallback: "none",
+    notes:
+      "Specialty via BreachHub /api/checko; optional CHECKO_API_KEY for GET /api/checko (native api.checko.ru /v2/company)",
   },
 ];
 

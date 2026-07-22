@@ -1,15 +1,15 @@
 "use client";
 
+import type {
+  ModuleCatalogItem,
+  ModuleCatalogSection,
+} from "@/components/module-catalog";
+
 import clsx from "clsx";
 import { ArrowUpRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import type {
-  ModuleCatalogItem,
-  ModuleCatalogSection,
-} from "@/components/module-catalog";
-import { CATALOG_MODULE_COUNT } from "@/lib/featured-modules";
 import {
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
@@ -31,6 +31,7 @@ export function ModuleGraphExplorer({
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase().trim();
+
     if (!q) return sections;
 
     return sections
@@ -49,6 +50,7 @@ export function ModuleGraphExplorer({
   useEffect(() => {
     if (!filtered.length) {
       setActiveLane(null);
+
       return;
     }
     if (!filtered.some((section) => section.title === activeLane)) {
@@ -73,25 +75,25 @@ export function ModuleGraphExplorer({
           <Search className="size-3.5" />
           <input
             {...SEARCH_AUTOFILL_SHIELD}
+            readOnly
             id="module-graph-filter"
             name="module-graph-filter"
-            onChange={(event) => setFilter(event.target.value)}
-            onFocus={unlockAutofillShield}
             placeholder="Filter by module or lane…"
-            readOnly
             type="text"
             value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            onFocus={unlockAutofillShield}
           />
         </label>
         <p className="mod-index-meta">
-          <span>{totalShown || CATALOG_MODULE_COUNT}</span> modules
+          <span>{totalShown}</span> modules
           <i aria-hidden>/</i>
           <span>{filtered.length}</span> lanes
         </p>
       </div>
 
       <div className="mod-index-body">
-        <nav className="mod-index-lanes" aria-label="Module lanes">
+        <nav aria-label="Module lanes" className="mod-index-lanes">
           {filtered.map((section, index) => {
             const count = capabilityCount(section.items);
             const active = activeSection?.title === section.title;
@@ -99,12 +101,12 @@ export function ModuleGraphExplorer({
             return (
               <button
                 key={section.title}
-                type="button"
                 className={clsx(
                   "mod-index-lane",
                   active && "is-active",
                   section.featured && "is-featured",
                 )}
+                type="button"
                 onClick={() => setActiveLane(section.title)}
                 onMouseEnter={() => setActiveLane(section.title)}
               >

@@ -169,11 +169,16 @@ export async function fetchMelissaWithFallback(
   return value;
 }
 
-/** SEON email: BreachHub specialty email index first is broad — prefer CSINT SEON only as module fallback when BH seon-email empty via by-ids. */
+/** SEON email/phone: prefer @/lib/seon, retain legacy by-ids fallback. */
 export async function fetchSeonEmailWithFallback(
   email: string,
   timeoutMs = 18_000,
 ): Promise<Record<string, unknown> | null> {
+  try {
+    const { fetchSeonSanitized } = await import("@/lib/seon");
+    const data = await fetchSeonSanitized("email", email, timeoutMs);
+    if (data.count > 0) return data;
+  } catch {}
   const { value } = await withPrimaryFallback(
     async () => {
       if (!isBreachHubEnabled()) return null;
@@ -183,18 +188,14 @@ export async function fetchSeonEmailWithFallback(
         "email",
         timeoutMs,
       );
-
       if (!bh || bh.count <= 0) return null;
-
       return { email, indexHits: bh, count: bh.count, results: bh.results };
     },
     async () => {
       if (!isCsintEnabled()) return null;
-
       return fetchCsintSeonEmail(email);
     },
   );
-
   return value;
 }
 
@@ -202,27 +203,23 @@ export async function fetchSeonPhoneWithFallback(
   phone: string,
   timeoutMs = 18_000,
 ): Promise<Record<string, unknown> | null> {
+  try {
+    const { fetchSeonSanitized } = await import("@/lib/seon");
+    const data = await fetchSeonSanitized("phone", phone, timeoutMs);
+    if (data.count > 0) return data;
+  } catch {}
   const { value } = await withPrimaryFallback(
     async () => {
       if (!isBreachHubEnabled()) return null;
-      const bh = await fetchBreachHubByIds(
-        ["seon-phone"],
-        phone,
-        "phone",
-        timeoutMs,
-      );
-
+      const bh = await fetchBreachHubByIds(["seon-phone"], phone, "phone", timeoutMs);
       if (!bh || bh.count <= 0) return null;
-
       return { query: phone, indexHits: bh, count: bh.count, results: bh.results };
     },
     async () => {
       if (!isCsintEnabled()) return null;
-
       return fetchCsintSeonPhone(phone);
     },
   );
-
   return value;
 }
 

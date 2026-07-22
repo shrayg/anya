@@ -4,7 +4,7 @@ import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
 
 import clsx from "clsx";
 import { ChevronDown, Database, Shield } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
@@ -49,6 +49,23 @@ function recordId(record: FormattedRecord): string {
   }
 
   return hash.toString(16).padStart(10, "0").slice(0, 20);
+}
+
+/** Stable card identity so streamed enrichments don't remount / re-pop every row. */
+function cardStableKey(record: FormattedRecord): string {
+  const core = record.fields
+    .filter((field) =>
+      /^(email|password|ip|ip_address|username|user_id|discord_id|url|site|phone)$/i.test(
+        field.key,
+      ),
+    )
+    .map((field) => `${field.key.toLowerCase()}:${field.value.toLowerCase()}`)
+    .sort()
+    .join("|");
+
+  if (core) return core;
+
+  return `${record.badge ?? ""}:${record.title}:${recordId(record)}`;
 }
 
 function ResultField({
@@ -177,7 +194,7 @@ export function SearchResultCards({
   useEffect(() => {
     setExpanded(indexesOf(records));
     setVisibleCount(initialVisible);
-  }, [resultsKey, initialVisible]);
+  }, [resultsKey, initialVisible, records]);
 
   const selectable = Boolean(onSelectExportIndex);
   const shown = sortedRecords.length;
@@ -248,21 +265,24 @@ export function SearchResultCards({
       </div>
 
       <div className="anya-result-list anya-result-list--grid">
-        {visibleRecords.map((record) => {
+        {visibleRecords.map((record, index) => {
           const isExpanded = expanded.has(record.index);
           const selected = selectedExportIndex === record.index;
           const id = recordId(record);
           const sourceName = record.badge ?? record.title;
+          const stableKey = cardStableKey(record);
+          const popIndex = Math.min(index, 10);
 
           if (usePremium) {
             return (
               <article
-                key={`${record.index}-${record.title}`}
+                key={stableKey}
                 className={clsx(
-                  "anya-breach-card",
+                  "anya-breach-card anya-pop-in",
                   selectable && "anya-result-card--selectable",
                   selected && "anya-result-card--selected",
                 )}
+                style={{ "--pop-i": popIndex } as CSSProperties}
                 role={selectable ? "button" : undefined}
                 tabIndex={selectable ? 0 : undefined}
                 onClick={
@@ -337,13 +357,14 @@ export function SearchResultCards({
 
           return (
             <article
-              key={`${record.index}-${record.title}`}
+              key={stableKey}
               className={clsx(
-                "anya-result-card",
+                "anya-result-card anya-pop-in",
                 isExpanded && "anya-result-card--expanded",
                 selectable && "anya-result-card--selectable",
                 selected && "anya-result-card--selected",
               )}
+              style={{ "--pop-i": popIndex } as CSSProperties}
               role={selectable ? "button" : undefined}
               tabIndex={selectable ? 0 : undefined}
               onClick={

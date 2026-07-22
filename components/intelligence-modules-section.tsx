@@ -4,19 +4,19 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 
-import {
-  type ModuleCatalogSection,
-} from "@/components/module-catalog";
+import { type ModuleCatalogSection } from "@/components/module-catalog";
 import { ModuleGraphExplorer } from "@/components/module-graph-explorer";
-import {
-  AI_MODULE_EXPLAINERS,
-  CATALOG_LANES,
-  CATALOG_MODULE_COUNT,
-} from "@/lib/featured-modules";
+import { AI_MODULE_EXPLAINERS, type CatalogLane } from "@/lib/featured-modules";
 import { hasWorkspaceDashboardAccess } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
 
-export function IntelligenceModulesSection() {
+export function IntelligenceModulesSection({
+  catalogLanes,
+  moduleCount,
+}: {
+  catalogLanes: CatalogLane[];
+  moduleCount: number;
+}) {
   const [hideCatalog, setHideCatalog] = useState(false);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function IntelligenceModulesSection() {
   }, []);
 
   const sections = useMemo<ModuleCatalogSection[]>(() => {
-    return CATALOG_LANES.map((lane) => ({
+    return catalogLanes.map((lane) => ({
       title: lane.label,
       description: lane.description,
       featured: Boolean(lane.isAi),
@@ -46,11 +46,11 @@ export function IntelligenceModulesSection() {
         hint: module.hint,
         toolCount: module.toolCount ?? 0,
         summary: lane.isAi
-          ? AI_MODULE_EXPLAINERS[module.slug] ?? module.summary
+          ? (AI_MODULE_EXPLAINERS[module.slug] ?? module.summary)
           : undefined,
       })),
     }));
-  }, []);
+  }, [catalogLanes]);
 
   if (hideCatalog) {
     return null;
@@ -61,9 +61,7 @@ export function IntelligenceModulesSection() {
       <header className="mod-explorer-head">
         <div>
           <p className="mod-kicker mod-kicker--tight">Module directory</p>
-          <h2 className="mod-explorer-title">
-            {CATALOG_MODULE_COUNT} live modules
-          </h2>
+          <h2 className="mod-explorer-title">{moduleCount} live modules</h2>
           <p className="mod-explorer-text">
             Pick a lane on the left. Open any module from the list.
           </p>

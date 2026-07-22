@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   ChevronDown,
   Copy,
@@ -17,7 +17,8 @@ import clsx from "clsx";
 
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
-import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
+import { IntelSignalLoader } from "@/components/dashboard/intel-signal-loader";
+import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import { resolveDiscordBadges } from "@/lib/discord-badges";
 import type {
   DiscordConnectedAccount,
@@ -36,10 +37,7 @@ import {
   type DiscordRobloxLink,
   type DiscordSearchResult,
 } from "@/lib/discord-profile";
-import { formatSearchRecords, type FormattedRecord } from "@/lib/search-utils";
-
-const LEAK_PAGE_SIZE = 5;
-const LEAK_VALUE_PREVIEW = 72;
+import { formatSearchRecords } from "@/lib/search-utils";
 
 type DataTab =
   | "breaches"
@@ -152,207 +150,6 @@ function DiscordNameplateArt({
   );
 }
 
-function DiscordLeakRecords({
-  records,
-  blurResults = false,
-  totalCount,
-  emptyDetail = "No leak records found for this Discord ID.",
-  metaDetail = "Breach & stealer matches",
-}: {
-  records: FormattedRecord[];
-  blurResults?: boolean;
-  totalCount?: number;
-  emptyDetail?: string;
-  metaDetail?: string;
-}) {
-  const [expanded, setExpanded] = useState<Set<number> | null>(null);
-  const [visibleCount, setVisibleCount] = useState(LEAK_PAGE_SIZE);
-
-  if (records.length === 0) {
-    return (
-      <SearchEmptyState
-        className="anya-search-empty--inset"
-        detail={emptyDetail}
-      />
-    );
-  }
-
-  const shown = records.length;
-  const total = totalCount ?? shown;
-  const visibleRecords = records.slice(0, visibleCount);
-  const hiddenCount = Math.max(0, records.length - visibleCount);
-
-  const isRowExpanded = (index: number) =>
-    expanded === null || expanded.has(index);
-
-  const toggleExpanded = (index: number) => {
-    setExpanded((current) => {
-      if (current === null) {
-        const next = new Set(visibleRecords.map((record) => record.index));
-
-        next.delete(index);
-
-        return next;
-      }
-
-      const next = new Set(current);
-
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-
-      return next;
-    });
-  };
-
-  const anyExpanded =
-    expanded === null ||
-    visibleRecords.some((record) => expanded.has(record.index));
-
-  return (
-    <div className="discord-leak-wrap">
-      <div className="discord-leak-toolbar">
-        <p className="discord-leak-meta">
-          <span className="discord-leak-meta-pill">
-            {shown} record{shown === 1 ? "" : "s"}
-          </span>
-          <span className="discord-leak-meta-detail">
-            {total > shown ? `${total} total in index` : metaDetail}
-          </span>
-        </p>
-        {anyExpanded ? (
-          <button
-            className="discord-leak-action"
-            type="button"
-            onClick={() => setExpanded(new Set())}
-          >
-            Collapse all
-          </button>
-        ) : (
-          <button
-            className="discord-leak-action"
-            type="button"
-            onClick={() => setExpanded(null)}
-          >
-            Expand all
-          </button>
-        )}
-      </div>
-
-      <div className="discord-leak-list">
-        {visibleRecords.map((record) => {
-          const isExpanded = isRowExpanded(record.index);
-          const fields = record.fields;
-
-          return (
-            <article
-              key={`${record.index}-${record.badge ?? record.title}`}
-              className={clsx(
-                "discord-leak-row",
-                isExpanded && "discord-leak-row--expanded",
-              )}
-            >
-              <header className="discord-leak-row-head">
-                <span className="discord-leak-source">
-                  {record.badge ?? record.subtitle ?? record.title}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="discord-leak-index">#{record.index}</span>
-                  <button
-                    aria-expanded={isExpanded}
-                    aria-label={
-                      isExpanded ? "Collapse record" : "Expand record"
-                    }
-                    className={clsx(
-                      "discord-leak-expand",
-                      isExpanded && "discord-leak-expand--open",
-                    )}
-                    type="button"
-                    onClick={() => toggleExpanded(record.index)}
-                  >
-                    <ChevronDown className="size-3.5" />
-                  </button>
-                </div>
-              </header>
-
-              {!isExpanded ? null : (
-                <div className="discord-leak-fields">
-                  {(() => {
-                    const nodes: ReactNode[] = [];
-                    let lastGroup: string | undefined;
-
-                    fields.forEach((field) => {
-                      if (field.group && field.group !== lastGroup) {
-                        lastGroup = field.group;
-                        nodes.push(
-                          <div
-                            key={`group-${record.index}-${field.group}`}
-                            className="discord-leak-group-label"
-                          >
-                            {field.group}
-                          </div>,
-                        );
-                      }
-
-                      nodes.push(
-                        <div
-                          key={`${record.index}-${field.key}`}
-                          className={clsx(
-                            "discord-leak-field",
-                            field.sensitive && "discord-leak-field--sensitive",
-                            field.block && "discord-leak-field--block",
-                            field.group && "discord-leak-field--grouped",
-                          )}
-                        >
-                          <span className="discord-leak-label">
-                            {field.label}
-                          </span>
-                          <span
-                            className={clsx(
-                              "discord-leak-value",
-                              field.highlight && "discord-leak-value--accent",
-                              field.block && "discord-leak-value--block",
-                            )}
-                            title={
-                              field.value.length > LEAK_VALUE_PREVIEW
-                                ? field.value
-                                : undefined
-                            }
-                          >
-                            <BlurredValue
-                              forceBlur={blurResults}
-                              text={field.value}
-                            />
-                          </span>
-                        </div>,
-                      );
-                    });
-
-                    return nodes;
-                  })()}
-                </div>
-              )}
-            </article>
-          );
-        })}
-      </div>
-
-      {hiddenCount > 0 ? (
-        <button
-          className="discord-leak-action discord-leak-action--center"
-          type="button"
-          onClick={() => setVisibleCount((count) => count + LEAK_PAGE_SIZE)}
-        >
-          Show {Math.min(LEAK_PAGE_SIZE, hiddenCount)} more record
-          {Math.min(LEAK_PAGE_SIZE, hiddenCount) === 1 ? "" : "s"}
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
 function ServersBlock({
   guilds,
   count,
@@ -395,8 +192,12 @@ function ServersBlock({
             : "Memberships from Discord OSINT indexes"}
         </span>
       </p>
-      {guilds.map((guild) => (
-        <article key={guild.id} className="discord-id-server-row">
+      {guilds.map((guild, index) => (
+        <article
+          key={guild.id}
+          className="discord-id-server-row anya-pop-in"
+          style={{ "--pop-i": Math.min(index, 8) } as CSSProperties}
+        >
           {guild.iconUrl ? (
             <img
               alt=""
@@ -452,10 +253,11 @@ function ConnectionsBlock({
     <div className="discord-id-connections-wrap">
       {connections.length > 0 ? (
         <div className="discord-id-connections-list">
-          {connections.map((account) => (
+          {connections.map((account, index) => (
             <article
               key={`${account.type}-${account.name}-${account.id ?? ""}`}
-              className="discord-id-connection-row"
+              className="discord-id-connection-row anya-pop-in"
+              style={{ "--pop-i": Math.min(index, 8) } as CSSProperties}
             >
               <span className="discord-id-connection-type">
                 {account.type}
@@ -634,15 +436,21 @@ function DownloadButton({
 function DsaSanctionRow({
   sanction,
   blurResults,
+  index = 0,
 }: {
   sanction: DiscordDsaSanction;
   blurResults: boolean;
+  index?: number;
 }) {
   const [open, setOpen] = useState(true);
 
   return (
     <article
-      className={clsx("discord-id-dsa-row", open && "discord-id-dsa-row--open")}
+      className={clsx(
+        "discord-id-dsa-row anya-pop-in",
+        open && "discord-id-dsa-row--open",
+      )}
+      style={{ "--pop-i": Math.min(index, 8) } as CSSProperties}
     >
       <button
         aria-expanded={open}
@@ -703,7 +511,10 @@ function RobloxBlock({
   }
 
   return (
-    <div className="discord-id-roblox-card">
+    <div
+      className="discord-id-roblox-card anya-pop-in"
+      style={{ "--pop-i": 0 } as CSSProperties}
+    >
       <div className="discord-id-roblox-fields">
         {link.username ? (
           <div className="discord-id-roblox-field">
@@ -754,10 +565,11 @@ function DsaBlock({
 
   return (
     <div className="discord-id-dsa-list">
-      {sanctions.map((sanction) => (
+      {sanctions.map((sanction, index) => (
         <DsaSanctionRow
           key={sanction.id}
           blurResults={blurResults}
+          index={index}
           sanction={sanction}
         />
       ))}
@@ -768,9 +580,14 @@ function DsaBlock({
 export function DiscordSearchResults({
   result,
   blurResults = false,
+  loadingMore = false,
+  progressLabel = "",
 }: {
   result: DiscordSearchResult;
   blurResults?: boolean;
+  /** True while more Discord fan-out modules are still settling. */
+  loadingMore?: boolean;
+  progressLabel?: string;
 }) {
   const {
     profile,
@@ -790,6 +607,7 @@ export function DiscordSearchResults({
   const linkedAccounts = connections ?? [];
   const history = usernameHistory ?? [];
   const connectionsCount = linkedAccounts.length + history.length;
+  const reducedMotion = usePrefersReducedMotion();
 
   const [dataTab, setDataTab] = useState<DataTab>(() =>
     leaks.count > 0
@@ -830,10 +648,24 @@ export function DiscordSearchResults({
   );
   const memberSince = formatDiscordMemberSince(profile.createdAt);
   const handleLine = profile.username;
+  const hasLiveProfile =
+    Boolean(profile.username) && profile.username !== "Unknown";
+  const popClass = reducedMotion ? undefined : "anya-pop-in";
 
   return (
     <div className="discord-id-shell">
-      <div className="discord-id-stats">
+      {loadingMore ? (
+        <IntelSignalLoader
+          active
+          stage={progressLabel || "Assembling Discord fan-out"}
+          title="Discord ID"
+          variant="compact"
+        />
+      ) : null}
+      <div
+        className={clsx("discord-id-stats", popClass)}
+        style={{ "--pop-i": 0 } as CSSProperties}
+      >
         <button
           aria-pressed={dataTab === "breaches"}
           className="discord-id-stat-btn"
@@ -923,12 +755,21 @@ export function DiscordSearchResults({
       <div className="discord-id-layout">
         <div className="discord-id-col-left">
           <article
-            className="discord-id-profile discord-id-profile--popout"
+            key={
+              hasLiveProfile
+                ? `profile-${profile.id}-${profile.username}`
+                : `profile-${profile.id}`
+            }
+            className={clsx(
+              "discord-id-profile discord-id-profile--popout",
+              popClass,
+            )}
             style={
               {
                 "--discord-accent": accent,
+                "--pop-i": 1,
                 ...(themeColor ? { "--discord-theme": themeColor } : {}),
-              } as React.CSSProperties
+              } as CSSProperties
             }
           >
             <div className="discord-id-banner-wrap">
@@ -1026,7 +867,7 @@ export function DiscordSearchResults({
                             {
                               "--badge-color": badge.color,
                               "--badge-glow": badge.glow,
-                            } as React.CSSProperties
+                            } as CSSProperties
                           }
                           title={badge.label}
                         >
@@ -1121,7 +962,10 @@ export function DiscordSearchResults({
         </div>
 
         <div className="discord-id-col-main">
-          <section className="discord-id-data-panel">
+          <section
+            className={clsx("discord-id-data-panel", popClass)}
+            style={{ "--pop-i": 2 } as CSSProperties}
+          >
             <header className="discord-id-data-head">
               <div>
                 <h4 className="discord-id-data-title">
@@ -1203,11 +1047,13 @@ export function DiscordSearchResults({
 
             <div className="discord-id-data-body" role="tabpanel">
               {dataTab === "breaches" ? (
-                <DiscordLeakRecords
+                <SearchResultCards
                   blurResults={blurResults}
                   emptyDetail="No breach or stealer records found for this Discord ID."
+                  initialVisible={8}
                   records={leakRecords}
                   totalCount={leaks.count}
+                  variant="premium"
                 />
               ) : null}
               {dataTab === "servers" ? (
@@ -1231,12 +1077,13 @@ export function DiscordSearchResults({
                 <DsaBlock blurResults={blurResults} sanctions={sanctions} />
               ) : null}
               {dataTab === "fivem" ? (
-                <DiscordLeakRecords
+                <SearchResultCards
                   blurResults={blurResults}
                   emptyDetail="No FiveM accounts linked to this Discord ID."
-                  metaDetail="Linked FiveM accounts"
+                  initialVisible={8}
                   records={fivemRecords}
                   totalCount={fivemCount}
+                  variant="premium"
                 />
               ) : null}
             </div>

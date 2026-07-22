@@ -64,13 +64,19 @@ const MODE_ICONS: Record<StarterSearchMode, ElementType> = {
 };
 
 const LOCKED_MODULES = getHubSections().flatMap((section) =>
-  section.items.filter((module) => !STARTER_MODULE_SLUGS.has(module.slug)),
+  section.items.filter(
+    (module) =>
+      !module.comingSoon && !STARTER_MODULE_SLUGS.has(module.slug),
+  ),
 );
 
-const LOCKED_MODULE_COUNT = LOCKED_MODULES.length;
+type HomeSearchProps = {
+  lockedModules?: ReadonlyArray<{ name: string; slug: string }>;
+};
 
-export function HomeSearch() {
+export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
+  const [isMounted, setIsMounted] = useState(false);
   const [query, setQuery] = useState("");
   const [starterMode, setStarterMode] = useState<StarterSearchMode>("email");
   const [isSearching, setIsSearching] = useState(false);
@@ -80,6 +86,15 @@ export function HomeSearch() {
   const [discordResult, setDiscordResult] =
     useState<DiscordSearchResult | null>(null);
   const [blurResults, setBlurResults] = useState(false);
+
+  const visibleLockedModules =
+    lockedModules ?? (isMounted ? LOCKED_MODULES : []);
+  const visibleLockedModuleCount = visibleLockedModules.length;
+  const hasStableLockedModules = lockedModules != null || isMounted;
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (window.location.hash === "#search") {
@@ -330,12 +345,18 @@ export function HomeSearch() {
           <div className="home-search-module-row">
             <div className="home-search-locked-module">
               <button
-                aria-label={`${LOCKED_MODULE_COUNT} premium modules locked`}
+                aria-label={
+                  hasStableLockedModules
+                    ? `${visibleLockedModuleCount} premium modules locked`
+                    : "Premium modules locked"
+                }
                 className="home-search-locked-trigger"
                 type="button"
               >
                 <LockKeyhole className="size-4" />
-                <strong>{LOCKED_MODULE_COUNT}</strong>
+                <strong>
+                  {hasStableLockedModules ? visibleLockedModuleCount : "—"}
+                </strong>
                 <span>Premium locked</span>
               </button>
 
@@ -343,16 +364,16 @@ export function HomeSearch() {
                 <div className="home-search-locked-popover-card">
                   <div className="home-search-locked-heading">
                     <span>Premium module directory</span>
-                    <strong>{LOCKED_MODULE_COUNT} locked</strong>
+                    <strong>{visibleLockedModuleCount} locked</strong>
                   </div>
                   <ul className="home-search-locked-grid">
-                    {LOCKED_MODULES.map((module) => (
+                    {visibleLockedModules.map((module) => (
                       <li key={module.slug}>{module.name}</li>
                     ))}
                   </ul>
                   <Link className="home-search-locked-cta" href="/pricing">
-                    Purchase Access to Premium Modules and unlock the full
-                    Panel Suite
+                    Purchase Access to Premium Modules and unlock the full Panel
+                    Suite
                   </Link>
                 </div>
               </div>

@@ -46,10 +46,25 @@ const INTERNAL_SOURCE_LABELS = new Set([
   "cord.cat",
   "cord cat",
   "melissa",
+  "propertyradar",
+  "property radar",
   "infostealer",
   "info stealer",
   "room101",
   "room 101",
+  "wentyn",
+  "memory",
+  "memory.lol",
+  "memorylol",
+  "nbrs",
+  "reconly",
+  "leaksight",
+  "nosint",
+  "binlist",
+  "datavoid",
+  "hudsonrock",
+  "github",
+  "checko",
   "index",
 ]);
 
@@ -273,6 +288,10 @@ function flattenNestedField(
   into: Record<string, unknown>,
 ) {
   const isGeo = /geo|location|ip_/i.test(key);
+  const isProfileLike =
+    /^(discord_?profile|profile|user|osint_?data|medal|database_?leaks)$/i.test(
+      key,
+    );
   const preferred = [
     "ip",
     "query",
@@ -291,9 +310,52 @@ function flattenNestedField(
     "longitude",
     "lat",
     "lon",
+    "email",
+    "phone",
+    "username",
+    "user_id",
+    "discord_id",
+    "password",
+    "token",
   ];
 
   let wrote = false;
+
+  // Lift geo / profile nested scalars into structured top-level fields instead
+  // of dumping a JSON-ish "key: value · …" blob.
+  if (isGeo || isProfileLike) {
+    for (const [nestedKey, nestedVal] of Object.entries(value)) {
+      if (nestedVal == null || nestedVal === "") continue;
+
+      if (
+        typeof nestedVal === "string" ||
+        typeof nestedVal === "number" ||
+        typeof nestedVal === "boolean"
+      ) {
+        const bareFree =
+          !(nestedKey in into) ||
+          into[nestedKey] == null ||
+          into[nestedKey] === "";
+        const outKey = isGeo || bareFree ? nestedKey : `${key}_${nestedKey}`;
+
+        if (outKey in into && into[outKey] != null && into[outKey] !== "") {
+          continue;
+        }
+
+        into[outKey] =
+          typeof nestedVal === "string" ? nestedVal.trim() : nestedVal;
+        wrote = true;
+        continue;
+      }
+
+      if (isPlainIntelObject(nestedVal) && /geo|location|ip_/i.test(nestedKey)) {
+        flattenNestedField(nestedKey, nestedVal, into);
+        wrote = true;
+      }
+    }
+
+    if (wrote) return;
+  }
 
   for (const nestedKey of preferred) {
     const nestedVal = value[nestedKey];
@@ -477,6 +539,10 @@ function asFingerprintRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   return value as Record<string, unknown>;
+}
+
+function isPlainIntelObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function nestedFingerprintField(
@@ -778,7 +844,198 @@ function intelRowRichness(entry: unknown): number {
   return score;
 }
 
-/** Drop exact/semantic duplicate intel rows; keeps the richer row per key. */
+/** Merge two intel rows field-wise; prefers non-empty values from `preferred`. */
+export function mergeIntelRecordFields(
+  base: unknown,
+  preferred: unknown,
+): unknown {
+  if (!isPlainIntelObject(base)) return preferred ?? base;
+  if (!isPlainIntelObject(preferred)) return base;
+
+  const out: Record<string, unknown> = { ...base };
+
+  for (const [key, value] of Object.entries(preferred)) {
+    if (value == null || value === "") continue;
+
+    const existing = out[key];
+
+    if (existing == null || existing === "") {
+      out[key] = value;
+      continue;
+    }
+
+    if (isPlainIntelObject(existing) && isPlainIntelObject(value)) {
+      out[key] = mergeIntelRecordFields(existing, value);
+      continue;
+    }
+
+    if (
+      typeof existing === "string" &&
+      typeof value === "string" &&
+      existing.trim().toLowerCase() === value.trim().toLowerCase()
+    ) {
+      continue;
+    }
+
+    // Prefer the longer / more informative scalar when both exist.
+    if (typeof existing === "string" && typeof value === "string") {
+      if (value.trim().length > existing.trim().length) out[key] = value;
+    }
+  }
+
+  return out;
+}
+
+function discordSoftGroupKey(entry: unknown): string {
+  if (!isPlainIntelObject(entry)) return `raw:${String(entry)}`;
+
+  const discordId = extractFingerprintDiscordId(entry);
+  const email = normalizeFingerprintPart(
+    firstFingerprintField(entry, ["email", "mail", "mail_address"]),
+  );
+  const password = firstFingerprintField(entry, [
+    "password",
+    "pass",
+    "passwd",
+    "secret",
+    "hash",
+    "password_hash",
+    "encrypted_password",
+  ]);
+  const site = normalizeFingerprintPart(
+    firstFingerprintField(entry, [
+      "url",
+      "url_str",
+      "site",
+      "domain",
+      "host",
+      "hostname",
+      "origin_url",
+    ]),
+  );
+
+  // Same Discord ID + credential (+ optional site) collapses near-identical
+  // dump wrappers even when IP / filename / nested profile chrome differs.
+  return `soft:${discordId}|${email}|${normalizeFingerprintPart(password)}|${site}`;
+}
+
+function isDiscordProfileNoiseRow(entry: unknown): boolean {
+  if (!isPlainIntelObject(entry)) return false;
+
+  const leakKeys =
+    /^(email|mail|password|pass|passwd|secret|hash|ip|ip_address|phone|token|domain|url|site|host|login)$/i;
+
+  for (const [key, value] of Object.entries(entry)) {
+    if (!leakKeys.test(key)) continue;
+    if (value == null || value === "") continue;
+    if (typeof value === "string" && !value.trim()) continue;
+
+    return false;
+  }
+
+  const keys = Object.keys(entry).filter(
+    (key) =>
+      !key.startsWith("_") &&
+      !DATABANK_KEYS.has(key) &&
+      !/^(source|sources|provider|success|status|count|total)$/i.test(key),
+  );
+
+  if (keys.length === 0) return true;
+
+  return keys.every((key) =>
+    /^(user_?id|discord_?id|id|username|user|global_?name|display_?name|avatar|banner|bio|about|discriminator|accent|clan|nitro|badges?|flags?|created|member_?since|name)$/i.test(
+      key,
+    ),
+  );
+}
+
+/**
+ * Soft-merge Discord leak rows that share identity+password but differ only by
+ * missing IP / dump filename wrappers — fewer near-duplicate cards.
+ */
+function softMergeDiscordNearDupes(results: unknown[]): unknown[] {
+  const groups = new Map<
+    string,
+    { withIp: Map<string, { entry: unknown; order: number }>; noIp: unknown[]; order: number }
+  >();
+
+  results.forEach((entry, order) => {
+    if (!isPlainIntelObject(entry) || !extractFingerprintDiscordId(entry)) {
+      const key = `keep:${order}`;
+      groups.set(key, {
+        withIp: new Map(),
+        noIp: [entry],
+        order,
+      });
+      return;
+    }
+
+    const softKey = discordSoftGroupKey(entry);
+    const ip = extractFingerprintIp(entry);
+    const group = groups.get(softKey) ?? {
+      withIp: new Map<string, { entry: unknown; order: number }>(),
+      noIp: [] as unknown[],
+      order,
+    };
+
+    if (!ip) {
+      group.noIp.push(entry);
+    } else {
+      const prev = group.withIp.get(ip);
+
+      group.withIp.set(ip, {
+        entry: prev ? mergeIntelRecordFields(prev.entry, entry) : entry,
+        order: prev?.order ?? order,
+      });
+    }
+
+    groups.set(softKey, group);
+  });
+
+  const out: { entry: unknown; order: number }[] = [];
+
+  for (const group of groups.values()) {
+    let noIpMerged: unknown | null = null;
+
+    for (const row of group.noIp) {
+      noIpMerged = noIpMerged
+        ? mergeIntelRecordFields(noIpMerged, row)
+        : row;
+    }
+
+    if (group.withIp.size === 0) {
+      if (noIpMerged) out.push({ entry: noIpMerged, order: group.order });
+      continue;
+    }
+
+    const ipRows = [...group.withIp.values()];
+
+    if (noIpMerged) {
+      let bestIdx = 0;
+      let bestScore = intelRowRichness(ipRows[0]?.entry);
+
+      for (let i = 1; i < ipRows.length; i++) {
+        const score = intelRowRichness(ipRows[i]?.entry);
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = i;
+        }
+      }
+
+      ipRows[bestIdx] = {
+        ...ipRows[bestIdx],
+        entry: mergeIntelRecordFields(ipRows[bestIdx].entry, noIpMerged),
+      };
+    }
+
+    for (const row of ipRows) out.push(row);
+  }
+
+  return out.sort((a, b) => a.order - b.order).map((item) => item.entry);
+}
+
+/** Drop exact/semantic duplicate intel rows; merges fields per key (richer wins ties). */
 export function dedupeIntelResults(results: unknown[]): unknown[] {
   const best = new Map<
     string,
@@ -790,14 +1047,59 @@ export function dedupeIntelResults(results: unknown[]): unknown[] {
     const richness = intelRowRichness(entry);
     const prev = best.get(key);
 
-    if (!prev || richness > prev.richness) {
+    if (!prev) {
       best.set(key, { entry, richness, order });
+      return;
     }
+
+    const merged =
+      richness >= prev.richness
+        ? mergeIntelRecordFields(prev.entry, entry)
+        : mergeIntelRecordFields(entry, prev.entry);
+
+    best.set(key, {
+      entry: merged,
+      richness: Math.max(richness, prev.richness),
+      order: prev.order,
+    });
   });
 
   return [...best.values()]
     .sort((a, b) => a.order - b.order)
     .map((item) => item.entry);
+}
+
+/**
+ * Discord ID search consolidation — scrub, dedupe, soft-merge near-dupes, and
+ * drop profile-chrome rows that only mirror the left-hand profile panel.
+ */
+export function consolidateDiscordLeakResults(
+  results: unknown[],
+  discordId: string,
+): unknown[] {
+  const id = discordId.trim();
+
+  if (results.length === 0) return [];
+
+  const normalized = scrubIntelResults(results).map((entry) => {
+    if (!isPlainIntelObject(entry)) return entry;
+
+    const row = { ...entry };
+
+    if (!extractFingerprintDiscordId(row) && id) {
+      row.user_id = id;
+    }
+
+    return row;
+  });
+
+  const deduped = softMergeDiscordNearDupes(dedupeIntelResults(normalized));
+  const withoutNoise = deduped.filter(
+    (entry) => !isDiscordProfileNoiseRow(entry),
+  );
+
+  // Keep at least something if every row was profile chrome.
+  return withoutNoise.length > 0 ? withoutNoise : deduped;
 }
 
 /**

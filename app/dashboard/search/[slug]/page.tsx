@@ -13,6 +13,7 @@ import { isLegacyPublicRecordsSlug } from "@/lib/public-records/source-options";
 import {
   CRYPTO_INTEL_LEGACY_REDIRECT_SLUGS,
   getCryptoIntelToolIdForLegacySlug,
+  getIntentUnifiedRedirect,
   getSearchModuleBySlug,
 } from "@/lib/search-modules";
 
@@ -21,6 +22,7 @@ export default function ModuleSearchPage() {
   const router = useRouter();
   const slug = typeof params.slug === "string" ? params.slug : "";
   const moduleDef = getSearchModuleBySlug(slug);
+  const intentRedirect = getIntentUnifiedRedirect(slug);
 
   useEffect(() => {
     if (slug === "domains") {
@@ -38,13 +40,21 @@ export default function ModuleSearchPage() {
 
       router.replace(`/dashboard/search/${CRYPTO_INTEL_UNIFIED_SLUG}${qs}`);
     }
-  }, [router, slug]);
+    if (intentRedirect) {
+      const qs = intentRedirect.tool
+        ? `?tool=${encodeURIComponent(intentRedirect.tool)}`
+        : "";
+
+      router.replace(`/dashboard/search/${intentRedirect.slug}${qs}`);
+    }
+  }, [router, slug, intentRedirect]);
 
   if (
     slug === "domains" ||
     slug === "breachbase" ||
     isLegacyPublicRecordsSlug(slug) ||
-    CRYPTO_INTEL_LEGACY_REDIRECT_SLUGS.has(slug.toLowerCase())
+    CRYPTO_INTEL_LEGACY_REDIRECT_SLUGS.has(slug.toLowerCase()) ||
+    Boolean(intentRedirect)
   ) {
     return null;
   }

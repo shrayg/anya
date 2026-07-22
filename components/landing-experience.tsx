@@ -1,5 +1,3 @@
-"use client";
-
 import { ArrowDownRight } from "lucide-react";
 
 import { BrutalistReveal } from "@/components/brutalist-reveal";
@@ -9,7 +7,17 @@ import {
   AiCrossReferenceScene,
   PremiumWorkspaceScene,
 } from "@/components/landing-product-scenes";
-import { CATALOG_MODULE_COUNT } from "@/lib/featured-modules";
+import { CATALOG_LANES, CATALOG_MODULE_COUNT } from "@/lib/featured-modules";
+import { STARTER_MODULE_SLUGS } from "@/lib/plans";
+import { getHubSections } from "@/lib/search-modules";
+
+const LANDING_LOCKED_MODULES = getHubSections()
+  .flatMap((section) => section.items)
+  .filter(
+    (module) =>
+      !module.comingSoon && !STARTER_MODULE_SLUGS.has(module.slug),
+  )
+  .map(({ name, slug }) => ({ name, slug }));
 
 export function LandingExperience() {
   return (
@@ -33,7 +41,7 @@ export function LandingExperience() {
         </div>
 
         <div className="brutal-hero-search">
-          <HomeSearch />
+          <HomeSearch lockedModules={LANDING_LOCKED_MODULES} />
         </div>
 
         <a className="brutal-scroll-cue" href="#trace">
@@ -41,7 +49,10 @@ export function LandingExperience() {
         </a>
       </section>
 
-      <IntelligenceModulesSection />
+      <IntelligenceModulesSection
+        catalogLanes={CATALOG_LANES}
+        moduleCount={CATALOG_MODULE_COUNT}
+      />
 
       <section className="brutal-ai brutal-product-section" id="correlation">
         <BrutalistReveal>

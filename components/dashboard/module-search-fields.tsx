@@ -5,8 +5,10 @@ import { Plus, X } from "lucide-react";
 import type { SearchModuleDef } from "@/lib/search-modules";
 import {
   createSearchFieldRow,
+  detectSearchFieldType,
   getModuleSearchFieldOptions,
   placeholderForFieldType,
+  shouldAutoDetectFieldType,
   type ModuleSearchFieldRow,
   type SearchFieldTypeId,
 } from "@/lib/module-search-fields";
@@ -38,6 +40,7 @@ export function ModuleSearchFields({
   extraActions?: React.ReactNode;
 }) {
   const options = getModuleSearchFieldOptions(moduleDef);
+  const availableIds = options.map((option) => option.id);
 
   const updateRow = (id: string, patch: Partial<ModuleSearchFieldRow>) => {
     onChange(
@@ -61,6 +64,35 @@ export function ModuleSearchFields({
     onChange([...fields, createSearchFieldRow(nextType)]);
   };
 
+  const onValueChange = (row: ModuleSearchFieldRow, value: string) => {
+    const trimmed = value.trim();
+
+    // Cleared input unlocks a manual type pick so the next value can auto-detect.
+    if (!trimmed) {
+      updateRow(row.id, {
+        value,
+        typeManual: false,
+      });
+      return;
+    }
+
+    if (
+      row.typeManual ||
+      !shouldAutoDetectFieldType(row.type, availableIds)
+    ) {
+      updateRow(row.id, { value });
+      return;
+    }
+
+    const detected = detectSearchFieldType(value, availableIds, row.type);
+
+    updateRow(row.id, {
+      value,
+      type: detected,
+      typeManual: false,
+    });
+  };
+
   return (
     <div className="module-search-form">
       <AutofillDecoyFields />
@@ -78,6 +110,7 @@ export function ModuleSearchFields({
               onChange={(event) =>
                 updateRow(row.id, {
                   type: event.target.value as SearchFieldTypeId,
+                  typeManual: true,
                 })
               }
             >
@@ -98,9 +131,7 @@ export function ModuleSearchFields({
               placeholder={placeholderForFieldType(row.type, options)}
               type="text"
               value={row.value}
-              onChange={(event) =>
-                updateRow(row.id, { value: event.target.value })
-              }
+              onChange={(event) => onValueChange(row, event.target.value)}
               onFocus={unlockAutofillShield}
             />
             <button
