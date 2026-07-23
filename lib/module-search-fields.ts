@@ -327,7 +327,7 @@ export function getModuleSearchFieldOptions(
   }
 
   if (slug === "breaches" || slug === "breachbase") {
-    return uniqueOptions([EMAIL, USERNAME, PHONE, DOMAIN, IP, COMMON_QUERY]);
+    return uniqueOptions([EMAIL, USERNAME]);
   }
 
   if (slug === "email-analyze" || slug === "email-presence") {
@@ -438,7 +438,7 @@ export function defaultSearchFieldsForModule(
       ? "first-name"
       : moduleDef.hideFieldTypePicker
         ? "query"
-        : options[0]?.id ?? "query";
+        : options[0]?.id ?? "email";
 
   if (moduleDef.slug === "public-records") {
     return [createSearchFieldRow("first-name"), createSearchFieldRow("last-name")];

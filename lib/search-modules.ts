@@ -109,9 +109,14 @@ export type SearchModuleDef = {
   hideTools?: boolean;
   /**
    * Hide the Email/Username/Phone type dropdown and multi-field adder.
-   * Single query input with auto-detect (Breaches).
+   * Single query input with auto-detect.
    */
   hideFieldTypePicker?: boolean;
+  /**
+   * Single search row (no “Add field”), but still show the type picker when
+   * `hideFieldTypePicker` is off (e.g. Breaches: Email | Username).
+   */
+  singleSearchField?: boolean;
   /** Optional geographic / identity filters users can fill when they know them. */
   optionalFilters?: ModuleOptionalFilter[];
   /** Show lawful-use / FCRA notice on the module page. */
@@ -139,6 +144,7 @@ function mod(
     | "tools"
     | "hideTools"
     | "hideFieldTypePicker"
+    | "singleSearchField"
     | "optionalFilters"
     | "lawfulUseNotice"
     | "lawfulUseCopy"
@@ -284,13 +290,13 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Breaches",
         "breaches",
         "breaches",
-        "Email, username, phone, domain, or search term",
+        "Email or username",
         "Unified breach search — Comb, Combo Lookup, DataVoid recovery, Email Analyzer, Breach Index, and every connected leak provider in one module.",
         undefined,
         undefined,
         {
           hideTools: true,
-          hideFieldTypePicker: true,
+          singleSearchField: true,
           tools: [
             {
               id: "all-breaches",

@@ -42,7 +42,8 @@ export function ModuleSearchFields({
   const options = getModuleSearchFieldOptions(moduleDef);
   const availableIds = options.map((option) => option.id);
   const hideTypePicker = Boolean(moduleDef.hideFieldTypePicker);
-  const singleInput = hideTypePicker;
+  const singleInput =
+    hideTypePicker || Boolean(moduleDef.singleSearchField);
 
   const updateRow = (id: string, patch: Partial<ModuleSearchFieldRow>) => {
     onChange(

@@ -54,9 +54,11 @@ export function BreachesSearchResults({
   const ips = useMemo(() => collectIpsFromResult(result), [result]);
   const [activeIp, setActiveIp] = useState<string | null>(ips[0] ?? null);
   const queryEmail = useMemo(
-    () => normalizeEmail(result.query) ?? result.query.trim(),
+    () => normalizeEmail(result.query),
     [result.query],
   );
+  const queryLabel = queryEmail ? "Email" : "Username";
+  const queryValue = queryEmail ?? result.query.trim();
 
   const resultsKey = useMemo(
     () =>
@@ -142,11 +144,13 @@ export function BreachesSearchResults({
             </div>
           )}
 
-          {queryEmail ? (
+          {queryValue ? (
             <div className="anya-breaches-email-label">
-              <span className="anya-breaches-email-label-caption">Email</span>
+              <span className="anya-breaches-email-label-caption">
+                {queryLabel}
+              </span>
               <span className="anya-breaches-email-label-value">
-                {blurResults ? "••••••••" : queryEmail}
+                {blurResults ? "••••••••" : queryValue}
               </span>
             </div>
           ) : null}
