@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@heroui/button";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle, Code2, CreditCard, Sparkles } from "lucide-react";
+import { CheckCircle, Code2, CreditCard, Mail, Sparkles } from "lucide-react";
 import NextLink from "next/link";
+import { SiTelegram } from "react-icons/si";
 
 import { apiFetch } from "@/lib/csrf-client";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/components/billing-status-banner";
 import AnimatedPrice from "@/components/animated-price";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { siteConfig } from "@/config/site";
 import {
   ANNUAL_MONTHS_CHARGED,
   API_PRODUCT,
@@ -61,6 +63,7 @@ export function PricingPageContent({
   const [pendingCheckout, setPendingCheckout] =
     useState<PendingCheckout | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [enterpriseContactOpen, setEnterpriseContactOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -377,9 +380,13 @@ export function PricingPageContent({
 
                       <div className="mt-4 min-h-[3.25rem]">
                         {price.value === null ? (
-                          <span className="text-3xl font-bold text-white">
+                          <button
+                            className="text-left text-3xl font-bold text-white transition hover:text-[var(--anya-blush)]"
+                            type="button"
+                            onClick={() => setEnterpriseContactOpen(true)}
+                          >
                             Custom
-                          </span>
+                          </button>
                         ) : (
                           <div>
                             <div className="flex items-baseline gap-2">
@@ -432,7 +439,7 @@ export function PricingPageContent({
                         type="button"
                         onClick={() => {
                           if (plan.customPricing) {
-                            router.push("/support");
+                            setEnterpriseContactOpen(true);
 
                             return;
                           }
@@ -449,7 +456,7 @@ export function PricingPageContent({
                         {busyId === plan.id
                           ? "Working…"
                           : plan.customPricing
-                            ? "Contact Sales"
+                            ? "Contact us"
                             : "Get Started"}
                       </LiquidButton>
                       </div>
@@ -736,6 +743,57 @@ export function PricingPageContent({
           </div>
         </div>
       )}
+
+      {enterpriseContactOpen ? (
+        <div
+          aria-labelledby="enterprise-contact-title"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          onClick={() => setEnterpriseContactOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3
+              className="text-lg font-semibold text-white"
+              id="enterprise-contact-title"
+            >
+              Enterprise is custom
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
+              Team and agency pricing is handled directly. Reach out on Telegram
+              or email and we&apos;ll set up the right plan.
+            </p>
+            <div className="mt-5 grid gap-3">
+              <a
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-[#0c1019] transition hover:brightness-110"
+                href={siteConfig.links.telegram}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <SiTelegram className="size-4" />
+                Message on Telegram
+              </a>
+              <a
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 text-sm font-semibold text-white transition hover:bg-white/[0.14]"
+                href={`mailto:${siteConfig.links.supportEmail}?subject=${encodeURIComponent("Enterprise pricing inquiry")}`}
+              >
+                <Mail className="size-4" />
+                Email {siteConfig.links.supportEmail}
+              </a>
+              <button
+                className="mt-1 text-sm text-zinc-500 hover:text-zinc-300"
+                type="button"
+                onClick={() => setEnterpriseContactOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

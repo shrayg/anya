@@ -139,7 +139,7 @@ function PanelPreview() {
   return (
     <div
       ref={ref}
-      aria-label="Illustrative AnyaInt Panel investigation"
+      aria-label="Illustrative Anya Panel investigation"
       className="anya-panel-preview"
     >
       <div className="anya-panel-preview__topbar">
@@ -213,53 +213,54 @@ function PanelPreview() {
                 <svg
                   className="anya-panel-preview__graph-svg"
                   role="presentation"
-                  viewBox="0 0 400 220"
+                  viewBox="0 0 360 240"
                 >
+                  {/* Perfect X: hub at 180,120 · satellites at equal diagonals */}
                   <g className="anya-panel-preview__graph-links">
-                    <line x1="200" y1="110" x2="78" y2="42" />
-                    <line x1="200" y1="110" x2="78" y2="178" />
-                    <line x1="200" y1="110" x2="322" y2="42" />
-                    <line x1="200" y1="110" x2="322" y2="178" />
+                    <line x1="148" y1="98" x2="118" y2="62" />
+                    <line x1="212" y1="98" x2="242" y2="62" />
+                    <line x1="148" y1="142" x2="118" y2="178" />
+                    <line x1="212" y1="142" x2="242" y2="178" />
                   </g>
 
                   <g className="anya-panel-preview__graph-sat">
-                    <rect height="28" rx="14" width="72" x="42" y="28" />
-                    <text x="78" y="46">
+                    <rect height="30" rx="15" width="80" x="50" y="35" />
+                    <text dominantBaseline="central" textAnchor="middle" x="90" y="50">
                       EMAIL
                     </text>
                   </g>
                   <g className="anya-panel-preview__graph-sat">
-                    <rect height="28" rx="14" width="72" x="42" y="164" />
-                    <text x="78" y="182">
-                      ALIAS
-                    </text>
-                  </g>
-                  <g className="anya-panel-preview__graph-sat">
-                    <rect height="28" rx="14" width="72" x="286" y="28" />
-                    <text x="322" y="46">
+                    <rect height="30" rx="15" width="80" x="230" y="35" />
+                    <text dominantBaseline="central" textAnchor="middle" x="270" y="50">
                       SOCIAL
                     </text>
                   </g>
                   <g className="anya-panel-preview__graph-sat">
-                    <rect height="28" rx="14" width="72" x="286" y="164" />
-                    <text x="322" y="182">
+                    <rect height="30" rx="15" width="80" x="50" y="175" />
+                    <text dominantBaseline="central" textAnchor="middle" x="90" y="190">
+                      ALIAS
+                    </text>
+                  </g>
+                  <g className="anya-panel-preview__graph-sat">
+                    <rect height="30" rx="15" width="80" x="230" y="175" />
+                    <text dominantBaseline="central" textAnchor="middle" x="270" y="190">
                       RECORD
                     </text>
                   </g>
 
-                  <g transform="translate(200 110)">
+                  <g transform="translate(180 120)">
                     <motion.g
                       animate={{
-                        scale: stage >= 2 ? 1 : 0.88,
-                        opacity: stage >= 1 ? 1 : 0.4,
+                        scale: stage >= 2 ? 1 : 0.9,
+                        opacity: stage >= 1 ? 1 : 0.45,
                       }}
                       className="anya-panel-preview__graph-hub"
                       initial={false}
                       transition={{ duration: 0.32 }}
                     >
-                      <circle cx="0" cy="0" r="34" />
-                      <circle cx="0" cy="0" r="26" />
-                      <text x="0" y="1">
+                      <circle cx="0" cy="0" r="38" />
+                      <circle cx="0" cy="0" r="30" />
+                      <text dominantBaseline="central" textAnchor="middle" x="0" y="0">
                         SUBJECT
                       </text>
                     </motion.g>

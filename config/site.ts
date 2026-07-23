@@ -8,7 +8,7 @@ export type NavItem = {
 
 export const siteConfig = {
   name: "Anya",
-  navName: "AnyaInt",
+  navName: "Anya",
   description:
     "Anya | Look people up across socials, exposure, and public records",
   tagline: "Look people up. Connect the trail. Keep the file.",

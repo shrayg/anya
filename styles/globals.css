@@ -10592,40 +10592,41 @@ html[data-splash="active"] [data-splash-target] {
 .anya-panel-preview__graph {
   position: relative;
   display: grid;
-  min-height: 14.5rem;
+  min-height: 15rem;
   place-items: center;
-  padding: 0.35rem 0 0.15rem;
+  padding: 0.5rem 0 0.25rem;
   overflow: hidden;
   background: none;
 }
 
 .anya-panel-preview__graph-svg {
+  display: block;
   width: 100%;
-  max-width: 26rem;
+  max-width: 22rem;
   height: auto;
-  aspect-ratio: 400 / 220;
+  margin-inline: auto;
+  aspect-ratio: 360 / 240;
 }
 
 .anya-panel-preview__graph-links line {
   fill: none;
-  stroke: color-mix(in srgb, var(--anya-blush) 38%, rgba(255, 255, 255, 0.2));
+  stroke: color-mix(in srgb, var(--anya-blush) 42%, rgba(255, 255, 255, 0.22));
   stroke-linecap: round;
-  stroke-width: 1.25;
+  stroke-width: 1.35;
 }
 
 .anya-panel-preview__graph-sat rect {
   fill: #0c0d11;
-  stroke: rgba(255, 255, 255, 0.14);
+  stroke: rgba(255, 255, 255, 0.16);
   stroke-width: 1;
 }
 
 .anya-panel-preview__graph-sat text {
-  fill: #a1a1aa;
+  fill: #b4b4bc;
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-anchor: middle;
-  dominant-baseline: middle;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
 
 .anya-panel-preview__graph-hub {
@@ -10634,25 +10635,23 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-panel-preview__graph-hub circle:first-child {
-  fill: color-mix(in srgb, var(--anya-blush) 14%, #090a0e);
-  stroke: color-mix(in srgb, var(--anya-blush) 70%, white 8%);
-  stroke-width: 1.4;
+  fill: color-mix(in srgb, var(--anya-blush) 12%, #090a0e);
+  stroke: color-mix(in srgb, var(--anya-blush) 72%, white 6%);
+  stroke-width: 1.5;
 }
 
 .anya-panel-preview__graph-hub circle:last-of-type {
   fill: #090a0e;
-  stroke: color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  stroke: color-mix(in srgb, var(--anya-blush) 28%, transparent);
   stroke-width: 1;
 }
 
 .anya-panel-preview__graph-hub text {
   fill: #f2b3d2;
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  text-anchor: middle;
-  dominant-baseline: middle;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
 }
 
 .anya-panel-preview__findings {
