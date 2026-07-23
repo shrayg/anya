@@ -122,7 +122,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     id: "starter",
     name: "Starter",
     description: "Core identity lookups — email, phone, username, and Discord",
-    monthlyPrice: 4.99,
+    monthlyPrice: 14.99,
     dailySearchLimit: 150,
     panelAccess: false,
     features: [
@@ -137,9 +137,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     id: "professional",
     name: "Professional",
     description: "Full panel access for active investigators",
-    monthlyPrice: 14.99,
-    compareAtMonthlyPrice: 24.99,
-    saleBadge: "Sale",
+    monthlyPrice: 39.99,
     dailySearchLimit: 500,
     panelAccess: true,
     highlighted: true,
@@ -155,7 +153,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     id: "ultimate",
     name: "Ultimate",
     description: "Unlimited searches with full AI access",
-    monthlyPrice: 49.99,
+    monthlyPrice: 79.99,
     dailySearchLimit: Infinity,
     panelAccess: true,
     features: [
@@ -169,7 +167,8 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     id: "enterprise",
     name: "Enterprise",
     description: "Team and agency deployments with dedicated support",
-    monthlyPrice: 99.99,
+    monthlyPrice: null,
+    customPricing: true,
     dailySearchLimit: Infinity,
     panelAccess: true,
     features: [
