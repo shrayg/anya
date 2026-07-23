@@ -643,6 +643,10 @@ pre,
   align-items: center;
 }
 
+.module-search-field-row--simple {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .module-search-field-type {
   width: 100%;
   min-width: 0;
@@ -762,6 +766,11 @@ pre,
     grid-template-areas:
       "type remove"
       "input input";
+  }
+
+  .module-search-field-row--simple {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "input";
   }
 
   .module-search-field-type {

@@ -436,7 +436,9 @@ export function defaultSearchFieldsForModule(
   const initialType =
     moduleDef.slug === "public-records"
       ? "first-name"
-      : options[0]?.id ?? "query";
+      : moduleDef.hideFieldTypePicker
+        ? "query"
+        : options[0]?.id ?? "query";
 
   if (moduleDef.slug === "public-records") {
     return [createSearchFieldRow("first-name"), createSearchFieldRow("last-name")];

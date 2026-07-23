@@ -1717,7 +1717,7 @@ export function ModuleSearchView({
         (selectedToolId === "reconly-fivem" || moduleDef.slug === "fivem")
           ? "&mode=fivem"
           : "";
-      // Breaches: field-type dropdown drives provider kind (email/username/phone/…).
+      // Breaches: auto-detected field type drives provider kind (email/username/phone/…).
       const breachKind = fieldTypeToBreachKindHint(composed.primaryType);
       const breachesTypeParam =
         activeType === "breaches" && breachKind

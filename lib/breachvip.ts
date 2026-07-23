@@ -1,5 +1,8 @@
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
-import type { CombCredential } from "@/lib/proxynova-comb";
+import {
+  connectedFieldsFromBreachRecord,
+  type CombCredential,
+} from "@/lib/proxynova-comb";
 
 import {
   PUBLIC_INTEL_SOURCE,
@@ -112,10 +115,16 @@ export function breachVipRecordToCredential(
   const id = identifier || "(unknown)";
   const raw = secret ? `${id}:${secret}` : id;
 
+  const fields = connectedFieldsFromBreachRecord(
+    record as Record<string, unknown>,
+    { identifier: id, secret },
+  );
+
   return {
     identifier: id,
     secret,
     raw: breachSource ? `${breachSource} · ${raw}` : raw,
+    ...(fields.length > 0 ? { fields } : {}),
   };
 }
 

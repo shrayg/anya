@@ -38,6 +38,7 @@ import {
   withDeadline,
 } from "@/lib/osint-search-guard";
 import {
+  mergeCombCredentialFields,
   normalizeEmail,
   searchProxynovaCombForEmail,
   type CombCredential,
@@ -54,18 +55,30 @@ function mergeCredentials(
   primary: CombCredential[],
   secondary: CombCredential[],
 ): CombCredential[] {
-  const seen = new Set<string>();
-  const merged: CombCredential[] = [];
+  const byKey = new Map<string, CombCredential>();
 
   for (const row of [...primary, ...secondary]) {
     const key = `${row.identifier.toLowerCase()}\0${row.secret}`;
+    const existing = byKey.get(key);
 
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(row);
+    if (!existing) {
+      byKey.set(key, row);
+      continue;
+    }
+
+    // Prefer the richer hit when the same login:secret appears from multiple indexes.
+    const fields = mergeCombCredentialFields(existing.fields, row.fields);
+    const richerRaw =
+      (row.raw?.length ?? 0) > (existing.raw?.length ?? 0) ? row.raw : existing.raw;
+
+    byKey.set(key, {
+      ...existing,
+      raw: richerRaw,
+      ...(fields ? { fields } : {}),
+    });
   }
 
-  return merged;
+  return [...byKey.values()];
 }
 
 function settledValue<T>(result: PromiseSettledResult<T>): T | null {

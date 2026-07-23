@@ -18,7 +18,10 @@
  * 6. User Lookup
  */
 
-import type { CombCredential } from "@/lib/proxynova-comb";
+import {
+  connectedFieldsFromBreachRecord,
+  type CombCredential,
+} from "@/lib/proxynova-comb";
 import {
   mergeSanitizedResponses,
   type SanitizedBreachResponse,
@@ -352,9 +355,14 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     path: "/api/snusbase/combo-lookup",
     section: "data_breach",
     modes: ["additive"],
-    kinds: ["username", "password"],
+    // Combo lists are typically email:pass or user:pass — include email in
+    // Breaches fan-out (standalone Combo Lookup is folded into Breaches).
+    kinds: ["email", "username", "password"],
     buildParams: (query, kind) =>
-      typeQuery(kind === "password" ? "password" : "username", query),
+      typeQuery(
+        kind === "password" ? "password" : kind === "email" ? "email" : "username",
+        query,
+      ),
   },
   {
     id: "snusbase-hash",
@@ -1940,7 +1948,8 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     id: "datavoid-recovery",
     path: "/api/datavoid/recovery",
     section: "specialized_tools",
-    modes: ["specialty"],
+    // Additive so Breaches all-fan-out includes DataVoid recovery hits.
+    modes: ["specialty", "additive"],
     kinds: ["email", "username", "phone", "name"],
     buildParams: (query) => ({ q: query }),
   },
@@ -4780,11 +4789,16 @@ export function breachHubRowsToCredentials(
       asString(record.origin) ||
       asString(record.title);
     const raw = secret ? `${id}:${secret}` : id;
+    const fields = connectedFieldsFromBreachRecord(record, {
+      identifier: id,
+      secret,
+    });
 
     credentials.push({
       identifier: id,
       secret,
       raw: breachSource ? `${breachSource} · ${raw}` : raw,
+      ...(fields.length > 0 ? { fields } : {}),
     });
   }
 

@@ -51,6 +51,8 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   "seeknow-search": { slug: "breaches", tool: "seeknow-search" },
   leaksight: { slug: "breaches", tool: "leaksight" },
   inf0sec: { slug: "breaches", tool: "inf0sec" },
+  /** Combo Lookup is covered by the Breaches all-indexes fan-out. */
+  "combo-lookup": { slug: "breaches" },
 };
 
 /** Sidebar hides these — they remain in the catalog for redirects / deep links. */
@@ -103,6 +105,11 @@ export type SearchModuleDef = {
    * default selection + legacy `?tool=` deep links (e.g. Breaches).
    */
   hideTools?: boolean;
+  /**
+   * Hide the Email/Username/Phone type dropdown and multi-field adder.
+   * Single query input with auto-detect (Breaches).
+   */
+  hideFieldTypePicker?: boolean;
   /** Optional geographic / identity filters users can fill when they know them. */
   optionalFilters?: ModuleOptionalFilter[];
   /** Show lawful-use / FCRA notice on the module page. */
@@ -129,6 +136,7 @@ function mod(
     SearchModuleDef,
     | "tools"
     | "hideTools"
+    | "hideFieldTypePicker"
     | "optionalFilters"
     | "lawfulUseNotice"
     | "lawfulUseCopy"
@@ -274,12 +282,13 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Breaches",
         "breaches",
         "breaches",
-        "Email, username, or search term",
-        "Unified breach search — Comb, Breach Index, and every connected leak provider in one module.",
+        "Email, username, phone, domain, or search term",
+        "Unified breach search — Comb, Combo Lookup, DataVoid recovery, Breach Index, and every connected leak provider in one module.",
         undefined,
         undefined,
         {
           hideTools: true,
+          hideFieldTypePicker: true,
           tools: [
             {
               id: "all-breaches",
@@ -351,6 +360,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Seekria TikTok breach",
               apiType: "seekria/tiktok-breach",
             },
+            {
+              id: "combo-lookup",
+              label: "Combo Lookup",
+              apiType: "snusbase/combo-lookup",
+            },
+            {
+              id: "datavoid-recovery",
+              label: "DataVoid recovery",
+              apiType: "datavoid/recovery",
+            },
           ],
         },
       ),
@@ -378,13 +397,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           ],
         },
       ),
+      // Legacy — hidden from hub; redirects to Breaches (combo is in all-fan-out)
       mod(
         "Breach & Leaks",
         "Combo Lookup",
         "combo-lookup",
         "snusbase/combo-lookup",
         "Username, email, or password",
-        "Search combolist indexes for credential pairs.",
+        "Merged into Breaches — combolist indexes run in the All breach indexes fan-out.",
       ),
       mod(
         "Breach & Leaks",
@@ -445,7 +465,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "datavoid",
         "datavoid/recovery",
         "Email, username, phone, name, or company",
-        "DataVoid people and company recovery (US/CA/IL). Stealer, Discord, Roblox, and other specialties live on their primary hubs.",
+        "DataVoid people and company recovery (US/CA/IL). Recovery also runs inside Breaches; stealer/social specialties live on their primary hubs.",
         undefined,
         undefined,
         {

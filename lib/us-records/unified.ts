@@ -12,7 +12,11 @@ import {
 import { fetchMelissaWithFallback } from "@/lib/gateway-fallback";
 import { fetchGodsEyeSearchResult, resolveGodsEyeSearchType } from "@/lib/godseye";
 import { withPrimaryFallback } from "@/lib/provider-dedupe";
-import type { CombCredential, CombSearchResult } from "@/lib/proxynova-comb";
+import {
+  mergeCombCredentialFields,
+  type CombCredential,
+  type CombSearchResult,
+} from "@/lib/proxynova-comb";
 import type {
   CourtCaseHit,
   PersonHit,
@@ -59,18 +63,29 @@ function mergeCredentials(
   primary: CombCredential[],
   secondary: CombCredential[],
 ): CombCredential[] {
-  const seen = new Set<string>();
-  const merged: CombCredential[] = [];
+  const byKey = new Map<string, CombCredential>();
 
   for (const row of [...primary, ...secondary]) {
     const key = `${row.identifier.toLowerCase()}\0${row.secret}`;
+    const existing = byKey.get(key);
 
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(row);
+    if (!existing) {
+      byKey.set(key, row);
+      continue;
+    }
+
+    const fields = mergeCombCredentialFields(existing.fields, row.fields);
+    const richerRaw =
+      (row.raw?.length ?? 0) > (existing.raw?.length ?? 0) ? row.raw : existing.raw;
+
+    byKey.set(key, {
+      ...existing,
+      raw: richerRaw,
+      ...(fields ? { fields } : {}),
+    });
   }
 
-  return merged;
+  return [...byKey.values()];
 }
 
 async function searchNameBreaches(query: string): Promise<CombSearchResult> {

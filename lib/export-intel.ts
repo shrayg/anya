@@ -88,6 +88,10 @@ export function formatBreachCredentialAsText(
     lines.push(`Password: ${sanitizePublicText(row.secret)}`);
   }
 
+  for (const field of row.fields ?? []) {
+    lines.push(`${field.label}: ${sanitizePublicText(field.value)}`);
+  }
+
   if (row.raw) {
     const raw = sanitizePublicText(row.raw);
 
@@ -133,11 +137,18 @@ function recordToPlainObject(record: FormattedRecord) {
 }
 
 function credentialToPlainObject(row: CombCredential, index: number) {
+  const fields = Object.fromEntries(
+    (row.fields ?? [])
+      .map((field) => [field.key, sanitizePublicText(field.value)])
+      .filter(([, value]) => Boolean(value)),
+  );
+
   return {
     index,
     identifier: sanitizePublicText(row.identifier),
     secret: row.secret ? sanitizePublicText(row.secret) || null : null,
     raw: row.raw ? sanitizePublicText(row.raw) || null : null,
+    ...(Object.keys(fields).length > 0 ? { fields } : {}),
   };
 }
 
@@ -352,6 +363,10 @@ export function formatBreachCredentialsAsHtml(
       const fields = [
         ["Email / login", sanitizePublicText(row.identifier)],
         row.secret ? ["Password", sanitizePublicText(row.secret)] : null,
+        ...(row.fields ?? []).map((field) => [
+          field.label,
+          sanitizePublicText(field.value),
+        ]),
         row.raw ? ["Raw", sanitizePublicText(row.raw)] : null,
       ]
         .filter(Boolean)
@@ -379,6 +394,10 @@ export function formatBreachCredentialAsHtml(
   const fields = [
     ["Email / login", sanitizePublicText(row.identifier)],
     row.secret ? ["Password", sanitizePublicText(row.secret)] : null,
+    ...(row.fields ?? []).map((field) => [
+      field.label,
+      sanitizePublicText(field.value),
+    ]),
     row.raw ? ["Raw", sanitizePublicText(row.raw)] : null,
   ]
     .filter(Boolean)

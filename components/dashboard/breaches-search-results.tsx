@@ -45,6 +45,7 @@ export function BreachesSearchResults({
         {result.credentials.map((row, index) => {
           const cardIndex = index + 1;
           const selected = selectedExportIndex === cardIndex;
+          const connected = row.fields ?? [];
 
           return (
             <article
@@ -116,6 +117,31 @@ export function BreachesSearchResults({
                     </div>
                   </div>
                 ) : null}
+                {connected.map((field) => {
+                  const sensitive =
+                    field.key === "password" || field.key === "hash";
+
+                  return (
+                    <div
+                      key={`${field.key}-${field.value}`}
+                      className={clsx(
+                        "anya-result-field",
+                        sensitive && "anya-result-field--sensitive",
+                      )}
+                    >
+                      <p className="anya-result-label">{field.label}</p>
+                      <div className="anya-result-field-row">
+                        <p className="anya-result-value">
+                          <BlurredValue
+                            forceBlur={blurResults}
+                            text={field.value}
+                          />
+                        </p>
+                        <ResultCopyButton compact text={field.value} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </article>
           );

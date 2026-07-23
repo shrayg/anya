@@ -4,7 +4,10 @@
  */
 
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
-import type { CombCredential } from "@/lib/proxynova-comb";
+import {
+  connectedFieldsFromBreachRecord,
+  type CombCredential,
+} from "@/lib/proxynova-comb";
 
 import {
   intelResultFingerprint,
@@ -831,10 +834,16 @@ export function csintRowsToCredentials(results: unknown[]): CombCredential[] {
     if (seen.has(key)) continue;
     seen.add(key);
 
+    const fields = connectedFieldsFromBreachRecord(record, {
+      identifier: id,
+      secret,
+    });
+
     credentials.push({
       identifier: id,
       secret,
       raw: secret ? `${id}:${secret}` : id,
+      ...(fields.length > 0 ? { fields } : {}),
     });
   }
 

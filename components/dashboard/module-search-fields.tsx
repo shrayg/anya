@@ -41,6 +41,8 @@ export function ModuleSearchFields({
 }) {
   const options = getModuleSearchFieldOptions(moduleDef);
   const availableIds = options.map((option) => option.id);
+  const hideTypePicker = Boolean(moduleDef.hideFieldTypePicker);
+  const singleInput = hideTypePicker;
 
   const updateRow = (id: string, patch: Partial<ModuleSearchFieldRow>) => {
     onChange(
@@ -54,7 +56,7 @@ export function ModuleSearchFields({
   };
 
   const addRow = () => {
-    if (fields.length >= MAX_FIELDS) return;
+    if (fields.length >= MAX_FIELDS || singleInput) return;
     const used = new Set(fields.map((row) => row.type));
     const nextType =
       options.find((option) => !used.has(option.id))?.id ??
@@ -72,13 +74,14 @@ export function ModuleSearchFields({
       updateRow(row.id, {
         value,
         typeManual: false,
+        ...(hideTypePicker ? { type: "query" as SearchFieldTypeId } : {}),
       });
       return;
     }
 
     if (
-      row.typeManual ||
-      !shouldAutoDetectFieldType(row.type, availableIds)
+      !hideTypePicker &&
+      (row.typeManual || !shouldAutoDetectFieldType(row.type, availableIds))
     ) {
       updateRow(row.id, { value });
       return;
@@ -93,33 +96,46 @@ export function ModuleSearchFields({
     });
   };
 
+  const visibleFields = singleInput ? fields.slice(0, 1) : fields;
+
   return (
     <div className="module-search-form">
       <AutofillDecoyFields />
       <div className="module-search-fields">
-        {fields.map((row, index) => (
-          <div key={row.id} className="module-search-field-row">
-            <label className="sr-only" htmlFor={`field-type-${row.id}`}>
-              Field type
-            </label>
-            <select
-              className="module-search-field-type dash-select"
-              disabled={disabled}
-              id={`field-type-${row.id}`}
-              value={row.type}
-              onChange={(event) =>
-                updateRow(row.id, {
-                  type: event.target.value as SearchFieldTypeId,
-                  typeManual: true,
-                })
-              }
-            >
-              {options.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+        {visibleFields.map((row, index) => (
+          <div
+            key={row.id}
+            className={
+              hideTypePicker
+                ? "module-search-field-row module-search-field-row--simple"
+                : "module-search-field-row"
+            }
+          >
+            {hideTypePicker ? null : (
+              <>
+                <label className="sr-only" htmlFor={`field-type-${row.id}`}>
+                  Field type
+                </label>
+                <select
+                  className="module-search-field-type dash-select"
+                  disabled={disabled}
+                  id={`field-type-${row.id}`}
+                  value={row.type}
+                  onChange={(event) =>
+                    updateRow(row.id, {
+                      type: event.target.value as SearchFieldTypeId,
+                      typeManual: true,
+                    })
+                  }
+                >
+                  {options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             <input
               {...SEARCH_AUTOFILL_SHIELD}
               autoFocus={index === 0}
@@ -128,35 +144,45 @@ export function ModuleSearchFields({
               data-tour={index === 0 ? "search-input" : undefined}
               disabled={disabled}
               name={`osint-field-${row.id}`}
-              placeholder={placeholderForFieldType(row.type, options)}
+              placeholder={
+                hideTypePicker
+                  ? moduleDef.hint
+                  : placeholderForFieldType(row.type, options)
+              }
               type="text"
               value={row.value}
               onChange={(event) => onValueChange(row, event.target.value)}
               onFocus={unlockAutofillShield}
             />
-            <button
-              aria-label="Remove field"
-              className="module-search-field-remove"
-              disabled={disabled || fields.length <= 1}
-              type="button"
-              onClick={() => removeRow(row.id)}
-            >
-              <X className="size-4" />
-            </button>
+            {singleInput ? null : (
+              <button
+                aria-label="Remove field"
+                className="module-search-field-remove"
+                disabled={disabled || fields.length <= 1}
+                type="button"
+                onClick={() => removeRow(row.id)}
+              >
+                <X className="size-4" />
+              </button>
+            )}
           </div>
         ))}
       </div>
 
       <div className="module-search-form-actions">
-        <button
-          className="ui-btn ui-btn-ghost module-search-add-field"
-          disabled={disabled || fields.length >= MAX_FIELDS}
-          type="button"
-          onClick={addRow}
-        >
-          <Plus className="size-4" />
-          Add field
-        </button>
+        {singleInput ? (
+          <span />
+        ) : (
+          <button
+            className="ui-btn ui-btn-ghost module-search-add-field"
+            disabled={disabled || fields.length >= MAX_FIELDS}
+            type="button"
+            onClick={addRow}
+          >
+            <Plus className="size-4" />
+            Add field
+          </button>
+        )}
         <div className="module-search-form-submit-group">
           {extraActions}
           <button
