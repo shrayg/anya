@@ -3007,8 +3007,8 @@ export function ModuleSearchView({
   };
 
   return (
-    <div className="module-search px-6 py-6 md:px-8 md:py-8">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="module-search px-6 pb-8 pt-14 md:px-8 md:pb-10 md:pt-20">
+      <div className="mb-8 flex items-center justify-between gap-4">
         <Link
           className="module-search-back inline-flex items-center gap-2"
           href="/dashboard/search"
