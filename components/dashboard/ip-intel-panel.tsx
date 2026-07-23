@@ -89,9 +89,12 @@ function pickString(record: Record<string, unknown> | null, keys: string[]) {
 export function IpIntelPanel({
   ip,
   blurResults = false,
+  variant = "embedded",
 }: {
   ip: string;
   blurResults?: boolean;
+  /** `panel` = standalone left-column window; `embedded` = card footer. */
+  variant?: "embedded" | "panel";
 }) {
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">(
     "idle",
@@ -207,7 +210,9 @@ export function IpIntelPanel({
   return (
     <>
       <div
-        className="anya-ip-intel"
+        className={
+          variant === "panel" ? "anya-ip-intel anya-ip-intel--panel" : "anya-ip-intel"
+        }
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >

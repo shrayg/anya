@@ -2945,9 +2945,9 @@ html[data-splash="active"] [data-splash-target] {
   }
 }
 
-/* Breaches: denser cards stacked on the left, not full-width stretch */
+/* Breaches: three-column layout — IP | credentials | Email Analyzer */
 .anya-result-stack--breaches {
-  justify-items: start;
+  justify-items: stretch;
   width: 100%;
 }
 
@@ -2956,12 +2956,177 @@ html[data-splash="active"] [data-splash-target] {
   max-width: 36rem;
 }
 
-.anya-result-list--dense-left {
+.anya-breaches-layout {
+  display: grid;
   width: 100%;
-  max-width: 26rem;
-  justify-self: start;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.anya-breaches-col {
+  min-width: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.anya-breaches-col--main {
+  order: 1;
+}
+
+.anya-breaches-col--left {
+  order: 2;
+}
+
+.anya-breaches-col--right {
+  order: 3;
+}
+
+@media (min-width: 1100px) {
+  .anya-breaches-layout {
+    grid-template-columns:
+      minmax(15rem, 18.5rem)
+      minmax(0, 1fr)
+      minmax(15rem, 20rem);
+    gap: 1rem;
+  }
+
+  .anya-breaches-col--left,
+  .anya-breaches-col--main,
+  .anya-breaches-col--right {
+    order: 0;
+  }
+}
+
+.anya-breaches-side-panel {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--anya-radius-md, 0.85rem);
+  background: rgba(8, 8, 10, 0.55);
+  box-shadow: var(--anya-shadow-panel);
+  padding: 0.65rem 0.7rem 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.anya-breaches-side-panel--ip {
+  padding: 0.55rem;
+}
+
+.anya-breaches-side-panel--ip .anya-ip-intel,
+.anya-breaches-side-panel--ip .anya-ip-intel--panel {
+  border-top: 0;
+  background: transparent;
+  padding: 0.2rem 0.15rem 0.1rem;
+}
+
+.anya-breaches-side-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.anya-breaches-side-panel-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--anya-blush, #f472b6) 70%, #a1a1aa);
+}
+
+.anya-breaches-side-panel-meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  color: #d4d4d8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+.anya-breaches-side-panel-status {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+}
+
+.anya-breaches-side-panel-empty {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #71717a;
+}
+
+.anya-breaches-ip-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.15rem;
+}
+
+.anya-breaches-ip-chip {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #a1a1aa;
+  border-radius: 0.4rem;
+  padding: 0.15rem 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.62rem;
+  cursor: pointer;
+}
+
+.anya-breaches-ip-chip--active {
+  border-color: color-mix(in srgb, var(--anya-blush, #f472b6) 55%, transparent);
+  color: #fafafa;
+  background: rgba(244, 114, 182, 0.12);
+}
+
+.anya-breaches-email-label {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--anya-radius-sm, 0.55rem);
+  background: rgba(0, 0, 0, 0.28);
+  padding: 0.45rem 0.6rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.anya-breaches-email-label-caption {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.anya-breaches-email-label-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: #f4f4f5;
+  word-break: break-all;
+}
+
+.anya-result-list--dense-main,
+.anya-result-list--dense-left,
+.anya-result-list--analyzer {
+  width: 100%;
+  justify-self: stretch;
   grid-template-columns: 1fr !important;
   gap: 0.35rem;
+}
+
+.anya-result-list--dense-main {
+  max-width: 32rem;
+}
+
+.anya-result-list--analyzer {
+  max-width: none;
 }
 
 .anya-result-card--dense .anya-result-card-header {
@@ -2995,12 +3160,18 @@ html[data-splash="active"] [data-splash-target] {
   font-size: 0.72rem;
 }
 
-.anya-result-stack-actions--left {
+.anya-result-stack-actions--left,
+.anya-result-stack-actions--main {
   justify-self: start;
   justify-content: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
 }
 
-.anya-result-stack-actions--left .anya-result-load-more {
+.anya-result-stack-actions--left .anya-result-load-more,
+.anya-result-stack-actions--main .anya-result-load-more {
   justify-self: start;
 }
 

@@ -10,6 +10,7 @@ import {
   ResultStatStrip,
   type ResultCardFieldDef,
 } from "@/components/dashboard/result-card";
+import { EmailAnalyzerPanel } from "@/components/dashboard/email-analyzer-panel";
 import { IpIntelPanel } from "@/components/dashboard/ip-intel-panel";
 import { formatBreachCredentialAsText } from "@/lib/export-intel";
 import {
@@ -17,9 +18,25 @@ import {
   isIpAddress,
   isIpFieldKey,
 } from "@/lib/ip-detect";
+import { normalizeEmail } from "@/lib/proxynova-comb";
 
 /** Progressive paint — never drops remaining rows; "Show all" reveals everything. */
 const BREACH_RENDER_BATCH = 80;
+
+function collectIpsFromResult(result: CombSearchResult): string[] {
+  const values: Array<string | null | undefined> = [];
+
+  for (const row of result.credentials) {
+    if (isIpAddress(row.identifier)) values.push(row.identifier);
+    for (const field of row.fields ?? []) {
+      if (isIpFieldKey(field.key) || isIpAddress(field.value)) {
+        values.push(field.value);
+      }
+    }
+  }
+
+  return extractIpsFromTexts(values);
+}
 
 export function BreachesSearchResults({
   result,
@@ -34,6 +51,12 @@ export function BreachesSearchResults({
 }) {
   const selectable = Boolean(onSelectExportIndex);
   const [visibleCount, setVisibleCount] = useState(BREACH_RENDER_BATCH);
+  const ips = useMemo(() => collectIpsFromResult(result), [result]);
+  const [activeIp, setActiveIp] = useState<string | null>(ips[0] ?? null);
+  const queryEmail = useMemo(
+    () => normalizeEmail(result.query) ?? result.query.trim(),
+    [result.query],
+  );
 
   const resultsKey = useMemo(
     () =>
@@ -44,6 +67,14 @@ export function BreachesSearchResults({
   useEffect(() => {
     setVisibleCount(BREACH_RENDER_BATCH);
   }, [resultsKey]);
+
+  useEffect(() => {
+    setActiveIp((current) => {
+      if (current && ips.includes(current)) return current;
+
+      return ips[0] ?? null;
+    });
+  }, [ips]);
 
   const visibleRows = result.credentials.slice(0, visibleCount);
   const hiddenCount = Math.max(0, result.credentials.length - visibleCount);
@@ -68,98 +99,142 @@ export function BreachesSearchResults({
         />
       </div>
 
-      <ResultCardList className="anya-result-list--dense-left">
-        {visibleRows.map((row, index) => {
-          const cardIndex = index + 1;
-          const selected = selectedExportIndex === cardIndex;
-          const connected = row.fields ?? [];
-          const fields: ResultCardFieldDef[] = [
-            {
-              key: "identifier",
-              label: "Email / login",
-              value: row.identifier,
-              highlight: true,
-            },
-            ...(row.secret
-              ? [
-                  {
-                    key: "password",
-                    label: "Password",
-                    value: row.secret,
-                    sensitive: true,
-                  },
-                ]
-              : []),
-            ...connected.map((field) => ({
-              key: field.key,
-              label: field.label,
-              value: field.value,
-              sensitive: field.key === "password" || field.key === "hash",
-            })),
-          ];
+      <div className="anya-breaches-layout">
+        {/* LEFT — IP intel window + query email */}
+        <div className="anya-breaches-col anya-breaches-col--left">
+          {activeIp ? (
+            <div className="anya-breaches-side-panel anya-breaches-side-panel--ip">
+              {ips.length > 1 ? (
+                <div className="anya-breaches-ip-picker">
+                  {ips.slice(0, 8).map((ip) => (
+                    <button
+                      key={ip}
+                      className={
+                        ip === activeIp
+                          ? "anya-breaches-ip-chip anya-breaches-ip-chip--active"
+                          : "anya-breaches-ip-chip"
+                      }
+                      type="button"
+                      onClick={() => setActiveIp(ip)}
+                    >
+                      {blurResults ? "••••••••" : ip}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <IpIntelPanel
+                blurResults={blurResults}
+                ip={activeIp}
+                variant="panel"
+              />
+            </div>
+          ) : (
+            <div className="anya-breaches-side-panel anya-breaches-side-panel--ip anya-breaches-side-panel--empty">
+              <p className="anya-breaches-side-panel-empty">
+                No IP addresses found in these breach hits.
+              </p>
+            </div>
+          )}
 
-          const ips = extractIpsFromTexts([
-            isIpAddress(row.identifier) ? row.identifier : null,
-            ...connected
-              .filter((field) => isIpFieldKey(field.key) || isIpAddress(field.value))
-              .map((field) => field.value),
-          ]);
-
-          return (
-            <ResultCard
-              key={`${row.raw}-${index}`}
-              badge={null}
-              blurResults={blurResults}
-              className="anya-result-card--dense"
-              copyText={formatBreachCredentialAsText(row, cardIndex)}
-              fields={fields}
-              footer={
-                ips[0] ? (
-                  <IpIntelPanel blurResults={blurResults} ip={ips[0]!} />
-                ) : null
-              }
-              indexLabel={cardIndex}
-              listIndex={index}
-              selectable={selectable}
-              selected={selected}
-              subtitle={row.identifier}
-              title={row.secret ? "Leaked credential" : "Match"}
-              onSelect={
-                selectable
-                  ? () => onSelectExportIndex?.(selected ? -1 : cardIndex)
-                  : undefined
-              }
-            />
-          );
-        })}
-      </ResultCardList>
-
-      {hiddenCount > 0 ? (
-        <div className="anya-result-stack-actions anya-result-stack-actions--left">
-          <button
-            className="anya-result-load-more"
-            type="button"
-            onClick={() =>
-              setVisibleCount((count) =>
-                Math.min(
-                  result.credentials.length,
-                  count + BREACH_RENDER_BATCH,
-                ),
-              )
-            }
-          >
-            Show {Math.min(BREACH_RENDER_BATCH, hiddenCount).toLocaleString()}{" "}
-            more
-          </button>
-          <button
-            className="anya-result-stack-action"
-            type="button"
-            onClick={() => setVisibleCount(result.credentials.length)}
-          >
-            Show all {result.credentials.length.toLocaleString()}
-          </button>
+          {queryEmail ? (
+            <div className="anya-breaches-email-label">
+              <span className="anya-breaches-email-label-caption">Email</span>
+              <span className="anya-breaches-email-label-value">
+                {blurResults ? "••••••••" : queryEmail}
+              </span>
+            </div>
+          ) : null}
         </div>
-      ) : null}
+
+        {/* MIDDLE — dense breach credential cards */}
+        <div className="anya-breaches-col anya-breaches-col--main">
+          <ResultCardList className="anya-result-list--dense-main">
+            {visibleRows.map((row, index) => {
+              const cardIndex = index + 1;
+              const selected = selectedExportIndex === cardIndex;
+              const connected = row.fields ?? [];
+              const fields: ResultCardFieldDef[] = [
+                {
+                  key: "identifier",
+                  label: "Email / login",
+                  value: row.identifier,
+                  highlight: true,
+                },
+                ...(row.secret
+                  ? [
+                      {
+                        key: "password",
+                        label: "Password",
+                        value: row.secret,
+                        sensitive: true,
+                      },
+                    ]
+                  : []),
+                ...connected.map((field) => ({
+                  key: field.key,
+                  label: field.label,
+                  value: field.value,
+                  sensitive: field.key === "password" || field.key === "hash",
+                })),
+              ];
+
+              return (
+                <ResultCard
+                  key={`${row.raw}-${index}`}
+                  badge={null}
+                  blurResults={blurResults}
+                  className="anya-result-card--dense"
+                  copyText={formatBreachCredentialAsText(row, cardIndex)}
+                  fields={fields}
+                  indexLabel={cardIndex}
+                  listIndex={index}
+                  selectable={selectable}
+                  selected={selected}
+                  subtitle={row.identifier}
+                  title={row.secret ? "Leaked credential" : "Match"}
+                  onSelect={
+                    selectable
+                      ? () => onSelectExportIndex?.(selected ? -1 : cardIndex)
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </ResultCardList>
+
+          {hiddenCount > 0 ? (
+            <div className="anya-result-stack-actions anya-result-stack-actions--main">
+              <button
+                className="anya-result-load-more"
+                type="button"
+                onClick={() =>
+                  setVisibleCount((count) =>
+                    Math.min(
+                      result.credentials.length,
+                      count + BREACH_RENDER_BATCH,
+                    ),
+                  )
+                }
+              >
+                Show {Math.min(BREACH_RENDER_BATCH, hiddenCount).toLocaleString()}{" "}
+                more
+              </button>
+              <button
+                className="anya-result-stack-action"
+                type="button"
+                onClick={() => setVisibleCount(result.credentials.length)}
+              >
+                Show all {result.credentials.length.toLocaleString()}
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        {/* RIGHT — Email Analyzer findings */}
+        <div className="anya-breaches-col anya-breaches-col--right">
+          <EmailAnalyzerPanel blurResults={blurResults} query={result.query} />
+        </div>
+      </div>
 
       {blurResults ? (
         <p className="text-xs text-zinc-500">
