@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
   }
 
   const start = Number(req.nextUrl.searchParams.get("start") ?? 0);
-  const limit = Number(req.nextUrl.searchParams.get("limit") ?? 100);
+  // ProxyNova COMB pages at 100; searchProxynovaComb walks every page.
+  // Default high so domain breach hits are not silently truncated.
+  const limit = Number(req.nextUrl.searchParams.get("limit") ?? 250_000);
 
   const [combinedStealer, breachedResult] = await Promise.allSettled([
     fetchCombinedDomainOsint(domain),

@@ -2945,6 +2945,493 @@ html[data-splash="active"] [data-splash-target] {
   }
 }
 
+/* Breaches: three-column layout — IP | credentials | Email Analyzer */
+.anya-result-stack--breaches {
+  justify-items: stretch;
+  width: 100%;
+  gap: 0.75rem;
+}
+
+.anya-result-stack--breaches-stats {
+  width: 100%;
+  max-width: none;
+}
+
+.anya-breaches-layout {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+  justify-content: stretch;
+}
+
+.anya-breaches-col {
+  min-width: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.anya-breaches-col--main {
+  order: 1;
+}
+
+.anya-breaches-col--left {
+  order: 2;
+}
+
+.anya-breaches-col--right {
+  order: 3;
+}
+
+@media (min-width: 1100px) {
+  /* Full-width three columns: IP | credentials | Email Analyzer */
+  .anya-breaches-layout {
+    grid-template-columns:
+      minmax(15rem, 0.85fr)
+      minmax(0, 1.75fr)
+      minmax(17rem, 1.15fr);
+    gap: 0.75rem;
+    justify-content: stretch;
+  }
+
+  .anya-breaches-col--left,
+  .anya-breaches-col--main,
+  .anya-breaches-col--right {
+    order: 0;
+  }
+
+  .anya-breaches-side-panel--analyzer {
+    max-height: min(78vh, 52rem);
+    overflow: auto;
+  }
+}
+
+.anya-breaches-side-panel {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--anya-radius-md, 0.85rem);
+  background: rgba(8, 8, 10, 0.62);
+  box-shadow: var(--anya-shadow-panel);
+  padding: 0.55rem 0.6rem 0.65rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.anya-breaches-side-panel--ip {
+  padding: 0.5rem;
+  gap: 0.4rem;
+}
+
+.anya-breaches-side-panel--ip .anya-ip-intel,
+.anya-breaches-side-panel--ip .anya-ip-intel--panel {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  padding: 0.4rem 0.1rem 0.05rem;
+  margin-top: 0.05rem;
+}
+
+.anya-breaches-side-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.anya-breaches-side-panel-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--anya-blush, #f472b6) 70%, #a1a1aa);
+}
+
+.anya-breaches-side-panel-meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.66rem;
+  color: #d4d4d8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 58%;
+}
+
+.anya-breaches-side-panel-status {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+}
+
+.anya-breaches-side-panel-empty {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #71717a;
+}
+
+/* One IP per row — vertical list, not a wrapping chip grid */
+.anya-breaches-ip-picker {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0.28rem;
+  margin-bottom: 0;
+}
+
+.anya-breaches-ip-chip {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #a1a1aa;
+  border-radius: 0.4rem;
+  padding: 0.28rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.anya-breaches-ip-chip:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.anya-breaches-ip-chip--active {
+  border-color: color-mix(in srgb, var(--anya-blush, #f472b6) 55%, transparent);
+  color: #fafafa;
+  background: rgba(244, 114, 182, 0.12);
+}
+
+.anya-breaches-email-label {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--anya-radius-sm, 0.55rem);
+  background: rgba(0, 0, 0, 0.32);
+  padding: 0.42rem 0.55rem;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.anya-breaches-email-label-caption {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.anya-breaches-email-label-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.76rem;
+  color: #f4f4f5;
+  word-break: break-all;
+}
+
+.anya-result-list--dense-main,
+.anya-result-list--dense-left,
+.anya-result-list--analyzer {
+  width: 100%;
+  justify-self: stretch;
+  grid-template-columns: 1fr !important;
+  gap: 0.35rem;
+}
+
+.anya-result-list--dense-main {
+  max-width: none;
+}
+
+.anya-result-list--analyzer {
+  max-width: none;
+}
+
+.anya-result-card--dense .anya-result-card-header {
+  padding: 0.32rem 0.5rem;
+  gap: 0.45rem;
+}
+
+.anya-result-card--dense .anya-result-card-title {
+  font-size: 0.78rem;
+}
+
+.anya-result-card--dense .anya-result-card-subtitle {
+  margin-top: 0.1rem;
+  font-size: 0.66rem;
+}
+
+.anya-result-card--dense .anya-result-card-body {
+  padding: 0.32rem 0.45rem 0.4rem;
+  gap: 0.25rem 0.35rem;
+}
+
+.anya-result-card--dense .anya-result-field {
+  padding: 0.02rem 0 0.02rem 0.32rem;
+}
+
+.anya-result-card--dense .anya-result-label {
+  font-size: 0.58rem;
+}
+
+.anya-result-card--dense .anya-result-value {
+  font-size: 0.72rem;
+}
+
+.anya-result-stack-actions--left,
+.anya-result-stack-actions--main {
+  justify-self: start;
+  justify-content: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.anya-result-stack-actions--left .anya-result-load-more,
+.anya-result-stack-actions--main .anya-result-load-more {
+  justify-self: start;
+}
+
+/* IP enrichment + map modal */
+.anya-ip-intel {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 0.45rem 0.55rem 0.55rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.anya-ip-intel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.anya-ip-intel-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--anya-blush) 70%, #a1a1aa);
+}
+
+.anya-ip-intel-ip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  color: #d4d4d8;
+}
+
+.anya-ip-intel-status {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  color: #a1a1aa;
+}
+
+.anya-ip-intel-status--muted {
+  color: #71717a;
+}
+
+.anya-ip-intel-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.3rem;
+}
+
+.anya-ip-intel-chip {
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0 0.1rem 0.4rem;
+  min-width: 0;
+}
+
+.anya-ip-intel-chip--wide {
+  grid-column: 1 / -1;
+}
+
+.anya-ip-intel-chip-label {
+  display: block;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.anya-ip-intel-chip-value {
+  display: block;
+  font-size: 0.72rem;
+  color: #e4e4e7;
+  word-break: break-word;
+}
+
+.anya-ip-intel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.anya-ip-intel-map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 12%, transparent);
+  padding: 0.28rem 0.7rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #f4f4f5;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.anya-ip-intel-map-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--anya-blush) 22%, transparent);
+  border-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
+}
+
+.anya-ip-intel-map-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.anya-ip-map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.anya-ip-map-dialog {
+  width: min(42rem, 100%);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0c0c0e;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+.anya-ip-map-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.anya-ip-map-kicker {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--anya-blush) 75%, #a1a1aa);
+}
+
+.anya-ip-map-title {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+  font-weight: 650;
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.anya-ip-map-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+}
+
+.anya-ip-map-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  size: 2rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d4d4d8;
+}
+
+.anya-ip-map-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.anya-ip-map-canvas {
+  height: min(22rem, 55vh);
+  width: 100%;
+  background: #111;
+}
+
+.anya-ip-map-footer {
+  margin: 0;
+  padding: 0.45rem 0.9rem 0.65rem;
+  font-size: 0.65rem;
+  color: #71717a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.anya-ip-map-marker {
+  background: transparent;
+  border: none;
+}
+
+.anya-ip-map-pin {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  background: var(--anya-blush, #f472b6);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--anya-blush, #f472b6) 35%, transparent);
+}
+
+.anya-ip-map-coords {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anya-ip-intel-map-btn,
+  .anya-ip-map-close {
+    transition: none;
+  }
+}
+
 .anya-result-copy {
   display: inline-flex;
   align-items: center;

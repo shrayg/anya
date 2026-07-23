@@ -53,6 +53,8 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   inf0sec: { slug: "breaches", tool: "inf0sec" },
   /** Combo Lookup is covered by the Breaches all-indexes fan-out. */
   "combo-lookup": { slug: "breaches" },
+  /** Email Analyzer runs beside Breaches results for email queries. */
+  "email-analyze": { slug: "breaches" },
 };
 
 /** Sidebar hides these — they remain in the catalog for redirects / deep links. */
@@ -107,9 +109,14 @@ export type SearchModuleDef = {
   hideTools?: boolean;
   /**
    * Hide the Email/Username/Phone type dropdown and multi-field adder.
-   * Single query input with auto-detect (Breaches).
+   * Single query input with auto-detect.
    */
   hideFieldTypePicker?: boolean;
+  /**
+   * Single search row (no “Add field”), but still show the type picker when
+   * `hideFieldTypePicker` is off (e.g. Breaches: Email | Username).
+   */
+  singleSearchField?: boolean;
   /** Optional geographic / identity filters users can fill when they know them. */
   optionalFilters?: ModuleOptionalFilter[];
   /** Show lawful-use / FCRA notice on the module page. */
@@ -137,6 +144,7 @@ function mod(
     | "tools"
     | "hideTools"
     | "hideFieldTypePicker"
+    | "singleSearchField"
     | "optionalFilters"
     | "lawfulUseNotice"
     | "lawfulUseCopy"
@@ -282,18 +290,23 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Breaches",
         "breaches",
         "breaches",
-        "Email, username, phone, domain, or search term",
-        "Unified breach search — Comb, Combo Lookup, DataVoid recovery, Breach Index, and every connected leak provider in one module.",
+        "Email or username",
+        "Unified breach search — Comb, Combo Lookup, DataVoid recovery, Email Analyzer, Breach Index, and every connected leak provider in one module.",
         undefined,
         undefined,
         {
           hideTools: true,
-          hideFieldTypePicker: true,
+          singleSearchField: true,
           tools: [
             {
               id: "all-breaches",
               label: "All breach indexes",
               apiType: "breaches",
+            },
+            {
+              id: "email-analyze",
+              label: "Email Analyzer",
+              apiType: "email-analyze",
             },
             {
               id: "seeknow-search",
@@ -503,13 +516,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Plaintext or leaked password",
         "Find accounts and leaks tied to a password string.",
       ),
+      // Legacy — hidden from hub; redirects to Breaches (analyzer runs on email queries)
       mod(
         "Breach & Leaks",
         "Email Analyzer",
         "email-analyze",
         "email-analyze",
         "Email address",
-        "AI breach brief â€” exposure, platforms, credential risk, and domain intel.",
+        "Merged into Breaches — Email Analyzer runs in the right-side panel when the query is an email.",
         undefined,
         undefined,
         {

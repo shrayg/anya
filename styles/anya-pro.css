@@ -1100,6 +1100,11 @@ pre,
   background: rgba(0, 0, 0, 0.22);
 }
 
+.anya-result-card--dense .anya-result-field {
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.3rem;
+}
+
 /* Result pop-in — first 3 cards in the first result row */
 @keyframes anya-result-pop-in {
   0% {
