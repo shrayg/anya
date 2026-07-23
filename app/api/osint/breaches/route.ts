@@ -99,18 +99,27 @@ async function fetchGodsEyeSearchSafe(query: string, typeHint?: string) {
 /** BreachHub additive first; CSINT only after BH miss. */
 async function fetchBreachThenCsint(
   query: string,
-  type: string,
+  kindHint: string,
 ): Promise<{
   breachHub: SanitizedBreachResponse | null;
   csint: SanitizedBreachResponse | null;
 }> {
+  const csintType =
+    kindHint === "email" ||
+    kindHint === "phone" ||
+    kindHint === "username" ||
+    kindHint === "ip" ||
+    kindHint === "auto"
+      ? kindHint
+      : detectCsintSearchType(query);
+
   const { value, used } = await withPrimaryFallback(
     async () => {
       if (!isBreachHubEnabled()) return null;
 
       return fetchBreachHubAdditiveBreachSearch(
         query,
-        type,
+        kindHint,
         COMBINED_BREACHHUB_TIMEOUT_MS,
       );
     },
@@ -119,7 +128,7 @@ async function fetchBreachThenCsint(
 
       return fetchCsintAdditiveBreachSearch(
         query,
-        type as "email" | "phone" | "username" | "ip" | "auto",
+        csintType,
         COMBINED_CSINT_TIMEOUT_MS,
       );
     },
@@ -172,9 +181,36 @@ export async function GET(req: NextRequest) {
   const email = normalizeEmail(query);
   const start = Number(req.nextUrl.searchParams.get("start") ?? 0);
   const limit = Number(req.nextUrl.searchParams.get("limit") ?? BREACH_FANOUT_MAX_ROWS);
+  // Field-type hint from the Breaches UI (email / username / phone / …).
+  const typeRaw = req.nextUrl.searchParams.get("type")?.trim().toLowerCase() ?? "";
+  const kindHint =
+    typeRaw === "email" ||
+    typeRaw === "phone" ||
+    typeRaw === "username" ||
+    typeRaw === "ip" ||
+    typeRaw === "domain" ||
+    typeRaw === "hash" ||
+    typeRaw === "password" ||
+    typeRaw === "discord" ||
+    typeRaw === "name" ||
+    typeRaw === "url" ||
+    typeRaw === "crypto" ||
+    typeRaw === "auto"
+      ? typeRaw
+      : null;
 
   try {
-    if (email) {
+    const preferEmail =
+      kindHint === "email" || ((!kindHint || kindHint === "auto") && Boolean(email));
+
+    if (preferEmail) {
+      if (!email) {
+        return NextResponse.json(
+          { error: "Enter a valid email address." },
+          { status: 400 },
+        );
+      }
+
       // Parallel: Comb + GodsEye (+ BreachVIP only when BH is off).
       // Sequential: BreachHub → CSINT; OsintCat direct only after BH miss.
       const [
@@ -278,12 +314,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(response);
     }
 
-    // Username / free-text — BH→CSINT sequential + GodsEye.
-    const csintType = detectCsintSearchType(query);
+    // Username / phone / domain / free-text — BH→CSINT sequential + GodsEye.
+    const resolvedKind =
+      kindHint && kindHint !== "auto"
+        ? kindHint
+        : detectCsintSearchType(query);
     const [gatewaySettled, godseyeSearchSettled] = await withDeadline(
       Promise.allSettled([
-        fetchBreachThenCsint(query, csintType),
-        fetchGodsEyeSearchSafe(query),
+        fetchBreachThenCsint(query, resolvedKind),
+        fetchGodsEyeSearchSafe(query, resolvedKind),
       ]),
       OSINT_ROUTE_DEADLINE_MS,
     );

@@ -147,6 +147,7 @@ import {
   composeModuleSearchFields,
   createSearchFieldRow,
   defaultSearchFieldsForModule,
+  fieldTypeToBreachKindHint,
   type ModuleSearchFieldRow,
 } from "@/lib/module-search-fields";
 import {
@@ -1716,12 +1717,18 @@ export function ModuleSearchView({
         (selectedToolId === "reconly-fivem" || moduleDef.slug === "fivem")
           ? "&mode=fivem"
           : "";
+      // Breaches: field-type dropdown drives provider kind (email/username/phone/…).
+      const breachKind = fieldTypeToBreachKindHint(composed.primaryType);
+      const breachesTypeParam =
+        activeType === "breaches" && breachKind
+          ? `&type=${encodeURIComponent(breachKind)}`
+          : "";
       // Twitter uses dedicated OsintCat twitter-osint (+ BreachHub fallback).
       // Snusbase / IntelVault / etc. use top-level /api/<vendor> paths.
       const searchUrl =
         moduleDef.slug === "twitter"
           ? `/api/osintcat/twitter-osint?query=${encodeURIComponent(searchQuery)}${moduleParam}`
-          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}${reconlyModeParam}`;
+          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}${reconlyModeParam}${breachesTypeParam}`;
       const searchResponse = await fetch(searchUrl, { signal });
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
@@ -3051,7 +3058,9 @@ export function ModuleSearchView({
 
       <section className="ui-panel">
         <div className="ui-panel-body">
-          {moduleDef.tools && moduleDef.tools.length > 0 ? (
+          {moduleDef.tools &&
+          moduleDef.tools.length > 0 &&
+          !moduleDef.hideTools ? (
             <div className="mb-4 flex flex-wrap gap-2">
               {moduleDef.tools.map((tool) => {
                 const active = tool.id === selectedToolId;

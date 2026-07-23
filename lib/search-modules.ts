@@ -98,6 +98,11 @@ export type SearchModuleDef = {
   comingSoon?: boolean;
   /** Optional in-module source tools (e.g. leak indexes vs court dockets). */
   tools?: ModuleTool[];
+  /**
+   * Hide the tool-chip row in ModuleSearchView. Tools stay in the catalog for
+   * default selection + legacy `?tool=` deep links (e.g. Breaches).
+   */
+  hideTools?: boolean;
   /** Optional geographic / identity filters users can fill when they know them. */
   optionalFilters?: ModuleOptionalFilter[];
   /** Show lawful-use / FCRA notice on the module page. */
@@ -123,6 +128,7 @@ function mod(
   extras?: Pick<
     SearchModuleDef,
     | "tools"
+    | "hideTools"
     | "optionalFilters"
     | "lawfulUseNotice"
     | "lawfulUseCopy"
@@ -269,10 +275,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breaches",
         "breaches",
         "Email, username, or search term",
-        "Unified breach search â€” Comb, Breach Index, and every connected leak provider in one module.",
+        "Unified breach search — Comb, Breach Index, and every connected leak provider in one module.",
         undefined,
         undefined,
         {
+          hideTools: true,
           tools: [
             {
               id: "all-breaches",

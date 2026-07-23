@@ -204,6 +204,8 @@ export type ComposedModuleSearch = {
   optionalFilters: Partial<Record<ModuleOptionalFilter["id"], string>>;
   /** True when at least one field has a non-empty value. */
   hasInput: boolean;
+  /** Primary filled row's field type — used for provider kind hints. */
+  primaryType?: SearchFieldTypeId;
 };
 
 const FILTER_TYPE_IDS = new Set<SearchFieldTypeId>([
@@ -503,6 +505,11 @@ export function composeModuleSearchFields(
         "",
       optionalFilters,
       hasInput: Boolean(query),
+      primaryType: fullName
+        ? "name"
+        : firstName || lastName
+          ? "name"
+          : filled[0]?.type,
     };
   }
 
@@ -525,6 +532,7 @@ export function composeModuleSearchFields(
         lastName: "",
         optionalFilters,
         hasInput: true,
+        primaryType: filled[0]!.type,
       };
     }
 
@@ -544,23 +552,27 @@ export function composeModuleSearchFields(
       lastName: "",
       optionalFilters,
       hasInput: true,
+      primaryType: filled[0]?.type,
     };
   }
 
   // Prefer a strong identifier type as the API query.
   let primary = "";
+  let primaryType: SearchFieldTypeId | undefined;
 
   for (const type of PRIMARY_IDENTIFIER_TYPES) {
     const hit = filled.find((row) => row.type === type);
 
     if (hit) {
       primary = hit.value.trim();
+      primaryType = hit.type;
       break;
     }
   }
 
   if (!primary && filled[0]) {
     primary = filled[0].value.trim();
+    primaryType = filled[0].type;
   }
 
   // Extra identifiers (beyond the primary) — append for free-text tolerant modules.
@@ -587,7 +599,45 @@ export function composeModuleSearchFields(
     lastName: "",
     optionalFilters,
     hasInput: Boolean(query),
+    primaryType,
   };
+}
+
+/**
+ * Map a UI field type to the BreachHub / CSINT kind hint used by unified
+ * Breaches fan-out (`/api/osint/breaches?type=`).
+ */
+export function fieldTypeToBreachKindHint(
+  type: SearchFieldTypeId | undefined | null,
+): string | null {
+  switch (type) {
+    case "email":
+      return "email";
+    case "phone":
+      return "phone";
+    case "username":
+      return "username";
+    case "ip":
+      return "ip";
+    case "domain":
+      return "domain";
+    case "hash":
+      return "hash";
+    case "password":
+      return "password";
+    case "discord-id":
+      return "discord";
+    case "name":
+    case "first-name":
+    case "last-name":
+      return "name";
+    case "url":
+      return "url";
+    case "wallet":
+      return "crypto";
+    default:
+      return null;
+  }
 }
 
 export function placeholderForFieldType(
