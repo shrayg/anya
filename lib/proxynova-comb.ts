@@ -246,17 +246,30 @@ export async function searchProxynovaCombForDomain(
   };
 }
 
-export async function searchProxynovaComb(
+/**
+ * Hard per-request page size enforced by the ProxyNova COMB API.
+ * Our client paginates (`start`/`limit`) to retrieve the full hit set — do not
+ * reintroduce a silent single-page cap that drops results past this size.
+ */
+export const PROXYNOVA_COMB_PAGE_LIMIT = 100;
+
+/** Memory-safety ceiling when walking every COMB page. */
+const PROXYNOVA_COMB_MAX_ROWS = 250_000;
+
+async function fetchProxynovaCombPage(
   query: string,
-  options?: { start?: number; limit?: number },
+  start: number,
+  pageLimit: number,
 ): Promise<CombSearchResult> {
-  const start = Math.max(0, options?.start ?? 0);
-  const limit = Math.min(Math.max(1, options?.limit ?? 100), 100);
+  const limit = Math.min(
+    Math.max(1, pageLimit),
+    PROXYNOVA_COMB_PAGE_LIMIT,
+  );
 
   const url = new URL("https://api.proxynova.com/comb");
 
   url.searchParams.set("query", query);
-  url.searchParams.set("start", String(start));
+  url.searchParams.set("start", String(Math.max(0, start)));
   url.searchParams.set("limit", String(limit));
 
   const res = await fetchWithTimeout(url.toString(), {
@@ -286,6 +299,52 @@ export async function searchProxynovaComb(
     query,
     totalMatches:
       typeof data.count === "number" ? data.count : credentials.length,
+    returned: credentials.length,
+    start: Math.max(0, start),
+    credentials,
+  };
+}
+
+/**
+ * ProxyNova COMB search. Pages through the provider (100 rows/request hard
+ * limit) until `options.limit` rows are collected or the index is exhausted.
+ */
+export async function searchProxynovaComb(
+  query: string,
+  options?: { start?: number; limit?: number },
+): Promise<CombSearchResult> {
+  const start = Math.max(0, options?.start ?? 0);
+  const requested = Math.min(
+    Math.max(1, options?.limit ?? PROXYNOVA_COMB_MAX_ROWS),
+    PROXYNOVA_COMB_MAX_ROWS,
+  );
+
+  const credentials: CombCredential[] = [];
+  let totalMatches = 0;
+  let cursor = start;
+
+  while (credentials.length < requested) {
+    const pageSize = Math.min(
+      PROXYNOVA_COMB_PAGE_LIMIT,
+      requested - credentials.length,
+    );
+    const page = await fetchProxynovaCombPage(query, cursor, pageSize);
+
+    totalMatches = Math.max(totalMatches, page.totalMatches);
+    credentials.push(...page.credentials);
+
+    if (page.credentials.length === 0) break;
+    if (page.credentials.length < pageSize) break;
+
+    cursor += page.credentials.length;
+
+    if (cursor >= totalMatches) break;
+  }
+
+  return {
+    source: "Breached Data",
+    query,
+    totalMatches: Math.max(totalMatches, credentials.length),
     returned: credentials.length,
     start,
     credentials,

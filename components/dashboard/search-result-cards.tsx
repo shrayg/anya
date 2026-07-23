@@ -12,12 +12,19 @@ import {
   resultPopClass,
   resultPopStyle,
 } from "@/components/dashboard/result-card";
+import { IpIntelPanel } from "@/components/dashboard/ip-intel-panel";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { formatRecordAsText, formatRecordsAsText } from "@/lib/export-intel";
+import {
+  extractIpsFromTexts,
+  isIpAddress,
+  isIpFieldKey,
+} from "@/lib/ip-detect";
 
-const PAGE_SIZE = 12;
+/** Progressive paint only — never silently drop remaining records. */
+const PAGE_SIZE = 48;
 const VALUE_PREVIEW_LENGTH = 72;
 
 function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
@@ -205,6 +212,14 @@ export function SearchResultCards({
           const isExpanded = expanded.has(record.index);
           const selected = selectedExportIndex === record.index;
           const stableKey = cardStableKey(record);
+          const ips = extractIpsFromTexts(
+            record.fields
+              .filter(
+                (field) =>
+                  isIpFieldKey(field.key) || isIpAddress(field.value),
+              )
+              .map((field) => field.value),
+          );
 
           return (
             <article
@@ -282,24 +297,37 @@ export function SearchResultCards({
                   ))}
                 </div>
               )}
+
+              {isExpanded && ips[0] ? (
+                <IpIntelPanel blurResults={blurResults} ip={ips[0]!} />
+              ) : null}
             </article>
           );
         })}
       </ResultCardList>
 
       {hiddenCount > 0 ? (
-        <button
-          className="anya-result-load-more"
-          type="button"
-          onClick={() =>
-            setVisibleCount((count) =>
-              Math.min(sortedRecords.length, count + PAGE_SIZE),
-            )
-          }
-        >
-          Show {Math.min(PAGE_SIZE, hiddenCount)} more record
-          {Math.min(PAGE_SIZE, hiddenCount) === 1 ? "" : "s"}
-        </button>
+        <div className="anya-result-stack-actions anya-result-stack-actions--left">
+          <button
+            className="anya-result-load-more"
+            type="button"
+            onClick={() =>
+              setVisibleCount((count) =>
+                Math.min(sortedRecords.length, count + PAGE_SIZE),
+              )
+            }
+          >
+            Show {Math.min(PAGE_SIZE, hiddenCount)} more record
+            {Math.min(PAGE_SIZE, hiddenCount) === 1 ? "" : "s"}
+          </button>
+          <button
+            className="anya-result-stack-action"
+            type="button"
+            onClick={() => setVisibleCount(sortedRecords.length)}
+          >
+            Show all {sortedRecords.length.toLocaleString()}
+          </button>
+        </div>
       ) : null}
 
       {blurResults ? <ResultsBlurNotice /> : null}
