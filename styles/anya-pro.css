@@ -643,6 +643,10 @@ pre,
   align-items: center;
 }
 
+.module-search-field-row--phone {
+  grid-template-columns: 9.25rem 7.75rem minmax(0, 1fr) 2.75rem;
+}
+
 .module-search-field-row--simple {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -661,7 +665,23 @@ pre,
   padding: 0 0.75rem;
 }
 
-.module-search-field-type:focus {
+.module-search-field-dial {
+  width: 100%;
+  min-width: 0;
+  height: var(--module-search-control-h);
+  border-radius: var(--anya-radius-sm);
+  border: 1px solid var(--anya-hairline);
+  background: rgba(255, 255, 255, 0.035);
+  color: #e4e4e7;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0 0.55rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.module-search-field-type:focus,
+.module-search-field-dial:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--anya-blush) 16%, transparent);
@@ -768,6 +788,13 @@ pre,
       "input input";
   }
 
+  .module-search-field-row--phone {
+    grid-template-columns: 1fr 1fr 2.75rem;
+    grid-template-areas:
+      "type dial remove"
+      "input input input";
+  }
+
   .module-search-field-row--simple {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "input";
@@ -775,6 +802,10 @@ pre,
 
   .module-search-field-type {
     grid-area: type;
+  }
+
+  .module-search-field-dial {
+    grid-area: dial;
   }
 
   .module-search-field-input {

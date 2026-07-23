@@ -84,6 +84,7 @@
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "square": "^44.2.0",
+    "thinking-orbs": "^0.1.1",
     "three": "^0.183.2",
     "tinder-api-ts": "^0.4.4",
     "undici": "^6.27.0"

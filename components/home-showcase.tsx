@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import Link from "next/link";
+import { ThinkingOrb } from "thinking-orbs";
 
 import { siteConfig } from "@/config/site";
 
@@ -209,63 +210,30 @@ function PanelPreview() {
                 </div>
               </div>
 
-              <div aria-hidden className="anya-panel-preview__graph">
-                <svg
-                  className="anya-panel-preview__graph-svg"
-                  role="presentation"
-                  viewBox="0 0 360 240"
-                >
-                  {/* Perfect X: hub at 180,120 · satellites at equal diagonals */}
-                  <g className="anya-panel-preview__graph-links">
-                    <line x1="148" y1="98" x2="118" y2="62" />
-                    <line x1="212" y1="98" x2="242" y2="62" />
-                    <line x1="148" y1="142" x2="118" y2="178" />
-                    <line x1="212" y1="142" x2="242" y2="178" />
-                  </g>
-
-                  <g className="anya-panel-preview__graph-sat">
-                    <rect height="30" rx="15" width="80" x="50" y="35" />
-                    <text dominantBaseline="central" textAnchor="middle" x="90" y="50">
-                      EMAIL
-                    </text>
-                  </g>
-                  <g className="anya-panel-preview__graph-sat">
-                    <rect height="30" rx="15" width="80" x="230" y="35" />
-                    <text dominantBaseline="central" textAnchor="middle" x="270" y="50">
-                      SOCIAL
-                    </text>
-                  </g>
-                  <g className="anya-panel-preview__graph-sat">
-                    <rect height="30" rx="15" width="80" x="50" y="175" />
-                    <text dominantBaseline="central" textAnchor="middle" x="90" y="190">
-                      ALIAS
-                    </text>
-                  </g>
-                  <g className="anya-panel-preview__graph-sat">
-                    <rect height="30" rx="15" width="80" x="230" y="175" />
-                    <text dominantBaseline="central" textAnchor="middle" x="270" y="190">
-                      RECORD
-                    </text>
-                  </g>
-
-                  <g transform="translate(180 120)">
-                    <motion.g
-                      animate={{
-                        scale: stage >= 2 ? 1 : 0.9,
-                        opacity: stage >= 1 ? 1 : 0.45,
-                      }}
-                      className="anya-panel-preview__graph-hub"
-                      initial={false}
-                      transition={{ duration: 0.32 }}
-                    >
-                      <circle cx="0" cy="0" r="38" />
-                      <circle cx="0" cy="0" r="30" />
-                      <text dominantBaseline="central" textAnchor="middle" x="0" y="0">
-                        SUBJECT
-                      </text>
-                    </motion.g>
-                  </g>
-                </svg>
+              <div aria-hidden className="anya-panel-preview__orb-stage">
+                <div className="anya-panel-preview__orb-halo" />
+                <div className="anya-panel-preview__orb">
+                  <ThinkingOrb
+                    paused={Boolean(reduceMotion)}
+                    size={64}
+                    speed={1.05}
+                    state={
+                      stage >= 4
+                        ? "working"
+                        : stage >= 2
+                          ? "solving"
+                          : "searching"
+                    }
+                    theme="dark"
+                  />
+                </div>
+                <p className="anya-panel-preview__orb-caption">
+                  {stage >= 4
+                    ? "Correlation locked"
+                    : stage >= 2
+                      ? "Solving identity"
+                      : "Searching sources"}
+                </p>
               </div>
             </div>
 

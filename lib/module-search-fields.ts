@@ -5,6 +5,10 @@ import type {
 import { composeModuleQuery } from "@/lib/search-modules";
 import { normalizeDomain } from "@/lib/domain-search";
 import { normalizeEmail } from "@/lib/proxynova-comb";
+import {
+  composePhoneWithDialCode,
+  DEFAULT_PHONE_DIAL_CODE,
+} from "@/lib/phone-dial-codes";
 
 export type SearchFieldTypeId =
   | "query"
@@ -42,6 +46,11 @@ export type ModuleSearchFieldRow = {
   value: string;
   /** When true, typing won't overwrite a manual type pick until the value is cleared. */
   typeManual?: boolean;
+  /**
+   * Country calling code digits (no "+") for phone rows.
+   * Defaults to US/CA (+1) when omitted.
+   */
+  phoneDialCode?: string;
 };
 
 /** Types that participate in value→type auto-detection. */
@@ -426,6 +435,7 @@ export function createSearchFieldRow(
     id: `f-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     type,
     value,
+    ...(type === "phone" ? { phoneDialCode: DEFAULT_PHONE_DIAL_CODE } : {}),
   };
 }
 
@@ -561,6 +571,7 @@ export function composeModuleSearchFields(
   // Prefer a strong identifier type as the API query.
   let primary = "";
   let primaryType: SearchFieldTypeId | undefined;
+  let primaryRow: ModuleSearchFieldRow | undefined;
 
   for (const type of PRIMARY_IDENTIFIER_TYPES) {
     const hit = filled.find((row) => row.type === type);
@@ -568,6 +579,7 @@ export function composeModuleSearchFields(
     if (hit) {
       primary = hit.value.trim();
       primaryType = hit.type;
+      primaryRow = hit;
       break;
     }
   }
@@ -575,12 +587,37 @@ export function composeModuleSearchFields(
   if (!primary && filled[0]) {
     primary = filled[0].value.trim();
     primaryType = filled[0].type;
+    primaryRow = filled[0];
+  }
+
+  if (primaryType === "phone" && primaryRow) {
+    primary = composePhoneWithDialCode(
+      primaryRow.value,
+      primaryRow.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE,
+    );
   }
 
   // Extra identifiers (beyond the primary) — append for free-text tolerant modules.
   const extras = filled
-    .filter((row) => row.value.trim() !== primary && !FILTER_TYPE_IDS.has(row.type))
-    .map((row) => row.value.trim());
+    .filter((row) => {
+      const rowValue =
+        row.type === "phone"
+          ? composePhoneWithDialCode(
+              row.value,
+              row.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE,
+            )
+          : row.value.trim();
+
+      return rowValue !== primary && !FILTER_TYPE_IDS.has(row.type);
+    })
+    .map((row) =>
+      row.type === "phone"
+        ? composePhoneWithDialCode(
+            row.value,
+            row.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE,
+          )
+        : row.value.trim(),
+    );
 
   const slug = moduleDef.slug;
   const allowJoin =

@@ -647,7 +647,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "email-presence",
         "email-presence",
         "Email or phone number",
-        "Check whether an email or phone has accounts across social, dating, adult, commerce, and media sites â€” then surface a username/profile URL when a platform still leaks one. Dating apps (Tinder/Hinge/Bumble) no longer expose public registration checks.",
+        "Check whether an email or phone has accounts across social, dating, adult, commerce, and media sites — then surface a username/profile URL when a platform still leaks one. Dating apps (Tinder/Hinge/Bumble) no longer expose public registration checks.",
       ),
       mod(
         "Identity",

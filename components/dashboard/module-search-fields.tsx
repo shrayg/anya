@@ -13,6 +13,10 @@ import {
   type SearchFieldTypeId,
 } from "@/lib/module-search-fields";
 import {
+  DEFAULT_PHONE_DIAL_CODE,
+  PHONE_DIAL_CODES,
+} from "@/lib/phone-dial-codes";
+import {
   AutofillDecoyFields,
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
@@ -66,6 +70,17 @@ export function ModuleSearchFields({
     onChange([...fields, createSearchFieldRow(nextType)]);
   };
 
+  const onTypeChange = (row: ModuleSearchFieldRow, type: SearchFieldTypeId) => {
+    updateRow(row.id, {
+      type,
+      typeManual: true,
+      phoneDialCode:
+        type === "phone"
+          ? row.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE
+          : undefined,
+    });
+  };
+
   const onValueChange = (row: ModuleSearchFieldRow, value: string) => {
     const trimmed = value.trim();
 
@@ -93,6 +108,10 @@ export function ModuleSearchFields({
       value,
       type: detected,
       typeManual: false,
+      phoneDialCode:
+        detected === "phone"
+          ? row.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE
+          : undefined,
     });
   };
 
@@ -102,71 +121,104 @@ export function ModuleSearchFields({
     <div className="module-search-form">
       <AutofillDecoyFields />
       <div className="module-search-fields">
-        {visibleFields.map((row, index) => (
-          <div
-            key={row.id}
-            className={
-              hideTypePicker
-                ? "module-search-field-row module-search-field-row--simple"
-                : "module-search-field-row"
-            }
-          >
-            {hideTypePicker ? null : (
-              <>
-                <label className="sr-only" htmlFor={`field-type-${row.id}`}>
-                  Field type
-                </label>
-                <select
-                  className="module-search-field-type dash-select"
-                  disabled={disabled}
-                  id={`field-type-${row.id}`}
-                  value={row.type}
-                  onChange={(event) =>
-                    updateRow(row.id, {
-                      type: event.target.value as SearchFieldTypeId,
-                      typeManual: true,
-                    })
-                  }
-                >
-                  {options.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-            <input
-              {...SEARCH_AUTOFILL_SHIELD}
-              autoFocus={index === 0}
-              readOnly
-              className="ui-input module-search-field-input font-mono"
-              data-tour={index === 0 ? "search-input" : undefined}
-              disabled={disabled}
-              name={`osint-field-${row.id}`}
-              placeholder={
+        {visibleFields.map((row, index) => {
+          const showDial = !hideTypePicker && row.type === "phone";
+
+          return (
+            <div
+              key={row.id}
+              className={
                 hideTypePicker
-                  ? moduleDef.hint
-                  : placeholderForFieldType(row.type, options)
+                  ? "module-search-field-row module-search-field-row--simple"
+                  : showDial
+                    ? "module-search-field-row module-search-field-row--phone"
+                    : "module-search-field-row"
               }
-              type="text"
-              value={row.value}
-              onChange={(event) => onValueChange(row, event.target.value)}
-              onFocus={unlockAutofillShield}
-            />
-            {singleInput ? null : (
-              <button
-                aria-label="Remove field"
-                className="module-search-field-remove"
-                disabled={disabled || fields.length <= 1}
-                type="button"
-                onClick={() => removeRow(row.id)}
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-        ))}
+            >
+              {hideTypePicker ? null : (
+                <>
+                  <label className="sr-only" htmlFor={`field-type-${row.id}`}>
+                    Field type
+                  </label>
+                  <select
+                    className="module-search-field-type dash-select"
+                    disabled={disabled}
+                    id={`field-type-${row.id}`}
+                    value={row.type}
+                    onChange={(event) =>
+                      onTypeChange(
+                        row,
+                        event.target.value as SearchFieldTypeId,
+                      )
+                    }
+                  >
+                    {options.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              {showDial ? (
+                <>
+                  <label className="sr-only" htmlFor={`field-dial-${row.id}`}>
+                    Country calling code
+                  </label>
+                  <select
+                    className="module-search-field-dial dash-select"
+                    disabled={disabled}
+                    id={`field-dial-${row.id}`}
+                    title="Country calling code"
+                    value={row.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE}
+                    onChange={(event) =>
+                      updateRow(row.id, { phoneDialCode: event.target.value })
+                    }
+                  >
+                    {PHONE_DIAL_CODES.map((entry) => (
+                      <option key={entry.code} value={entry.code}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
+
+              <input
+                {...SEARCH_AUTOFILL_SHIELD}
+                autoFocus={index === 0}
+                readOnly
+                className="ui-input module-search-field-input font-mono"
+                data-tour={index === 0 ? "search-input" : undefined}
+                disabled={disabled}
+                name={`osint-field-${row.id}`}
+                placeholder={
+                  hideTypePicker
+                    ? moduleDef.hint
+                    : showDial
+                      ? "National number (no country code)"
+                      : placeholderForFieldType(row.type, options)
+                }
+                type="text"
+                value={row.value}
+                onChange={(event) => onValueChange(row, event.target.value)}
+                onFocus={unlockAutofillShield}
+              />
+              {singleInput ? null : (
+                <button
+                  aria-label="Remove field"
+                  className="module-search-field-remove"
+                  disabled={disabled || fields.length <= 1}
+                  type="button"
+                  onClick={() => removeRow(row.id)}
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="module-search-form-actions">
