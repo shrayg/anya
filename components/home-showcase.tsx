@@ -210,34 +210,61 @@ function PanelPreview() {
               </div>
 
               <div aria-hidden className="anya-panel-preview__graph">
-                <svg role="presentation" viewBox="0 0 620 220">
-                  <path d="M95 45 C190 45 210 107 310 107" />
-                  <path d="M95 175 C190 175 220 115 310 107" />
-                  <path d="M525 40 C430 40 410 102 310 107" />
-                  <path d="M525 178 C430 178 410 118 310 107" />
-                </svg>
-                <span className="anya-panel-preview__node anya-panel-preview__node--email">
-                  EMAIL
-                </span>
-                <span className="anya-panel-preview__node anya-panel-preview__node--alias">
-                  ALIAS
-                </span>
-                <span className="anya-panel-preview__node anya-panel-preview__node--social">
-                  SOCIAL
-                </span>
-                <span className="anya-panel-preview__node anya-panel-preview__node--record">
-                  RECORD
-                </span>
-                <motion.span
-                  animate={{
-                    scale: stage >= 2 ? 1 : 0.84,
-                    opacity: stage >= 1 ? 1 : 0.35,
-                  }}
-                  className="anya-panel-preview__node anya-panel-preview__node--subject"
-                  transition={{ duration: 0.32 }}
+                <svg
+                  className="anya-panel-preview__graph-svg"
+                  role="presentation"
+                  viewBox="0 0 400 220"
                 >
-                  SUBJECT
-                </motion.span>
+                  <g className="anya-panel-preview__graph-links">
+                    <line x1="200" y1="110" x2="78" y2="42" />
+                    <line x1="200" y1="110" x2="78" y2="178" />
+                    <line x1="200" y1="110" x2="322" y2="42" />
+                    <line x1="200" y1="110" x2="322" y2="178" />
+                  </g>
+
+                  <g className="anya-panel-preview__graph-sat">
+                    <rect height="28" rx="14" width="72" x="42" y="28" />
+                    <text x="78" y="46">
+                      EMAIL
+                    </text>
+                  </g>
+                  <g className="anya-panel-preview__graph-sat">
+                    <rect height="28" rx="14" width="72" x="42" y="164" />
+                    <text x="78" y="182">
+                      ALIAS
+                    </text>
+                  </g>
+                  <g className="anya-panel-preview__graph-sat">
+                    <rect height="28" rx="14" width="72" x="286" y="28" />
+                    <text x="322" y="46">
+                      SOCIAL
+                    </text>
+                  </g>
+                  <g className="anya-panel-preview__graph-sat">
+                    <rect height="28" rx="14" width="72" x="286" y="164" />
+                    <text x="322" y="182">
+                      RECORD
+                    </text>
+                  </g>
+
+                  <g transform="translate(200 110)">
+                    <motion.g
+                      animate={{
+                        scale: stage >= 2 ? 1 : 0.88,
+                        opacity: stage >= 1 ? 1 : 0.4,
+                      }}
+                      className="anya-panel-preview__graph-hub"
+                      initial={false}
+                      transition={{ duration: 0.32 }}
+                    >
+                      <circle cx="0" cy="0" r="34" />
+                      <circle cx="0" cy="0" r="26" />
+                      <text x="0" y="1">
+                        SUBJECT
+                      </text>
+                    </motion.g>
+                  </g>
+                </svg>
               </div>
             </div>
 

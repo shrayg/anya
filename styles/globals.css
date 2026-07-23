@@ -3719,7 +3719,7 @@ html[data-splash="active"] [data-splash-target] {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.95rem 1rem 0.85rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .mod-index-panel-kicker {
@@ -3774,6 +3774,7 @@ html[data-splash="active"] [data-splash-target] {
   overflow: auto;
   overscroll-behavior: contain;
   min-height: 0;
+  flex: 1 1 auto;
 }
 
 .mod-index-item {
@@ -3826,6 +3827,16 @@ html[data-splash="active"] [data-splash-target] {
 
 .mod-index-item:hover .mod-index-item-arrow {
   color: var(--anya-blush);
+}
+
+.mod-index-more {
+  padding: 0.85rem 1rem 1rem;
+  color: #71717a;
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
 }
 
 .mod-index-empty {
@@ -10511,14 +10522,14 @@ html[data-splash="active"] [data-splash-target] {
 .anya-panel-preview__findings {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.018);
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .anya-panel-preview__profile {
   display: grid;
-  padding: 0.85rem;
+  padding: 0.15rem 0.15rem 0.85rem;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.7rem;
@@ -10580,81 +10591,74 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-panel-preview__graph {
   position: relative;
-  min-height: 17rem;
-  overflow: hidden;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
-.anya-panel-preview__graph svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.anya-panel-preview__graph path {
-  fill: none;
-  stroke: rgba(231, 88, 160, 0.32);
-  stroke-dasharray: 5 8;
-  stroke-width: 1.2;
-}
-
-.anya-panel-preview__node {
-  position: absolute;
   display: grid;
-  min-width: 3.7rem;
-  min-height: 1.65rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  padding-inline: 0.55rem;
+  min-height: 14.5rem;
   place-items: center;
-  color: #a1a1aa;
-  background: #0c0d11;
+  padding: 0.35rem 0 0.15rem;
+  overflow: hidden;
+  background: none;
+}
+
+.anya-panel-preview__graph-svg {
+  width: 100%;
+  max-width: 26rem;
+  height: auto;
+  aspect-ratio: 400 / 220;
+}
+
+.anya-panel-preview__graph-links line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--anya-blush) 38%, rgba(255, 255, 255, 0.2));
+  stroke-linecap: round;
+  stroke-width: 1.25;
+}
+
+.anya-panel-preview__graph-sat rect {
+  fill: #0c0d11;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 1;
+}
+
+.anya-panel-preview__graph-sat text {
+  fill: #a1a1aa;
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.46rem;
-  letter-spacing: 0.1em;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-anchor: middle;
+  dominant-baseline: middle;
 }
 
-.anya-panel-preview__node--email {
-  top: 14%;
-  left: 8%;
+.anya-panel-preview__graph-hub {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.anya-panel-preview__node--alias {
-  bottom: 14%;
-  left: 8%;
+.anya-panel-preview__graph-hub circle:first-child {
+  fill: color-mix(in srgb, var(--anya-blush) 14%, #090a0e);
+  stroke: color-mix(in srgb, var(--anya-blush) 70%, white 8%);
+  stroke-width: 1.4;
 }
 
-.anya-panel-preview__node--social {
-  top: 12%;
-  right: 7%;
+.anya-panel-preview__graph-hub circle:last-of-type {
+  fill: #090a0e;
+  stroke: color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  stroke-width: 1;
 }
 
-.anya-panel-preview__node--record {
-  right: 7%;
-  bottom: 13%;
-}
-
-.anya-panel-preview__node--subject {
-  top: 50%;
-  left: 50%;
-  min-width: 4.6rem;
-  min-height: 4.6rem;
-  border-color: color-mix(in srgb, var(--anya-blush) 72%, white 8%);
-  color: #f2b3d2;
-  background:
-    radial-gradient(circle, rgba(231, 88, 160, 0.18), transparent 62%), #090a0e;
-  box-shadow: 0 0 32px rgba(231, 88, 160, 0.16);
-  transform: translate(-50%, -50%);
+.anya-panel-preview__graph-hub text {
+  fill: #f2b3d2;
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-anchor: middle;
+  dominant-baseline: middle;
 }
 
 .anya-panel-preview__findings {
   display: grid;
   align-content: start;
-  padding: 0.75rem;
+  padding: 0;
   gap: 0.55rem;
 }
 

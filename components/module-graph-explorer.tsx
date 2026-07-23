@@ -123,22 +123,6 @@ export function ModuleGraphExplorer({
         <aside className="mod-index-panel">
           {activeSection ? (
             <>
-              <header className="mod-index-panel-head">
-                <div>
-                  <p className="mod-index-panel-kicker">Lane</p>
-                  <h3>{activeSection.title}</h3>
-                  {activeSection.description ? (
-                    <p className="mod-index-panel-desc">
-                      {activeSection.description}
-                    </p>
-                  ) : null}
-                </div>
-                <p className="mod-index-panel-count">
-                  {capabilityCount(activeSection.items)}
-                  <span>modules</span>
-                </p>
-              </header>
-
               <ul className="mod-index-list">
                 {activeSection.items.map((item, index) => (
                   <li key={item.slug}>
@@ -157,7 +141,29 @@ export function ModuleGraphExplorer({
                     </Link>
                   </li>
                 ))}
+                {capabilityCount(activeSection.items) >
+                activeSection.items.length ? (
+                  <li className="mod-index-more" aria-hidden>
+                    and more
+                  </li>
+                ) : null}
               </ul>
+
+              <header className="mod-index-panel-head">
+                <div>
+                  <p className="mod-index-panel-kicker">Lane</p>
+                  <h3>{activeSection.title}</h3>
+                  {activeSection.description ? (
+                    <p className="mod-index-panel-desc">
+                      {activeSection.description}
+                    </p>
+                  ) : null}
+                </div>
+                <p className="mod-index-panel-count">
+                  {capabilityCount(activeSection.items)}
+                  <span>modules</span>
+                </p>
+              </header>
             </>
           ) : (
             <div className="mod-index-empty">
