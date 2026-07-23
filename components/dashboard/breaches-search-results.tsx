@@ -81,7 +81,7 @@ export function BreachesSearchResults({
 
   return (
     <div className="anya-result-stack anya-result-stack--breaches">
-      <div className="anya-result-stack--breaches-stats grid gap-2 sm:grid-cols-2">
+      <div className="anya-result-stack--breaches-stats grid gap-1.5 sm:grid-cols-2">
         <ResultStatStrip
           label="Total matches"
           value={result.totalMatches.toLocaleString()}
@@ -105,15 +105,21 @@ export function BreachesSearchResults({
           {activeIp ? (
             <div className="anya-breaches-side-panel anya-breaches-side-panel--ip">
               {ips.length > 1 ? (
-                <div className="anya-breaches-ip-picker">
-                  {ips.slice(0, 8).map((ip) => (
+                <div
+                  aria-label="IP addresses"
+                  className="anya-breaches-ip-picker"
+                  role="listbox"
+                >
+                  {ips.slice(0, 12).map((ip) => (
                     <button
                       key={ip}
+                      aria-selected={ip === activeIp}
                       className={
                         ip === activeIp
                           ? "anya-breaches-ip-chip anya-breaches-ip-chip--active"
                           : "anya-breaches-ip-chip"
                       }
+                      role="option"
                       type="button"
                       onClick={() => setActiveIp(ip)}
                     >
