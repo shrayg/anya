@@ -2954,18 +2954,17 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-result-stack--breaches-stats {
   width: 100%;
-  /* Align with left + middle tracks (not the full three-column band) */
-  max-width: 47.4rem;
+  max-width: none;
 }
 
 .anya-breaches-layout {
   display: grid;
   width: 100%;
-  max-width: 68rem;
-  gap: 0.65rem;
+  max-width: none;
+  gap: 0.75rem;
   grid-template-columns: 1fr;
   align-items: start;
-  justify-content: start;
+  justify-content: stretch;
 }
 
 .anya-breaches-col {
@@ -2987,20 +2986,25 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 @media (min-width: 1100px) {
-  /* Fixed-ish tracks + start alignment — no 1fr stretch that floats analyzer far right */
+  /* Full-width three columns: IP | credentials | Email Analyzer */
   .anya-breaches-layout {
     grid-template-columns:
-      minmax(14.5rem, 16.75rem)
-      minmax(24rem, 30rem)
-      minmax(15rem, 18.5rem);
-    gap: 0.65rem;
-    justify-content: start;
+      minmax(15rem, 0.85fr)
+      minmax(0, 1.75fr)
+      minmax(17rem, 1.15fr);
+    gap: 0.75rem;
+    justify-content: stretch;
   }
 
   .anya-breaches-col--left,
   .anya-breaches-col--main,
   .anya-breaches-col--right {
     order: 0;
+  }
+
+  .anya-breaches-side-panel--analyzer {
+    max-height: min(78vh, 52rem);
+    overflow: auto;
   }
 }
 
