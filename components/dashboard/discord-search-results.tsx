@@ -1053,7 +1053,6 @@ export function DiscordSearchResults({
                   initialVisible={8}
                   records={leakRecords}
                   totalCount={leaks.count}
-                  variant="premium"
                 />
               ) : null}
               {dataTab === "servers" ? (
@@ -1083,7 +1082,6 @@ export function DiscordSearchResults({
                   initialVisible={8}
                   records={fivemRecords}
                   totalCount={fivemCount}
-                  variant="premium"
                 />
               ) : null}
             </div>

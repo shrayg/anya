@@ -2,10 +2,12 @@
 
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 
-import clsx from "clsx";
-
-import { BlurredValue } from "@/components/dashboard/blurred-value";
-import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
+import {
+  ResultCard,
+  ResultCardList,
+  ResultStatStrip,
+  type ResultCardFieldDef,
+} from "@/components/dashboard/result-card";
 import { formatBreachCredentialAsText } from "@/lib/export-intel";
 
 export function BreachesSearchResults({
@@ -24,129 +26,75 @@ export function BreachesSearchResults({
   return (
     <div className="anya-result-stack">
       <div className="grid gap-2 sm:grid-cols-2">
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Total matches</p>
-          <p className="anya-result-value">
-            {result.totalMatches.toLocaleString()}
-          </p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Shown</p>
-          <p className="anya-result-value">
-            {result.returned.toLocaleString()}
-            {result.totalMatches > result.returned
-              ? ` (offset ${result.start})`
-              : ""}
-          </p>
-        </div>
+        <ResultStatStrip
+          label="Total matches"
+          value={result.totalMatches.toLocaleString()}
+        />
+        <ResultStatStrip
+          label="Shown"
+          value={
+            <>
+              {result.returned.toLocaleString()}
+              {result.totalMatches > result.returned
+                ? ` (offset ${result.start})`
+                : ""}
+            </>
+          }
+        />
       </div>
 
-      <div className="anya-result-list anya-result-list--grid">
+      <ResultCardList>
         {result.credentials.map((row, index) => {
           const cardIndex = index + 1;
           const selected = selectedExportIndex === cardIndex;
           const connected = row.fields ?? [];
+          const fields: ResultCardFieldDef[] = [
+            {
+              key: "identifier",
+              label: "Email / login",
+              value: row.identifier,
+              highlight: true,
+            },
+            ...(row.secret
+              ? [
+                  {
+                    key: "password",
+                    label: "Password",
+                    value: row.secret,
+                    sensitive: true,
+                  },
+                ]
+              : []),
+            ...connected.map((field) => ({
+              key: field.key,
+              label: field.label,
+              value: field.value,
+              sensitive: field.key === "password" || field.key === "hash",
+            })),
+          ];
 
           return (
-            <article
+            <ResultCard
               key={`${row.raw}-${index}`}
-              className={clsx(
-                "anya-result-card",
-                selectable && "anya-result-card--selectable",
-                selected && "anya-result-card--selected",
-              )}
-              role={selectable ? "button" : undefined}
-              tabIndex={selectable ? 0 : undefined}
-              onClick={
+              badge={null}
+              blurResults={blurResults}
+              copyText={formatBreachCredentialAsText(row, cardIndex)}
+              fields={fields}
+              indexLabel={cardIndex}
+              listIndex={index}
+              selectable={selectable}
+              selected={selected}
+              subtitle={row.identifier}
+              title={row.secret ? "Leaked credential" : "Match"}
+              onSelect={
                 selectable
                   ? () => onSelectExportIndex?.(selected ? -1 : cardIndex)
                   : undefined
               }
-              onKeyDown={
-                selectable
-                  ? (event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onSelectExportIndex?.(selected ? -1 : cardIndex);
-                      }
-                    }
-                  : undefined
-              }
-            >
-              <header className="anya-result-card-header">
-                <div className="min-w-0 flex-1">
-                  <p className="anya-result-card-title">
-                    {row.secret ? "Leaked credential" : "Match"}
-                  </p>
-                  <p className="anya-result-card-subtitle truncate">
-                    {row.identifier}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="anya-result-index">#{cardIndex}</span>
-                  <ResultCopyButton
-                    compact
-                    text={formatBreachCredentialAsText(row, cardIndex)}
-                  />
-                </div>
-              </header>
-              <div className="anya-result-card-body">
-                <div className="anya-result-field">
-                  <p className="anya-result-label">Email / login</p>
-                  <div className="anya-result-field-row">
-                    <p className="anya-result-value text-anya-accent">
-                      <BlurredValue
-                        forceBlur={blurResults}
-                        text={row.identifier}
-                      />
-                    </p>
-                    <ResultCopyButton compact text={row.identifier} />
-                  </div>
-                </div>
-                {row.secret ? (
-                  <div className="anya-result-field anya-result-field--sensitive">
-                    <p className="anya-result-label">Password</p>
-                    <div className="anya-result-field-row">
-                      <p className="anya-result-value">
-                        <BlurredValue
-                          forceBlur={blurResults}
-                          text={row.secret}
-                        />
-                      </p>
-                      <ResultCopyButton compact text={row.secret} />
-                    </div>
-                  </div>
-                ) : null}
-                {connected.map((field) => {
-                  const sensitive =
-                    field.key === "password" || field.key === "hash";
-
-                  return (
-                    <div
-                      key={`${field.key}-${field.value}`}
-                      className={clsx(
-                        "anya-result-field",
-                        sensitive && "anya-result-field--sensitive",
-                      )}
-                    >
-                      <p className="anya-result-label">{field.label}</p>
-                      <div className="anya-result-field-row">
-                        <p className="anya-result-value">
-                          <BlurredValue
-                            forceBlur={blurResults}
-                            text={field.value}
-                          />
-                        </p>
-                        <ResultCopyButton compact text={field.value} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </article>
+            />
           );
         })}
-      </div>
+      </ResultCardList>
 
       {blurResults ? (
         <p className="text-xs text-zinc-500">
@@ -156,8 +104,8 @@ export function BreachesSearchResults({
       ) : null}
       {result.totalMatches > result.returned ? (
         <p className="text-xs text-zinc-500">
-          Results merge every available breach index. Narrow the query for more precise
-          hits.
+          Results merge every available breach index. Narrow the query for more
+          precise hits.
         </p>
       ) : null}
     </div>

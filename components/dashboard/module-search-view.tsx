@@ -3517,7 +3517,6 @@ export function ModuleSearchView({
               records={records}
               selectedExportIndex={selectedExportIndex}
               totalCount={resultCount}
-              variant="premium"
               onSelectExportIndex={handleSelectExportIndex}
             />
           ) : null}

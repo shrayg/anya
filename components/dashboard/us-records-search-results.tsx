@@ -10,13 +10,15 @@ import type {
 import { ExternalLink } from "lucide-react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import {
+  ResultCard,
+  ResultCardList,
+  ResultStatStrip,
+  type ResultCardFieldDef,
+} from "@/components/dashboard/result-card";
 
 function SourcePill({ label }: { label: string }) {
-  return (
-    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] uppercase tracking-wide text-zinc-400">
-      {label}
-    </span>
-  );
+  return <span className="anya-result-badge">{label}</span>;
 }
 
 function kindLabel(kind: PersonHit["kind"]): string {
@@ -43,137 +45,153 @@ function kindLabel(kind: PersonHit["kind"]): string {
 function CaseCard({
   item,
   blurResults,
+  listIndex = 0,
 }: {
   item: CourtCaseHit;
   blurResults?: boolean;
+  listIndex?: number;
 }) {
+  const fields: ResultCardFieldDef[] = [];
+
+  if (item.docketNumber) {
+    fields.push({
+      key: "docket",
+      label: "Docket",
+      value: item.docketNumber,
+    });
+  }
+  if (item.court) {
+    fields.push({ key: "court", label: "Court", value: item.court });
+  }
+  if (item.dateFiled) {
+    fields.push({ key: "filed", label: "Filed", value: item.dateFiled });
+  }
+  if (item.natureOfSuit) {
+    fields.push({
+      key: "nature",
+      label: "Nature",
+      value: item.natureOfSuit,
+    });
+  }
+  if (item.snippet) {
+    fields.push({
+      key: "snippet",
+      label: "Snippet",
+      value: item.snippet,
+      block: true,
+    });
+  }
+
   return (
-    <div className="anya-result-strip space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="anya-result-label">Court matter</p>
-        <SourcePill label={item.source.label} />
-      </div>
-      <p className="anya-result-value text-base">
-        <BlurredValue forceBlur={blurResults} text={item.caseName} />
-      </p>
-      <div className="grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
-        {item.docketNumber ? (
-          <p>
-            <span className="text-zinc-500">Docket · </span>
-            <BlurredValue forceBlur={blurResults} text={item.docketNumber} />
-          </p>
-        ) : null}
-        {item.court ? (
-          <p>
-            <span className="text-zinc-500">Court · </span>
-            <BlurredValue forceBlur={blurResults} text={item.court} />
-          </p>
-        ) : null}
-        {item.dateFiled ? (
-          <p>
-            <span className="text-zinc-500">Filed · </span>
-            <BlurredValue forceBlur={blurResults} text={item.dateFiled} />
-          </p>
-        ) : null}
-        {item.natureOfSuit ? (
-          <p>
-            <span className="text-zinc-500">Nature · </span>
-            <BlurredValue forceBlur={blurResults} text={item.natureOfSuit} />
-          </p>
-        ) : null}
-      </div>
-      {item.snippet ? (
-        <p className="text-sm text-zinc-400">
-          <BlurredValue forceBlur={blurResults} text={item.snippet} />
-        </p>
-      ) : null}
-      {item.source.deepLink ? (
-        <a
-          className="inline-flex items-center gap-1 text-sm text-anya-accent hover:underline"
-          href={item.source.deepLink}
-          rel="noreferrer"
-          target="_blank"
-        >
-          Open source <ExternalLink className="size-3.5" />
-        </a>
-      ) : null}
-    </div>
+    <ResultCard
+      badge={item.source.label}
+      blurResults={blurResults}
+      fields={fields}
+      listIndex={listIndex}
+      subtitle={item.docketNumber || item.court || undefined}
+      title={item.caseName}
+      footer={
+        item.source.deepLink ? (
+          <div className="px-3 pb-3">
+            <a
+              className="inline-flex items-center gap-1 text-xs text-anya-accent hover:underline"
+              href={item.source.deepLink}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Open source <ExternalLink className="size-3.5" />
+            </a>
+          </div>
+        ) : null
+      }
+    />
   );
 }
 
 function PersonCard({
   item,
   blurResults,
+  listIndex = 0,
 }: {
   item: PersonHit;
   blurResults?: boolean;
+  listIndex?: number;
 }) {
+  const fields: ResultCardFieldDef[] = item.details.map((detail) => ({
+    key: detail.label,
+    label: detail.label,
+    value: detail.value,
+  }));
+
   return (
-    <div className="anya-result-strip space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="anya-result-label">{kindLabel(item.kind)}</p>
-        <SourcePill label={item.source.label} />
-      </div>
-      <p className="anya-result-value text-base">
-        <BlurredValue forceBlur={blurResults} text={item.name} />
-      </p>
-      {item.subtitle ? (
-        <p className="text-sm text-zinc-400">
-          <BlurredValue forceBlur={blurResults} text={item.subtitle} />
-        </p>
-      ) : null}
-      <div className="grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
-        {item.details.map((detail) => (
-          <p key={`${item.id}-${detail.label}`}>
-            <span className="text-zinc-500">{detail.label} · </span>
-            <BlurredValue forceBlur={blurResults} text={detail.value} />
+    <ResultCard
+      badge={item.source.label}
+      blurResults={blurResults}
+      fields={fields}
+      listIndex={listIndex}
+      subtitle={item.subtitle || undefined}
+      title={item.name}
+      footer={
+        <>
+          <p className="px-3 text-[11px] uppercase tracking-wide text-zinc-500">
+            {kindLabel(item.kind)}
           </p>
-        ))}
-      </div>
-      {item.source.deepLink ? (
-        <a
-          className="inline-flex items-center gap-1 text-sm text-anya-accent hover:underline"
-          href={item.source.deepLink}
-          rel="noreferrer"
-          target="_blank"
-        >
-          Open source <ExternalLink className="size-3.5" />
-        </a>
-      ) : null}
-    </div>
+          {item.source.deepLink ? (
+            <div className="px-3 pb-3">
+              <a
+                className="inline-flex items-center gap-1 text-xs text-anya-accent hover:underline"
+                href={item.source.deepLink}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Open source <ExternalLink className="size-3.5" />
+              </a>
+            </div>
+          ) : null}
+        </>
+      }
+    />
   );
 }
 
 function PortalCard({
   item,
   blurResults,
+  listIndex = 0,
 }: {
   item: PublicPortalHit;
   blurResults?: boolean;
+  listIndex?: number;
 }) {
   return (
-    <div className="anya-result-strip space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="anya-result-label">Public portal</p>
-        <SourcePill label={item.source.label} />
-      </div>
-      <p className="anya-result-value text-base">
-        <BlurredValue forceBlur={blurResults} text={item.title} />
-      </p>
-      <p className="text-sm text-zinc-400">
-        <BlurredValue forceBlur={blurResults} text={item.summary} />
-      </p>
-      {item.source.deepLink ? (
-        <a
-          className="inline-flex items-center gap-1 text-sm text-anya-accent hover:underline"
-          href={item.source.deepLink}
-          rel="noreferrer"
-          target="_blank"
-        >
-          Open official portal <ExternalLink className="size-3.5" />
-        </a>
-      ) : null}
-    </div>
+    <ResultCard
+      badge={item.source.label}
+      blurResults={blurResults}
+      fields={[
+        {
+          key: "summary",
+          label: "Summary",
+          value: item.summary,
+          block: true,
+        },
+      ]}
+      listIndex={listIndex}
+      title={item.title}
+      footer={
+        item.source.deepLink ? (
+          <div className="px-3 pb-3">
+            <a
+              className="inline-flex items-center gap-1 text-xs text-anya-accent hover:underline"
+              href={item.source.deepLink}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Open official portal <ExternalLink className="size-3.5" />
+            </a>
+          </div>
+        ) : null
+      }
+    />
   );
 }
 
@@ -217,23 +235,25 @@ export function UsCourtSearchResults({
   const portals = result.portals ?? [];
 
   return (
-    <div className="space-y-4">
-      <div className="anya-result-strip">
-        <p className="anya-result-label">Matches</p>
-        <p className="anya-result-value">
-          <BlurredValue
-            forceBlur={blurResults}
-            text={`${result.count.toLocaleString()} court / portal results`}
-          />
-        </p>
-        {result.sources.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {result.sources.map((source) => (
-              <SourcePill key={source} label={source} />
-            ))}
-          </div>
-        ) : null}
-      </div>
+    <div className="anya-result-stack">
+      <ResultStatStrip
+        label="Matches"
+        value={
+          <>
+            <BlurredValue
+              forceBlur={blurResults}
+              text={`${result.count.toLocaleString()} court / portal results`}
+            />
+            {result.sources.length > 0 ? (
+              <span className="mt-2 flex flex-wrap gap-2">
+                {result.sources.map((source) => (
+                  <SourcePill key={source} label={source} />
+                ))}
+              </span>
+            ) : null}
+          </>
+        }
+      />
       {result.errors.length > 0 ? (
         <div className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-3 py-2 text-sm text-amber-100">
           {result.errors.map((error) => (
@@ -248,18 +268,28 @@ export function UsCourtSearchResults({
           <p className="text-xs uppercase tracking-wide text-zinc-500">
             State portals
           </p>
-          <div className="grid gap-3">
-            {portals.map((item) => (
-              <PortalCard key={item.id} blurResults={blurResults} item={item} />
+          <ResultCardList>
+            {portals.map((item, i) => (
+              <PortalCard
+                key={item.id}
+                blurResults={blurResults}
+                item={item}
+                listIndex={i}
+              />
             ))}
-          </div>
+          </ResultCardList>
         </div>
       ) : null}
-      <div className="grid gap-3">
-        {result.cases.map((item) => (
-          <CaseCard key={item.id} blurResults={blurResults} item={item} />
+      <ResultCardList>
+        {result.cases.map((item, i) => (
+          <CaseCard
+            key={item.id}
+            blurResults={blurResults}
+            item={item}
+            listIndex={portals.length + i}
+          />
         ))}
-      </div>
+      </ResultCardList>
     </div>
   );
 }
@@ -274,9 +304,12 @@ export function UsIdentitySearchResults({
   title?: string;
 }) {
   const portals = result.portals ?? [];
+  const peopleOffset = 0;
+  const casesOffset = result.people.length;
+  const portalsOffset = casesOffset + result.cases.length;
 
   return (
-    <div className="space-y-4">
+    <div className="anya-result-stack">
       <div className="anya-result-strip">
         <p className="anya-result-label">{title}</p>
         <p className="anya-result-value">
@@ -309,11 +342,16 @@ export function UsIdentitySearchResults({
           <p className="text-xs uppercase tracking-wide text-zinc-500">
             Registry people
           </p>
-          <div className="grid gap-3">
-            {result.people.map((item) => (
-              <PersonCard key={item.id} blurResults={blurResults} item={item} />
+          <ResultCardList>
+            {result.people.map((item, i) => (
+              <PersonCard
+                key={item.id}
+                blurResults={blurResults}
+                item={item}
+                listIndex={peopleOffset + i}
+              />
             ))}
-          </div>
+          </ResultCardList>
         </div>
       ) : null}
       {result.cases.length > 0 ? (
@@ -321,11 +359,16 @@ export function UsIdentitySearchResults({
           <p className="text-xs uppercase tracking-wide text-zinc-500">
             Related court matters
           </p>
-          <div className="grid gap-3">
-            {result.cases.map((item) => (
-              <CaseCard key={item.id} blurResults={blurResults} item={item} />
+          <ResultCardList>
+            {result.cases.map((item, i) => (
+              <CaseCard
+                key={item.id}
+                blurResults={blurResults}
+                item={item}
+                listIndex={casesOffset + i}
+              />
             ))}
-          </div>
+          </ResultCardList>
         </div>
       ) : null}
       {portals.length > 0 ? (
@@ -333,11 +376,16 @@ export function UsIdentitySearchResults({
           <p className="text-xs uppercase tracking-wide text-zinc-500">
             State portals
           </p>
-          <div className="grid gap-3">
-            {portals.map((item) => (
-              <PortalCard key={item.id} blurResults={blurResults} item={item} />
+          <ResultCardList>
+            {portals.map((item, i) => (
+              <PortalCard
+                key={item.id}
+                blurResults={blurResults}
+                item={item}
+                listIndex={portalsOffset + i}
+              />
             ))}
-          </div>
+          </ResultCardList>
         </div>
       ) : null}
     </div>
@@ -352,7 +400,7 @@ export function UsVaSorSearchResults({
   blurResults?: boolean;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="anya-result-stack">
       <div className="anya-result-strip">
         <p className="anya-result-label">Virginia Sex Offender Registry</p>
         <p className="anya-result-value">
@@ -379,11 +427,16 @@ export function UsVaSorSearchResults({
           ))}
         </div>
       ) : null}
-      <div className="grid gap-3">
-        {result.people.map((item) => (
-          <PersonCard key={item.id} blurResults={blurResults} item={item} />
+      <ResultCardList>
+        {result.people.map((item, i) => (
+          <PersonCard
+            key={item.id}
+            blurResults={blurResults}
+            item={item}
+            listIndex={i}
+          />
         ))}
-      </div>
+      </ResultCardList>
     </div>
   );
 }

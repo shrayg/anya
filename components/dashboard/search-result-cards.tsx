@@ -3,10 +3,15 @@
 import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
 
 import clsx from "clsx";
-import { ChevronDown, Database, Shield } from "lucide-react";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-import { BlurredValue } from "@/components/dashboard/blurred-value";
+import {
+  ResultCardField,
+  ResultCardList,
+  resultPopClass,
+  resultPopStyle,
+} from "@/components/dashboard/result-card";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
@@ -14,15 +19,6 @@ import { formatRecordAsText, formatRecordsAsText } from "@/lib/export-intel";
 
 const PAGE_SIZE = 12;
 const VALUE_PREVIEW_LENGTH = 72;
-const META_FIELD_KEYS = new Set([
-  "import_id",
-  "importid",
-  "indexed_at",
-  "indexedat",
-  "added_at",
-  "date",
-  "breach_date",
-]);
 
 function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
   if (value.length <= max) return value;
@@ -32,23 +28,6 @@ function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
 
 function indexesOf(records: FormattedRecord[]): Set<number> {
   return new Set(records.map((record) => record.index));
-}
-
-function recordId(record: FormattedRecord): string {
-  const fromFields = record.fields.find((f) =>
-    /^(import_?id|id|hash)$/i.test(f.key),
-  );
-
-  if (fromFields?.value) return fromFields.value.slice(0, 24);
-
-  const seed = `${record.title}:${record.subtitle ?? ""}:${record.index}`;
-  let hash = 0;
-
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-
-  return hash.toString(16).padStart(10, "0").slice(0, 20);
 }
 
 /** Stable card identity so streamed enrichments don't remount / re-pop every row. */
@@ -65,78 +44,43 @@ function cardStableKey(record: FormattedRecord): string {
 
   if (core) return core;
 
-  return `${record.badge ?? ""}:${record.title}:${recordId(record)}`;
+  const fromFields = record.fields.find((f) =>
+    /^(import_?id|id|hash)$/i.test(f.key),
+  );
+
+  if (fromFields?.value) {
+    return `${record.badge ?? ""}:${fromFields.value.slice(0, 24)}`;
+  }
+
+  return `${record.badge ?? ""}:${record.title}:${record.index}`;
 }
 
-function ResultField({
+function CompactField({
   field,
   blurResults,
   expanded,
-  premium,
 }: {
   field: FormattedField;
   blurResults: boolean;
   expanded: boolean;
-  premium?: boolean;
 }) {
   const isBlock = Boolean(field.block);
-  const isMeta = META_FIELD_KEYS.has(field.key.toLowerCase());
   const displayValue =
     expanded || isBlock ? field.value : truncateValue(field.value);
 
-  if (premium) {
-    return (
-      <div
-        className={clsx(
-          "anya-breach-field",
-          field.sensitive && "anya-breach-field--sensitive",
-          isMeta && "anya-breach-field--meta",
-          isBlock && "col-span-full",
-        )}
-        title={
-          !isBlock && field.value.length > VALUE_PREVIEW_LENGTH
-            ? field.value
-            : undefined
-        }
-      >
-        <span className="anya-breach-field-label">{field.label}</span>
-        <div className="anya-breach-value-box">
-          <BlurredValue forceBlur={blurResults} text={displayValue} />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div
-      className={clsx(
-        "anya-result-field",
-        field.sensitive && "anya-result-field--sensitive",
-        isBlock && "anya-result-field--block",
-      )}
-      title={
-        !isBlock && field.value.length > VALUE_PREVIEW_LENGTH
-          ? field.value
-          : undefined
-      }
-    >
-      <p className="anya-result-label">{field.label}</p>
-      <div className="anya-result-field-row">
-        <p
-          className={clsx(
-            "anya-result-value",
-            isBlock && "anya-result-value--block",
-            !expanded && !isBlock && "anya-result-value--clamp",
-            field.highlight && !isBlock && "text-anya-accent",
-          )}
-        >
-          <BlurredValue forceBlur={blurResults} text={displayValue} />
-        </p>
-        {expanded && field.value.trim() ? (
-          <ResultCopyButton compact text={field.value} />
-        ) : null}
-      </div>
-    </div>
+    <ResultCardField
+      blurResults={blurResults}
+      field={{
+        key: field.key,
+        label: field.label,
+        value: displayValue,
+        sensitive: field.sensitive,
+        highlight: field.highlight,
+        block: isBlock,
+      }}
+      showCopy={expanded && Boolean(field.value.trim())}
+    />
   );
 }
 
@@ -148,7 +92,8 @@ export function SearchResultCards({
   onSelectExportIndex,
   initialVisible = PAGE_SIZE,
   emptyDetail = "No results were found.",
-  variant = "premium",
+  /** Kept for callers; all variants render the Breaches card layout. */
+  variant: _variant = "compact",
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
@@ -157,7 +102,7 @@ export function SearchResultCards({
   onSelectExportIndex?: (index: number) => void;
   initialVisible?: number;
   emptyDetail?: string;
-  /** auto = premium breach layout when fields look like leak rows */
+  /** @deprecated Always renders Breaches-style cards. */
   variant?: "auto" | "premium" | "compact";
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(() =>
@@ -181,15 +126,6 @@ export function SearchResultCards({
       return a.index - b.index;
     });
   }, [records]);
-
-  const usePremium =
-    variant === "premium" ||
-    (variant === "auto" &&
-      records.some((r) =>
-        r.fields.some((f) =>
-          /^(email|password|dbname|database|username)$/i.test(f.key),
-        ),
-      ));
 
   useEffect(() => {
     setExpanded(indexesOf(records));
@@ -264,107 +200,23 @@ export function SearchResultCards({
         </div>
       </div>
 
-      <div className="anya-result-list anya-result-list--grid">
+      <ResultCardList>
         {visibleRecords.map((record, index) => {
           const isExpanded = expanded.has(record.index);
           const selected = selectedExportIndex === record.index;
-          const id = recordId(record);
-          const sourceName = record.badge ?? record.title;
           const stableKey = cardStableKey(record);
-          const popIndex = Math.min(index, 10);
-
-          if (usePremium) {
-            return (
-              <article
-                key={stableKey}
-                className={clsx(
-                  "anya-breach-card anya-pop-in",
-                  selectable && "anya-result-card--selectable",
-                  selected && "anya-result-card--selected",
-                )}
-                style={{ "--pop-i": popIndex } as CSSProperties}
-                role={selectable ? "button" : undefined}
-                tabIndex={selectable ? 0 : undefined}
-                onClick={
-                  selectable
-                    ? () => onSelectExportIndex?.(selected ? -1 : record.index)
-                    : undefined
-                }
-                onKeyDown={
-                  selectable
-                    ? (event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          onSelectExportIndex?.(selected ? -1 : record.index);
-                        }
-                      }
-                    : undefined
-                }
-              >
-                <header className="anya-breach-card-head">
-                  <div className="anya-breach-card-head-main">
-                    <span className="anya-breach-badge">
-                      <Shield className="size-3" />
-                      Breach
-                    </span>
-                    <span className="anya-breach-id">{id}</span>
-                    <ResultCopyButton compact text={id} />
-                  </div>
-                  <div className="anya-breach-source">
-                    <span className="anya-breach-source-icon">
-                      <Database className="size-3.5" />
-                    </span>
-                    <span className="anya-breach-source-name" title={sourceName}>
-                      {sourceName}
-                    </span>
-                  </div>
-                </header>
-                <div className="anya-breach-fields">
-                  {(() => {
-                    const nodes: React.ReactNode[] = [];
-                    let lastGroup: string | undefined;
-
-                    record.fields.forEach((field) => {
-                      if (field.group && field.group !== lastGroup) {
-                        lastGroup = field.group;
-                        nodes.push(
-                          <div
-                            key={`group-${record.index}-${field.group}`}
-                            className="anya-breach-group-label"
-                          >
-                            {field.group}
-                          </div>,
-                        );
-                      }
-
-                      nodes.push(
-                        <ResultField
-                          key={`${record.index}-${field.key}`}
-                          blurResults={blurResults}
-                          expanded
-                          field={field}
-                          premium
-                        />,
-                      );
-                    });
-
-                    return nodes;
-                  })()}
-                </div>
-              </article>
-            );
-          }
 
           return (
             <article
               key={stableKey}
               className={clsx(
-                "anya-result-card anya-pop-in",
+                "anya-result-card",
+                resultPopClass(index),
                 isExpanded && "anya-result-card--expanded",
                 selectable && "anya-result-card--selectable",
                 selected && "anya-result-card--selected",
               )}
-              style={{ "--pop-i": popIndex } as CSSProperties}
+              style={resultPopStyle(index)}
               role={selectable ? "button" : undefined}
               tabIndex={selectable ? 0 : undefined}
               onClick={
@@ -421,7 +273,7 @@ export function SearchResultCards({
               {!isExpanded ? null : (
                 <div className="anya-result-card-body">
                   {record.fields.map((field) => (
-                    <ResultField
+                    <CompactField
                       key={`${record.index}-${field.key}`}
                       blurResults={blurResults}
                       expanded={isExpanded}
@@ -433,7 +285,7 @@ export function SearchResultCards({
             </article>
           );
         })}
-      </div>
+      </ResultCardList>
 
       {hiddenCount > 0 ? (
         <button

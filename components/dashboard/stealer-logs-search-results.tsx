@@ -16,10 +16,15 @@ import {
   Monitor,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import {
+  ResultCard,
+  ResultCardList,
+  type ResultCardFieldDef,
+} from "@/components/dashboard/result-card";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
@@ -812,43 +817,53 @@ export function StealerLogsSearchResults({
             </p>
           ) : (
             <>
-              <div className="anya-stealer-table-wrap">
-                <table className="anya-stealer-table">
-                  <thead>
-                    <tr>
-                      <th>Site</th>
-                      <th>Username</th>
-                      <th>Password</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleCreds.map((row, i) => (
-                      <tr key={`${row.site}-${row.username}-${i}`}>
-                        <td>
-                          <BlurredValue
-                            forceBlur={blurResults}
-                            text={row.site || "—"}
-                          />
-                        </td>
-                        <td>
-                          <BlurredValue
-                            forceBlur={blurResults}
-                            text={row.username || "—"}
-                          />
-                        </td>
-                        <td>
-                          <BlurredValue
-                            forceBlur={blurResults}
-                            text={row.password || "—"}
-                          />
-                        </td>
-                        <td className="text-zinc-500">{row.date || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ResultCardList>
+                {visibleCreds.map((row, i) => {
+                  const globalIndex = (credPage - 1) * CRED_PAGE + i + 1;
+                  const fields: ResultCardFieldDef[] = [
+                    {
+                      key: "site",
+                      label: "Site",
+                      value: row.site || "—",
+                      highlight: true,
+                    },
+                    {
+                      key: "username",
+                      label: "Username",
+                      value: row.username || "—",
+                    },
+                    {
+                      key: "password",
+                      label: "Password",
+                      value: row.password || "—",
+                      sensitive: true,
+                    },
+                  ];
+
+                  if (row.date) {
+                    fields.push({
+                      key: "date",
+                      label: "Date",
+                      value: row.date,
+                    });
+                  }
+
+                  return (
+                    <ResultCard
+                      key={`${row.site}-${row.username}-${globalIndex}`}
+                      blurResults={blurResults}
+                      copyText={[row.site, row.username, row.password, row.date]
+                        .filter(Boolean)
+                        .join("\n")}
+                      fields={fields}
+                      indexLabel={globalIndex}
+                      listIndex={i}
+                      subtitle={row.username || row.site || undefined}
+                      title="Stealer credential"
+                    />
+                  );
+                })}
+              </ResultCardList>
 
               <PaginationBar
                 page={credPage}
@@ -891,7 +906,18 @@ export function StealerLogsSearchResults({
                   const globalIndex = (devicePage - 1) * DEVICE_PAGE + i + 1;
 
                   return (
-                    <li key={device.logId} className="anya-stealer-device-item">
+                    <li
+                      key={device.logId}
+                      className={clsx(
+                        "anya-stealer-device-item",
+                        i < 3 && "anya-pop-in",
+                      )}
+                      style={
+                        i < 3
+                          ? ({ "--pop-i": i } as CSSProperties)
+                          : undefined
+                      }
+                    >
                       <div className="anya-stealer-device-row">
                         <div className="flex min-w-0 items-start gap-2">
                           <Monitor className="mt-0.5 size-4 shrink-0 text-anya-accent" />
@@ -991,7 +1017,6 @@ export function StealerLogsSearchResults({
           <SearchResultCards
             blurResults={blurResults}
             records={fallbackRecords}
-            variant="premium"
           />
         </section>
       ) : null}

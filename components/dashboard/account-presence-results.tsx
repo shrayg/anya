@@ -3,20 +3,25 @@
 import { ExternalLink } from "lucide-react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import {
+  ResultCard,
+  ResultCardList,
+  ResultStatStrip,
+  type ResultCardFieldDef,
+} from "@/components/dashboard/result-card";
 import type { AccountPresenceSearchResult } from "@/lib/account-presence";
 import type { EmailPresenceSearchResult } from "@/lib/email-presence";
 
 function SourcePill({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] uppercase tracking-wide text-zinc-400">
-      {label}
-    </span>
+    <span className="anya-result-badge">{label}</span>
   );
 }
 
 function HitList({
   hits,
   blurResults,
+  startIndex = 0,
 }: {
   hits: Array<{
     siteName: string;
@@ -28,68 +33,83 @@ function HitList({
     others?: Record<string, string> | null;
   }>;
   blurResults?: boolean;
+  startIndex?: number;
 }) {
   if (hits.length === 0) {
     return <p className="text-sm text-zinc-500">No hits from this source.</p>;
   }
 
   return (
-    <ul className="divide-y divide-white/5 rounded-xl border border-white/10 bg-black/30">
-      {hits.map((hit) => {
+    <ResultCardList>
+      {hits.map((hit, i) => {
         const href = hit.url || hit.profileUrl || null;
         const key = `${hit.siteName}-${href || hit.domain || ""}`;
-        const meta = [
-          hit.emailrecovery,
-          hit.phoneNumber,
-          hit.others
-            ? Object.entries(hit.others)
-                .map(([k, v]) => `${k}: ${v}`)
-                .join(" · ")
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" · ");
+        const fields: ResultCardFieldDef[] = [];
+
+        if (href) {
+          fields.push({
+            key: "url",
+            label: "URL",
+            value: href,
+            highlight: true,
+            block: true,
+          });
+        }
+        if (hit.domain) {
+          fields.push({ key: "domain", label: "Domain", value: hit.domain });
+        }
+        if (hit.emailrecovery) {
+          fields.push({
+            key: "emailrecovery",
+            label: "Email recovery",
+            value: hit.emailrecovery,
+          });
+        }
+        if (hit.phoneNumber) {
+          fields.push({
+            key: "phone",
+            label: "Phone",
+            value: hit.phoneNumber,
+          });
+        }
+        if (hit.others) {
+          for (const [label, value] of Object.entries(hit.others)) {
+            fields.push({ key: label, label, value });
+          }
+        }
 
         return (
-          <li
+          <ResultCard
             key={key}
-            className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-          >
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">
-                {hit.siteName}
-                {hit.domain ? (
-                  <span className="ml-2 font-mono text-[11px] text-zinc-500">
-                    {hit.domain}
-                  </span>
-                ) : null}
-              </p>
-              {href ? (
-                <p className="truncate font-mono text-[11px] text-zinc-500">
-                  <BlurredValue forceBlur={blurResults} text={href} />
-                </p>
-              ) : null}
-              {meta ? (
-                <p className="mt-1 text-[11px] text-zinc-400">{meta}</p>
-              ) : null}
-            </div>
-            {href && !blurResults ? (
-              <a
-                className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
-                href={href}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Open
-                <ExternalLink className="size-3" />
-              </a>
-            ) : blurResults && href ? (
-              <span className="text-xs text-zinc-500">Locked</span>
-            ) : null}
-          </li>
+            blurResults={blurResults}
+            copyText={href ?? hit.siteName}
+            fields={fields}
+            listIndex={startIndex + i}
+            subtitle={hit.domain || href || undefined}
+            title={hit.siteName}
+            footer={
+              href ? (
+                blurResults ? (
+                  <p className="px-3 pb-3 text-xs text-zinc-500">Locked</p>
+                ) : (
+                  <div className="px-3 pb-3">
+                    <a
+                      className="inline-flex items-center gap-1 text-xs text-anya-accent hover:underline"
+                      href={href}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      Open
+                      <ExternalLink className="size-3" />
+                    </a>
+                  </div>
+                )
+              ) : null
+            }
+          />
         );
       })}
-    </ul>
+    </ResultCardList>
   );
 }
 
@@ -100,29 +120,27 @@ export function AccountPresenceResults({
   data: AccountPresenceSearchResult;
   blurResults?: boolean;
 }) {
+  const sourceOffsets = data.sources.reduce<number[]>((acc, source, i) => {
+    const prev = i === 0 ? 0 : acc[i - 1]! + data.sources[i - 1]!.found.length;
+
+    acc.push(prev);
+
+    return acc;
+  }, []);
+
   return (
-    <div className="space-y-5">
+    <div className="anya-result-stack">
       <div className="grid gap-2 sm:grid-cols-4">
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Username</p>
-          <p className="anya-result-value">
-            <BlurredValue forceBlur={blurResults} text={data.username} />
-          </p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Profiles found</p>
-          <p className="anya-result-value">{data.count}</p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Platforms checked</p>
-          <p className="anya-result-value">{data.checked}</p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Duration</p>
-          <p className="anya-result-value">
-            {(data.durationMs / 1000).toFixed(1)}s
-          </p>
-        </div>
+        <ResultStatStrip
+          label="Username"
+          value={<BlurredValue forceBlur={blurResults} text={data.username} />}
+        />
+        <ResultStatStrip label="Profiles found" value={data.count} />
+        <ResultStatStrip label="Platforms checked" value={data.checked} />
+        <ResultStatStrip
+          label="Duration"
+          value={`${(data.durationMs / 1000).toFixed(1)}s`}
+        />
       </div>
 
       {data.warning ? (
@@ -132,7 +150,7 @@ export function AccountPresenceResults({
       ) : null}
 
       <div className="space-y-6">
-        {data.sources.map((source) => (
+        {data.sources.map((source, sourceIndex) => (
           <section key={source.id} className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">
@@ -147,7 +165,11 @@ export function AccountPresenceResults({
             {source.warning ? (
               <p className="text-xs text-zinc-500">{source.warning}</p>
             ) : null}
-            <HitList blurResults={blurResults} hits={source.found} />
+            <HitList
+              blurResults={blurResults}
+              hits={source.found}
+              startIndex={sourceOffsets[sourceIndex] ?? 0}
+            />
           </section>
         ))}
       </div>
@@ -172,36 +194,25 @@ export function EmailPresenceResults({
     kind === "phone" ? "Phone → Profile" : "Email → Profile";
 
   return (
-    <div className="space-y-5">
+    <div className="anya-result-stack">
       <div className="grid gap-2 sm:grid-cols-5">
-        <div className="anya-result-strip">
-          <p className="anya-result-label">{subjectLabel}</p>
-          <p className="anya-result-value">
-            <BlurredValue forceBlur={blurResults} text={subjectValue} />
-          </p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Profiles</p>
-          <p className="anya-result-value">
-            {data.profileCount ?? profileHits.length}
-          </p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Presence</p>
-          <p className="anya-result-value">
-            {data.presenceCount ?? presenceOnly.length}
-          </p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Platforms checked</p>
-          <p className="anya-result-value">{data.checked}</p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Duration</p>
-          <p className="anya-result-value">
-            {(data.durationMs / 1000).toFixed(1)}s
-          </p>
-        </div>
+        <ResultStatStrip
+          label={subjectLabel}
+          value={<BlurredValue forceBlur={blurResults} text={subjectValue} />}
+        />
+        <ResultStatStrip
+          label="Profiles"
+          value={data.profileCount ?? profileHits.length}
+        />
+        <ResultStatStrip
+          label="Presence"
+          value={data.presenceCount ?? presenceOnly.length}
+        />
+        <ResultStatStrip label="Platforms checked" value={data.checked} />
+        <ResultStatStrip
+          label="Duration"
+          value={`${(data.durationMs / 1000).toFixed(1)}s`}
+        />
       </div>
 
       {data.warning ? (
@@ -218,7 +229,7 @@ export function EmailPresenceResults({
             </h3>
             <SourcePill label="URL / username leaked" />
           </div>
-          <HitList blurResults={blurResults} hits={profileHits} />
+          <HitList blurResults={blurResults} hits={profileHits} startIndex={0} />
         </section>
       ) : null}
 
@@ -230,7 +241,11 @@ export function EmailPresenceResults({
             </h3>
             <SourcePill label="Presence only" />
           </div>
-          <HitList blurResults={blurResults} hits={presenceOnly} />
+          <HitList
+            blurResults={blurResults}
+            hits={presenceOnly}
+            startIndex={profileHits.length}
+          />
         </section>
       ) : null}
 

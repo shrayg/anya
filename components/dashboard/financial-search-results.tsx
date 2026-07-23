@@ -6,6 +6,12 @@ import type { VinDecodeResult } from "@/lib/vin-decode";
 
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import {
+  ResultCard,
+  ResultCardList,
+  ResultStatStrip,
+  type ResultCardFieldDef,
+} from "@/components/dashboard/result-card";
 
 type ResultRow = { label: string; value: string };
 
@@ -33,7 +39,7 @@ export function BinSearchResults({
     { label: "Currency", value: result.currency },
   ]);
 
-  return <ResultGrid blurResults={blurResults} rows={rows} />;
+  return <ResultGrid blurResults={blurResults} rows={rows} title="BIN lookup" />;
 }
 
 export function IbanSearchResults({
@@ -56,7 +62,9 @@ export function IbanSearchResults({
       : []),
   ]);
 
-  return <ResultGrid blurResults={blurResults} rows={rows} />;
+  return (
+    <ResultGrid blurResults={blurResults} rows={rows} title="IBAN lookup" />
+  );
 }
 
 export function BankSearchResults({
@@ -67,68 +75,67 @@ export function BankSearchResults({
   blurResults?: boolean;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="anya-result-strip">
-        <p className="anya-result-label">Matches</p>
-        <p className="anya-result-value">
+    <div className="anya-result-stack">
+      <ResultStatStrip
+        label="Matches"
+        value={
           <BlurredValue
             forceBlur={blurResults}
             text={`${result.count.toLocaleString()} institutions`}
           />
-        </p>
-      </div>
-      <div className="grid gap-3">
-        {result.banks.map((bank) => (
-          <div
-            key={`${bank.id ?? bank.name}-${bank.city}`}
-            className="anya-result-strip space-y-2"
-          >
-            <p className="anya-result-label">Institution</p>
-            <p className="anya-result-value text-base">
-              <BlurredValue forceBlur={blurResults} text={bank.name} />
-            </p>
-            <div className="grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
-              {bank.city && bank.state && (
-                <span>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={`${bank.city}, ${bank.state} ${bank.zip ?? ""}`}
-                  />
-                </span>
-              )}
-              {bank.assets && (
-                <span>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={`Assets: ${bank.assets}`}
-                  />
-                </span>
-              )}
-              {bank.offices && (
-                <span>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={`Offices: ${bank.offices}`}
-                  />
-                </span>
-              )}
-              {bank.charter && (
-                <span>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={`Charter: ${bank.charter}`}
-                  />
-                </span>
-              )}
-              {bank.website && (
-                <span className="break-all text-anya-accent">
-                  <BlurredValue forceBlur={blurResults} text={bank.website} />
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+        }
+      />
+      <ResultCardList>
+        {result.banks.map((bank, i) => {
+          const fields: ResultCardFieldDef[] = [];
+
+          if (bank.city && bank.state) {
+            fields.push({
+              key: "location",
+              label: "Location",
+              value: `${bank.city}, ${bank.state} ${bank.zip ?? ""}`.trim(),
+            });
+          }
+          if (bank.assets) {
+            fields.push({ key: "assets", label: "Assets", value: bank.assets });
+          }
+          if (bank.offices) {
+            fields.push({
+              key: "offices",
+              label: "Offices",
+              value: String(bank.offices),
+            });
+          }
+          if (bank.charter) {
+            fields.push({
+              key: "charter",
+              label: "Charter",
+              value: bank.charter,
+            });
+          }
+          if (bank.website) {
+            fields.push({
+              key: "website",
+              label: "Website",
+              value: bank.website,
+              highlight: true,
+              block: true,
+            });
+          }
+
+          return (
+            <ResultCard
+              key={`${bank.id ?? bank.name}-${bank.city}`}
+              blurResults={blurResults}
+              fields={fields}
+              indexLabel={i + 1}
+              listIndex={i}
+              subtitle={bank.city && bank.state ? `${bank.city}, ${bank.state}` : undefined}
+              title={bank.name}
+            />
+          );
+        })}
+      </ResultCardList>
     </div>
   );
 }
@@ -144,16 +151,30 @@ export function VinSearchResults({
     label,
     value,
   }));
+  const copyText = [
+    `VIN: ${result.vin}`,
+    ...rows.map((row) => `${row.label}: ${row.value}`),
+  ].join("\n");
+  const fields: ResultCardFieldDef[] = [
+    { key: "vin", label: "VIN", value: result.vin, highlight: true },
+    ...rows.map((row) => ({
+      key: row.label,
+      label: row.label,
+      value: row.value,
+    })),
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="anya-result-strip">
-        <p className="anya-result-label">VIN</p>
-        <p className="anya-result-value font-mono">
-          <BlurredValue forceBlur={blurResults} text={result.vin} />
-        </p>
-      </div>
-      <ResultGrid blurResults={blurResults} rows={rows} />
+    <div className="anya-result-stack">
+      <ResultCardList>
+        <ResultCard
+          blurResults={blurResults}
+          copyText={copyText}
+          fields={fields}
+          listIndex={0}
+          title="VIN decode"
+        />
+      </ResultCardList>
       {result.errorText && (
         <p className="text-xs text-zinc-500">
           <BlurredValue forceBlur={blurResults} text={result.errorText} />
@@ -171,65 +192,72 @@ export function UsProviderSearchResults({
   blurResults?: boolean;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="anya-result-strip">
-        <p className="anya-result-label">Matches</p>
-        <p className="anya-result-value">
+    <div className="anya-result-stack">
+      <ResultStatStrip
+        label="Matches"
+        value={
           <BlurredValue
             forceBlur={blurResults}
             text={`${result.count.toLocaleString()} providers`}
           />
-        </p>
-      </div>
-      <div className="grid gap-3">
-        {result.providers.map((provider) => (
-          <div key={provider.name} className="anya-result-strip space-y-2">
-            <p className="anya-result-label">{provider.category}</p>
-            <p className="anya-result-value text-base">
-              <BlurredValue forceBlur={blurResults} text={provider.name} />
-            </p>
-            <div className="grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
-              {provider.coverage && (
-                <span>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={`Coverage: ${provider.coverage}`}
-                  />
-                </span>
-              )}
-              {provider.headquarters && (
-                <span>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={`HQ: ${provider.headquarters}`}
-                  />
-                </span>
-              )}
-              {provider.phone && (
-                <span>
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={`Phone: ${provider.phone}`}
-                  />
-                </span>
-              )}
-              {provider.website && (
-                <span className="break-all text-anya-accent">
-                  <BlurredValue
-                    forceBlur={blurResults}
-                    text={provider.website}
-                  />
-                </span>
-              )}
-              {provider.notes && (
-                <span className="md:col-span-2 text-zinc-400">
-                  <BlurredValue forceBlur={blurResults} text={provider.notes} />
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+        }
+      />
+      <ResultCardList>
+        {result.providers.map((provider, i) => {
+          const fields: ResultCardFieldDef[] = [];
+
+          if (provider.coverage) {
+            fields.push({
+              key: "coverage",
+              label: "Coverage",
+              value: provider.coverage,
+            });
+          }
+          if (provider.headquarters) {
+            fields.push({
+              key: "hq",
+              label: "HQ",
+              value: provider.headquarters,
+            });
+          }
+          if (provider.phone) {
+            fields.push({
+              key: "phone",
+              label: "Phone",
+              value: provider.phone,
+            });
+          }
+          if (provider.website) {
+            fields.push({
+              key: "website",
+              label: "Website",
+              value: provider.website,
+              highlight: true,
+              block: true,
+            });
+          }
+          if (provider.notes) {
+            fields.push({
+              key: "notes",
+              label: "Notes",
+              value: provider.notes,
+              block: true,
+            });
+          }
+
+          return (
+            <ResultCard
+              key={provider.name}
+              badge={provider.category}
+              blurResults={blurResults}
+              fields={fields}
+              indexLabel={i + 1}
+              listIndex={i}
+              title={provider.name}
+            />
+          );
+        })}
+      </ResultCardList>
     </div>
   );
 }
@@ -237,11 +265,18 @@ export function UsProviderSearchResults({
 function ResultGrid({
   rows,
   blurResults = false,
+  title = "Lookup",
 }: {
   rows: { label: string; value: string }[];
   blurResults?: boolean;
+  title?: string;
 }) {
   const copyText = rows.map((row) => `${row.label}: ${row.value}`).join("\n");
+  const fields: ResultCardFieldDef[] = rows.map((row) => ({
+    key: row.label,
+    label: row.label,
+    value: row.value,
+  }));
 
   return (
     <div className="anya-result-stack">
@@ -251,19 +286,15 @@ function ResultGrid({
         </p>
         <ResultCopyButton label="Copy all" text={copyText} />
       </div>
-      <div className="grid gap-2 md:grid-cols-2">
-        {rows.map((row) => (
-          <div key={row.label} className="anya-result-strip">
-            <div className="anya-result-field-head">
-              <p className="anya-result-label">{row.label}</p>
-              <ResultCopyButton compact text={row.value} />
-            </div>
-            <p className="anya-result-value">
-              <BlurredValue forceBlur={blurResults} text={row.value} />
-            </p>
-          </div>
-        ))}
-      </div>
+      <ResultCardList>
+        <ResultCard
+          blurResults={blurResults}
+          copyText={copyText}
+          fields={fields}
+          listIndex={0}
+          title={title}
+        />
+      </ResultCardList>
     </div>
   );
 }

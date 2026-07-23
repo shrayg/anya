@@ -3,6 +3,12 @@
 import { ExternalLink } from "lucide-react";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import {
+  ResultCard,
+  ResultCardList,
+  ResultStatStrip,
+  type ResultCardFieldDef,
+} from "@/components/dashboard/result-card";
 import type { UsernameAccountsSearchResult } from "@/lib/username-accounts/types";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -52,30 +58,25 @@ export function UsernameAccountsResults({
   }
 
   const categoryKeys = [...grouped.keys()].sort();
+  const flatHits = categoryKeys.flatMap((category) => {
+    const hits = grouped.get(category) ?? [];
+
+    return hits.map((hit) => ({ category, hit }));
+  });
 
   return (
-    <div className="space-y-5">
+    <div className="anya-result-stack">
       <div className="grid gap-2 sm:grid-cols-4">
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Username</p>
-          <p className="anya-result-value">
-            <BlurredValue forceBlur={blurResults} text={data.username} />
-          </p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Profiles found</p>
-          <p className="anya-result-value">{data.count}</p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Platforms checked</p>
-          <p className="anya-result-value">{data.checked}</p>
-        </div>
-        <div className="anya-result-strip">
-          <p className="anya-result-label">Duration</p>
-          <p className="anya-result-value">
-            {(data.durationMs / 1000).toFixed(1)}s
-          </p>
-        </div>
+        <ResultStatStrip
+          label="Username"
+          value={<BlurredValue forceBlur={blurResults} text={data.username} />}
+        />
+        <ResultStatStrip label="Profiles found" value={data.count} />
+        <ResultStatStrip label="Platforms checked" value={data.checked} />
+        <ResultStatStrip
+          label="Duration"
+          value={`${(data.durationMs / 1000).toFixed(1)}s`}
+        />
       </div>
 
       {data.warning ? (
@@ -93,45 +94,59 @@ export function UsernameAccountsResults({
         <div className="space-y-6">
           {categoryKeys.map((category) => {
             const hits = grouped.get(category) ?? [];
+            const categoryStart = flatHits.findIndex(
+              (entry) => entry.category === category,
+            );
 
             return (
               <section key={category} className="space-y-2">
                 <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">
                   {categoryLabel(category)} · {hits.length}
                 </h3>
-                <ul className="divide-y divide-white/5 rounded-xl border border-white/10 bg-black/30">
-                  {hits.map((hit) => (
-                    <li
-                      key={`${hit.siteName}-${hit.url}`}
-                      className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-white">
-                          {hit.siteName}
-                        </p>
-                        <p className="truncate font-mono text-[11px] text-zinc-500">
-                          <BlurredValue
-                            forceBlur={blurResults}
-                            text={hit.url}
-                          />
-                        </p>
-                      </div>
-                      {blurResults ? (
-                        <span className="text-xs text-zinc-500">Locked</span>
-                      ) : (
-                        <a
-                          className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
-                          href={hit.url}
-                          rel="noopener noreferrer"
-                          target="_blank"
-                        >
-                          Open
-                          <ExternalLink className="size-3" />
-                        </a>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <ResultCardList>
+                  {hits.map((hit, i) => {
+                    const fields: ResultCardFieldDef[] = [
+                      {
+                        key: "url",
+                        label: "Profile URL",
+                        value: hit.url,
+                        highlight: true,
+                        block: true,
+                      },
+                    ];
+
+                    return (
+                      <ResultCard
+                        key={`${hit.siteName}-${hit.url}`}
+                        blurResults={blurResults}
+                        copyText={hit.url}
+                        fields={fields}
+                        listIndex={categoryStart + i}
+                        subtitle={hit.url}
+                        title={hit.siteName}
+                        footer={
+                          blurResults ? (
+                            <p className="px-3 pb-3 text-xs text-zinc-500">
+                              Locked
+                            </p>
+                          ) : (
+                            <div className="px-3 pb-3">
+                              <a
+                                className="inline-flex items-center gap-1 text-xs text-anya-accent hover:underline"
+                                href={hit.url}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                              >
+                                Open
+                                <ExternalLink className="size-3" />
+                              </a>
+                            </div>
+                          )
+                        }
+                      />
+                    );
+                  })}
+                </ResultCardList>
               </section>
             );
           })}
