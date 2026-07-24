@@ -7,10 +7,9 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  ResultCard,
   ResultCardField,
   ResultCardList,
-  resultPopClass,
-  resultPopStyle,
 } from "@/components/dashboard/result-card";
 import { IpIntelPanel } from "@/components/dashboard/ip-intel-panel";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
@@ -222,72 +221,55 @@ export function SearchResultCards({
           );
 
           return (
-            <article
+            <ResultCard
               key={stableKey}
-              className={clsx(
-                "anya-result-card",
-                resultPopClass(index),
-                isExpanded && "anya-result-card--expanded",
-                selectable && "anya-result-card--selectable",
-                selected && "anya-result-card--selected",
-              )}
-              style={resultPopStyle(index)}
-              role={selectable ? "button" : undefined}
-              tabIndex={selectable ? 0 : undefined}
-              onClick={
+              badge={
+                record.badge && record.badge !== record.title
+                  ? record.badge
+                  : null
+              }
+              blurResults={blurResults}
+              className={clsx(isExpanded && "anya-result-card--expanded")}
+              copyText={formatRecordAsText(record)}
+              footer={
+                isExpanded && ips[0] ? (
+                  <IpIntelPanel blurResults={blurResults} ip={ips[0]!} />
+                ) : null
+              }
+              headerExtra={
+                <button
+                  aria-expanded={isExpanded}
+                  aria-label={
+                    isExpanded ? "Collapse record" : "Expand record"
+                  }
+                  className={clsx(
+                    "anya-result-expand",
+                    isExpanded && "anya-result-expand--open",
+                  )}
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleExpanded(record.index);
+                  }}
+                >
+                  <ChevronDown className="size-3.5" />
+                </button>
+              }
+              indexLabel={record.index}
+              listIndex={index}
+              selectable={selectable}
+              selected={selected}
+              subtitle={record.subtitle}
+              title={record.title}
+              onSelect={
                 selectable
                   ? () => onSelectExportIndex?.(selected ? -1 : record.index)
                   : undefined
               }
-              onKeyDown={
-                selectable
-                  ? (event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onSelectExportIndex?.(selected ? -1 : record.index);
-                      }
-                    }
-                  : undefined
-              }
             >
-              <header className="anya-result-card-header">
-                <div className="min-w-0 flex-1">
-                  <p className="anya-result-card-title">{record.title}</p>
-                  {record.subtitle ? (
-                    <p className="anya-result-card-subtitle truncate">
-                      {record.subtitle}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {record.badge && record.badge !== record.title ? (
-                    <span className="anya-result-badge">{record.badge}</span>
-                  ) : null}
-                  <span className="anya-result-index">#{record.index}</span>
-                  <ResultCopyButton compact text={formatRecordAsText(record)} />
-                  <button
-                    aria-expanded={isExpanded}
-                    aria-label={
-                      isExpanded ? "Collapse record" : "Expand record"
-                    }
-                    className={clsx(
-                      "anya-result-expand",
-                      isExpanded && "anya-result-expand--open",
-                    )}
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      toggleExpanded(record.index);
-                    }}
-                  >
-                    <ChevronDown className="size-3.5" />
-                  </button>
-                </div>
-              </header>
-
-              {!isExpanded ? null : (
-                <div className="anya-result-card-body">
-                  {record.fields.map((field) => (
+              {!isExpanded
+                ? null
+                : record.fields.map((field) => (
                     <CompactField
                       key={`${record.index}-${field.key}`}
                       blurResults={blurResults}
@@ -295,13 +277,7 @@ export function SearchResultCards({
                       field={field}
                     />
                   ))}
-                </div>
-              )}
-
-              {isExpanded && ips[0] ? (
-                <IpIntelPanel blurResults={blurResults} ip={ips[0]!} />
-              ) : null}
-            </article>
+            </ResultCard>
           );
         })}
       </ResultCardList>

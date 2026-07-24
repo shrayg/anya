@@ -8378,9 +8378,14 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-leak-row {
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 0.75rem;
-  background: #0c0c0e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.65rem;
+  background: linear-gradient(
+    165deg,
+    rgba(22, 22, 26, 0.96) 0%,
+    rgba(12, 12, 14, 0.98) 100%
+  );
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
   min-width: 0;
 }
 
@@ -8423,9 +8428,15 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-leak-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem 0.55rem;
-  padding: 0.55rem 0.7rem 0.65rem;
+  grid-template-columns: 1fr;
+  gap: 0.45rem 0.55rem;
+  padding: 0.55rem 0.75rem 0.75rem;
+}
+
+@media (min-width: 480px) {
+  .discord-leak-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .discord-leak-field {
@@ -8466,31 +8477,39 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-leak-label {
   display: block;
+  margin-bottom: 0.2rem;
   font-size: 0.58rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #71717a;
+  color: color-mix(in srgb, var(--anya-blush) 55%, #71717a);
 }
 
 .discord-leak-value {
   display: block;
-  margin-top: 0.08rem;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.4rem 0.5rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
-  line-height: 1.35;
-  color: #e4e4e7;
-  word-break: break-word;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #f4f4f5;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: pre-wrap;
 }
 
 .discord-leak-value--clamp {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   overflow: hidden;
+  white-space: normal;
 }
 
 .discord-leak-value--accent {
+  border-color: color-mix(in srgb, var(--anya-blush) 30%, transparent);
   color: #fafafa;
   font-weight: 600;
 }
@@ -8953,7 +8972,7 @@ html[data-splash="active"] [data-splash-target] {
 .home-search {
   position: relative;
   z-index: 30;
-  width: min(100%, 72rem);
+  width: min(100%, 92rem);
   margin-inline: auto;
 }
 
