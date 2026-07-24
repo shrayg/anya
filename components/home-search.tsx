@@ -430,6 +430,9 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         <div className="home-search-results" data-tour="home-search-results">
           <SearchResultCards
             blurResults={blurResults}
+            defaultExpanded="first"
+            dense
+            moduleSlug="breaches"
             records={records}
             totalCount={resultCount}
           />

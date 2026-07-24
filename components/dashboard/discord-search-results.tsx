@@ -1049,6 +1049,8 @@ export function DiscordSearchResults({
               {dataTab === "breaches" ? (
                 <SearchResultCards
                   blurResults={blurResults}
+                  defaultExpanded="first"
+                  dense
                   emptyDetail="No breach or stealer records found for this Discord ID."
                   initialVisible={8}
                   moduleSlug="discord-id"
@@ -1079,8 +1081,11 @@ export function DiscordSearchResults({
               {dataTab === "fivem" ? (
                 <SearchResultCards
                   blurResults={blurResults}
+                  defaultExpanded="first"
+                  dense
                   emptyDetail="No FiveM accounts linked to this Discord ID."
                   initialVisible={8}
+                  moduleSlug="discord-id"
                   records={fivemRecords}
                   totalCount={fivemCount}
                 />

@@ -101,6 +101,8 @@ export function SearchResultCards({
   /** Kept for callers; all variants render the Breaches card layout. */
   variant: _variant = "compact",
   moduleSlug = "discord-id",
+  defaultExpanded = "all",
+  dense = false,
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
@@ -113,9 +115,17 @@ export function SearchResultCards({
   variant?: "auto" | "premium" | "compact";
   /** Parent module for nested IP intel auth. */
   moduleSlug?: string;
+  /** How many cards start open. */
+  defaultExpanded?: "all" | "first" | "none";
+  /** Tighter packing for home / Discord results. */
+  dense?: boolean;
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(() =>
-    indexesOf(records),
+    defaultExpanded === "all"
+      ? indexesOf(records)
+      : defaultExpanded === "first" && records[0]
+        ? new Set([records[0].index])
+        : new Set(),
   );
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
@@ -137,9 +147,15 @@ export function SearchResultCards({
   }, [records]);
 
   useEffect(() => {
-    setExpanded(indexesOf(records));
+    setExpanded(
+      defaultExpanded === "all"
+        ? indexesOf(records)
+        : defaultExpanded === "first" && records[0]
+          ? new Set([records[0].index])
+          : new Set(),
+    );
     setVisibleCount(initialVisible);
-  }, [resultsKey, initialVisible, records]);
+  }, [resultsKey, initialVisible, records, defaultExpanded]);
 
   const selectable = Boolean(onSelectExportIndex);
   const shown = sortedRecords.length;
@@ -174,7 +190,12 @@ export function SearchResultCards({
   }
 
   return (
-    <div className="anya-result-stack">
+    <div
+      className={clsx(
+        "anya-result-stack",
+        dense && "anya-result-stack--dense",
+      )}
+    >
       <div className="anya-result-stack-toolbar">
         <p className="anya-result-stack-meta">
           {shown.toLocaleString()} record{shown === 1 ? "" : "s"}
@@ -209,7 +230,9 @@ export function SearchResultCards({
         </div>
       </div>
 
-      <ResultCardList>
+      <ResultCardList
+        className={dense ? "anya-result-list--dense-home" : undefined}
+      >
         {visibleRecords.map((record, index) => {
           const isExpanded = expanded.has(record.index);
           const selected = selectedExportIndex === record.index;
@@ -232,7 +255,10 @@ export function SearchResultCards({
                   : null
               }
               blurResults={blurResults}
-              className={clsx(isExpanded && "anya-result-card--expanded")}
+              className={clsx(
+                isExpanded && "anya-result-card--expanded",
+                dense && "anya-result-card--dense",
+              )}
               copyText={formatRecordAsText(record)}
               footer={
                 isExpanded && ips[0] ? (

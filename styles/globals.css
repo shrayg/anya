@@ -2996,6 +2996,26 @@ html[data-splash="active"] [data-splash-target] {
   }
 }
 
+/* Home / Discord: keep results tight — 2 cols max, denser gaps */
+.anya-result-list--dense-home {
+  grid-template-columns: 1fr !important;
+  gap: 0.4rem !important;
+}
+
+@media (min-width: 860px) {
+  .anya-result-list--dense-home {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+.anya-result-stack--dense {
+  gap: 0.45rem;
+}
+
+.anya-result-stack--dense .anya-result-stack-meta {
+  color: #a1a1aa;
+}
+
 /* Breaches: three-column layout — IP | credentials | Email Analyzer */
 .anya-result-stack--breaches {
   justify-items: stretch;
@@ -6693,8 +6713,8 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-id-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.4rem;
 }
 
 .discord-id-stat-btn {
@@ -6710,11 +6730,11 @@ html[data-splash="active"] [data-splash-target] {
 .discord-id-stat {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  min-height: 4.1rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 0.85rem;
+  gap: 0.55rem;
+  min-height: 2.85rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.65rem;
   background: #141417;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition:
@@ -6789,17 +6809,17 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-id-layout {
   display: grid;
-  grid-template-columns: minmax(17rem, 21.5rem) minmax(0, 1fr);
+  grid-template-columns: minmax(15.5rem, 18.5rem) minmax(0, 1fr);
   grid-template-areas: "profile data";
-  gap: 0.85rem;
-  align-items: stretch;
+  gap: 0.65rem;
+  align-items: start;
 }
 
 .discord-id-col-left {
   grid-area: profile;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.55rem;
   align-content: start;
   min-width: 0;
   order: 1;
@@ -6810,18 +6830,17 @@ html[data-splash="active"] [data-splash-target] {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 100%;
-  align-self: stretch;
+  align-self: start;
   order: 2;
 }
 
 .discord-id-col-main > .discord-id-data-panel,
 .discord-id-col-main > .discord-id-leaks {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: 22rem;
-  height: 100%;
+  min-height: 0;
+  height: auto;
 }
 
 .discord-id-col-main .discord-leak-wrap,
@@ -6878,8 +6897,16 @@ html[data-splash="active"] [data-splash-target] {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.95rem 1rem 0.7rem;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem 0.45rem;
+}
+
+.home-search-results .discord-id-data-head {
+  padding: 0.55rem 0.7rem 0.35rem;
+}
+
+.home-search-results .discord-id-data-sub {
+  display: none;
 }
 
 .discord-id-data-title {
@@ -6955,27 +6982,28 @@ html[data-splash="active"] [data-splash-target] {
 .discord-id-data-body {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 0.85rem 1rem 1rem;
+  padding: 0.55rem 0.7rem 0.7rem;
   display: flex;
   flex-direction: column;
 }
 
 .discord-id-data-body .anya-result-stack {
-  gap: 0.75rem;
+  gap: 0.45rem;
 }
 
 .discord-id-data-body .anya-result-list {
-  gap: 0.7rem;
+  gap: 0.4rem;
 }
 
 .discord-id-data-body .anya-breach-card,
 .discord-id-data-body .anya-result-card {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
   background: linear-gradient(
     165deg,
-    rgba(22, 22, 26, 0.96) 0%,
-    rgba(12, 12, 14, 0.98) 100%
+    rgba(28, 28, 34, 0.98) 0%,
+    rgba(14, 14, 18, 0.99) 100%
   );
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 .discord-id-data-panel .anya-search-empty--inset {
@@ -8963,10 +8991,43 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .home-search-results {
-  margin-top: 1.25rem;
+  margin-top: 0.75rem;
   width: 100%;
   overflow: visible;
   text-align: left;
+}
+
+.home-search-results .discord-id-results,
+.home-search-results .anya-result-stack {
+  gap: 0.55rem;
+}
+
+.home-search-results .discord-id-banner {
+  height: 4.75rem;
+}
+
+.home-search-results .discord-id-data-tabs {
+  gap: 0.3rem;
+  padding: 0 0.7rem 0.55rem;
+}
+
+.home-search-results .discord-id-data-tab {
+  min-height: 1.75rem;
+  padding: 0 0.55rem;
+  font-size: 0.7rem;
+}
+
+.home-search-results .anya-breach-value-box {
+  padding: 0.28rem 0.4rem;
+}
+
+.home-search-results .anya-breach-value-text {
+  font-size: 0.7rem;
+  color: #fafafa;
+}
+
+.home-search-results .anya-breach-field-label {
+  color: color-mix(in srgb, var(--anya-blush) 65%, #a1a1aa);
 }
 
 .home-search {
