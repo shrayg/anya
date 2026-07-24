@@ -133,6 +133,7 @@ export function BreachesSearchResults({
               <IpIntelPanel
                 blurResults={blurResults}
                 ip={activeIp}
+                moduleSlug="breaches"
                 variant="panel"
               />
             </div>

@@ -283,6 +283,7 @@ async function fetchIpInfoDirect(
 
 /**
  * Raw IPInfo GET — prefers direct token, else BreachHub proxy.
+ * Throws when neither premium source is available (caller may use free fallback).
  */
 export async function fetchIpInfo(
   ip: string,
@@ -313,7 +314,116 @@ export async function fetchIpInfo(
   return { data, source: "breachhub" };
 }
 
-/** Normalized IPInfo lookup for UI / specialty consumers. */
+/** Free HTTPS geo fallback (no API key) when IPInfo / BreachHub are unavailable. */
+async function fetchFreeIpGeoFallback(
+  ip: string,
+  timeoutMs: number,
+): Promise<Record<string, unknown>> {
+  const url = `https://ipwho.is/${encodeURIComponent(ip)}`;
+  const started = Date.now();
+  let logged = false;
+
+  const logRequest = (
+    ok: boolean,
+    opts?: { statusCode?: number; error?: string },
+  ) => {
+    if (logged) return;
+    logged = true;
+    recordProviderRequest({
+      gateway: "ipinfo",
+      path: `/fallback/ipwho.is/${ip}`,
+      method: "GET",
+      ok,
+      latencyMs: Date.now() - started,
+      statusCode: opts?.statusCode,
+      error: opts?.error,
+    });
+  };
+
+  try {
+    const res = await fetchWithTimeout(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "AnyaInt-IPGeo/1.0",
+      },
+      cache: "no-store",
+      timeoutMs,
+    });
+
+    const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+    const text = await readResponseText(res, remaining);
+    let data: Record<string, unknown> = {};
+
+    try {
+      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      logRequest(false, { statusCode: res.status, error: "Invalid JSON" });
+      throw new Error(publicSearchError("Invalid response from intelligence index."));
+    }
+
+    if (!res.ok || data.success === false) {
+      const msg =
+        (typeof data.message === "string" && data.message) ||
+        `HTTP ${res.status}`;
+      logRequest(false, { statusCode: res.status, error: msg });
+      throw new Error(sanitizeIpInfoError(msg));
+    }
+
+    logRequest(true, { statusCode: res.status });
+
+    const connection =
+      data.connection && typeof data.connection === "object"
+        ? (data.connection as Record<string, unknown>)
+        : {};
+    const lat = data.latitude;
+    const lng = data.longitude;
+    const loc =
+      typeof lat === "number" &&
+      typeof lng === "number" &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lng)
+        ? `${lat},${lng}`
+        : undefined;
+    const asnRaw = connection.asn;
+    const asn =
+      typeof asnRaw === "number"
+        ? `AS${asnRaw}`
+        : typeof asnRaw === "string"
+          ? asnRaw
+          : undefined;
+    const isp =
+      (typeof connection.isp === "string" && connection.isp) ||
+      (typeof connection.org === "string" && connection.org) ||
+      undefined;
+
+    return {
+      ip: (typeof data.ip === "string" && data.ip) || ip,
+      city: typeof data.city === "string" ? data.city : undefined,
+      region: typeof data.region === "string" ? data.region : undefined,
+      country:
+        (typeof data.country_code === "string" && data.country_code) ||
+        (typeof data.country === "string" && data.country) ||
+        undefined,
+      loc,
+      org: isp,
+      postal: typeof data.postal === "string" ? data.postal : undefined,
+      timezone:
+        data.timezone && typeof data.timezone === "object"
+          ? asOptionalString((data.timezone as Record<string, unknown>).id)
+          : asOptionalString(data.timezone),
+      asn,
+      hostname: asOptionalString(connection.domain),
+    };
+  } catch (err) {
+    logRequest(false, {
+      error: err instanceof Error ? err.message : "Request failed",
+    });
+    throw err;
+  }
+}
+
+/** Normalized IP geo lookup — IPInfo / BreachHub, then free fallback. */
 export async function lookupIpInfo(
   ip: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
@@ -324,7 +434,20 @@ export async function lookupIpInfo(
     throw new Error("Enter a valid IPv4 or IPv6 address.");
   }
 
-  const { data, source } = await fetchIpInfo(normalized, timeoutMs);
+  if (isIpInfoEnabled()) {
+    try {
+      const { data, source } = await fetchIpInfo(normalized, timeoutMs);
 
-  return normalizePayload(data, normalized, source);
+      return normalizePayload(data, normalized, source);
+    } catch {
+      // Fall through to free geo.
+    }
+  }
+
+  const fallback = await fetchFreeIpGeoFallback(
+    normalized,
+    Math.min(timeoutMs, 12_000),
+  );
+
+  return normalizePayload(fallback, normalized, "breachhub");
 }

@@ -1051,6 +1051,7 @@ export function DiscordSearchResults({
                   blurResults={blurResults}
                   emptyDetail="No breach or stealer records found for this Discord ID."
                   initialVisible={8}
+                  moduleSlug="discord-id"
                   records={leakRecords}
                   totalCount={leaks.count}
                 />

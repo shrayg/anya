@@ -100,6 +100,7 @@ export function SearchResultCards({
   emptyDetail = "No results were found.",
   /** Kept for callers; all variants render the Breaches card layout. */
   variant: _variant = "compact",
+  moduleSlug = "discord-id",
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
@@ -110,6 +111,8 @@ export function SearchResultCards({
   emptyDetail?: string;
   /** @deprecated Always renders Breaches-style cards. */
   variant?: "auto" | "premium" | "compact";
+  /** Parent module for nested IP intel auth. */
+  moduleSlug?: string;
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(() =>
     indexesOf(records),
@@ -233,7 +236,11 @@ export function SearchResultCards({
               copyText={formatRecordAsText(record)}
               footer={
                 isExpanded && ips[0] ? (
-                  <IpIntelPanel blurResults={blurResults} ip={ips[0]!} />
+                  <IpIntelPanel
+                    blurResults={blurResults}
+                    ip={ips[0]!}
+                    moduleSlug={moduleSlug}
+                  />
                 ) : null
               }
               headerExtra={
