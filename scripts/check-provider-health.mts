@@ -52,7 +52,6 @@ const {
   buildModuleHealthLevels,
   buildModuleHealthMap,
   probeProvidersDetailed,
-  type ProviderHealth,
 } = await import("../lib/module-health.ts");
 
 const STORE_PATH = join(process.cwd(), "data", "provider-health.json");
@@ -60,7 +59,7 @@ const STORE_PATH = join(process.cwd(), "data", "provider-health.json");
 async function main() {
   const started = Date.now();
   const detailed = await probeProvidersDetailed();
-  const providers = {} as ProviderHealth;
+  const providers = {} as Record<string, boolean>;
 
   for (const row of detailed) {
     providers[row.id] = row.ok;

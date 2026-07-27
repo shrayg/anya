@@ -157,19 +157,77 @@ function normalizePayload(
     }
   }
 
-  const resolvedIp = asOptionalString(record.ip) || ip;
+  // BreachHub /api/ipinfo v2 shape: { location, network, reverse_dns, query }
+  const location =
+    record.location && typeof record.location === "object"
+      ? (record.location as Record<string, unknown>)
+      : null;
+  const network =
+    record.network && typeof record.network === "object"
+      ? (record.network as Record<string, unknown>)
+      : null;
+
+  const lat = location
+    ? Number(location.latitude ?? location.lat)
+    : Number(record.latitude ?? record.lat);
+  const lng = location
+    ? Number(location.longitude ?? location.lon ?? location.lng)
+    : Number(record.longitude ?? record.lon ?? record.lng);
+  const locFromCoords =
+    Number.isFinite(lat) && Number.isFinite(lng) ? `${lat},${lng}` : undefined;
+
+  const city =
+    asOptionalString(record.city) ||
+    (location ? asOptionalString(location.city) : undefined);
+  const region =
+    asOptionalString(record.region) ||
+    (location
+      ? asOptionalString(location.region) ||
+        asOptionalString(location.region_code)
+      : undefined);
+  const country =
+    asOptionalString(record.country) ||
+    (location
+      ? asOptionalString(location.country_code) ||
+        asOptionalString(location.country)
+      : undefined);
+  const org =
+    asOptionalString(record.org) ||
+    (network
+      ? asOptionalString(network.organization) ||
+        asOptionalString(network.isp) ||
+        asOptionalString(network.as_number)
+      : undefined);
+  const postal =
+    asOptionalString(record.postal) ||
+    (location ? asOptionalString(location.zip) : undefined);
+  const timezone =
+    asOptionalString(record.timezone) ||
+    (location ? asOptionalString(location.timezone) : undefined);
+  const hostname =
+    asOptionalString(record.hostname) ||
+    asOptionalString(record.reverse_dns);
+  const asn =
+    extractAsn(record) ||
+    (network ? asOptionalString(network.as_number) : undefined);
+
+  const resolvedIp =
+    asOptionalString(record.ip) ||
+    asOptionalString(record.query) ||
+    asOptionalString(payload.query) ||
+    ip;
 
   return {
     ip: resolvedIp,
-    hostname: asOptionalString(record.hostname),
-    city: asOptionalString(record.city),
-    region: asOptionalString(record.region),
-    country: asOptionalString(record.country),
-    loc: asOptionalString(record.loc),
-    org: asOptionalString(record.org),
-    postal: asOptionalString(record.postal),
-    timezone: asOptionalString(record.timezone),
-    asn: extractAsn(record),
+    hostname,
+    city,
+    region,
+    country,
+    loc: asOptionalString(record.loc) || locFromCoords,
+    org,
+    postal,
+    timezone,
+    asn,
     source,
     raw: record,
   };
