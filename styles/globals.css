@@ -10687,13 +10687,13 @@ html[data-splash="active"] [data-splash-target] {
   display: none;
 }
 
-/* Anya homepage product story */
+/* Anya homepage product story — transparent so HomeBackground stays continuous */
 .anya-story {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   color: #f7f7f8;
-  background: #07080b;
+  background: transparent;
 }
 
 .anya-story::before {
@@ -10701,8 +10701,8 @@ html[data-splash="active"] [data-splash-target] {
   z-index: -1;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
   background-size: 72px 72px;
   content: "";
   mask-image: linear-gradient(
@@ -10775,14 +10775,8 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-story--proof {
-  border-top: 1px solid rgba(255, 255, 255, 0.075);
-  background:
-    radial-gradient(
-      circle at 78% 26%,
-      rgba(231, 88, 160, 0.09),
-      transparent 31rem
-    ),
-    #07080b;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
 }
 
 .anya-panel-preview {
@@ -11298,14 +11292,8 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-story--router {
-  border-block: 1px solid rgba(255, 255, 255, 0.075);
-  background:
-    radial-gradient(
-      circle at 18% 60%,
-      rgba(231, 88, 160, 0.075),
-      transparent 25rem
-    ),
-    #090a0e;
+  border-block: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
 }
 
 .anya-story__router-grid,
@@ -11488,13 +11476,7 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-story--questions {
-  background:
-    radial-gradient(
-      circle at 78% 20%,
-      rgba(255, 255, 255, 0.035),
-      transparent 28rem
-    ),
-    #07080b;
+  background: transparent;
 }
 
 .anya-story__section-head {
@@ -11611,8 +11593,8 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-story--scale {
-  border-block: 1px solid rgba(255, 255, 255, 0.075);
-  background: #090a0d;
+  border-block: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
 }
 
 .anya-story--scale .anya-story__inner {
@@ -11665,14 +11647,8 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-story--trust {
-  border-top: 1px solid rgba(255, 255, 255, 0.075);
-  background:
-    radial-gradient(
-      circle at 28% 45%,
-      rgba(231, 88, 160, 0.07),
-      transparent 24rem
-    ),
-    #090a0e;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
 }
 
 .anya-trust-list {
@@ -11732,7 +11708,7 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-story--final {
-  background: #07080b;
+  background: transparent;
 }
 
 .anya-final-card {
