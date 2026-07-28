@@ -14,6 +14,7 @@ import {
   ScanSearch,
   ShieldAlert,
   Smartphone,
+  type LucideIcon,
 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ThinkingOrb } from "thinking-orbs";
@@ -24,13 +25,13 @@ type DemoFinding = {
   label: string;
   value: string;
   meta: string;
-  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  icon: LucideIcon;
 };
 
 type DemoModule = {
   id: string;
   label: string;
-  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  icon: LucideIcon;
   query: string;
   subject: string;
   initials: string;
