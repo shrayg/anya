@@ -172,7 +172,7 @@ export function DashboardAuthProvider({
   if (!checked) {
     return (
       <div className="dash-shell text-white">
-        <HomeBackground mode="lite" />
+        <HomeBackground />
         <div className="dash-sidebar shrink-0 animate-pulse opacity-40" />
         <main className="dash-main flex items-center justify-center text-gray-400">
           Loading workspace...
@@ -190,7 +190,7 @@ export function DashboardAuthProvider({
       <Suspense
         fallback={
           <div className="dash-shell text-white">
-            <HomeBackground mode="lite" />
+            <HomeBackground />
             <div className="dash-sidebar w-[17rem] shrink-0 animate-pulse opacity-40" />
             <main className="dash-main ml-[17rem] flex items-center justify-center text-gray-400">
               Loading workspace...
