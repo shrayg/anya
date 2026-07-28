@@ -239,8 +239,9 @@ html[data-splash="active"] [data-splash-target] {
     padding var(--dash-sidebar-duration-fast) var(--dash-sidebar-ease);
 }
 
-.dash-sidebar.dash-sidebar--shadcn.dash-sidebar--collapsed {
-  padding: 0;
+.dash-sidebar.dash-sidebar--shadcn .liquid-glass-card__bend,
+.dash-sidebar.dash-sidebar--shadcn .liquid-glass-card__shine {
+  opacity: 0.35;
 }
 
 .dash-sidebar-liquid-glass {
