@@ -2566,7 +2566,9 @@
 
 .brutal-auth-page .ui-panel--auth {
   position: relative;
-  overflow: hidden;
+  /* Keep scan clip on a pseudo layer — don't clip input corners / focus rings */
+  overflow: visible;
+  isolation: isolate;
   border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 22%, rgba(255, 255, 255, 0.1));
   border-radius: 1.25rem;
   background:
@@ -2586,6 +2588,21 @@
   -webkit-backdrop-filter: blur(18px) saturate(1.25);
 }
 
+.brutal-auth-page .ui-panel--auth::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  overflow: hidden;
+  content: "";
+}
+
+.brutal-auth-page .ui-panel--auth > * {
+  position: relative;
+  z-index: 1;
+}
+
 .brutal-auth-page .ui-panel--auth::after {
   position: absolute;
   z-index: 20;
@@ -2593,6 +2610,7 @@
   bottom: 0;
   left: 0;
   width: 28%;
+  border-radius: inherit;
   pointer-events: none;
   background: linear-gradient(
     90deg,
@@ -2671,20 +2689,25 @@
 }
 
 .brutal-auth-page .ui-input {
-  border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 16%, rgba(255, 255, 255, 0.1));
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 16%, rgba(255, 255, 255, 0.1));
   border-radius: 0.75rem;
   background: rgba(255, 255, 255, 0.035);
   font-family: var(--font-anya-mono), monospace;
+  /* Keep focus halo inside the field so parents never clip the corners */
+  outline: none;
 }
 
 .brutal-auth-page .ui-input:hover {
   border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 28%, rgba(255, 255, 255, 0.14));
 }
 
-.brutal-auth-page .ui-input:focus {
+.brutal-auth-page .ui-input:focus,
+.brutal-auth-page .ui-input:focus-visible {
   border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 55%, transparent);
   background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--anya-blush, #c3d3e6) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anya-blush, #c3d3e6) 35%, transparent);
 }
 
 .brutal-auth-page .ui-link {

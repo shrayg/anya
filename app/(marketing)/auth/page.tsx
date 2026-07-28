@@ -349,7 +349,7 @@ function AuthForm() {
       <motion.div
         layout
         animate={{
-          clipPath: "inset(0 0 0% 0)",
+          clipPath: "none",
           opacity: 1,
           scale: 1,
           y: 0,
@@ -432,7 +432,7 @@ function AuthForm() {
         <AnimatePresence initial mode="wait">
           <motion.form
             key={mode}
-            animate={{ clipPath: "inset(0 0 0 0)", opacity: 1, x: 0 }}
+            animate={{ clipPath: "none", opacity: 1, x: 0 }}
             className="space-y-5"
             exit={{ clipPath: "inset(0 100% 0 0)", opacity: 0, x: -12 }}
             initial={{ clipPath: "inset(0 0 0 100%)", opacity: 0, x: 12 }}

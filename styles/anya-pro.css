@@ -496,6 +496,8 @@ pre,
 }
 
 .ui-input {
+  -webkit-appearance: none;
+  appearance: none;
   border-radius: var(--anya-radius-sm);
   border-color: var(--anya-hairline);
   background: rgba(255, 255, 255, 0.035);
@@ -512,10 +514,12 @@ pre,
   border-color: rgba(255, 255, 255, 0.16);
 }
 
-.ui-input:focus {
+.ui-input:focus,
+.ui-input:focus-visible {
   border-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
   background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--anya-blush) 16%, transparent);
+  /* Inset halo — never clipped by overflow:hidden parents */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anya-blush) 28%, transparent);
 }
 
 .ui-btn {

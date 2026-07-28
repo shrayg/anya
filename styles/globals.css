@@ -6233,6 +6233,8 @@ html[data-splash="active"] [data-splash-target] {
 
 .ui-input {
   width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   border-radius: 0.5rem;
@@ -6362,6 +6364,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .ui-input:focus {
   border-color: color-mix(in srgb, var(--anya-blush) 40%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anya-blush) 22%, transparent);
 }
 
 .ui-input::placeholder {
