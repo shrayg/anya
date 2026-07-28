@@ -201,9 +201,9 @@ export default function Dock({
           isHovered.set(0);
           mouseX.set(Infinity);
         }}
-        onMouseMove={({ pageX }) => {
+.onMouseMove={({ clientX }) => {
           isHovered.set(1);
-          mouseX.set(pageX);
+          mouseX.set(clientX);
         }}
       >
         {items.map((item, index) => (

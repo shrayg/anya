@@ -72,11 +72,13 @@ export default function ScrollFloat({
   containerClassName = "",
   textClassName = "",
   animationDuration = 1,
-  ease = "back.inOut(2)",
-  // React Bits defaults — long scrub range so the float reads while scrolling in.
-  // A short mid-viewport range + back ease leaves glyphs near opacity 0 on screen.
-  scrollStart = "center bottom+=50%",
-  scrollEnd = "bottom bottom-=40%",
+  // Linear scrub maps 1:1 to scroll — back.inOut hides the float mid-range.
+  ease = "none",
+  // Play while the title enters the viewport (not mostly off-screen).
+  // React Bits' center/bottom+=50% → bottom/bottom-=40% finishes before you see it
+  // on a tall landing page under a full-viewport hero.
+  scrollStart = "top 92%",
+  scrollEnd = "top 42%",
   stagger = 0.03,
 }: ScrollFloatProps) {
   const containerRef = useRef<HTMLElement | null>(null);
@@ -161,6 +163,7 @@ export default function ScrollFloat({
     const raf = window.requestAnimationFrame(refresh);
     const tQuick = window.setTimeout(refresh, 120);
     const tAfterReveal = window.setTimeout(refresh, 750);
+    const tLate = window.setTimeout(refresh, 1600);
     void document.fonts?.ready?.then(refresh);
 
     const onSplashGone = () => {
@@ -178,6 +181,7 @@ export default function ScrollFloat({
       window.cancelAnimationFrame(raf);
       window.clearTimeout(tQuick);
       window.clearTimeout(tAfterReveal);
+      window.clearTimeout(tLate);
       splashObserver.disconnect();
       window.removeEventListener("load", refresh);
       window.removeEventListener("resize", refresh);

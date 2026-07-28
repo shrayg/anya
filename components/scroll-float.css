@@ -22,8 +22,8 @@
 
 .scroll-float-char {
   display: inline-block;
-  /* Readable before GSAP arms; scrub from-state overrides when active. */
-  opacity: 1;
+  /* Start hidden so the float-in is obvious; GSAP overrides once armed. */
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -32,4 +32,3 @@
     transform: none !important;
   }
 }
-

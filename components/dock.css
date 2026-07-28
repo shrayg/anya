@@ -92,8 +92,8 @@
 
 .dash-dock {
   position: fixed;
-  z-index: 60;
-  bottom: 0;
+  z-index: 90;
+  bottom: 0.35rem;
   left: var(--dash-sidebar-width);
   right: 0;
   display: flex;

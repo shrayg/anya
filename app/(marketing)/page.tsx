@@ -51,36 +51,19 @@ export default function Home() {
         </Reveal>
       </section>
 
-      <Reveal mode="mount">
-        <IntelligenceModulesSection
-          catalogLanes={CATALOG_LANES}
-          moduleCount={CATALOG_MODULE_COUNT}
-        />
-      </Reveal>
+      <IntelligenceModulesSection
+        catalogLanes={CATALOG_LANES}
+        moduleCount={CATALOG_MODULE_COUNT}
+      />
 
-      <Reveal delay={0.04} mode="mount">
-        <HomeShowcase />
-      </Reveal>
-
-      <Reveal delay={0.06} mode="mount">
-        <HomeHowItWorks moduleCount={CATALOG_MODULE_COUNT} />
-      </Reveal>
-
-      <Reveal delay={0.08} mode="mount">
-        <HomeAudiences />
-      </Reveal>
-
-      <Reveal delay={0.1} mode="mount">
-        <HomeStatsStrip moduleCount={CATALOG_MODULE_COUNT} />
-      </Reveal>
-
-      <Reveal delay={0.12} mode="mount">
-        <HomeTrust />
-      </Reveal>
-
-      <Reveal delay={0.14} mode="mount">
-        <HomeFinalCta />
-      </Reveal>
+      {/* No Framer transform wrappers around Scroll Float sections —
+          parent translateY breaks ScrollTrigger scrub ranges. */}
+      <HomeShowcase />
+      <HomeHowItWorks moduleCount={CATALOG_MODULE_COUNT} />
+      <HomeAudiences />
+      <HomeStatsStrip moduleCount={CATALOG_MODULE_COUNT} />
+      <HomeTrust />
+      <HomeFinalCta />
     </>
   );
 }

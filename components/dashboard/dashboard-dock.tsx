@@ -102,12 +102,12 @@ export function DashboardDock() {
   return (
     <div className="dash-dock" data-tour="dashboard-dock">
       <Dock
-        baseItemSize={42}
-        distance={140}
-        dockHeight={180}
+        baseItemSize={50}
+        distance={200}
+        dockHeight={256}
         items={items}
-        magnification={58}
-        panelHeight={56}
+        magnification={70}
+        panelHeight={68}
       />
     </div>
   );
