@@ -8,6 +8,7 @@ import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider
 import { FrozenAccountOverlay } from "@/components/dashboard/frozen-account-overlay";
 import { SafetyNoticeOverlay } from "@/components/dashboard/safety-notice-overlay";
 import { HomeBackground } from "@/components/home-background";
+import { DashboardDock } from "@/components/dashboard/dashboard-dock";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import {
   DashboardSidebarProvider,
@@ -36,6 +37,7 @@ function DashboardShellInner({ children, username }: DashboardShellProps) {
     >
       {!TEST_MAC_DASHBOARD_THEME ? <HomeBackground /> : null}
       <DashboardSidebar username={username} />
+      <DashboardDock />
       <main
         className={clsx("dash-main", isFrozen && "dash-main--frozen")}
         data-tour="main-content"

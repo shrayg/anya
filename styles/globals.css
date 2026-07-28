@@ -178,6 +178,7 @@ html[data-splash="active"] [data-splash-target] {
   margin-left: var(--dash-sidebar-width);
   overflow-y: auto;
   overflow-x: hidden;
+  padding-bottom: 5.5rem;
   transition: margin-left var(--dash-sidebar-duration) var(--dash-sidebar-ease);
 }
 

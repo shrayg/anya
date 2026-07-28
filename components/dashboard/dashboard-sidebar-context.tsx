@@ -10,7 +10,6 @@ import {
 } from "react";
 
 const RAIL_STORAGE_KEY = "anya-sidebar-collapsed";
-const FOOTER_STORAGE_KEY = "anya-sidebar-footer-collapsed";
 
 const SIDEBAR_RESIZE_MS = 450;
 
@@ -18,8 +17,6 @@ type DashboardSidebarContextValue = {
   collapsed: boolean;
   isResizing: boolean;
   toggleCollapsed: () => void;
-  footerCollapsed: boolean;
-  toggleFooterCollapsed: () => void;
 };
 
 const DashboardSidebarContext =
@@ -31,17 +28,14 @@ export function DashboardSidebarProvider({
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [footerCollapsed, setFooterCollapsed] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
       setCollapsed(localStorage.getItem(RAIL_STORAGE_KEY) === "true");
-      setFooterCollapsed(localStorage.getItem(FOOTER_STORAGE_KEY) === "true");
     } catch {
       setCollapsed(false);
-      setFooterCollapsed(false);
     } finally {
       setReady(true);
     }
@@ -72,36 +66,13 @@ export function DashboardSidebarProvider({
     });
   }, []);
 
-  const toggleFooterCollapsed = useCallback(() => {
-    setFooterCollapsed((current) => {
-      const next = !current;
-
-      try {
-        localStorage.setItem(FOOTER_STORAGE_KEY, String(next));
-      } catch {
-        // ignore storage failures
-      }
-
-      return next;
-    });
-  }, []);
-
   const value = useMemo(
     () => ({
       collapsed: ready ? collapsed : false,
       isResizing: ready ? isResizing : false,
       toggleCollapsed,
-      footerCollapsed: ready ? footerCollapsed : false,
-      toggleFooterCollapsed,
     }),
-    [
-      collapsed,
-      footerCollapsed,
-      isResizing,
-      ready,
-      toggleCollapsed,
-      toggleFooterCollapsed,
-    ],
+    [collapsed, isResizing, ready, toggleCollapsed],
   );
 
   return (

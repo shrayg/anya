@@ -75,7 +75,7 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     target: "[data-tour='case-id']",
     fallbackTargets: [
       "[data-tour='footer-admin']",
-      "[data-tour='footer-settings']",
+      "[data-tour='dashboard-dock']",
     ],
   },
 ];
