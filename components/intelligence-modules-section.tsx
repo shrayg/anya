@@ -9,6 +9,7 @@ import { ModuleGraphExplorer } from "@/components/module-graph-explorer";
 import { AI_MODULE_EXPLAINERS, type CatalogLane } from "@/lib/featured-modules";
 import { hasWorkspaceDashboardAccess } from "@/lib/plans";
 import { siteConfig } from "@/config/site";
+import ScrollFloat from "@/components/scroll-float";
 
 export function IntelligenceModulesSection({
   catalogLanes,
@@ -60,8 +61,12 @@ export function IntelligenceModulesSection({
     <section className="mod-shell relative z-20 mx-auto w-full max-w-6xl px-4 py-10 md:px-6 md:py-12">
       <header className="mod-explorer-head">
         <div>
-          <p className="mod-kicker mod-kicker--tight">Module directory</p>
-          <h2 className="mod-explorer-title">{moduleCount} live modules</h2>
+          <ScrollFloat as="p" containerClassName="mod-kicker mod-kicker--tight">
+            Module directory
+          </ScrollFloat>
+          <ScrollFloat containerClassName="mod-explorer-title">
+            {`${moduleCount} live modules`}
+          </ScrollFloat>
           <p className="mod-explorer-text">
             Pick a lane on the left. Open any module from the list.
           </p>

@@ -29,6 +29,7 @@ import Link from "next/link";
 import { ThinkingOrb } from "thinking-orbs";
 
 import { siteConfig } from "@/config/site";
+import ScrollFloat from "@/components/scroll-float";
 
 const PANEL_MODULES = [
   { label: "Identity search", icon: Fingerprint },
@@ -336,10 +337,12 @@ export function HomeShowcase() {
         <header className="anya-story__split-head">
           <div>
             <p className="anya-story__eyebrow">FROM SIGNAL TO CONTEXT</p>
-            <h2>
-              Know who you&apos;re
-              <span>dealing with.</span>
-            </h2>
+            <ScrollFloat
+              lines={[
+                "Know who you're",
+                { text: "dealing with.", accent: true },
+              ]}
+            />
           </div>
           <p>
             Start with one piece of information. Anya follows the connected
@@ -378,10 +381,12 @@ export function HomeHowItWorks({ moduleCount }: { moduleCount: number }) {
       <div className="anya-story__inner anya-story__router-grid">
         <div className="anya-story__copy">
           <p className="anya-story__eyebrow">START WITH WHAT YOU KNOW</p>
-          <h2>
-            One clue becomes
-            <span>a connected map.</span>
-          </h2>
+          <ScrollFloat
+            lines={[
+              "One clue becomes",
+              { text: "a connected map.", accent: true },
+            ]}
+          />
           <p>
             You do not need to understand every database before you search. Anya
             recognizes the input, routes it to the relevant modules, and brings
@@ -404,10 +409,12 @@ export function HomeAudiences() {
       <div className="anya-story__inner">
         <header className="anya-story__section-head">
           <p className="anya-story__eyebrow">QUESTIONS HAVE STAKES</p>
-          <h2>
-            Answers for real life.
-            <span>Depth for real investigations.</span>
-          </h2>
+          <ScrollFloat
+            lines={[
+              "Answers for real life.",
+              { text: "Depth for real investigations.", accent: true },
+            ]}
+          />
           <p>
             A clear first answer when you need reassurance. A deeper trail when
             every alias, source, and pivot matters.
@@ -460,10 +467,12 @@ export function HomeTrust() {
       <div className="anya-story__inner anya-trust-grid">
         <div className="anya-story__copy">
           <p className="anya-story__eyebrow">POWER WITHOUT AMBIGUITY</p>
-          <h2>
-            Evidence you can
-            <span>understand and defend.</span>
-          </h2>
+          <ScrollFloat
+            lines={[
+              "Evidence you can",
+              { text: "understand and defend.", accent: true },
+            ]}
+          />
           <p>
             Anya is built to support judgment—not replace it. Every useful hit
             should be reviewable, attributable, and handled with care.

@@ -1,0 +1,25 @@
+.scroll-float {
+  overflow: hidden;
+  margin: 0;
+}
+
+.scroll-float-text {
+  display: inline-block;
+  line-height: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: inherit;
+}
+
+.scroll-float-line {
+  display: block;
+}
+
+.scroll-float-line--accent {
+  color: color-mix(in srgb, var(--anya-blush) 74%, white);
+}
+
+.scroll-float-char {
+  display: inline-block;
+}
