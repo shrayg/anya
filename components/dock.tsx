@@ -201,7 +201,7 @@ export default function Dock({
           isHovered.set(0);
           mouseX.set(Infinity);
         }}
-.onMouseMove={({ clientX }) => {
+        onMouseMove={({ clientX }) => {
           isHovered.set(1);
           mouseX.set(clientX);
         }}
