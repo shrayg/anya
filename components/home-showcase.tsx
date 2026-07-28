@@ -211,28 +211,18 @@ function PanelPreview() {
               </div>
 
               <div aria-hidden className="anya-panel-preview__orb-stage">
-                <div className="anya-panel-preview__orb-halo" />
                 <div className="anya-panel-preview__orb">
                   <ThinkingOrb
                     paused={Boolean(reduceMotion)}
                     size={64}
                     speed={1.05}
-                    state={
-                      stage >= 4
-                        ? "working"
-                        : stage >= 2
-                          ? "solving"
-                          : "searching"
-                    }
+                    // Keep the globe scan only — do not cycle into solving/working.
+                    state="searching"
                     theme="dark"
                   />
                 </div>
                 <p className="anya-panel-preview__orb-caption">
-                  {stage >= 4
-                    ? "Correlation locked"
-                    : stage >= 2
-                      ? "Solving identity"
-                      : "Searching sources"}
+                  Searching sources
                 </p>
               </div>
             </div>

@@ -11235,24 +11235,12 @@ html[data-splash="active"] [data-splash-target] {
   display: grid;
   min-height: 15rem;
   place-items: center;
-  align-content: center;
-  gap: 1rem;
-  padding: 1.1rem 0.75rem 1.25rem;
+  padding: 0;
   overflow: hidden;
 }
 
 .anya-panel-preview__orb-halo {
-  position: absolute;
-  inset: 18% 22%;
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      circle,
-      color-mix(in srgb, var(--anya-blush) 18%, transparent) 0%,
-      transparent 68%
-    );
-  pointer-events: none;
-  filter: blur(2px);
+  display: none;
 }
 
 .anya-panel-preview__orb {
@@ -11262,32 +11250,34 @@ html[data-splash="active"] [data-splash-target] {
   width: 8.5rem;
   height: 8.5rem;
   place-items: center;
+  margin: 0;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.05), transparent 58%),
-    rgba(0, 0, 0, 0.28);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-    0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  background: transparent;
+  box-shadow: none;
 }
 
 .anya-panel-preview__orb canvas {
   width: 64px !important;
   height: 64px !important;
   transform: scale(1.85);
-  transform-origin: center;
+  transform-origin: center center;
 }
 
 .anya-panel-preview__orb-caption {
-  position: relative;
+  position: absolute;
   z-index: 1;
+  right: 0;
+  bottom: 1rem;
+  left: 0;
   margin: 0;
   color: #8b8b96;
   font-family: var(--font-anya-mono), ui-monospace, monospace;
   font-size: 0.58rem;
   font-weight: 600;
   letter-spacing: 0.16em;
+  text-align: center;
   text-transform: uppercase;
+  pointer-events: none;
 }
 
 .anya-panel-preview__findings {

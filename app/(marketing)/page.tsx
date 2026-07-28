@@ -52,26 +52,26 @@ export default function Home() {
       </section>
 
       <Reveal mode="mount">
-        <HomeShowcase />
-      </Reveal>
-
-      <Reveal delay={0.04} mode="mount">
-        <HomeHowItWorks moduleCount={CATALOG_MODULE_COUNT} />
-      </Reveal>
-
-      <Reveal delay={0.06} mode="mount">
-        <HomeAudiences />
-      </Reveal>
-
-      <Reveal delay={0.08} mode="mount">
-        <HomeStatsStrip moduleCount={CATALOG_MODULE_COUNT} />
-      </Reveal>
-
-      <Reveal delay={0.1} mode="mount">
         <IntelligenceModulesSection
           catalogLanes={CATALOG_LANES}
           moduleCount={CATALOG_MODULE_COUNT}
         />
+      </Reveal>
+
+      <Reveal delay={0.04} mode="mount">
+        <HomeShowcase />
+      </Reveal>
+
+      <Reveal delay={0.06} mode="mount">
+        <HomeHowItWorks moduleCount={CATALOG_MODULE_COUNT} />
+      </Reveal>
+
+      <Reveal delay={0.08} mode="mount">
+        <HomeAudiences />
+      </Reveal>
+
+      <Reveal delay={0.1} mode="mount">
+        <HomeStatsStrip moduleCount={CATALOG_MODULE_COUNT} />
       </Reveal>
 
       <Reveal delay={0.12} mode="mount">
