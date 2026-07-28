@@ -291,7 +291,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breaches",
         "breaches",
         "Email or username",
-        "Unified breach search — Comb, Combo Lookup, DataVoid recovery, Email Analyzer, Breach Index, and every connected leak provider in one module.",
+        "Unified breach search across leak indexes, recovery data, and email analysis in one module.",
         undefined,
         undefined,
         {

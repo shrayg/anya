@@ -18,14 +18,11 @@ type IpInfoPayload = {
   asn?: string;
   error?: string;
   message?: string;
-};
-
-type IpEnrichmentPayload = {
-  enrichment?: Record<string, unknown>;
-  ipleaks?: Record<string, unknown>;
-  ipinfo?: Record<string, unknown>;
-  error?: string;
-  message?: string;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lon?: number;
+  lng?: number;
 };
 
 type LoadedIntel = {
@@ -34,15 +31,26 @@ type LoadedIntel = {
   error: string | null;
 };
 
-function parseLoc(loc?: string): { lat: number; lng: number } | null {
-  if (!loc) return null;
-  const [latRaw, lngRaw] = loc.split(",").map((part) => part.trim());
-  const lat = Number(latRaw);
-  const lng = Number(lngRaw);
+const GEO_TIMEOUT_MS = 12_000;
+const ENRICH_TIMEOUT_MS = 14_000;
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+function parseLoc(geo?: IpInfoPayload | null): { lat: number; lng: number } | null {
+  if (!geo) return null;
 
-  return { lat, lng };
+  if (geo.loc) {
+    const [latRaw, lngRaw] = geo.loc.split(",").map((part) => part.trim());
+    const lat = Number(latRaw);
+    const lng = Number(lngRaw);
+
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+
+  const lat = Number(geo.latitude ?? geo.lat);
+  const lng = Number(geo.longitude ?? geo.lon ?? geo.lng);
+
+  if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+
+  return null;
 }
 
 function asStringList(value: unknown): string[] {
@@ -82,24 +90,87 @@ function pickString(record: Record<string, unknown> | null, keys: string[]) {
   return "";
 }
 
+function extractEnrichment(
+  payload: Record<string, unknown> | null,
+): Record<string, unknown> | null {
+  if (!payload) return null;
+
+  for (const key of ["enrichment", "ipleaks", "ipinfo", "data"] as const) {
+    const nested = payload[key];
+
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      return nested as Record<string, unknown>;
+    }
+  }
+
+  // Flat useful fields on the root.
+  if (
+    payload.ports ||
+    payload.hostnames ||
+    payload.services ||
+    payload.org ||
+    payload.asn
+  ) {
+    return payload;
+  }
+
+  return null;
+}
+
+async function fetchJson(
+  url: string,
+  signal: AbortSignal,
+  timeoutMs: number,
+): Promise<{ ok: boolean; status: number; json: Record<string, unknown> | null }> {
+  const timeout = new AbortController();
+  const timer = setTimeout(() => timeout.abort(), timeoutMs);
+
+  const onParentAbort = () => timeout.abort();
+  signal.addEventListener("abort", onParentAbort, { once: true });
+
+  try {
+    const res = await fetch(url, {
+      signal: timeout.signal,
+      credentials: "include",
+      cache: "no-store",
+    });
+    const json = (await res.json().catch(() => null)) as Record<
+      string,
+      unknown
+    > | null;
+
+    return { ok: res.ok, status: res.status, json };
+  } catch {
+    return { ok: false, status: 0, json: null };
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener("abort", onParentAbort);
+  }
+}
+
 /**
- * Compact IP enrichment + “View on map” for breach/result cards.
- * Uses /api/ipinfo (geo) and /api/osint/ip (ports / connections) when available.
+ * Compact IP enrichment + “View on map”.
+ * Geo resolves fast (IPInfo → free fallback); ports/APIs load in parallel
+ * without blocking the map button.
  */
 export function IpIntelPanel({
   ip,
   blurResults = false,
   variant = "embedded",
+  moduleSlug = "breaches",
 }: {
   ip: string;
   blurResults?: boolean;
   /** `panel` = standalone left-column window; `embedded` = card footer. */
   variant?: "embedded" | "panel";
+  /** Bill/gate under the parent search module (starter Discord/Breaches, etc.). */
+  moduleSlug?: string;
 }) {
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">(
     "idle",
   );
   const [intel, setIntel] = useState<LoadedIntel | null>(null);
+  const [enriching, setEnriching] = useState(false);
   const [mapPoint, setMapPoint] = useState<IpMapPoint | null>(null);
 
   useEffect(() => {
@@ -109,66 +180,70 @@ export function IpIntelPanel({
     async function load() {
       setState("loading");
       setIntel(null);
+      setEnriching(true);
 
-      try {
-        const [geoRes, enrichRes] = await Promise.all([
-          fetch(`/api/ipinfo?ip=${encodeURIComponent(ip)}`, {
-            signal: controller.signal,
-            credentials: "include",
-            cache: "no-store",
-          }),
-          fetch(`/api/osint/ip?query=${encodeURIComponent(ip)}`, {
-            signal: controller.signal,
-            credentials: "include",
-            cache: "no-store",
-          }),
-        ]);
+      const slug = encodeURIComponent(moduleSlug);
+      const encodedIp = encodeURIComponent(ip);
 
-        const geoJson = (await geoRes.json().catch(() => null)) as
-          | IpInfoPayload
-          | null;
-        const enrichJson = (await enrichRes.json().catch(() => null)) as
-          | IpEnrichmentPayload
-          | null;
+      const geoPromise = fetchJson(
+        `/api/ipinfo?ip=${encodedIp}&moduleSlug=${slug}`,
+        controller.signal,
+        GEO_TIMEOUT_MS,
+      );
 
-        if (cancelled) return;
+      const enrichPromise = fetchJson(
+        `/api/osint/ip?query=${encodedIp}&moduleSlug=${slug}`,
+        controller.signal,
+        ENRICH_TIMEOUT_MS,
+      );
 
-        const geoOk =
-          geoRes.ok && geoJson && typeof geoJson === "object" && !geoJson.error
-            ? geoJson
-            : null;
-        const enrichment =
-          enrichRes.ok && enrichJson?.enrichment && typeof enrichJson.enrichment === "object"
-            ? enrichJson.enrichment
-            : enrichRes.ok && enrichJson?.ipleaks && typeof enrichJson.ipleaks === "object"
-              ? enrichJson.ipleaks
-              : null;
+      const geoRes = await geoPromise;
 
-        const err =
-          (!geoOk &&
-            (geoJson?.error ||
-              geoJson?.message ||
-              (!geoRes.ok ? "Geolocation unavailable." : null))) ||
-          null;
+      if (cancelled) return;
 
+      const geoJson = geoRes.json as IpInfoPayload | null;
+      const geoOk =
+        geoRes.ok &&
+        geoJson &&
+        typeof geoJson === "object" &&
+        !geoJson.error
+          ? geoJson
+          : null;
+
+      if (geoOk) {
+        setIntel({ geo: geoOk, enrichment: null, error: null });
+        setState("ready");
+      }
+
+      const enrichRes = await enrichPromise;
+
+      if (cancelled) return;
+
+      const enrichment = extractEnrichment(enrichRes.json);
+      const err =
+        (!geoOk &&
+          ((typeof geoJson?.error === "string" && geoJson.error) ||
+            (typeof geoJson?.message === "string" && geoJson.message) ||
+            (!geoRes.ok ? "Geolocation unavailable." : null))) ||
+        null;
+
+      if (geoOk || enrichment) {
         setIntel({
           geo: geoOk,
           enrichment,
-          error: geoOk || enrichment ? null : err || "No IP intelligence found.",
+          error: null,
         });
-        setState(geoOk || enrichment ? "ready" : "error");
-      } catch (err) {
-        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) {
-          return;
-        }
-
+        setState("ready");
+      } else {
         setIntel({
           geo: null,
           enrichment: null,
-          error: "IP lookup failed.",
+          error: err || "No IP intelligence found.",
         });
         setState("error");
       }
+
+      setEnriching(false);
     }
 
     void load();
@@ -177,11 +252,11 @@ export function IpIntelPanel({
       cancelled = true;
       controller.abort();
     };
-  }, [ip]);
+  }, [ip, moduleSlug]);
 
   const geo = intel?.geo ?? null;
   const enrichment = intel?.enrichment ?? null;
-  const loc = parseLoc(geo?.loc);
+  const loc = parseLoc(geo);
   const ports = asStringList(enrichment?.ports);
   const hostnames = asStringList(enrichment?.hostnames);
   const services = Array.isArray(enrichment?.services)
@@ -307,6 +382,17 @@ export function IpIntelPanel({
                 </span>
               </div>
             ) : null}
+            {enriching ? (
+              <p className="anya-ip-intel-status anya-ip-intel-status--muted">
+                <Loader2 className="size-3 animate-spin" />
+                Checking ports &amp; connections…
+              </p>
+            ) : null}
+            {!place && !org && !asn && !hostname && ports.length === 0 && !enriching ? (
+              <p className="anya-ip-intel-status anya-ip-intel-status--muted">
+                Geo resolved — no extra connection data for this IP.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -323,6 +409,11 @@ export function IpIntelPanel({
           {!loc && state === "ready" ? (
             <span className="anya-ip-intel-status--muted text-[0.65rem]">
               No coordinates for this IP
+            </span>
+          ) : null}
+          {!loc && state === "loading" ? (
+            <span className="anya-ip-intel-status--muted text-[0.65rem]">
+              Resolving location…
             </span>
           ) : null}
         </div>

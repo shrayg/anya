@@ -32,6 +32,19 @@ export type ResultCardFieldDef = {
   block?: boolean;
 };
 
+function looksLikeLongToken(value: string): boolean {
+  const trimmed = value.trim();
+
+  if (trimmed.length < 48) return false;
+  if (/\s/.test(trimmed)) return false;
+
+  return (
+    /^https?:\/\//i.test(trimmed) ||
+    /^[0-9a-f-]{32,}$/i.test(trimmed) ||
+    /^[A-Za-z0-9+/=._-]{48,}$/.test(trimmed)
+  );
+}
+
 export function ResultCardField({
   field,
   blurResults = false,
@@ -41,23 +54,28 @@ export function ResultCardField({
   blurResults?: boolean;
   showCopy?: boolean;
 }) {
+  const spanFull =
+    Boolean(field.block) ||
+    looksLikeLongToken(field.value) ||
+    field.value.length > 72;
+
   return (
     <div
       className={clsx(
-        "anya-result-field",
-        field.sensitive && "anya-result-field--sensitive",
-        field.block && "anya-result-field--block",
+        "anya-breach-field",
+        field.sensitive && "anya-breach-field--sensitive",
+        field.block && "anya-breach-field--block",
+        spanFull && "anya-breach-field--span",
       )}
     >
-      <p className="anya-result-label">{field.label}</p>
-      <div className="anya-result-field-row">
-        <p
-          className={clsx(
-            "anya-result-value",
-            field.block && "anya-result-value--block",
-            field.highlight && "text-anya-accent",
-          )}
-        >
+      <span className="anya-breach-field-label">{field.label}</span>
+      <div
+        className={clsx(
+          "anya-breach-value-box",
+          field.highlight && "anya-breach-value-box--accent",
+        )}
+      >
+        <p className="anya-breach-value-text">
           <BlurredValue forceBlur={blurResults} text={field.value} />
         </p>
         {showCopy && field.value.trim() ? (
@@ -113,6 +131,7 @@ export function ResultCard({
   return (
     <article
       className={clsx(
+        "anya-breach-card",
         "anya-result-card",
         resultPopClass(listIndex),
         selectable && "anya-result-card--selectable",
@@ -125,15 +144,17 @@ export function ResultCard({
       onClick={selectable ? onSelect : undefined}
       onKeyDown={selectable ? handleKeyDown : undefined}
     >
-      <header className="anya-result-card-header">
-        <div className="min-w-0 flex-1">
+      <header className="anya-breach-card-head">
+        <div className="anya-breach-card-head-main min-w-0 flex-1">
           <p className="anya-result-card-title">{title}</p>
+          {badge ? (
+            <span className="anya-breach-badge">{badge}</span>
+          ) : null}
           {subtitle ? (
             <p className="anya-result-card-subtitle truncate">{subtitle}</p>
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          {badge ? <span className="anya-result-badge">{badge}</span> : null}
           {indexLabel != null ? (
             <span className="anya-result-index">#{indexLabel}</span>
           ) : null}
@@ -142,9 +163,9 @@ export function ResultCard({
         </div>
       </header>
       {children ? (
-        <div className="anya-result-card-body">{children}</div>
+        <div className="anya-breach-fields anya-result-card-body">{children}</div>
       ) : fields && fields.length > 0 ? (
-        <div className="anya-result-card-body">
+        <div className="anya-breach-fields anya-result-card-body">
           {fields.map((field) => (
             <ResultCardField
               key={`${field.key}-${field.value}`}

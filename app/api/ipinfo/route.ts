@@ -1,32 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { isIpInfoEnabled, lookupIpInfo } from "@/lib/ipinfo";
+import { lookupIpInfo } from "@/lib/ipinfo";
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 import {
   OSINT_ROUTE_DEADLINE_MS,
   osintFailureResponse,
   withDeadline,
 } from "@/lib/osint-search-guard";
-import { publicServiceUnavailable } from "@/lib/public-branding";
 
 export const maxDuration = 60;
 
 /**
  * GET /api/ipinfo?ip=… (also accepts query)
  *
- * IPInfo geolocation / ASN lookup (direct IPINFO_TOKEN or BreachHub).
+ * IP geolocation / ASN — IPInfo or BreachHub when configured, otherwise a
+ * free HTTPS fallback so map + location still work.
  */
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "ipinfo");
 
   if (access instanceof NextResponse) return access;
-
-  if (!isIpInfoEnabled()) {
-    return NextResponse.json(
-      { error: publicServiceUnavailable() },
-      { status: 503 },
-    );
-  }
 
   const query =
     req.nextUrl.searchParams.get("ip")?.trim() ||
@@ -38,8 +31,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const data = await withDeadline(
-      lookupIpInfo(query),
-      OSINT_ROUTE_DEADLINE_MS,
+      lookupIpInfo(query, 15_000),
+      Math.min(OSINT_ROUTE_DEADLINE_MS, 20_000),
     );
 
     return NextResponse.json(data);
