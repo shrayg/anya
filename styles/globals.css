@@ -141,18 +141,8 @@ html[data-splash="active"] [data-splash-target] {
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(
-      ellipse 60% 45% at 18% -8%,
-      rgba(255, 255, 255, 0.04),
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse 50% 40% at 92% 108%,
-      rgba(255, 255, 255, 0.03),
-      transparent 50%
-    ),
-    #050506;
+  /* Keep shell clear so Color Bends / HomeBackground shows through glass chrome */
+  background: transparent;
   color: #fff;
 }
 
@@ -214,9 +204,9 @@ html[data-splash="active"] [data-splash-target] {
   flex-direction: column;
   overflow: hidden;
   border-right: 1px solid var(--sidebar-border-color);
-  background: color-mix(in srgb, var(--sidebar-bg) 88%, transparent);
+  background: transparent;
   color: var(--sidebar-fg);
-  backdrop-filter: blur(20px) saturate(1.1);
+  backdrop-filter: none;
   transition: width var(--dash-sidebar-duration) var(--dash-sidebar-ease);
   contain: layout style;
 }
@@ -226,33 +216,48 @@ html[data-splash="active"] [data-splash-target] {
   pointer-events: none;
 }
 
-/* Floating shadcn-style shell with subtle liquid glass nest */
+/* Floating shadcn-style shell — glass lives on LiquidGlassCard, not an opaque rail */
 .dash-sidebar.dash-sidebar--shadcn {
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  background: color-mix(in srgb, #070708 72%, transparent);
-  backdrop-filter: blur(28px) saturate(1.15);
-  -webkit-backdrop-filter: blur(28px) saturate(1.15);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   padding: 0;
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
+  box-shadow: none;
   transition:
     width var(--dash-sidebar-duration) var(--dash-sidebar-ease),
     padding var(--dash-sidebar-duration-fast) var(--dash-sidebar-ease);
 }
 
-.dash-sidebar.dash-sidebar--shadcn .liquid-glass-card__bend,
-.dash-sidebar.dash-sidebar--shadcn .liquid-glass-card__shine {
-  opacity: 0.35;
-}
-
-.dash-sidebar-liquid-glass {
+.dash-sidebar .dash-sidebar-liquid-glass {
   height: 100%;
   min-height: 0;
   width: 100%;
   overflow: hidden;
-  --liquid-glass-card-fill: rgba(255, 255, 255, 0.03);
-  --liquid-glass-card-tint: transparent;
+  /* Light frost only — keep Color Bends readable through the rail */
+  --liquid-glass-card-fill: rgba(255, 255, 255, 0.045);
+  --liquid-glass-card-tint: color-mix(in srgb, #c3d3e6 4%, transparent);
+  --liquid-glass-card-blur: 22px;
+  --liquid-glass-card-saturate: 1.2;
   --liquid-glass-card-depth: none;
+  isolation: auto;
   border-radius: 0 !important;
+}
+
+.dash-sidebar .dash-sidebar-liquid-glass .liquid-glass-card__bend {
+  opacity: 1;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(12, 14, 18, 0.16) 0%,
+      rgba(8, 9, 12, 0.08) 100%
+    ),
+    var(--liquid-glass-card-fill),
+    var(--liquid-glass-card-tint);
+}
+
+.dash-sidebar .dash-sidebar-liquid-glass .liquid-glass-card__face {
+  opacity: 0.35;
 }
 
 .dash-sidebar[data-resizing="true"] .dash-sidebar-liquid-glass {

@@ -18,8 +18,8 @@ export const siteIconSrc = TEST_LIME_ICON_THEME
   : "/icon.png";
 
 export const siteLogoClassName = TEST_LIME_ICON_THEME
-  ? "rounded-full object-cover ring-1 ring-lime-400/30"
-  : "rounded-full object-cover ring-1 ring-white/10";
+  ? "size-8 shrink-0 overflow-hidden rounded-full object-cover ring-1 ring-lime-400/30"
+  : "size-8 shrink-0 overflow-hidden rounded-full object-cover ring-1 ring-white/10";
 
 /** Hero wordmark classes — splash + home must share these exactly. */
 export const brandTitleClassName =
