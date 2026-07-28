@@ -287,7 +287,6 @@ function CollapsibleCategory({
         type="button"
         onClick={onToggle}
       >
-        <span>{title}</span>
         <ChevronDown
           aria-hidden
           className={clsx(
@@ -295,6 +294,7 @@ function CollapsibleCategory({
             open && "dash-sidebar-category-chevron--open",
           )}
         />
+        <span className="dash-sidebar-category-title">{title}</span>
       </button>
       <div
         className={clsx(

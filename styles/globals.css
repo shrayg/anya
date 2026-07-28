@@ -131,7 +131,7 @@ html[data-splash="active"] [data-splash-target] {
 
 /* â”€â”€â”€ Dashboard theme (matches home page) â”€â”€â”€ */
 .dash-shell {
-  --dash-sidebar-width: 17rem;
+  --dash-sidebar-width: 16.5rem;
   --dash-sidebar-collapsed-width: 4.25rem;
   --dash-sidebar-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --dash-sidebar-duration: 0.45s;
@@ -143,16 +143,16 @@ html[data-splash="active"] [data-splash-target] {
   overflow: hidden;
   background:
     radial-gradient(
-      ellipse 70% 50% at 12% -10%,
-      var(--anya-pink-soft),
+      ellipse 60% 45% at 18% -8%,
+      rgba(255, 255, 255, 0.04),
       transparent 55%
     ),
     radial-gradient(
-      ellipse 55% 40% at 88% 110%,
-      var(--anya-blush-soft),
+      ellipse 50% 40% at 92% 108%,
+      rgba(255, 255, 255, 0.03),
       transparent 50%
     ),
-    var(--anya-void);
+    #050506;
   color: #fff;
 }
 
@@ -228,18 +228,19 @@ html[data-splash="active"] [data-splash-target] {
 
 /* Floating shadcn-style shell with subtle liquid glass nest */
 .dash-sidebar.dash-sidebar--shadcn {
-  border-right: none;
-  background: transparent;
-  backdrop-filter: none;
-  padding: 0.5rem;
-  box-shadow: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, #070708 72%, transparent);
+  backdrop-filter: blur(28px) saturate(1.15);
+  -webkit-backdrop-filter: blur(28px) saturate(1.15);
+  padding: 0;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
   transition:
     width var(--dash-sidebar-duration) var(--dash-sidebar-ease),
     padding var(--dash-sidebar-duration-fast) var(--dash-sidebar-ease);
 }
 
 .dash-sidebar.dash-sidebar--shadcn.dash-sidebar--collapsed {
-  padding: 0.4rem 0.3rem;
+  padding: 0;
 }
 
 .dash-sidebar-liquid-glass {
@@ -247,21 +248,19 @@ html[data-splash="active"] [data-splash-target] {
   min-height: 0;
   width: 100%;
   overflow: hidden;
-  /* Outer nest stays frosted; no bloom — depth only */
-  --liquid-glass-card-fill: rgba(255, 255, 255, 0.05);
-  --liquid-glass-card-tint: color-mix(in srgb, #c3d3e6 4%, transparent);
-  --liquid-glass-card-depth:
-    0 8px 28px rgba(0, 0, 0, 0.32), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --liquid-glass-card-fill: rgba(255, 255, 255, 0.03);
+  --liquid-glass-card-tint: transparent;
+  --liquid-glass-card-depth: none;
+  border-radius: 0 !important;
 }
 
-/* Cut expensive blur while the rail width is in motion */
 .dash-sidebar[data-resizing="true"] .dash-sidebar-liquid-glass {
-  --liquid-glass-card-blur: 10px;
+  --liquid-glass-card-blur: 12px;
 }
 
 .dash-sidebar[data-resizing="true"] .liquid-glass-card__bend {
-  backdrop-filter: blur(10px) saturate(1.05);
-  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  backdrop-filter: blur(12px) saturate(1.05);
+  -webkit-backdrop-filter: blur(12px) saturate(1.05);
 }
 
 .dash-sidebar-liquid-glass > .liquid-glass-card__content {
@@ -270,10 +269,10 @@ html[data-splash="active"] [data-splash-target] {
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  border-radius: inherit;
-  border: 1px solid color-mix(in srgb, #c3d3e6 10%, rgba(255, 255, 255, 0.05));
-  background: color-mix(in srgb, hsl(0 0% 5%) 78%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-radius: 0 !important;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .dash-sidebar-brand {
@@ -496,21 +495,21 @@ html[data-splash="active"] [data-splash-target] {
 .dash-sidebar-group-label,
 .dash-sidebar-category-toggle {
   display: flex;
-  height: 2rem;
+  height: 1.85rem;
   width: 100%;
   flex-shrink: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  justify-content: flex-start;
+  gap: 0.4rem;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 0.4rem;
   background: transparent;
-  padding: 0 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  color: color-mix(in srgb, var(--sidebar-fg) 55%, transparent);
+  padding: 0 0.55rem;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(161, 161, 170, 0.78);
   cursor: pointer;
   outline: none;
   transition:
@@ -518,25 +517,32 @@ html[data-splash="active"] [data-splash-target] {
     background var(--dash-sidebar-duration-fast) var(--dash-sidebar-ease);
 }
 
+.dash-sidebar-category-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dash-sidebar-category-toggle:hover,
 .dash-sidebar-group-label:hover {
-  color: color-mix(in srgb, var(--sidebar-fg) 80%, transparent);
+  color: rgba(212, 212, 216, 0.95);
 }
 
 .dash-sidebar-category-toggle:hover .dash-sidebar-category-chevron {
-  color: color-mix(in srgb, var(--sidebar-fg) 70%, transparent);
+  color: rgba(212, 212, 216, 0.85);
 }
 
 .dash-sidebar-category-chevron {
   flex-shrink: 0;
-  color: color-mix(in srgb, var(--sidebar-fg) 45%, transparent);
+  color: rgba(161, 161, 170, 0.55);
+  transform: rotate(-90deg);
   transition:
     color var(--dash-sidebar-duration-fast) var(--dash-sidebar-ease),
     transform var(--dash-sidebar-duration) var(--dash-sidebar-ease);
 }
 
 .dash-sidebar-category-chevron--open {
-  transform: rotate(180deg);
+  transform: rotate(0deg);
 }
 
 .dash-sidebar-category-body {
@@ -595,6 +601,7 @@ html[data-splash="active"] [data-splash-target] {
 
 .dash-sidebar-menu-button,
 .dash-nav-link {
+  position: relative;
   display: flex;
   width: 100%;
   align-items: center;
@@ -602,14 +609,14 @@ html[data-splash="active"] [data-splash-target] {
   gap: 0.5rem;
   overflow: hidden;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 0.55rem;
   background: transparent;
-  padding: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 400;
+  padding: 0.48rem 0.65rem;
+  font-size: 0.84rem;
+  font-weight: 450;
   line-height: 1.25;
   text-align: left;
-  color: color-mix(in srgb, var(--sidebar-fg) 82%, transparent);
+  color: rgba(186, 186, 194, 0.92);
   outline: none;
   transition:
     background var(--dash-sidebar-duration-fast) var(--dash-sidebar-ease),
@@ -652,7 +659,7 @@ html[data-splash="active"] [data-splash-target] {
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .dash-sidebar-menu-button svg,
@@ -660,7 +667,7 @@ html[data-splash="active"] [data-splash-target] {
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
-  color: #a1a1aa;
+  color: rgba(148, 148, 156, 0.95);
 }
 
 .dash-sidebar-menu-button span,
@@ -672,33 +679,42 @@ html[data-splash="active"] [data-splash-target] {
 
 .dash-sidebar-menu-button:hover,
 .dash-nav-link:hover {
-  background: var(--sidebar-accent-bg);
-  color: var(--sidebar-accent-fg);
+  background: rgba(255, 255, 255, 0.045);
+  color: #f4f4f5;
 }
 
 .dash-sidebar-menu-button:hover svg,
 .dash-nav-link:hover svg {
-  color: color-mix(in srgb, var(--anya-blush) 75%, #fff);
+  color: #e4e4e7;
 }
 
 .dash-sidebar-menu-button--active,
 .dash-nav-link-active,
 .dash-sidebar-menu-button[data-active="true"] {
-  background: color-mix(
-    in srgb,
-    var(--anya-blush) 12%,
-    var(--sidebar-accent-bg)
-  );
+  background: rgba(255, 255, 255, 0.07);
   color: #fff;
   font-weight: 500;
-  box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--anya-blush) 22%, transparent);
+  box-shadow: none;
+}
+
+.dash-sidebar-menu-button--active::before,
+.dash-nav-link-active::before,
+.dash-sidebar-menu-button[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 50%;
+  width: 0.16rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: #fff;
+  transform: translateY(-50%);
 }
 
 .dash-sidebar-menu-button--active svg,
 .dash-nav-link-active svg,
 .dash-sidebar-menu-button[data-active="true"] svg {
-  color: var(--anya-blush);
+  color: #f4f4f5;
 }
 
 .dash-sidebar-menu-button--sm {
@@ -926,22 +942,22 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .dash-page-header {
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
 }
 
 .dash-badge {
   display: inline-block;
   margin-bottom: 0.75rem;
   border-radius: 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 35%, transparent);
-  background: color-mix(in srgb, var(--anya-blush) 8%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
   padding: 0.25rem 0.7rem;
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--anya-blush);
+  color: #d4d4d8;
 }
 
 .dash-title {
@@ -956,22 +972,19 @@ html[data-splash="active"] [data-splash-target] {
   max-width: 42rem;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #d1d5db;
+  color: #a1a1aa;
 }
 
 .dash-panel {
-  border-radius: 0.65rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(
-      160deg,
-      color-mix(in srgb, var(--anya-pink) 6%, transparent),
-      transparent 42%
-    ),
-    rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(24px);
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, #0a0a0c 78%, transparent);
+  backdrop-filter: blur(22px) saturate(1.1);
+  -webkit-backdrop-filter: blur(22px) saturate(1.1);
   padding: 1.25rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 40px -18px rgba(0, 0, 0, 0.55);
 }
 
 .dash-quick-grid {
@@ -989,9 +1002,10 @@ html[data-splash="active"] [data-splash-target] {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  border-radius: 0.65rem;
+  border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, #0c0c0e 70%, transparent);
+  backdrop-filter: blur(16px);
   padding: 0.85rem 0.95rem;
   transition:
     border-color 0.15s ease,
