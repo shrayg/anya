@@ -22,4 +22,14 @@
 
 .scroll-float-char {
   display: inline-block;
+  /* Readable before GSAP arms; scrub from-state overrides when active. */
+  opacity: 1;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-float-char {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+

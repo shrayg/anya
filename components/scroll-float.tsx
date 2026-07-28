@@ -12,8 +12,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import "./scroll-float.css";
 
-gsap.registerPlugin(ScrollTrigger);
-
 export type ScrollFloatLine = string | { text: string; accent?: boolean };
 
 type ScrollFloatProps = {
@@ -56,6 +54,16 @@ function splitChars(text: string, keyPrefix: string) {
   ));
 }
 
+function visibleCharState() {
+  return {
+    opacity: 1,
+    yPercent: 0,
+    scaleY: 1,
+    scaleX: 1,
+    transformOrigin: "50% 0%",
+  };
+}
+
 export default function ScrollFloat({
   children,
   lines,
@@ -65,8 +73,10 @@ export default function ScrollFloat({
   textClassName = "",
   animationDuration = 1,
   ease = "back.inOut(2)",
-  scrollStart = "top bottom-=12%",
-  scrollEnd = "center center+=8%",
+  // React Bits defaults — long scrub range so the float reads while scrolling in.
+  // A short mid-viewport range + back ease leaves glyphs near opacity 0 on screen.
+  scrollStart = "center bottom+=50%",
+  scrollEnd = "bottom bottom-=40%",
   stagger = 0.03,
 }: ScrollFloatProps) {
   const containerRef = useRef<HTMLElement | null>(null);
@@ -92,46 +102,86 @@ export default function ScrollFloat({
     const el = containerRef.current;
     if (!el || resolvedLines.length === 0) return;
 
+    const charElements = el.querySelectorAll<HTMLElement>(".scroll-float-char");
+    if (!charElements.length) return;
+
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduceMotion) return;
+    if (reduceMotion) {
+      gsap.set(charElements, visibleCharState());
+      return;
+    }
 
-    const scroller = scrollContainerRef?.current ?? window;
-    const charElements = el.querySelectorAll(".scroll-float-char");
-    if (!charElements.length) return;
+    gsap.registerPlugin(ScrollTrigger);
 
-    const tween = gsap.fromTo(
-      charElements,
-      {
-        willChange: "opacity, transform",
-        opacity: 0,
-        yPercent: 120,
-        scaleY: 2.3,
-        scaleX: 0.7,
-        transformOrigin: "50% 0%",
-      },
-      {
-        duration: animationDuration,
-        ease,
-        opacity: 1,
-        yPercent: 0,
-        scaleY: 1,
-        scaleX: 1,
-        stagger,
-        scrollTrigger: {
-          trigger: el,
-          scroller,
-          start: scrollStart,
-          end: scrollEnd,
-          scrub: true,
+    const scroller =
+      scrollContainerRef?.current &&
+      scrollContainerRef.current instanceof HTMLElement
+        ? scrollContainerRef.current
+        : window;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        charElements,
+        {
+          willChange: "opacity, transform",
+          opacity: 0,
+          yPercent: 120,
+          scaleY: 2.3,
+          scaleX: 0.7,
+          transformOrigin: "50% 0%",
         },
-      },
-    );
+        {
+          duration: animationDuration,
+          ease,
+          opacity: 1,
+          yPercent: 0,
+          scaleY: 1,
+          scaleX: 1,
+          stagger,
+          immediateRender: true,
+          scrollTrigger: {
+            trigger: el,
+            scroller,
+            start: scrollStart,
+            end: scrollEnd,
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
+    }, el);
+
+    const refresh = () => {
+      ScrollTrigger.refresh();
+    };
+
+    // Framer Reveal / splash / fonts shift layout after first paint.
+    const raf = window.requestAnimationFrame(refresh);
+    const tQuick = window.setTimeout(refresh, 120);
+    const tAfterReveal = window.setTimeout(refresh, 750);
+    void document.fonts?.ready?.then(refresh);
+
+    const onSplashGone = () => {
+      if (!document.documentElement.hasAttribute("data-splash")) refresh();
+    };
+    const splashObserver = new MutationObserver(onSplashGone);
+    splashObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-splash"],
+    });
+    window.addEventListener("load", refresh);
+    window.addEventListener("resize", refresh);
 
     return () => {
-      tween.scrollTrigger?.kill();
-      tween.kill();
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(tQuick);
+      window.clearTimeout(tAfterReveal);
+      splashObserver.disconnect();
+      window.removeEventListener("load", refresh);
+      window.removeEventListener("resize", refresh);
+      ctx.revert();
     };
   }, [
     scrollContainerRef,
