@@ -26,6 +26,11 @@ import {
 
 type MeResponseUser = {
   username: string;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  dashboardAccent?: string | null;
+  onboardingCompleted?: boolean;
+  onboardingCompletedAt?: string | null;
   isAdmin?: boolean;
   staffRole?: string | null;
   canManageWorkspace?: boolean;
@@ -64,6 +69,13 @@ function mapMeUser(
 
   return {
     username: user.username,
+    displayName: user.displayName ?? null,
+    avatarUrl: user.avatarUrl ?? null,
+    dashboardAccent: user.dashboardAccent ?? null,
+    onboardingCompleted:
+      typeof user.onboardingCompleted === "boolean"
+        ? user.onboardingCompleted
+        : Boolean(user.onboardingCompletedAt),
     isAdmin: Boolean(user.isAdmin),
     staffRole: user.staffRole ?? null,
     canManageWorkspace: workspaceAdmin,
@@ -84,6 +96,8 @@ function mapMeUser(
 
 type DashboardAuthContextValue = {
   user: DashboardUser;
+  refreshUser: () => Promise<void>;
+  patchUser: (partial: Partial<DashboardUser>) => void;
 };
 
 const DashboardAuthContext = createContext<DashboardAuthContextValue | null>(
@@ -146,6 +160,10 @@ export function DashboardAuthProvider({
     }
   }, [router]);
 
+  const patchUser = useCallback((partial: Partial<DashboardUser>) => {
+    setUser((current) => (current ? { ...current, ...partial } : current));
+  }, []);
+
   useEffect(() => {
     loadUser();
   }, [loadUser]);
@@ -167,7 +185,17 @@ export function DashboardAuthProvider({
     };
   }, [loadUser, user]);
 
-  const value = useMemo(() => (user ? { user } : null), [user]);
+  const value = useMemo(
+    () =>
+      user
+        ? {
+            user,
+            refreshUser: loadUser,
+            patchUser,
+          }
+        : null,
+    [user, loadUser, patchUser],
+  );
 
   if (!checked) {
     return (

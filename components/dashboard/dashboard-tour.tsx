@@ -116,6 +116,8 @@ export function DashboardTour() {
 
   useEffect(() => {
     if (!hasWorkspace) return;
+    // Wait until first-login onboarding is done so the two overlays don't stack.
+    if (!user.onboardingCompleted) return;
 
     try {
       if (localStorage.getItem(DASHBOARD_TOUR_STORAGE_KEY) === "done") {
@@ -128,7 +130,7 @@ export function DashboardTour() {
     const timer = window.setTimeout(() => setActive(true), 600);
 
     return () => window.clearTimeout(timer);
-  }, [hasWorkspace]);
+  }, [hasWorkspace, user.onboardingCompleted]);
 
   useLayoutEffect(() => {
     updateLayout();

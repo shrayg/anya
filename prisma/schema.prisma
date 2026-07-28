@@ -17,6 +17,14 @@ model User {
   id    Int     @id @default(autoincrement())
   username  String @unique
   password  String
+  /// Public display name shown in the dashboard (login username stays unchanged).
+  displayName String?
+  /// Avatar image URL or data URL (size-capped client-side).
+  avatarUrl String?
+  /// Dashboard accent hex color (e.g. #c3d3e6). Overrides --anya-blush in the shell.
+  dashboardAccent String?
+  /// Set when first-login onboarding is completed or skipped.
+  onboardingCompletedAt DateTime?
   isAdmin   Boolean @default(false)
   staffRole String?
   accountStatus String @default("active")

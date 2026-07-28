@@ -237,7 +237,11 @@ npm install
 
 echo "==> Prisma"
 npx prisma generate
+# SQLite production sync — applies schema.prisma fields (displayName, avatarUrl,
+# dashboardAccent, onboardingCompletedAt) without a separate migrate history.
 npx prisma db push --accept-data-loss
+# Existing accounts: mark onboarding done so only new signups see the stepper.
+npx tsx scripts/backfill-onboarding-completed.ts || true
 
 echo "==> Build into ${BUILD_DIR} while old app keeps serving .next"
 rm -rf "${BUILD_DIR}"

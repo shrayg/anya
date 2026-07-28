@@ -1,0 +1,178 @@
+.anya-stepper-outer {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.anya-stepper-card {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  max-width: 28rem;
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 22%, transparent);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--anya-blush, #c3d3e6) 8%, rgba(12, 14, 18, 0.92)),
+      rgba(8, 10, 14, 0.94) 55%
+    );
+  box-shadow:
+    0 24px 48px -16px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(18px);
+}
+
+.anya-stepper-indicators {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding: 1.75rem 1.75rem 0.5rem;
+}
+
+.anya-stepper-content {
+  position: relative;
+  overflow: hidden;
+}
+
+.anya-stepper-step {
+  padding: 1rem 1.75rem 0.25rem;
+}
+
+.anya-stepper-footer {
+  padding: 0 1.75rem 1.75rem;
+}
+
+.anya-stepper-footer-row {
+  margin-top: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.anya-stepper-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.anya-stepper-nav.spread {
+  justify-content: flex-end;
+}
+
+.anya-stepper-nav.end {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.anya-stepper-skip {
+  border: none;
+  background: transparent;
+  color: #8b93a0;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 0.35rem 0.4rem;
+  transition: color 0.2s ease;
+}
+
+.anya-stepper-skip:hover {
+  color: #d4dae3;
+}
+
+.anya-stepper-back {
+  transition: color 0.25s ease;
+  border: none;
+  border-radius: 0.35rem;
+  background: transparent;
+  padding: 0.35rem 0.65rem;
+  color: #a3a3a3;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.anya-stepper-back:hover {
+  color: #e4e4e7;
+}
+
+.anya-stepper-next {
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9999px;
+  background-color: var(--anya-blush, #c3d3e6);
+  color: #0a0c10;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--anya-blush, #c3d3e6) 28%, transparent);
+}
+
+.anya-stepper-next:hover {
+  filter: brightness(1.06);
+}
+
+.anya-stepper-next:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.anya-stepper-indicator {
+  position: relative;
+  cursor: pointer;
+  outline: none;
+}
+
+.anya-stepper-indicator-inner {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.anya-stepper-dot {
+  height: 0.75rem;
+  width: 0.75rem;
+  border-radius: 9999px;
+  background-color: #0a0c10;
+}
+
+.anya-stepper-number {
+  font-size: 0.875rem;
+}
+
+.anya-stepper-connector {
+  position: relative;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
+  height: 0.125rem;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 0.25rem;
+  background-color: #3a414c;
+}
+
+.anya-stepper-connector-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+}
+
+.anya-stepper-check {
+  height: 1rem;
+  width: 1rem;
+  color: #0a0c10;
+}

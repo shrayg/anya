@@ -609,17 +609,33 @@ export function DashboardSidebar({ username }: { username: string }) {
                   staffMeta?.avatarRingClass ?? "ring-transparent",
                 )}
                 href={accountHref}
-                title={username}
+                title={profile.displayName?.trim() || username}
               >
-                {username.charAt(0).toUpperCase()}
+                {profile.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    alt=""
+                    className="size-full rounded-[inherit] object-cover"
+                    src={profile.avatarUrl}
+                  />
+                ) : (
+                  (profile.displayName?.trim() || username)
+                    .charAt(0)
+                    .toUpperCase()
+                )}
               </Link>
                 <div className="dash-sidebar-user-meta min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <p className="truncate text-sm font-medium text-white">
-                    {username}
+                    {profile.displayName?.trim() || username}
                   </p>
                   <StaffBadge role={profile.staffRole} size="xs" />
                 </div>
+                {profile.displayName?.trim() ? (
+                  <p className="truncate text-[11px] text-zinc-500">
+                    @{username}
+                  </p>
+                ) : null}
                 <p className="truncate text-[11px] capitalize text-zinc-500">
                   {staffMeta
                     ? `${staffMeta.label} staff`

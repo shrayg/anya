@@ -3,18 +3,20 @@
 import clsx from "clsx";
 
 import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import { DashboardOnboarding } from "@/components/dashboard/dashboard-onboarding";
 import { WorkspaceAccessGuard } from "@/components/dashboard/workspace-access-guard";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import { FrozenAccountOverlay } from "@/components/dashboard/frozen-account-overlay";
 import { SafetyNoticeOverlay } from "@/components/dashboard/safety-notice-overlay";
 import { HomeBackground } from "@/components/home-background";
-import { DashboardDock } from "@/components/dashboard/dashboard-dock";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import {
   DashboardSidebarProvider,
   useDashboardSidebar,
 } from "@/components/dashboard/dashboard-sidebar-context";
 import { TEST_MAC_DASHBOARD_THEME } from "@/config/branding";
+import { accentStyleVars } from "@/lib/dashboard-profile";
+import type { CSSProperties } from "react";
 
 type DashboardShellProps = {
   children: React.ReactNode;
@@ -25,6 +27,7 @@ function DashboardShellInner({ children, username }: DashboardShellProps) {
   const { collapsed, isResizing } = useDashboardSidebar();
   const profile = useDashboardUser();
   const isFrozen = profile.accountStatus === "frozen";
+  const accentVars = accentStyleVars(profile.dashboardAccent);
 
   return (
     <div
@@ -34,10 +37,10 @@ function DashboardShellInner({ children, username }: DashboardShellProps) {
         isResizing && "dash-shell--sidebar-resizing",
         isFrozen && "dash-shell--frozen",
       )}
+      style={accentVars as CSSProperties | undefined}
     >
       {!TEST_MAC_DASHBOARD_THEME ? <HomeBackground /> : null}
       <DashboardSidebar username={username} />
-      <DashboardDock />
       <main
         className={clsx("dash-main", isFrozen && "dash-main--frozen")}
         data-tour="main-content"
@@ -55,6 +58,7 @@ function DashboardShellInner({ children, username }: DashboardShellProps) {
           children
         )}
       </main>
+      <DashboardOnboarding />
       <DashboardTour />
       <WorkspaceAccessGuard />
       <SafetyNoticeOverlay />

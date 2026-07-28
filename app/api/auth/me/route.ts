@@ -21,6 +21,10 @@ export async function GET() {
       select: {
         id: true,
         username: true,
+        displayName: true,
+        avatarUrl: true,
+        dashboardAccent: true,
+        onboardingCompletedAt: true,
         isAdmin: true,
         staffRole: true,
         accountStatus: true,
@@ -53,6 +57,11 @@ export async function GET() {
       );
     }
 
+    const profileUser = {
+      ...user,
+      onboardingCompleted: Boolean(user.onboardingCompletedAt),
+    };
+
     if (user.accountStatus === "frozen") {
       const canManageWorkspace = hasWorkspaceAdminAccess(user);
       const canAccessHelperDashboard = hasHelperDashboardAccess(user);
@@ -63,7 +72,11 @@ export async function GET() {
         canManageWorkspace,
         canAccessHelperDashboard,
         message: getAccountStatusMessage(user.accountStatus),
-        user: { ...user, canManageWorkspace, canAccessHelperDashboard },
+        user: {
+          ...profileUser,
+          canManageWorkspace,
+          canAccessHelperDashboard,
+        },
       });
     }
 
@@ -74,7 +87,11 @@ export async function GET() {
       authenticated: true,
       canManageWorkspace,
       canAccessHelperDashboard,
-      user: { ...user, canManageWorkspace, canAccessHelperDashboard },
+      user: {
+        ...profileUser,
+        canManageWorkspace,
+        canAccessHelperDashboard,
+      },
     });
   } catch (error) {
     console.error("Auth me error:", error);
