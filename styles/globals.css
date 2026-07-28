@@ -11509,6 +11509,10 @@ html[data-splash="active"] [data-splash-target] {
     flex-direction: column;
   }
 
+  .anya-panel-preview__mobile-nav {
+    display: none;
+  }
+
   .anya-panel-preview__workspace {
     grid-template-columns: minmax(0, 1.45fr) minmax(13rem, 0.72fr);
   }

@@ -13,6 +13,7 @@ import {
   Hash,
   Layers3,
   LockKeyhole,
+  Network,
   ScanSearch,
   ShieldCheck,
   Smartphone,
