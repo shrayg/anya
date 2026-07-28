@@ -15,9 +15,9 @@ type HomeBackgroundProps = {
 };
 
 const BEND_COLORS = [
-  themeAccent.blush,
-  themeAccent.pillarTop,
-  themeAccent.blushHover,
+  "#6f8499",
+  "#5a6d82",
+  "#7d91a6",
 ];
 
 function LiteBackground() {
@@ -44,23 +44,23 @@ export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#07070c]"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#050508]"
     >
       <ColorBends
         autoRotate={0}
-        bandWidth={6}
+        bandWidth={5.5}
         colors={BEND_COLORS}
         frequency={1}
-        intensity={1.35}
-        mouseInfluence={0.6}
-        noise={0.12}
-        parallax={0.4}
+        intensity={0.45}
+        mouseInfluence={0}
+        noise={0.08}
+        parallax={0}
         rotation={90}
-        scale={1}
-        speed={0.2}
-        style={{ width: "100%", height: "100%" }}
+        scale={1.05}
+        speed={0.15}
+        style={{ width: "100%", height: "100%", opacity: 0.55 }}
         transparent
-        warpStrength={1}
+        warpStrength={0.85}
       />
     </div>
   );
