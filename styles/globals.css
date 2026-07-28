@@ -11066,7 +11066,15 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-panel-preview__sidebar li {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.anya-panel-preview__nav {
   display: grid;
+  width: 100%;
   min-height: 2.65rem;
   border: 1px solid transparent;
   border-radius: 0.7rem;
@@ -11076,16 +11084,119 @@ html[data-splash="active"] [data-splash-target] {
   gap: 0.6rem;
   color: #777780;
   font-size: 0.72rem;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.anya-panel-preview__sidebar li.is-active {
+.anya-panel-preview__nav:hover {
+  color: #cfcfd4;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.anya-panel-preview__nav.is-active {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.055);
   color: #ededf0;
 }
 
-.anya-panel-preview__sidebar li svg {
+.anya-panel-preview__nav svg {
   width: 0.92rem;
+  height: 0.92rem;
+}
+
+.anya-panel-preview__nav-spacer {
+  width: 0.42rem;
+  height: 0.42rem;
+}
+
+.anya-panel-preview__mobile-nav {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+}
+
+.anya-panel-preview__chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  color: #8b8b94;
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.anya-panel-preview__chip svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.anya-panel-preview__chip.is-active {
+  border-color: color-mix(in srgb, var(--anya-blush) 40%, transparent);
+  color: #f0f0f3;
+  background: color-mix(in srgb, var(--anya-blush) 12%, transparent);
+}
+
+.anya-panel-preview__query {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.anya-panel-preview__query:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.anya-panel-preview__confidence {
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.anya-panel-preview__finding {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.anya-panel-preview__finding:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.anya-panel-preview__finding.is-selected {
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 10%, transparent);
+}
+
+.anya-panel-preview__finding:disabled {
+  cursor: default;
+}
+
+.anya-panel-preview--compact {
+  border-radius: 1.1rem;
+}
+
+.anya-panel-preview--compact .anya-panel-preview__shell {
+  min-height: 28rem;
 }
 
 .anya-panel-preview__live {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import {
   ArrowRight,
   AtSign,
@@ -8,17 +8,11 @@ import {
   BriefcaseBusiness,
   Check,
   CircleUserRound,
-  Database,
-  FileSearch,
-  Fingerprint,
   FolderLock,
   Globe2,
   Hash,
-  KeyRound,
   Layers3,
-  Link2,
   LockKeyhole,
-  Network,
   ScanSearch,
   ShieldCheck,
   Smartphone,
@@ -26,39 +20,9 @@ import {
 } from "lucide-react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { ThinkingOrb } from "thinking-orbs";
 
-import { siteConfig } from "@/config/site";
 import ScrollFloat from "@/components/scroll-float";
-
-const PANEL_MODULES = [
-  { label: "Identity search", icon: Fingerprint },
-  { label: "Breach & stealer", icon: KeyRound },
-  { label: "Platform intelligence", icon: AtSign },
-  { label: "Public records", icon: FileSearch },
-  { label: "Network & assets", icon: Network },
-] as const;
-
-const PANEL_FINDINGS = [
-  {
-    label: "Identity cluster",
-    value: "3 aliases resolved",
-    meta: "high confidence",
-    icon: CircleUserRound,
-  },
-  {
-    label: "Connected accounts",
-    value: "7 profiles linked",
-    meta: "4 platforms",
-    icon: Link2,
-  },
-  {
-    label: "Exposure signal",
-    value: "2 breach references",
-    meta: "review advised",
-    icon: Database,
-  },
-] as const;
+import { PanelDemo } from "@/components/panel-demo";
 
 const ENTRY_POINTS = [
   { label: "Email", example: "name@domain.com", icon: AtSign },
@@ -111,178 +75,6 @@ const TRUST_POINTS = [
     icon: BriefcaseBusiness,
   },
 ] as const;
-
-function PanelPreview() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.35 });
-  const reduceMotion = useReducedMotion();
-  const [stage, setStage] = useState(0);
-
-  useEffect(() => {
-    if (!inView) return;
-
-    if (reduceMotion) {
-      setStage(4);
-
-      return;
-    }
-
-    setStage(0);
-    const timers = [
-      window.setTimeout(() => setStage(1), 260),
-      window.setTimeout(() => setStage(2), 720),
-      window.setTimeout(() => setStage(3), 1180),
-      window.setTimeout(() => setStage(4), 1640),
-    ];
-
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [inView, reduceMotion]);
-
-  return (
-    <div
-      ref={ref}
-      aria-label="Illustrative Anya Panel investigation"
-      className="anya-panel-preview"
-    >
-      <div className="anya-panel-preview__topbar">
-        <div aria-hidden className="anya-panel-preview__dots">
-          <span />
-          <span />
-          <span />
-        </div>
-        <span>{siteConfig.navName} / PANEL</span>
-        <span className={stage === 4 ? "is-ready" : "is-running"}>
-          {stage === 4 ? "CASE READY" : "CORRELATING"}
-        </span>
-      </div>
-
-      <div className="anya-panel-preview__shell">
-        <aside
-          aria-label="Panel modules"
-          className="anya-panel-preview__sidebar"
-        >
-          <div className="anya-panel-preview__mark">
-            <ScanSearch aria-hidden />
-            <span>MODULES</span>
-          </div>
-          <ul>
-            {PANEL_MODULES.map(({ label, icon: Icon }, index) => (
-              <li key={label} className={index === 0 ? "is-active" : undefined}>
-                <Icon aria-hidden />
-                <span>{label}</span>
-                {index === 0 ? (
-                  <span className="anya-panel-preview__live" />
-                ) : null}
-              </li>
-            ))}
-          </ul>
-          <div className="anya-panel-preview__case-count">
-            <span>OPEN CASE</span>
-            <strong>ANYA-0172</strong>
-          </div>
-        </aside>
-
-        <div className="anya-panel-preview__main">
-          <div className="anya-panel-preview__query">
-            <SearchQueryIcon />
-            <div>
-              <span>ACTIVE QUERY</span>
-              <strong>alex.morgan@example.com</strong>
-            </div>
-            <span className="anya-panel-preview__query-state">
-              {stage === 4 ? "8 SOURCES" : `${Math.min(stage * 2, 6)} / 8`}
-            </span>
-          </div>
-
-          <div className="anya-panel-preview__workspace">
-            <div className="anya-panel-preview__identity">
-              <div className="anya-panel-preview__profile">
-                <div aria-hidden className="anya-panel-preview__avatar">
-                  AM
-                </div>
-                <div>
-                  <span>RESOLVED SUBJECT</span>
-                  <strong>Alex Morgan</strong>
-                  <p>Identity cluster assembled from public signals</p>
-                </div>
-                <div className="anya-panel-preview__confidence">
-                  <strong>{stage >= 3 ? "92" : "--"}</strong>
-                  <span>CONFIDENCE</span>
-                </div>
-              </div>
-
-              <div aria-hidden className="anya-panel-preview__orb-stage">
-                <div className="anya-panel-preview__orb">
-                  <ThinkingOrb
-                    paused={Boolean(reduceMotion)}
-                    size={64}
-                    speed={1.05}
-                    // Keep the globe scan only — do not cycle into solving/working.
-                    state="searching"
-                    theme="dark"
-                  />
-                </div>
-                <p className="anya-panel-preview__orb-caption">
-                  Searching sources
-                </p>
-              </div>
-            </div>
-
-            <div className="anya-panel-preview__findings">
-              <div className="anya-panel-preview__findings-head">
-                <span>FINDINGS</span>
-                <span>{stage === 4 ? "3 VERIFIED" : "BUILDING"}</span>
-              </div>
-              {PANEL_FINDINGS.map(
-                ({ label, value, meta, icon: Icon }, index) => {
-                  const visible = stage >= index + 2;
-
-                  return (
-                    <motion.div
-                      key={label}
-                      animate={{
-                        opacity: visible ? 1 : 0.22,
-                        y: visible ? 0 : 8,
-                      }}
-                      className="anya-panel-preview__finding"
-                      initial={false}
-                      transition={{ duration: 0.28 }}
-                    >
-                      <Icon aria-hidden />
-                      <div>
-                        <span>{label}</span>
-                        <strong>
-                          {visible ? value : "Waiting for source response"}
-                        </strong>
-                      </div>
-                      <span>{visible ? meta : "queued"}</span>
-                    </motion.div>
-                  );
-                },
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="anya-panel-preview__footer">
-        <span>
-          <i className={stage === 4 ? "is-ready" : undefined} />
-          {stage === 4 ? "CORRELATION COMPLETE" : "QUERYING PROVIDERS"}
-        </span>
-        <span>ILLUSTRATIVE WORKSPACE</span>
-      </div>
-    </div>
-  );
-}
-
-function SearchQueryIcon() {
-  return (
-    <span aria-hidden className="anya-panel-preview__query-icon">
-      <ScanSearch />
-    </span>
-  );
-}
 
 function SignalRouter({ moduleCount }: { moduleCount: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -351,7 +143,7 @@ export function HomeShowcase() {
           </p>
         </header>
 
-        <PanelPreview />
+        <PanelDemo />
 
         <div className="anya-proof-rail" role="list">
           <div role="listitem">

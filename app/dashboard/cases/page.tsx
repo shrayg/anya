@@ -27,6 +27,7 @@ import {
   StatCard,
 } from "@/components/dashboard/dashboard-ui";
 import { formatDate } from "@/lib/format-datetime";
+import { PanelDemo } from "@/components/panel-demo";
 
 type CaseListItem = {
   id: number;
@@ -312,13 +313,21 @@ export default function CasesPage() {
           )}
         </DashPanel>
 
-        <DashPanel className="min-h-[32rem]" glow="violet">
+        <DashPanel className="min-h-[32rem] overflow-hidden !p-0" glow="violet">
           {!showWorkspace ? (
-            <div className="flex h-full min-h-[28rem] flex-col items-center justify-center text-center">
-              <GitBranch className="mb-4 size-10 text-gray-500" />
-              <p className="text-zinc-400">
-                Select a case to open the mind map
-              </p>
+            <div className="p-3 md:p-4">
+              <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    Panel demo
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Click modules and findings — nothing is live. Add a case to
+                    use the real mind map.
+                  </p>
+                </div>
+              </div>
+              <PanelDemo compact />
             </div>
           ) : loadingCase ? (
             <p className="py-20 text-center text-sm text-zinc-500">
