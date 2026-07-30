@@ -1,4 +1,5 @@
-import { probeBreachHub, probeOathNet, isBreachHubEnabled } from "@/lib/breachhub";
+import { probeBreachHub, isBreachHubEnabled } from "@/lib/breachhub";
+import { hasDirectOathnetKey, probeOathNet } from "@/lib/oathnet";
 import { probeBreachVip, isBreachVipEnabled } from "@/lib/breachvip";
 import { probeCordCat, isCordCatConfigured } from "@/lib/cordcat";
 import { probeCsint, isCsintEnabled } from "@/lib/csint";
@@ -468,7 +469,7 @@ export async function probeProvidersDetailed(): Promise<ProviderProbeResult[]> {
     timedProbe("godseye-export", probeGodsEyeExport),
     timedProbe("breachvip", probeBreachVip),
     timedProbe("breachhub", probeBreachHub),
-    isBreachHubEnabled()
+    isBreachHubEnabled() || hasDirectOathnetKey()
       ? timedProbe("oathnet", probeOathNet)
       : Promise.resolve({
           id: "oathnet" as const,

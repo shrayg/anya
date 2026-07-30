@@ -1,25 +1,33 @@
 /**
- * OathNet specialty client — full BreachHub /api/oathnet/* surface.
+ * OathNet specialty client — BreachHub `/api/oathnet/*` + native OathNet API.
  *
- * Upstream: direct OATHNET_API_KEY or BreachHub; discord-to-roblox may fall
- * back to CSINT when BreachHub is empty.
+ * Upstream priority:
+ * 1. Direct `OATHNET_API_KEY` against oathnet.org (`x-api-key` + `/service/*`)
+ * 2. BreachHub mirror `/api/oathnet/*`
+ * 3. CSINT for discord-to-roblox only
+ *
  * Server-only — do not import from client modules.
  */
 
 import { isBreachHubEnabled } from "@/lib/breachhub";
 import {
-  BH_VENDOR_DEFAULT_BASE,
   BH_VENDOR_DEFAULT_TIMEOUT_MS,
   fetchBhMirroredGet,
   rowsFromBhPayload,
+  sanitizeBhVendorError,
   type BhVendorSource,
 } from "@/lib/bh-vendor-proxy";
 import {
   fetchCsintOathnetDiscordToRoblox,
   isCsintEnabled,
 } from "@/lib/csint";
+import { fetchWithTimeout, readResponseText } from "@/lib/fetch-with-timeout";
 import type { SanitizedBreachResponse } from "@/lib/osintcat";
-import { publicServiceUnavailable } from "@/lib/public-branding";
+import {
+  publicSearchError,
+  publicServiceUnavailable,
+} from "@/lib/public-branding";
+import { recordProviderRequest } from "@/lib/provider-request-log";
 
 export const OATHNET_STATIC_ENDPOINTS = [
   "breach",
@@ -49,6 +57,9 @@ export type OathnetResolved =
 
 const STATIC_SET = new Set<string>(OATHNET_STATIC_ENDPOINTS);
 
+/** Native OathNet production API root (OpenAPI `servers[0].url`). */
+export const OATHNET_NATIVE_BASE_URL = "https://oathnet.org/api";
+
 export type OathnetSearchResult = SanitizedBreachResponse & {
   query: string;
   endpoint: string;
@@ -61,9 +72,14 @@ export function getOathnetApiKey(): string | undefined {
 }
 
 export function getOathnetBaseUrl(): string {
-  return (
-    process.env.OATHNET_BASE_URL?.trim() || BH_VENDOR_DEFAULT_BASE
-  ).replace(/\/$/, "");
+  const configured = process.env.OATHNET_BASE_URL?.trim();
+
+  if (configured) return configured.replace(/\/$/, "");
+
+  // Direct key → native host; otherwise BreachHub-compatible paths.
+  return hasDirectOathnetKey()
+    ? OATHNET_NATIVE_BASE_URL
+    : "https://breachhub.org";
 }
 
 export function hasDirectOathnetKey(): boolean {
@@ -196,6 +212,7 @@ export function buildOathnetParams(
     case "victims": {
       const q = pick("query", "q", "term");
 
+      // BreachHub mirror uses `query`; native mapper remaps to `q`.
       return q ? { path, params: { query: q }, queryLabel: q } : null;
     }
     case "stealer-subdomain":
@@ -267,6 +284,259 @@ export function buildOathnetParams(
   }
 }
 
+/**
+ * Map BreachHub-shaped OathNet params onto native oathnet.org OpenAPI paths.
+ * Docs: https://docs.oathnet.org/ — auth via lowercase `x-api-key` header.
+ */
+export function toNativeOathnetRequest(built: {
+  path: string;
+  params: Record<string, string>;
+  pathParams?: Record<string, string>;
+}): { path: string; params: Record<string, string> } | null {
+  const pathParams = built.pathParams || {};
+  const p = built.params;
+
+  const logId = pathParams.log_id;
+  const fileId = pathParams.file_id;
+
+  if (built.path.includes("/victims/") && logId && fileId) {
+    return {
+      path: `/service/v2/victims/${encodeURIComponent(logId)}/files/${encodeURIComponent(fileId)}`,
+      params: {},
+    };
+  }
+  if (built.path.endsWith("/archive") && logId) {
+    return {
+      path: `/service/v2/victims/${encodeURIComponent(logId)}/archive`,
+      params: {},
+    };
+  }
+  if (built.path.includes("/victims/") && logId) {
+    return {
+      path: `/service/v2/victims/${encodeURIComponent(logId)}`,
+      params: {},
+    };
+  }
+
+  const leaf = built.path.replace(/^\/api\/oathnet\//, "").toLowerCase();
+
+  switch (leaf) {
+    case "breach": {
+      const q = p.query || p.q;
+
+      return q ? { path: "/service/v2/breach/search", params: { q } } : null;
+    }
+    case "stealer": {
+      const q = p.query || p.q;
+
+      return q ? { path: "/service/v2/stealer/search", params: { q } } : null;
+    }
+    case "victims": {
+      const q = p.query || p.q;
+
+      return q ? { path: "/service/v2/victims/search", params: { q } } : null;
+    }
+    case "stealer-subdomain": {
+      const domain = p.domain;
+
+      return domain
+        ? { path: "/service/v2/stealer/subdomain", params: { domain } }
+        : null;
+    }
+    case "extract-subdomain": {
+      const domain = p.domain;
+
+      if (!domain) return null;
+
+      return {
+        path: "/service/extract-subdomain",
+        params: {
+          domain,
+          is_alive: p.is_alive || "true",
+        },
+      };
+    }
+    case "discord-to-roblox":
+      return p.discord_id
+        ? {
+            path: "/service/discord-to-roblox",
+            params: { discord_id: p.discord_id },
+          }
+        : null;
+    case "discord-userinfo":
+      return p.discord_id
+        ? {
+            path: "/service/discord-userinfo",
+            params: { discord_id: p.discord_id },
+          }
+        : null;
+    case "discord-username-history":
+      return p.discord_id
+        ? {
+            path: "/service/discord-username-history",
+            params: { discord_id: p.discord_id },
+          }
+        : null;
+    case "steam":
+      return p.steam_id
+        ? { path: "/service/steam", params: { steam_id: p.steam_id } }
+        : null;
+    case "xbox":
+      return p.xbl_id
+        ? { path: "/service/xbox", params: { xbl_id: p.xbl_id } }
+        : null;
+    case "roblox-userinfo": {
+      if (p.user_id) {
+        return {
+          path: "/service/roblox-userinfo",
+          params: { user_id: p.user_id },
+        };
+      }
+      if (p.username) {
+        return {
+          path: "/service/roblox-userinfo",
+          params: { username: p.username },
+        };
+      }
+
+      return null;
+    }
+    case "mc-history":
+      return p.username
+        ? { path: "/service/mc-history", params: { username: p.username } }
+        : null;
+    case "ip-info":
+      return p.ip ? { path: "/service/ip-info", params: { ip: p.ip } } : null;
+    case "holehe":
+      return p.email
+        ? { path: "/service/holehe", params: { email: p.email } }
+        : null;
+    case "ghunt":
+      return p.email
+        ? { path: "/service/ghunt", params: { email: p.email } }
+        : null;
+    default:
+      return null;
+  }
+}
+
+async function directOathnetNativeGet(opts: {
+  path: string;
+  params: Record<string, string>;
+  apiKey: string;
+  baseUrl: string;
+  timeoutMs: number;
+}): Promise<Record<string, unknown>> {
+  const url = new URL(
+    opts.path.startsWith("http")
+      ? opts.path
+      : `${opts.baseUrl.replace(/\/$/, "")}${opts.path}`,
+  );
+
+  for (const [key, value] of Object.entries(opts.params)) {
+    if (value) url.searchParams.set(key, value);
+  }
+
+  const started = Date.now();
+
+  try {
+    const res = await fetchWithTimeout(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "x-api-key": opts.apiKey,
+        "User-Agent": "AnyaInt-oathnet/1.0",
+      },
+      cache: "no-store",
+      timeoutMs: opts.timeoutMs,
+    });
+    const remaining = Math.max(2_000, opts.timeoutMs - (Date.now() - started));
+    const text = await readResponseText(res, remaining);
+    let data: Record<string, unknown> = {};
+
+    try {
+      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      throw new Error(
+        !res.ok
+          ? sanitizeBhVendorError(`HTTP ${res.status}`)
+          : publicSearchError("Invalid response from intelligence index."),
+      );
+    }
+
+    if (!res.ok || data.success === false) {
+      const msg =
+        (typeof data.message === "string" && data.message) ||
+        (typeof data.error === "string" && data.error) ||
+        `HTTP ${res.status}`;
+
+      throw new Error(sanitizeBhVendorError(msg));
+    }
+
+    recordProviderRequest({
+      gateway: "oathnet",
+      path: opts.path,
+      method: "GET",
+      ok: true,
+      latencyMs: Date.now() - started,
+      statusCode: res.status,
+    });
+
+    return data;
+  } catch (err) {
+    recordProviderRequest({
+      gateway: "oathnet",
+      path: opts.path,
+      method: "GET",
+      ok: false,
+      latencyMs: Date.now() - started,
+      error: err instanceof Error ? err.message : "Request failed",
+    });
+    throw err instanceof Error
+      ? err
+      : new Error(sanitizeBhVendorError("Request failed"));
+  }
+}
+
+/** Live health probe — prefers native key, else BreachHub mirror. */
+export async function probeOathNet(): Promise<boolean> {
+  if (process.env.OATHNET_ENABLED === "false") return false;
+
+  const key = getOathnetApiKey();
+
+  if (key) {
+    try {
+      await directOathnetNativeGet({
+        path: "/service/ip-info",
+        params: { ip: "1.1.1.1" },
+        apiKey: key,
+        baseUrl: getOathnetBaseUrl(),
+        timeoutMs: 8_000,
+      });
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  if (!isBreachHubEnabled()) return false;
+
+  try {
+    const { data } = await fetchBhMirroredGet({
+      gateway: "oathnet",
+      path: "/api/oathnet/ip-info",
+      params: { ip: "1.1.1.1" },
+      enabled: true,
+      timeoutMs: 8_000,
+    });
+
+    return Boolean(data && typeof data === "object");
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchOathnetSanitized(
   resolved: OathnetResolved,
   input: Record<string, string>,
@@ -292,7 +562,8 @@ export async function fetchOathnetSanitized(
     };
   }
 
-  const canBh = hasDirectOathnetKey() || isBreachHubEnabled();
+  const canDirect = hasDirectOathnetKey();
+  const canBh = isBreachHubEnabled();
   const canCsintRoblox =
     resolved.kind === "static" &&
     resolved.endpoint === "discord-to-roblox" &&
@@ -313,7 +584,7 @@ export async function fetchOathnetSanitized(
     };
   };
 
-  if (!canBh) {
+  if (!canDirect && !canBh) {
     const csintOnly = await tryCsint();
 
     if (csintOnly) return csintOnly;
@@ -321,13 +592,42 @@ export async function fetchOathnetSanitized(
   }
 
   try {
+    if (canDirect) {
+      const native = toNativeOathnetRequest(built);
+
+      if (!native) {
+        throw new Error(publicSearchError("Unsupported OathNet endpoint."));
+      }
+
+      const data = await directOathnetNativeGet({
+        path: native.path,
+        params: native.params,
+        apiKey: getOathnetApiKey()!,
+        baseUrl: getOathnetBaseUrl(),
+        timeoutMs,
+      });
+      const sanitized = rowsFromBhPayload(data, built.queryLabel);
+
+      if (sanitized.count === 0) {
+        const csintFallback = await tryCsint();
+
+        if (csintFallback) return csintFallback;
+      }
+
+      return {
+        ...sanitized,
+        query: built.queryLabel,
+        endpoint: endpointLabel,
+        source: "direct",
+        raw: data,
+      };
+    }
+
     const { data, source } = await fetchBhMirroredGet({
       gateway: "oathnet",
       path: built.path,
       params: built.params,
       pathParams: built.pathParams,
-      directKey: getOathnetApiKey(),
-      directBaseUrl: getOathnetBaseUrl(),
       enabled: canBh,
       timeoutMs,
     });

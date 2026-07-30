@@ -2115,7 +2115,8 @@ export const BREACHHUB_ENDPOINTS: BreachHubEndpointDef[] = [
     section: "user_lookup",
     modes: ["specialty", "additive"],
     kinds: ["discord"],
-    buildParams: (query) => q(query),
+    // BreachHub OpenAPI expects `id`; site route also accepts `query`.
+    buildParams: (query) => ({ id: query }),
   },
   {
     id: "discord-history",
@@ -4887,23 +4888,13 @@ export async function probeBreachHub(): Promise<boolean> {
 }
 
 /**
- * Live OathNet vendor probe via BreachHub (not CSINT). Hits a cheap documented
- * path so the health strip can show OathNet red/green independently of /api/status.
+ * Live OathNet vendor probe (native key or BreachHub mirror).
+ * Delegates to lib/oathnet to avoid duplicating auth/path logic.
  */
 export async function probeOathNet(): Promise<boolean> {
-  if (!isBreachHubEnabled()) return false;
+  const { probeOathNet: probe } = await import("@/lib/oathnet");
 
-  try {
-    const data = await breachHubGet(
-      "/api/oathnet/ip-info",
-      { ip: "1.1.1.1" },
-      8_000,
-    );
-
-    return Boolean(data && typeof data === "object");
-  } catch {
-    return false;
-  }
+  return probe();
 }
 
 /** Catalog ids for every BreachHub `/api/oathnet/*` OpenAPI path. */

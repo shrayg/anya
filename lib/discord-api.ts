@@ -206,7 +206,7 @@ async function fetchUser(
 ): Promise<DiscordApiSearchResult> {
   const primary = await fetchBreachHubDiscordEndpoint(
     "discord-user",
-    { query: discordId },
+    { id: discordId },
     timeoutMs,
   ).catch(() => null);
 
@@ -217,7 +217,7 @@ async function fetchUser(
   if (rows.length === 0) {
     const lookup = await fetchBreachHubDiscordEndpoint(
       "discord-lookup",
-      { query: discordId },
+      { id: discordId },
       timeoutMs,
     ).catch(() => null);
     const oath = await fetchBreachHubDiscordEndpoint(
