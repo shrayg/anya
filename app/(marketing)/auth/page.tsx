@@ -349,14 +349,12 @@ function AuthForm() {
       <motion.div
         layout
         animate={{
-          clipPath: "none",
           opacity: 1,
           scale: 1,
           y: 0,
         }}
         className="ui-panel ui-panel--auth"
         initial={{
-          clipPath: "inset(0 0 100% 0)",
           opacity: 0,
           scale: 0.985,
           y: 28,
@@ -432,10 +430,10 @@ function AuthForm() {
         <AnimatePresence initial mode="wait">
           <motion.form
             key={mode}
-            animate={{ clipPath: "none", opacity: 1, x: 0 }}
+            animate={{ opacity: 1, x: 0 }}
             className="space-y-5"
-            exit={{ clipPath: "inset(0 100% 0 0)", opacity: 0, x: -12 }}
-            initial={{ clipPath: "inset(0 0 0 100%)", opacity: 0, x: 12 }}
+            exit={{ opacity: 0, x: -12 }}
+            initial={{ opacity: 0, x: 12 }}
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
             onSubmit={handleSubmit}
           >

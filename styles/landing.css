@@ -2566,7 +2566,7 @@
 
 .brutal-auth-page .ui-panel--auth {
   position: relative;
-  /* Keep scan clip on a pseudo layer — don't clip input corners / focus rings */
+  /* Never clip input corners / focus rings — scan lives on ::after only */
   overflow: visible;
   isolation: isolate;
   border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 22%, rgba(255, 255, 255, 0.1));
@@ -2586,6 +2586,8 @@
     0 0 36px color-mix(in srgb, var(--anya-blush, #c3d3e6) 8%, transparent);
   backdrop-filter: blur(18px) saturate(1.25);
   -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  /* Guard against leftover Framer clip-path from older builds */
+  clip-path: none;
 }
 
 .brutal-auth-page .ui-panel--auth::before {
@@ -2691,23 +2693,57 @@
 .brutal-auth-page .ui-input {
   -webkit-appearance: none;
   appearance: none;
+  /* Match marketing !important radius so border + fill share one curve */
+  border-radius: 1rem !important;
   border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 16%, rgba(255, 255, 255, 0.1));
-  border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.035);
+  background-color: rgba(255, 255, 255, 0.035);
+  background-clip: padding-box;
+  /* No stacked shadows at rest — avoids double hairline / jagged pill ends */
+  box-shadow: none;
   font-family: var(--font-anya-mono), monospace;
-  /* Keep focus halo inside the field so parents never clip the corners */
   outline: none;
+  overflow: visible;
 }
 
 .brutal-auth-page .ui-input:hover {
   border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 28%, rgba(255, 255, 255, 0.14));
+  box-shadow: none;
 }
 
 .brutal-auth-page .ui-input:focus,
 .brutal-auth-page .ui-input:focus-visible {
   border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 55%, transparent);
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anya-blush, #c3d3e6) 35%, transparent);
+  background-color: rgba(255, 255, 255, 0.05);
+  background-clip: padding-box;
+  /* Single inset ring — no outer glow that parents can clip */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anya-blush, #c3d3e6) 32%, transparent);
+}
+
+/*
+ * Chrome autofill paints a rectangular 1000px inset shadow that shears
+ * rounded corners on Windows. Prefer background-color + matching radius.
+ */
+.brutal-auth-page .ui-input:-webkit-autofill,
+.brutal-auth-page .ui-input:-webkit-autofill:hover,
+.brutal-auth-page .ui-input:-webkit-autofill:focus,
+.brutal-auth-page .ui-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  border-radius: 1rem !important;
+  border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 16%, rgba(255, 255, 255, 0.1));
+  /* Kill the global 1000px inset autofill paint */
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  background-color: rgba(12, 12, 14, 0.96) !important;
+  background-image: none !important;
+  background-clip: padding-box !important;
+  transition: background-color 99999s ease-out 0s;
+}
+
+.brutal-auth-page .ui-input:-webkit-autofill:focus,
+.brutal-auth-page .ui-input:-webkit-autofill:focus-visible {
+  border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 55%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anya-blush, #c3d3e6) 32%, transparent) !important;
 }
 
 .brutal-auth-page .ui-link {

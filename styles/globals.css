@@ -6246,7 +6246,9 @@ html[data-splash="active"] [data-splash-target] {
   color-scheme: dark;
 }
 
-/* Kill browser credential autofill yellow on dark OSINT inputs */
+/* Kill browser credential autofill yellow on dark OSINT inputs.
+   Prefer background-color over a huge inset shadow — the 1000px paint
+   can shear border-radius on Windows Chrome (esp. auth pill inputs). */
 .ui-input:-webkit-autofill,
 .ui-input:-webkit-autofill:hover,
 .ui-input:-webkit-autofill:focus,
@@ -6258,7 +6260,11 @@ html[data-splash="active"] [data-splash-target] {
   -webkit-text-fill-color: #fff;
   caret-color: #fff;
   border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 1000px rgba(12, 12, 14, 0.96) inset;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  background-color: rgba(12, 12, 14, 0.96) !important;
+  background-image: none !important;
+  background-clip: padding-box !important;
   transition: background-color 99999s ease-out 0s;
 }
 
