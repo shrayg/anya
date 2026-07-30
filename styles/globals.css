@@ -7243,8 +7243,8 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .discord-id-banner--solid {
-  /* Discord solid banner = raw profile accent (no Anya tint) */
-  background-color: var(--discord-accent, #5865f2);
+  /* Discord solid banner = raw profile banner_color / accent (no invent-blurple) */
+  background-color: var(--discord-accent, #232428);
   background-image: none;
 }
 

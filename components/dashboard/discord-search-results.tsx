@@ -31,6 +31,7 @@ import {
   formatDsaDate,
   NAMEPLATE_PALETTE_COLORS,
   profileAccent,
+  profileBannerFill,
   profileThemeColor,
   type DiscordDsaSanction,
   type DiscordNameplate,
@@ -601,6 +602,7 @@ export function DiscordSearchResults({
     usernameHistory,
   } = result;
   const accent = profileAccent(profile);
+  const bannerFill = profileBannerFill(profile);
   const themeColor = profileThemeColor(profile);
   const guildItems = guilds?.items ?? [];
   const guildCount = Math.max(guilds?.count ?? 0, guildItems.length);
@@ -782,7 +784,7 @@ export function DiscordSearchResults({
               ) : (
                 <div
                   className="discord-id-banner discord-id-banner--solid"
-                  style={{ backgroundColor: accent }}
+                  style={{ backgroundColor: bannerFill }}
                 />
               )}
               <div className="discord-id-banner-actions">

@@ -152,6 +152,7 @@ function emptyDiscordResult(discordId: string): DiscordSearchResult {
       displayName: discordId,
       avatarUrl: "",
       bannerUrl: null,
+      bannerColor: null,
       accentColor: null,
       createdAt: snowflakeCreatedAt(discordId),
       badges: [],

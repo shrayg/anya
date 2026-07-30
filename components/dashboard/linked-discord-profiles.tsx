@@ -6,6 +6,7 @@ import {
   formatDiscordCreatedAtExact,
   formatDiscordMemberSince,
   profileAccent,
+  profileBannerFill,
   type DiscordProfile,
 } from "@/lib/discord-profile";
 import { resolveDiscordBadges } from "@/lib/discord-badges";
@@ -18,6 +19,7 @@ function DiscordProfileCard({
   profile: DiscordProfile;
 }) {
   const accent = profileAccent(profile);
+  const bannerFill = profileBannerFill(profile);
   const badges = resolveDiscordBadges(profile.badges);
   const handleTag =
     profile.discriminator !== "0"
@@ -35,7 +37,7 @@ function DiscordProfileCard({
       ) : (
         <div
           className="discord-profile-banner discord-profile-banner--solid"
-          style={{ backgroundColor: accent }}
+          style={{ backgroundColor: bannerFill }}
         />
       )}
 

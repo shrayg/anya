@@ -39,6 +39,12 @@ export type DiscordProfile = {
   displayName: string;
   avatarUrl: string;
   bannerUrl: string | null;
+  /**
+   * Solid banner fill when there is no banner image
+   * (`banner_color`, then `accent_color` / theme).
+   */
+  bannerColor: string | null;
+  /** Profile accent / Nitro theme primary for UI tinting. */
   accentColor: string | null;
   /** Exact UTC creation timestamp derived from the Discord snowflake. */
   createdAt: string;
@@ -145,52 +151,123 @@ function formatAccentColor(value: unknown): string | null {
   if (typeof value === "string") {
     const trimmed = value.trim();
 
+    if (!trimmed || /^null$/i.test(trimmed)) return null;
+
     if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
       return trimmed.toLowerCase();
     }
     if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
       return `#${trimmed.toLowerCase()}`;
     }
+    if (/^0x[0-9a-fA-F]{6}$/i.test(trimmed)) {
+      return `#${trimmed.slice(2).toLowerCase()}`;
+    }
     if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
       const [, r, g, b] = trimmed;
 
       return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
     }
+    // Discord APIs sometimes stringify packed RGB ints.
+    if (/^\d+$/.test(trimmed)) {
+      return formatAccentColor(Number(trimmed));
+    }
   }
 
-  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-    return `#${Math.floor(value).toString(16).padStart(6, "0")}`;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    // Discord may surface colors as signed 32-bit; keep the low 24 RGB bits.
+    const rgb = Math.trunc(value) & 0xffffff;
+
+    if (rgb < 0) return null;
+
+    return `#${rgb.toString(16).padStart(6, "0")}`;
   }
 
   return null;
 }
 
+function profileColorSources(
+  data: Record<string, unknown>,
+): Record<string, unknown>[] {
+  const nested = [
+    asRecord(data.user),
+    asRecord(data.user_info),
+    asRecord(data.userInfo),
+    asRecord(data.user_profile),
+    asRecord(data.userProfile),
+    asRecord(data.profile),
+  ].filter(Boolean) as Record<string, unknown>[];
+
+  return [data, ...nested];
+}
+
 /** Discord Nitro profile theme primary from `theme_colors: [primary, secondary]`. */
 function extractThemePrimary(data: Record<string, unknown>): string | null {
-  const direct = data.theme_colors ?? data.themeColors;
+  for (const src of profileColorSources(data)) {
+    const direct = src.theme_colors ?? src.themeColors;
 
-  if (Array.isArray(direct) && direct.length > 0) {
-    const primary = formatAccentColor(direct[0]);
-
-    if (primary) return primary;
-  }
-
-  const nested =
-    asRecord(data.user_profile) ??
-    asRecord(data.userProfile) ??
-    asRecord(data.profile);
-
-  if (nested) {
-    const colors = nested.theme_colors ?? nested.themeColors;
-
-    if (Array.isArray(colors) && colors.length > 0) {
-      const primary = formatAccentColor(colors[0]);
+    if (Array.isArray(direct) && direct.length > 0) {
+      const primary = formatAccentColor(direct[0]);
 
       if (primary) return primary;
     }
   }
 
   return null;
+}
+
+/** Solid banner color — Discord uses `banner_color` when there is no banner image. */
+function extractBannerColor(
+  data: Record<string, unknown>,
+  nameplatePalette: string | null,
+): string | null {
+  for (const src of profileColorSources(data)) {
+    const fromBanner = formatAccentColor(
+      src.banner_color ?? src.bannerColor,
+    );
+
+    if (fromBanner) return fromBanner;
+  }
+
+  for (const src of profileColorSources(data)) {
+    const fromAccent = formatAccentColor(
+      src.accent_color ?? src.accentColor,
+    );
+
+    if (fromAccent) return fromAccent;
+  }
+
+  return (
+    extractThemePrimary(data) ??
+    accentFromNameplatePalette(nameplatePalette)
+  );
+}
+
+/** Accent / theme tint — Nitro theme primary, then accent, then banner color. */
+function extractAccentColor(
+  data: Record<string, unknown>,
+  nameplatePalette: string | null,
+): string | null {
+  const theme = extractThemePrimary(data);
+
+  if (theme) return theme;
+
+  for (const src of profileColorSources(data)) {
+    const fromAccent = formatAccentColor(
+      src.accent_color ?? src.accentColor,
+    );
+
+    if (fromAccent) return fromAccent;
+  }
+
+  for (const src of profileColorSources(data)) {
+    const fromBanner = formatAccentColor(
+      src.banner_color ?? src.bannerColor,
+    );
+
+    if (fromBanner) return fromBanner;
+  }
+
+  return accentFromNameplatePalette(nameplatePalette);
 }
 
 function accentFromNameplatePalette(
@@ -602,12 +679,22 @@ function parseProfileFromRaw(
 
   const avatarUrl =
     preferAnimatedMediaUrl(
-      data.avatarURL ?? data.avatar_url ?? data.avatarUrl,
+      data.avatarURL ??
+        data.avatar_url ??
+        data.avatarUrl ??
+        (typeof data.avatar === "string" && /^https?:\/\//i.test(data.avatar)
+          ? data.avatar
+          : null),
       avatarHash ? buildAvatarUrl(id, avatarHash) : null,
     ) ?? defaultAvatarUrl(id);
 
   const bannerUrl = preferAnimatedMediaUrl(
-    data.bannerURL ?? data.banner_url ?? data.bannerUrl,
+    data.bannerURL ??
+      data.banner_url ??
+      data.bannerUrl ??
+      (typeof data.banner === "string" && /^https?:\/\//i.test(data.banner)
+        ? data.banner
+        : null),
     bannerHash ? buildBannerUrl(id, bannerHash) : null,
   );
 
@@ -636,16 +723,8 @@ function parseProfileFromRaw(
       : null;
 
   const nameplate = extractNameplate(data);
-  // Prefer explicit profile theme, then banner/accent, then nameplate palette.
-  const accentColor =
-    extractThemePrimary(data) ??
-    formatAccentColor(
-      data.banner_color ??
-        data.bannerColor ??
-        data.accent_color ??
-        data.accentColor,
-    ) ??
-    accentFromNameplatePalette(nameplate?.palette);
+  const bannerColor = extractBannerColor(data, nameplate?.palette ?? null);
+  const accentColor = extractAccentColor(data, nameplate?.palette ?? null);
 
   return {
     id,
@@ -654,6 +733,7 @@ function parseProfileFromRaw(
     displayName,
     avatarUrl,
     bannerUrl,
+    bannerColor,
     accentColor,
     // Always derive from snowflake for exact millisecond precision.
     createdAt: snowflakeCreatedAt(id),
@@ -679,6 +759,7 @@ function fallbackProfile(id: string): DiscordProfile {
     displayName: "Unknown user",
     avatarUrl: defaultAvatarUrl(id),
     bannerUrl: null,
+    bannerColor: null,
     accentColor: null,
     createdAt: snowflakeCreatedAt(id),
     badges: [],
@@ -749,49 +830,87 @@ async function fetchCordCatProfile(
   );
 }
 
+function preferDiscordCdnAvatar(
+  primary: string,
+  fallback: string,
+): string {
+  if (primary.includes("/avatars/") || primary.includes(".gif")) {
+    return primary;
+  }
+
+  return fallback;
+}
+
+function mergeDiscordProfiles(
+  primary: DiscordProfile,
+  secondary: DiscordProfile,
+  userId: string,
+): DiscordProfile {
+  return {
+    ...secondary,
+    ...primary,
+    username:
+      primary.username !== "Unknown" && primary.username !== "unknown"
+        ? primary.username
+        : secondary.username,
+    globalName: primary.globalName ?? secondary.globalName,
+    displayName:
+      primary.displayName !== "Unknown user"
+        ? primary.displayName
+        : secondary.displayName,
+    avatarUrl: preferDiscordCdnAvatar(primary.avatarUrl, secondary.avatarUrl),
+    bannerUrl: primary.bannerUrl ?? secondary.bannerUrl,
+    bannerColor: primary.bannerColor ?? secondary.bannerColor,
+    accentColor: primary.accentColor ?? secondary.accentColor,
+    nitro: primary.nitro || secondary.nitro,
+    clanTag: primary.clanTag ?? secondary.clanTag,
+    clanBadgeUrl: primary.clanBadgeUrl ?? secondary.clanBadgeUrl,
+    avatarDecorationUrl:
+      primary.avatarDecorationUrl ?? secondary.avatarDecorationUrl,
+    nameplate: primary.nameplate ?? secondary.nameplate,
+    bio: primary.bio ?? secondary.bio,
+    badges:
+      primary.badges.length > 0 ? primary.badges : secondary.badges,
+    createdAt: snowflakeCreatedAt(userId),
+    profilePreviewUrl: discordProfileUrl(userId),
+    id: userId,
+  };
+}
+
 export async function fetchDiscordProfile(
   userId: string,
 ): Promise<DiscordProfile> {
-  // Prefer CordCat when configured — richer Discord-native profile media.
-  const cordProfile = await fetchCordCatProfile(userId);
+  // Fetch CordCat + JAPI in parallel. CordCat is richer for media when keyed,
+  // but often omits banner_color / accent_color — always fill gaps from JAPI.
+  const [cordProfile, japiProfile] = await Promise.all([
+    fetchCordCatProfile(userId),
+    fetchJapiProfile(userId),
+  ]);
 
-  if (cordProfile && isUsableProfile(cordProfile)) {
+  const cordOk = Boolean(cordProfile && isUsableProfile(cordProfile));
+  const japiOk = Boolean(japiProfile && isUsableProfile(japiProfile));
+
+  if (cordOk && japiOk && cordProfile && japiProfile) {
+    return mergeDiscordProfiles(cordProfile, japiProfile, userId);
+  }
+
+  if (cordOk && cordProfile) {
+    if (japiProfile) {
+      return mergeDiscordProfiles(cordProfile, japiProfile, userId);
+    }
+
     return cordProfile;
   }
 
-  const japiProfile = await fetchJapiProfile(userId);
-
-  if (japiProfile && isUsableProfile(japiProfile)) {
-    // Merge any CordCat media extras onto japi when CordCat only returned partial data.
+  if (japiOk && japiProfile) {
     if (cordProfile) {
-      return {
-        ...japiProfile,
-        avatarUrl:
-          cordProfile.avatarUrl.includes("/avatars/") ||
-          cordProfile.avatarUrl.includes(".gif")
-            ? cordProfile.avatarUrl
-            : japiProfile.avatarUrl,
-        bannerUrl: cordProfile.bannerUrl ?? japiProfile.bannerUrl,
-        nitro: cordProfile.nitro || japiProfile.nitro,
-        clanTag: cordProfile.clanTag ?? japiProfile.clanTag,
-        avatarDecorationUrl:
-          cordProfile.avatarDecorationUrl ?? japiProfile.avatarDecorationUrl,
-        nameplate: cordProfile.nameplate ?? japiProfile.nameplate,
-        accentColor: cordProfile.accentColor ?? japiProfile.accentColor,
-        clanBadgeUrl: cordProfile.clanBadgeUrl ?? japiProfile.clanBadgeUrl,
-        badges:
-          cordProfile.badges.length > 0
-            ? cordProfile.badges
-            : japiProfile.badges,
-        createdAt: snowflakeCreatedAt(userId),
-        profilePreviewUrl: discordProfileUrl(userId),
-      };
+      return mergeDiscordProfiles(japiProfile, cordProfile, userId);
     }
 
     return japiProfile;
   }
 
-  return cordProfile ?? fallbackProfile(userId);
+  return cordProfile ?? japiProfile ?? fallbackProfile(userId);
 }
 
 /** Full precise timestamp (UTC) for account creation from the snowflake. */
@@ -851,9 +970,22 @@ export function formatDsaDate(iso: string): string {
   }
 }
 
-/** Banner / solid fill accent — blurple when the profile has no theme color. */
+/** Discord popout default when the user has no custom banner / accent. */
+const DISCORD_DEFAULT_BANNER = "#232428";
+
+/**
+ * Solid banner fill — real `banner_color` / accent when present,
+ * otherwise Discord's dark popout grey (never invent blurple).
+ */
+export function profileBannerFill(profile: DiscordProfile): string {
+  return (
+    profile.bannerColor ?? profile.accentColor ?? DISCORD_DEFAULT_BANNER
+  );
+}
+
+/** Accent for rings / links — real profile color, else muted chrome grey. */
 export function profileAccent(profile: DiscordProfile): string {
-  return profile.accentColor ?? "#5865f2";
+  return profile.accentColor ?? profile.bannerColor ?? DISCORD_DEFAULT_BANNER;
 }
 
 /**
@@ -861,5 +993,5 @@ export function profileAccent(profile: DiscordProfile): string {
  * Returns null when nothing theme-like is available (keep Discord dark grey).
  */
 export function profileThemeColor(profile: DiscordProfile): string | null {
-  return profile.accentColor;
+  return profile.accentColor ?? profile.bannerColor;
 }

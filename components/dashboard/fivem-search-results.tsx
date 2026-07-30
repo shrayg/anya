@@ -8,7 +8,7 @@ import { Shield, UserRound } from "lucide-react";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import { themeAccent } from "@/config/branding";
-import { formatDiscordCreatedAt, profileAccent } from "@/lib/discord-profile";
+import { formatDiscordCreatedAt, profileAccent, profileBannerFill } from "@/lib/discord-profile";
 import { formatSearchRecords } from "@/lib/search-utils";
 
 type FivemTab = "accounts" | "bans" | "profile";
@@ -90,12 +90,15 @@ export function FivemSearchResults({
   const accent = result.profile
     ? profileAccent(result.profile)
     : themeAccent.blush;
+  const bannerFill = result.profile
+    ? profileBannerFill(result.profile)
+    : accent;
 
   return (
     <div className="discord-profile-shell">
       <div
         className="discord-profile-banner discord-profile-banner--solid"
-        style={{ backgroundColor: accent }}
+        style={{ backgroundColor: bannerFill }}
       />
 
       <div className="discord-profile-layout">
