@@ -4,13 +4,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   ChevronDown,
+  ChevronUp,
+  ChevronsLeft,
+  CreditCard,
   IdCard,
+  LifeBuoy,
   Lock,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Shield,
   Sparkles,
 } from "lucide-react";
 import clsx from "clsx";
@@ -115,6 +121,12 @@ const AI_BADGES: Record<string, string> = {
 
 const mainNav: NavItem[] = [
   { name: "Case ID", href: "/dashboard/cases", icon: IdCard },
+];
+
+const footerNav: NavItem[] = [
+  { name: "Support", href: "/support", icon: LifeBuoy },
+  { name: "Pricing", href: "/pricing", icon: CreditCard },
+  { name: "Status", href: "/status", icon: Activity },
 ];
 
 function isNavActive(item: NavItem, pathname: string) {
@@ -309,7 +321,13 @@ export function DashboardSidebar({ username }: { username: string }) {
   const planLabel = getPlanDisplayLabel(profile);
   const balance = profile.balance ?? 0;
   const staffMeta = getStaffRoleMeta(profile.staffRole);
-  const { collapsed, isResizing, toggleCollapsed } = useDashboardSidebar();
+  const {
+    collapsed,
+    isResizing,
+    toggleCollapsed,
+    footerCollapsed,
+    toggleFooterCollapsed,
+  } = useDashboardSidebar();
   const [moduleQuery, setModuleQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState<Record<string, boolean>>({});
   const [categoriesReady, setCategoriesReady] = useState(false);
@@ -361,6 +379,28 @@ export function DashboardSidebar({ username }: { username: string }) {
       return next;
     });
   }, []);
+
+  const footerItems = useMemo<NavItem[]>(() => {
+    const items = [...footerNav];
+
+    if (profile.canManageWorkspace) {
+      items.unshift({
+        name: "Admin",
+        href: "/dashboard/settings#admin",
+        icon: Shield,
+        badge: "ADMIN",
+      });
+    } else if (profile.canAccessHelperDashboard) {
+      items.unshift({
+        name: "Helper",
+        href: "/dashboard/settings#helper",
+        icon: Shield,
+        badge: "HELPER",
+      });
+    }
+
+    return items;
+  }, [profile.canAccessHelperDashboard, profile.canManageWorkspace]);
 
   const accountHref = "/account";
 
@@ -596,6 +636,75 @@ export function DashboardSidebar({ username }: { username: string }) {
         </SidebarContent>
 
         <SidebarFooter>
+          <div
+            className={clsx(
+              "dash-sidebar-utility",
+              footerCollapsed && "dash-sidebar-utility--collapsed",
+              collapsed && "dash-sidebar-utility--rail",
+            )}
+          >
+            <button
+              aria-controls="dash-sidebar-footer-links"
+              aria-expanded={!footerCollapsed}
+              aria-label={
+                footerCollapsed
+                  ? "Show account and more links"
+                  : "Minimize account and more links"
+              }
+              className={clsx(
+                "dash-sidebar-minimize",
+                collapsed && "dash-sidebar-minimize--icon-only",
+              )}
+              title={
+                footerCollapsed
+                  ? "Show Account, Support, and more"
+                  : "Hide Account, Support, and more"
+              }
+              type="button"
+              onClick={toggleFooterCollapsed}
+            >
+              {footerCollapsed ? (
+                <>
+                  <ChevronUp className="size-4 shrink-0" />
+                  <span className="dash-sidebar-label">Account & more</span>
+                </>
+              ) : (
+                <>
+                  <ChevronsLeft className="size-4 shrink-0" />
+                  <span className="dash-sidebar-label">Minimize</span>
+                </>
+              )}
+            </button>
+
+            <div
+              className={clsx(
+                "dash-sidebar-footer-nav",
+                footerCollapsed && "dash-sidebar-footer-nav--collapsed",
+              )}
+              id="dash-sidebar-footer-links"
+            >
+              <div className="dash-sidebar-footer-nav-inner">
+                <SidebarMenu>
+                  {footerItems.map((item) => (
+                    <SidebarLink
+                      key={item.name}
+                      collapsed={collapsed}
+                      dataTour={
+                        item.name === "Account"
+                          ? "footer-settings"
+                          : item.name === "Admin"
+                            ? "footer-admin"
+                            : undefined
+                      }
+                      item={item}
+                      pathname={pathname}
+                    />
+                  ))}
+                </SidebarMenu>
+              </div>
+            </div>
+          </div>
+
           <div
             className={clsx(
               "dash-sidebar-user",
