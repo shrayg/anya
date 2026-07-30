@@ -108,13 +108,11 @@ export type SearchModuleDef = {
    */
   hideTools?: boolean;
   /**
-   * Hide tool chips and fan the query across every module tool on Run
-   * (ignore chip selection and `?tool=` deep links).
+   * Hide tool chips and fan the query across tools on Run (ignore chip
+   * selection and `?tool=` deep links). Prefer `getModuleFanOutBehavior()` —
+   * most multi-tool modules enable this automatically when `tools.length > 1`.
    *
-   * - When `tools[0]` is a server-side fan-out (`discord`, `stealer`), Run
-   *   uses that primary path only (covers the specialty chips internally).
-   * - Otherwise Run queries every tool with an `apiType` in parallel and
-   *   merges results (e.g. VIN Decoder: NHTSA + DataVoid automotive tools).
+   * Set `false` to keep the chip picker (mutually exclusive modes).
    */
   fanOutAllTools?: boolean;
   /**
@@ -139,6 +137,74 @@ export type SearchModuleSection = {
   title: string;
   items: SearchModuleDef[];
 };
+
+/**
+ * How ModuleSearchView should treat a module's tool chips on Run.
+ *
+ * - `none` — show chips (when present) and run the selected tool only
+ * - `server-stream` — hide chips; Run uses `tools[0]` (Discord/stealer NDJSON
+ *   streams that already fan out server-side)
+ * - `all-tools` — hide chips; Run queries every tool apiType in parallel
+ */
+export type ModuleFanOutBehavior =
+  | { mode: "none" }
+  | { mode: "server-stream" }
+  | { mode: "all-tools" };
+
+/**
+ * Multi-tool modules that must keep the chip picker: tools are mutually
+ * exclusive product modes / incompatible query shapes, not parallel indexes.
+ */
+const FAN_OUT_CHIP_OPT_OUT_SLUGS = new Set([
+  // Unified hub: hideTools + tools[0] "all-breaches" already composites indexes;
+  // Email Analyzer panel is embedded in Breaches results — do not client-fan 17 chips.
+  "breaches",
+  // Wallet vs tx vs Crypto AI are different inputs/UIs; "Full intel" composites core.
+  "crypto-intel",
+  // SEON email / phone / IP / BIN require incompatible query shapes.
+  "fraud-footprint",
+]);
+
+/**
+ * Resolve chip-hide + Run fan-out behavior for a module.
+ * General rule: `tools.length > 1` → fan out all tools (unless opted out).
+ */
+export function getModuleFanOutBehavior(
+  moduleDef: SearchModuleDef,
+): ModuleFanOutBehavior {
+  if (moduleDef.fanOutAllTools === false) {
+    return { mode: "none" };
+  }
+
+  const tools = (moduleDef.tools ?? []).filter((tool) => Boolean(tool.apiType));
+  const multiTool = tools.length > 1;
+  const explicitOn = moduleDef.fanOutAllTools === true;
+
+  if (!explicitOn && !multiTool) {
+    return { mode: "none" };
+  }
+
+  // Catalog hubs that already hide chips and run a composite primary tool.
+  if (!explicitOn && moduleDef.hideTools) {
+    return { mode: "none" };
+  }
+
+  if (!explicitOn && FAN_OUT_CHIP_OPT_OUT_SLUGS.has(moduleDef.slug)) {
+    return { mode: "none" };
+  }
+
+  const primaryApi = tools[0]?.apiType ?? "";
+
+  if (primaryApi === "discord" || primaryApi === "stealer") {
+    return { mode: "server-stream" };
+  }
+
+  if (explicitOn || multiTool) {
+    return { mode: "all-tools" };
+  }
+
+  return { mode: "none" };
+}
 
 function mod(
   section: string,
@@ -700,6 +766,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         undefined,
         undefined,
         {
+          // Keep chip picker: SEON email / phone / IP / BIN need different inputs.
+          fanOutAllTools: false,
           tools: [
             {
               id: "seon-email",
@@ -1027,7 +1095,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "BIN Lookup",
         "bin-lookup",
         "bin",
-        "First 6â€“8 digits of a card number",
+        "First 6-8 digits of a card number",
         "Identify issuing bank, card type, brand, and country from a BIN.",
         undefined,
         undefined,
@@ -1123,6 +1191,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           lawfulUseNotice: true,
           lawfulUseCopy:
             "Authorized OSINT / compliance research only. Public blockchain data and a static seed label list â€” not commercial chain analytics. Do not use to facilitate sanctions evasion or crime.",
+          // Keep chip picker: wallet / tx / AI modes are mutually exclusive inputs.
+          fanOutAllTools: false,
           tools: [
             {
               id: "full",

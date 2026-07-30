@@ -135,6 +135,7 @@ import {
 } from "@/lib/plans";
 import {
   getAiModeForModule,
+  getModuleFanOutBehavior,
   isPhoneQuery,
   resolveSearchApiPath,
   resolveSearchApiType,
@@ -238,6 +239,12 @@ export function ModuleSearchView({
 
   const isPublicRecords = moduleDef.slug === "public-records";
   const isCryptoIntel = moduleDef.slug === "crypto-intel";
+  const fanOutBehavior = useMemo(
+    () => getModuleFanOutBehavior(moduleDef),
+    [moduleDef],
+  );
+  const hideToolChips =
+    Boolean(moduleDef.hideTools) || fanOutBehavior.mode !== "none";
 
   const [query, setQuery] = useState("");
   const [searchFields, setSearchFields] = useState<ModuleSearchFieldRow[]>(() =>
@@ -285,8 +292,8 @@ export function ModuleSearchView({
 
   useEffect(() => {
     // Fan-out modules lock chips off and ignore ?tool= deep links.
-    // Server-side fan-outs (discord/stealer) run tools[0]; others run all tools.
-    if (moduleDef.fanOutAllTools) {
+    // Server-stream (discord/stealer) runs tools[0]; all-tools runs every apiType.
+    if (fanOutBehavior.mode !== "none") {
       const primary = moduleDef.tools?.[0]?.id ?? "";
 
       setSelectedToolId(primary);
@@ -301,7 +308,7 @@ export function ModuleSearchView({
 
     setSelectedToolId(initial);
     toolLockedRef.current = Boolean(validTool);
-  }, [moduleDef.slug, moduleDef.tools, moduleDef.fanOutAllTools, searchParams]);
+  }, [moduleDef.slug, moduleDef.tools, fanOutBehavior.mode, searchParams]);
 
   useEffect(() => {
     setSearchFields(defaultSearchFieldsForModule(moduleDef));
@@ -1184,19 +1191,15 @@ export function ModuleSearchView({
       activeType = selectedTool.apiType;
     }
 
-    // Generic multi-tool fan-out: when the module asks to run every tool and
-    // the primary entry is NOT a server-side fan-out (discord / stealer),
-    // query all tool apiTypes in parallel and merge into one snapshot.
-    // Discord/stealer keep their NDJSON primary path below.
+    // Generic multi-tool fan-out: query every tool apiType in parallel and
+    // merge into one snapshot. Discord/stealer use server-stream (tools[0])
+    // via the NDJSON paths below instead.
     const fanOutTools =
-      moduleDef.fanOutAllTools && moduleDef.tools?.length
-        ? moduleDef.tools.filter((tool) => Boolean(tool.apiType))
+      fanOutBehavior.mode === "all-tools" && moduleDef.tools?.length
+        ? moduleDef.tools.filter((tool) => Boolean(tool.apiType) && !tool.aiMode)
         : [];
-    const primaryFanOutApi = fanOutTools[0]?.apiType ?? "";
-    const useServerSideFanOut =
-      primaryFanOutApi === "discord" || primaryFanOutApi === "stealer";
 
-    if (fanOutTools.length > 1 && !useServerSideFanOut) {
+    if (fanOutTools.length > 1) {
       try {
         setJobProgress(
           jobId,
@@ -1207,7 +1210,23 @@ export function ModuleSearchView({
         const settled = await Promise.all(
           fanOutTools.map(async (tool) => {
             const apiType = tool.apiType!;
-            const searchUrl = `${resolveSearchApiPath(apiType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(moduleDef.slug)}`;
+            const indexSweepKindParam =
+              apiType === "index-sweep" &&
+              (moduleDef.slug === "phone" ||
+                moduleDef.slug === "phone-index" ||
+                tool.id === "phone-index")
+                ? "&kind=phone"
+                : "";
+            const reconlyModeParam =
+              apiType === "reconly" &&
+              (tool.id === "reconly-fivem" || moduleDef.slug === "fivem")
+                ? "&mode=fivem"
+                : "";
+            const instagramParam =
+              apiType === "instagram"
+                ? "&maxUsers=100&includeActivity=0&enrichBios=0"
+                : "";
+            const searchUrl = `${resolveSearchApiPath(apiType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(moduleDef.slug)}${indexSweepKindParam}${reconlyModeParam}${instagramParam}`;
 
             try {
               const searchResponse = await fetch(searchUrl, { signal });
@@ -1282,9 +1301,30 @@ export function ModuleSearchView({
         if (signal.aborted) return;
 
         let vinData: VinDecodeResult | null = null;
+        let binData: BinLookupResult | null = null;
+        let accountsData: AccountPresenceSearchResult | null = null;
+        let presenceData: EmailPresenceSearchResult | null = null;
+        let sweepData: IndexSweepSearchResult | null = null;
+        let domainData: DomainSearchResult | null = null;
+        let combData: CombSearchResult | null = null;
+        let robloxData: RobloxSearchResult | null = null;
+        let fivemData: FivemSearchResult | null = null;
         const mergedRecords: FormattedRecord[] = [];
         const rawBundle: Record<string, unknown> = {};
         let hadOk = false;
+
+        const pushRecords = (
+          rows: FormattedRecord[],
+          badgeFallback: string,
+        ) => {
+          for (const rec of rows) {
+            mergedRecords.push({
+              ...rec,
+              badge: rec.badge ?? badgeFallback,
+              index: mergedRecords.length + 1,
+            });
+          }
+        };
 
         for (const item of settled) {
           if (item.data) rawBundle[item.tool.id] = item.data;
@@ -1293,6 +1333,7 @@ export function ModuleSearchView({
           hadOk = true;
 
           const apiType = item.tool.apiType ?? "";
+          const label = item.tool.label;
 
           if (apiType === "vin") {
             const candidate = item.data as VinDecodeResult & {
@@ -1301,6 +1342,7 @@ export function ModuleSearchView({
             };
 
             if (
+              !vinData &&
               candidate.fields &&
               Object.keys(candidate.fields).length > 0
             ) {
@@ -1319,23 +1361,153 @@ export function ModuleSearchView({
               : [];
 
             if (indexResults.length > 0) {
-              for (const rec of formatSearchRecords(indexResults)) {
-                mergedRecords.push({
-                  ...rec,
-                  badge: rec.badge ?? "VIN index",
-                  index: mergedRecords.length + 1,
-                });
+              pushRecords(formatSearchRecords(indexResults), "VIN index");
+            }
+
+            continue;
+          }
+
+          if (apiType === "bin") {
+            if (!binData) binData = item.data as BinLookupResult;
+            continue;
+          }
+
+          if (apiType === "domains") {
+            const candidate = item.data as DomainSearchResult;
+
+            if (candidate.hasResults && !domainData) {
+              domainData = candidate;
+            }
+
+            continue;
+          }
+
+          if (apiType === "breaches") {
+            const candidate = item.data as CombSearchResult;
+
+            if (!combData) combData = candidate;
+            continue;
+          }
+
+          if (
+            apiType === "username-accounts" ||
+            apiType === "handle-sweep"
+          ) {
+            const candidate = item.data as AccountPresenceSearchResult;
+
+            if (
+              candidate.count > 0 &&
+              Array.isArray(candidate.sources) &&
+              candidate.sources.length > 0
+            ) {
+              if (!accountsData) {
+                accountsData = {
+                  ...candidate,
+                  sources: candidate.sources.map((block) => ({
+                    ...block,
+                    found: [...block.found],
+                  })),
+                };
+              } else {
+                const current: AccountPresenceSearchResult = accountsData;
+                for (const block of candidate.sources) {
+                  const existing = current.sources.find(
+                    (entry) => entry.id === block.id,
+                  );
+
+                  if (!existing) {
+                    current.sources.push({
+                      ...block,
+                      found: [...block.found],
+                    });
+                    continue;
+                  }
+
+                  const seen = new Set(existing.found.map((hit) => hit.url));
+
+                  for (const hit of block.found) {
+                    if (seen.has(hit.url)) continue;
+                    seen.add(hit.url);
+                    existing.found.push(hit);
+                  }
+
+                  existing.count = existing.found.length;
+                  existing.checked += block.checked;
+                  existing.errors += block.errors;
+                }
+
+                accountsData = {
+                  query: current.query,
+                  username: current.username,
+                  durationMs: current.durationMs,
+                  warning: current.warning,
+                  count: current.sources.reduce(
+                    (sum, block) => sum + block.count,
+                    0,
+                  ),
+                  checked: current.sources.reduce(
+                    (sum, block) => sum + block.checked,
+                    0,
+                  ),
+                  sources: current.sources,
+                };
               }
             }
-          } else {
-            for (const rec of formatStructuredSearchData(item.data)) {
-              mergedRecords.push({
-                ...rec,
-                badge: rec.badge ?? item.tool.label,
-                index: mergedRecords.length + 1,
-              });
-            }
+
+            continue;
           }
+
+          if (apiType === "email-presence") {
+            const candidate = item.data as EmailPresenceSearchResult;
+
+            if (candidate.found?.length && !presenceData) {
+              presenceData = candidate;
+            }
+
+            continue;
+          }
+
+          if (apiType === "index-sweep") {
+            const candidate = item.data as IndexSweepSearchResult;
+
+            if (candidate.dorks?.length && !sweepData) {
+              sweepData = candidate;
+            }
+
+            continue;
+          }
+
+          if (apiType === "roblox") {
+            const candidate = item.data as RobloxSearchResult;
+
+            if (!robloxData) robloxData = candidate;
+            continue;
+          }
+
+          if (apiType === "fivem") {
+            const candidate = item.data as FivemSearchResult;
+
+            if (!fivemData) fivemData = candidate;
+            continue;
+          }
+
+          if (apiType === "breach") {
+            const breachData = item.data as {
+              results?: unknown[];
+              message?: string;
+            };
+            const results = Array.isArray(breachData.results)
+              ? breachData.results
+              : [];
+
+            if (results.length > 0) {
+              pushRecords(formatSearchRecords(results), label);
+            }
+
+            continue;
+          }
+
+          pushRecords(formatStructuredSearchData(item.data), label);
         }
 
         const recordsOut = mergedRecords.map((rec, i) => ({
@@ -1343,19 +1515,42 @@ export function ModuleSearchView({
           index: i + 1,
         }));
 
-        if (vinData || recordsOut.length > 0) {
+        const structuredResult: StructuredSearchResult | null = vinData
+          ? { kind: "vin", data: vinData }
+          : binData
+            ? { kind: "bin", data: binData }
+            : accountsData
+              ? { kind: "username-accounts", data: accountsData }
+              : presenceData
+                ? { kind: "email-presence", data: presenceData }
+                : sweepData
+                  ? { kind: "index-sweep", data: sweepData }
+                  : null;
+
+        const hasSpecialty = Boolean(
+          structuredResult ||
+            domainData ||
+            combData ||
+            robloxData ||
+            fivemData ||
+            recordsOut.length > 0,
+        );
+
+        if (hasSpecialty) {
           commitSuccess(
             {
-              ...(vinData
-                ? {
-                    structuredResult: {
-                      kind: "vin" as const,
-                      data: vinData,
-                    },
-                  }
-                : {}),
+              ...(structuredResult ? { structuredResult } : {}),
+              ...(domainData ? { domainResult: domainData } : {}),
+              ...(combData ? { combResult: combData } : {}),
+              ...(robloxData ? { robloxResult: robloxData } : {}),
+              ...(fivemData ? { fivemResult: fivemData } : {}),
               records: recordsOut,
-              resultCount: (vinData ? 1 : 0) + recordsOut.length,
+              resultCount:
+                (structuredResult ? 1 : 0) +
+                (domainData ? 1 : 0) +
+                (combData?.returned ?? 0) +
+                (robloxData?.results?.length ?? 0) +
+                recordsOut.length,
               rawResult: JSON.stringify(rawBundle, null, 2),
               lastSearchLabel: `${moduleDef.name} · ${trimmed}`,
             },
@@ -1368,9 +1563,7 @@ export function ModuleSearchView({
         if (!hadOk) {
           const firstErr = settled.find((s) => s.error)?.error;
 
-          commitFail(
-            sanitizePublicText(firstErr || "Search failed."),
-          );
+          commitFail(sanitizePublicText(firstErr || "Search failed."));
 
           return;
         }
@@ -3276,8 +3469,7 @@ export function ModuleSearchView({
         <div className="ui-panel-body">
           {moduleDef.tools &&
           moduleDef.tools.length > 0 &&
-          !moduleDef.hideTools &&
-          !moduleDef.fanOutAllTools ? (
+          !hideToolChips ? (
             <div
               aria-label="Module tools"
               className="module-search-tools"
@@ -3558,12 +3750,23 @@ export function ModuleSearchView({
               result={intelxResult}
             />
           ) : fivemResult ? (
-            <FivemSearchResults
-              blurResults={blurResults}
-              result={fivemResult}
-              selectedExportIndex={selectedExportIndex}
-              onSelectExportIndex={handleSelectExportIndex}
-            />
+            <div className="space-y-8">
+              <FivemSearchResults
+                blurResults={blurResults}
+                result={fivemResult}
+                selectedExportIndex={selectedExportIndex}
+                onSelectExportIndex={handleSelectExportIndex}
+              />
+              {records.length > 0 ? (
+                <SearchResultCards
+                  blurResults={blurResults}
+                  records={records}
+                  selectedExportIndex={selectedExportIndex}
+                  totalCount={resultCount}
+                  onSelectExportIndex={handleSelectExportIndex}
+                />
+              ) : null}
+            </div>
           ) : stealerResult ? (
             <StealerLogsSearchResults
               archives={stealerResult.archives}
@@ -3573,12 +3776,23 @@ export function ModuleSearchView({
               totalCredentialCount={stealerResult.count}
             />
           ) : robloxResult ? (
-            <RobloxSearchResults
-              blurResults={blurResults}
-              result={robloxResult}
-              selectedExportIndex={selectedExportIndex}
-              onSelectExportIndex={handleSelectExportIndex}
-            />
+            <div className="space-y-8">
+              <RobloxSearchResults
+                blurResults={blurResults}
+                result={robloxResult}
+                selectedExportIndex={selectedExportIndex}
+                onSelectExportIndex={handleSelectExportIndex}
+              />
+              {records.length > 0 ? (
+                <SearchResultCards
+                  blurResults={blurResults}
+                  records={records}
+                  selectedExportIndex={selectedExportIndex}
+                  totalCount={resultCount}
+                  onSelectExportIndex={handleSelectExportIndex}
+                />
+              ) : null}
+            </div>
           ) : instagramResult ? (
             <InstagramSearchResults
               blurResults={blurResults}
@@ -3598,12 +3812,23 @@ export function ModuleSearchView({
               result={discordResult}
             />
           ) : domainResult ? (
-            <DomainSearchResults
-              blurResults={blurResults}
-              result={domainResult}
-              selectedExportIndex={selectedExportIndex}
-              onSelectExportIndex={handleSelectExportIndex}
-            />
+            <div className="space-y-8">
+              <DomainSearchResults
+                blurResults={blurResults}
+                result={domainResult}
+                selectedExportIndex={selectedExportIndex}
+                onSelectExportIndex={handleSelectExportIndex}
+              />
+              {records.length > 0 ? (
+                <SearchResultCards
+                  blurResults={blurResults}
+                  records={records}
+                  selectedExportIndex={selectedExportIndex}
+                  totalCount={resultCount}
+                  onSelectExportIndex={handleSelectExportIndex}
+                />
+              ) : null}
+            </div>
           ) : structuredResult?.kind === "public-records" ? (
             <div className="space-y-8">
               {(structuredResult.data.count > 0 ||
@@ -3630,12 +3855,23 @@ export function ModuleSearchView({
               ) : null}
             </div>
           ) : combResult ? (
-            <BreachesSearchResults
-              blurResults={blurResults}
-              result={combResult}
-              selectedExportIndex={selectedExportIndex}
-              onSelectExportIndex={handleSelectExportIndex}
-            />
+            <div className="space-y-8">
+              <BreachesSearchResults
+                blurResults={blurResults}
+                result={combResult}
+                selectedExportIndex={selectedExportIndex}
+                onSelectExportIndex={handleSelectExportIndex}
+              />
+              {records.length > 0 ? (
+                <SearchResultCards
+                  blurResults={blurResults}
+                  records={records}
+                  selectedExportIndex={selectedExportIndex}
+                  totalCount={resultCount}
+                  onSelectExportIndex={handleSelectExportIndex}
+                />
+              ) : null}
+            </div>
           ) : structuredResult?.kind === "crypto-wallet" ? (
             <CryptoWalletResults
               blurResults={blurResults}
@@ -3671,25 +3907,69 @@ export function ModuleSearchView({
           ) : structuredResult?.kind === "hinge-live" ? (
             <HingeLiveResults data={structuredResult.data} />
           ) : structuredResult?.kind === "username-accounts" ? (
-            <AccountPresenceResults
-              blurResults={blurResults}
-              data={structuredResult.data}
-            />
+            <div className="space-y-8">
+              <AccountPresenceResults
+                blurResults={blurResults}
+                data={structuredResult.data}
+              />
+              {records.length > 0 ? (
+                <SearchResultCards
+                  blurResults={blurResults}
+                  records={records}
+                  selectedExportIndex={selectedExportIndex}
+                  totalCount={resultCount}
+                  onSelectExportIndex={handleSelectExportIndex}
+                />
+              ) : null}
+            </div>
           ) : structuredResult?.kind === "email-presence" ? (
-            <EmailPresenceResults
-              blurResults={blurResults}
-              data={structuredResult.data}
-            />
+            <div className="space-y-8">
+              <EmailPresenceResults
+                blurResults={blurResults}
+                data={structuredResult.data}
+              />
+              {records.length > 0 ? (
+                <SearchResultCards
+                  blurResults={blurResults}
+                  records={records}
+                  selectedExportIndex={selectedExportIndex}
+                  totalCount={resultCount}
+                  onSelectExportIndex={handleSelectExportIndex}
+                />
+              ) : null}
+            </div>
           ) : structuredResult?.kind === "index-sweep" ? (
-            <IndexSweepResults
-              blurResults={blurResults}
-              data={structuredResult.data}
-            />
+            <div className="space-y-8">
+              <IndexSweepResults
+                blurResults={blurResults}
+                data={structuredResult.data}
+              />
+              {records.length > 0 ? (
+                <SearchResultCards
+                  blurResults={blurResults}
+                  records={records}
+                  selectedExportIndex={selectedExportIndex}
+                  totalCount={resultCount}
+                  onSelectExportIndex={handleSelectExportIndex}
+                />
+              ) : null}
+            </div>
           ) : structuredResult?.kind === "bin" ? (
-            <BinSearchResults
-              blurResults={blurResults}
-              result={structuredResult.data}
-            />
+            <div className="space-y-8">
+              <BinSearchResults
+                blurResults={blurResults}
+                result={structuredResult.data}
+              />
+              {records.length > 0 ? (
+                <SearchResultCards
+                  blurResults={blurResults}
+                  records={records}
+                  selectedExportIndex={selectedExportIndex}
+                  totalCount={resultCount}
+                  onSelectExportIndex={handleSelectExportIndex}
+                />
+              ) : null}
+            </div>
           ) : structuredResult?.kind === "iban" ? (
             <IbanSearchResults
               blurResults={blurResults}
