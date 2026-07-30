@@ -3056,22 +3056,27 @@ export function ModuleSearchView({
         )}
       </header>
 
-      <section className="ui-panel">
+      <section className="ui-panel module-search-panel">
         <div className="ui-panel-body">
           {moduleDef.tools &&
           moduleDef.tools.length > 0 &&
           !moduleDef.hideTools ? (
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div
+              aria-label="Module tools"
+              className="module-search-tools"
+              role="toolbar"
+            >
               {moduleDef.tools.map((tool) => {
                 const active = tool.id === selectedToolId;
 
                 return (
                   <button
                     key={tool.id}
+                    aria-pressed={active}
                     className={
                       active
-                        ? "rounded-full border border-[var(--anya-blush)]/50 bg-[var(--anya-blush)]/15 px-3 py-1 text-xs font-medium text-[var(--anya-blush)]"
-                        : "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300 hover:border-white/25"
+                        ? "module-search-tool module-search-tool--active"
+                        : "module-search-tool"
                     }
                     type="button"
                     onClick={() => {

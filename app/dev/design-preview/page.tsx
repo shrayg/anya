@@ -228,27 +228,34 @@ export default function DesignPreviewPage() {
                   </p>
                 </header>
 
-                <section className="ui-panel">
+                <section className="ui-panel module-search-panel">
                   <div className="ui-panel-body">
                     <form
-                      className="flex flex-col gap-3 sm:flex-row sm:items-start"
+                      className="module-search-form"
                       onSubmit={(e) => {
                         e.preventDefault();
                         setScanning(true);
                       }}
                     >
-                      <input
-                        className="ui-input flex-1 font-mono text-sm"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                      />
-                      <button
-                        className="ui-btn ui-btn-primary shrink-0 sm:min-w-[6.5rem]"
-                        disabled={scanning}
-                        type="submit"
-                      >
-                        {scanning ? "Scanning…" : "Run"}
-                      </button>
+                      <div className="module-search-fields">
+                        <div className="module-search-field-row module-search-field-row--simple">
+                          <input
+                            className="ui-input module-search-field-input font-mono"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="module-search-form-actions">
+                        <span />
+                        <button
+                          className="ui-btn ui-btn-primary shrink-0"
+                          disabled={scanning}
+                          type="submit"
+                        >
+                          {scanning ? "Scanning…" : "Run"}
+                        </button>
+                      </div>
                     </form>
                   </div>
                 </section>
