@@ -284,8 +284,8 @@ export function ModuleSearchView({
   );
 
   useEffect(() => {
-    // Fan-out modules always use the primary all-tools entry (tools[0]).
-    // Ignore ?tool= deep links so Run never collapses to a single specialty chip.
+    // Fan-out modules lock chips off and ignore ?tool= deep links.
+    // Server-side fan-outs (discord/stealer) run tools[0]; others run all tools.
     if (moduleDef.fanOutAllTools) {
       const primary = moduleDef.tools?.[0]?.id ?? "";
 
@@ -1184,6 +1184,210 @@ export function ModuleSearchView({
       activeType = selectedTool.apiType;
     }
 
+    // Generic multi-tool fan-out: when the module asks to run every tool and
+    // the primary entry is NOT a server-side fan-out (discord / stealer),
+    // query all tool apiTypes in parallel and merge into one snapshot.
+    // Discord/stealer keep their NDJSON primary path below.
+    const fanOutTools =
+      moduleDef.fanOutAllTools && moduleDef.tools?.length
+        ? moduleDef.tools.filter((tool) => Boolean(tool.apiType))
+        : [];
+    const primaryFanOutApi = fanOutTools[0]?.apiType ?? "";
+    const useServerSideFanOut =
+      primaryFanOutApi === "discord" || primaryFanOutApi === "stealer";
+
+    if (fanOutTools.length > 1 && !useServerSideFanOut) {
+      try {
+        setJobProgress(
+          jobId,
+          `${moduleDef.name} · fan-out (0/${fanOutTools.length})`,
+        );
+
+        let doneCount = 0;
+        const settled = await Promise.all(
+          fanOutTools.map(async (tool) => {
+            const apiType = tool.apiType!;
+            const searchUrl = `${resolveSearchApiPath(apiType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(moduleDef.slug)}`;
+
+            try {
+              const searchResponse = await fetch(searchUrl, { signal });
+              const responseText = await searchResponse.text();
+              let data: Record<string, unknown> = {};
+
+              try {
+                data = responseText
+                  ? (JSON.parse(responseText) as Record<string, unknown>)
+                  : {};
+              } catch {
+                doneCount += 1;
+                setJobProgress(
+                  jobId,
+                  `${moduleDef.name} · fan-out (${doneCount}/${fanOutTools.length})`,
+                );
+
+                return {
+                  tool,
+                  ok: false as const,
+                  error: "Search returned an unexpected response.",
+                  data: null as Record<string, unknown> | null,
+                };
+              }
+
+              doneCount += 1;
+              setJobProgress(
+                jobId,
+                `${moduleDef.name} · ${tool.label} (${doneCount}/${fanOutTools.length})`,
+              );
+
+              if (!searchResponse.ok) {
+                return {
+                  tool,
+                  ok: false as const,
+                  error:
+                    typeof data.error === "string"
+                      ? data.error
+                      : "Search failed.",
+                  data,
+                };
+              }
+
+              return {
+                tool,
+                ok: true as const,
+                error: null as string | null,
+                data,
+              };
+            } catch (err) {
+              if (signal.aborted) throw err;
+
+              doneCount += 1;
+              setJobProgress(
+                jobId,
+                `${moduleDef.name} · fan-out (${doneCount}/${fanOutTools.length})`,
+              );
+
+              return {
+                tool,
+                ok: false as const,
+                error:
+                  err instanceof Error && err.message
+                    ? err.message
+                    : "Search failed.",
+                data: null as Record<string, unknown> | null,
+              };
+            }
+          }),
+        );
+
+        if (signal.aborted) return;
+
+        let vinData: VinDecodeResult | null = null;
+        const mergedRecords: FormattedRecord[] = [];
+        const rawBundle: Record<string, unknown> = {};
+        let hadOk = false;
+
+        for (const item of settled) {
+          if (item.data) rawBundle[item.tool.id] = item.data;
+          if (!item.ok || !item.data) continue;
+
+          hadOk = true;
+
+          const apiType = item.tool.apiType ?? "";
+
+          if (apiType === "vin") {
+            const candidate = item.data as VinDecodeResult & {
+              fields?: Record<string, string>;
+              indexHits?: { results?: unknown[] };
+            };
+
+            if (
+              candidate.fields &&
+              Object.keys(candidate.fields).length > 0
+            ) {
+              vinData = {
+                vin:
+                  typeof candidate.vin === "string" && candidate.vin
+                    ? candidate.vin
+                    : searchQuery,
+                fields: candidate.fields,
+                errorText: candidate.errorText,
+              };
+            }
+
+            const indexResults = Array.isArray(candidate.indexHits?.results)
+              ? candidate.indexHits.results
+              : [];
+
+            if (indexResults.length > 0) {
+              for (const rec of formatSearchRecords(indexResults)) {
+                mergedRecords.push({
+                  ...rec,
+                  badge: rec.badge ?? "VIN index",
+                  index: mergedRecords.length + 1,
+                });
+              }
+            }
+          } else {
+            for (const rec of formatStructuredSearchData(item.data)) {
+              mergedRecords.push({
+                ...rec,
+                badge: rec.badge ?? item.tool.label,
+                index: mergedRecords.length + 1,
+              });
+            }
+          }
+        }
+
+        const recordsOut = mergedRecords.map((rec, i) => ({
+          ...rec,
+          index: i + 1,
+        }));
+
+        if (vinData || recordsOut.length > 0) {
+          commitSuccess(
+            {
+              ...(vinData
+                ? {
+                    structuredResult: {
+                      kind: "vin" as const,
+                      data: vinData,
+                    },
+                  }
+                : {}),
+              records: recordsOut,
+              resultCount: (vinData ? 1 : 0) + recordsOut.length,
+              rawResult: JSON.stringify(rawBundle, null, 2),
+              lastSearchLabel: `${moduleDef.name} · ${trimmed}`,
+            },
+            JSON.stringify(rawBundle),
+          );
+
+          return;
+        }
+
+        if (!hadOk) {
+          const firstErr = settled.find((s) => s.error)?.error;
+
+          commitFail(
+            sanitizePublicText(firstErr || "Search failed."),
+          );
+
+          return;
+        }
+
+        commitEmpty();
+      } catch (err) {
+        if (signal.aborted) return;
+        commitFail(
+          err instanceof Error && err.message
+            ? sanitizePublicText(err.message)
+            : "Could not complete the search.",
+        );
+      }
+
+      return;
+    }
+
     // stealer-logs uses /api/osint/stealer (multi-source fan-out + victims).
 
     const discordHasSignal = (discordData: DiscordSearchResult) => {
@@ -1291,6 +1495,7 @@ export function ModuleSearchView({
                 displayName: searchQuery,
                 avatarUrl: "",
                 bannerUrl: null,
+                bannerColor: null,
                 accentColor: null,
                 createdAt: new Date(
                   Number(BigInt(searchQuery) >> 22n) + 1_420_070_400_000,
@@ -3496,10 +3701,23 @@ export function ModuleSearchView({
               result={structuredResult.data}
             />
           ) : structuredResult?.kind === "vin" ? (
-            <VinSearchResults
-              blurResults={blurResults}
-              result={structuredResult.data}
-            />
+            <>
+              <VinSearchResults
+                blurResults={blurResults}
+                result={structuredResult.data}
+              />
+              {records.length > 0 ? (
+                <div className="mt-5">
+                  <SearchResultCards
+                    blurResults={blurResults}
+                    records={records}
+                    selectedExportIndex={selectedExportIndex}
+                    totalCount={resultCount}
+                    onSelectExportIndex={handleSelectExportIndex}
+                  />
+                </div>
+              ) : null}
+            </>
           ) : structuredResult?.kind === "car-insurance" ||
             structuredResult?.kind === "healthcare" ? (
             <UsProviderSearchResults

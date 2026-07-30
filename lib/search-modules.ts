@@ -108,10 +108,13 @@ export type SearchModuleDef = {
    */
   hideTools?: boolean;
   /**
-   * Hide tool chips and always run the module's primary fan-out tool
-   * (`tools[0]`) on submit — ignore chip selection and `?tool=` deep links.
-   * Used by Discord ID so one Run hits every Discord specialty endpoint via
-   * the existing `/api/osint/discord` stream UI.
+   * Hide tool chips and fan the query across every module tool on Run
+   * (ignore chip selection and `?tool=` deep links).
+   *
+   * - When `tools[0]` is a server-side fan-out (`discord`, `stealer`), Run
+   *   uses that primary path only (covers the specialty chips internally).
+   * - Otherwise Run queries every tool with an `apiType` in parallel and
+   *   merges results (e.g. VIN Decoder: NHTSA + DataVoid automotive tools).
    */
   fanOutAllTools?: boolean;
   /**
@@ -1066,10 +1069,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "vin-decoder",
         "vin",
         "17-character vehicle VIN",
-        "Decode make, model, year, and specs via NHTSA.",
+        "One VIN search — NHTSA decode plus DataVoid automotive indexes in a single fan-out.",
         undefined,
         undefined,
         {
+          fanOutAllTools: true,
           tools: [
             { id: "vin-nhtsa", label: "NHTSA decode", apiType: "vin" },
             {
