@@ -2708,6 +2708,60 @@ export function extractBreachHubRows(
     pushLimited(data.services);
   }
 
+  // OathNet Holehe via BreachHub: `{ email, domains: ["spotify.com", ...] }`.
+  if (rows.length === 0 && Array.isArray(data.domains)) {
+    const email = asString(data.email);
+    const mapped = (data.domains as unknown[]).map((item) => {
+      if (typeof item === "string") {
+        return {
+          domain: item,
+          service: item,
+          ...(email ? { email } : {}),
+        };
+      }
+
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        const row = item as Record<string, unknown>;
+
+        return {
+          ...row,
+          ...(email && !asString(row.email) ? { email } : {}),
+        };
+      }
+
+      return item;
+    });
+
+    pushLimited(mapped);
+  }
+
+  // OathNet extract/stealer-subdomain: `{ domain, subdomains: ["a.example.com", ...] }`.
+  if (rows.length === 0 && Array.isArray(data.subdomains)) {
+    const root = asString(data.domain);
+    const mapped = (data.subdomains as unknown[]).map((item) => {
+      if (typeof item === "string") {
+        return {
+          subdomain: item,
+          host: item,
+          ...(root ? { domain: root } : {}),
+        };
+      }
+
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        const row = item as Record<string, unknown>;
+
+        return {
+          ...row,
+          ...(root && !asString(row.domain) ? { domain: root } : {}),
+        };
+      }
+
+      return item;
+    });
+
+    pushLimited(mapped);
+  }
+
   if (rows.length === 0) {
     const profile = data.profile;
     const userInfo = data.user_info ?? data.userInfo;
