@@ -42,7 +42,7 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   "seekria-minecraft": { slug: "minecraft", tool: "seekria-minecraft" },
   "seekria-domain": { slug: "domain", tool: "seekria-domain" },
   "seekria-breaches": { slug: "breaches", tool: "seekria-email-breach" },
-  "oathnet-roblox": { slug: "discord-id", tool: "discord-to-roblox" },
+  "oathnet-roblox": { slug: "discord-id" },
   melissa: { slug: "contact-enrich", tool: "melissa" },
   /** Stealer-only vendors — never standalone hubs; fold into All stealer indexes. */
   "seeknow-stealer": { slug: "stealer-logs", tool: "all-stealers" },
@@ -108,6 +108,13 @@ export type SearchModuleDef = {
    */
   hideTools?: boolean;
   /**
+   * Hide tool chips and always run the module's primary fan-out tool
+   * (`tools[0]`) on submit — ignore chip selection and `?tool=` deep links.
+   * Used by Discord ID so one Run hits every Discord specialty endpoint via
+   * the existing `/api/osint/discord` stream UI.
+   */
+  fanOutAllTools?: boolean;
+  /**
    * Hide the Email/Username/Phone type dropdown and multi-field adder.
    * Single query input with auto-detect.
    */
@@ -143,6 +150,7 @@ function mod(
     SearchModuleDef,
     | "tools"
     | "hideTools"
+    | "fanOutAllTools"
     | "hideFieldTypePicker"
     | "singleSearchField"
     | "optionalFilters"
@@ -1206,6 +1214,10 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         undefined,
         undefined,
         {
+          // Chips hidden: Run always hits Discord OSINT fan-out (tools[0]),
+          // which already covers history / export / snowflake / roblox /
+          // DataVoid / OathNet via BreachHub specialty + enrichment.
+          fanOutAllTools: true,
           tools: [
             {
               id: "discord-live",
@@ -1513,14 +1525,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           ],
         },
       ),
-      // Legacy — hidden from hub; redirects to Discord ID?tool=discord-to-roblox
+      // Legacy — hidden from hub; redirects to Discord ID (full fan-out).
       mod(
         "Platforms",
         "Discord → Roblox",
         "oathnet-roblox",
         "oathnet-roblox",
         "Discord ID",
-        "Merged into Discord ID — available as the Discord → Roblox tool chip.",
+        "Merged into Discord ID — Roblox link resolves in the Discord OSINT fan-out.",
       ),
       mod(
         "Platforms",

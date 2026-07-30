@@ -284,13 +284,24 @@ export function ModuleSearchView({
   );
 
   useEffect(() => {
+    // Fan-out modules always use the primary all-tools entry (tools[0]).
+    // Ignore ?tool= deep links so Run never collapses to a single specialty chip.
+    if (moduleDef.fanOutAllTools) {
+      const primary = moduleDef.tools?.[0]?.id ?? "";
+
+      setSelectedToolId(primary);
+      toolLockedRef.current = true;
+
+      return;
+    }
+
     const fromUrl = searchParams.get("tool")?.trim();
     const validTool = moduleDef.tools?.find((t) => t.id === fromUrl);
     const initial = validTool?.id ?? moduleDef.tools?.[0]?.id ?? "";
 
     setSelectedToolId(initial);
     toolLockedRef.current = Boolean(validTool);
-  }, [moduleDef.slug, moduleDef.tools, searchParams]);
+  }, [moduleDef.slug, moduleDef.tools, moduleDef.fanOutAllTools, searchParams]);
 
   useEffect(() => {
     setSearchFields(defaultSearchFieldsForModule(moduleDef));
@@ -3060,7 +3071,8 @@ export function ModuleSearchView({
         <div className="ui-panel-body">
           {moduleDef.tools &&
           moduleDef.tools.length > 0 &&
-          !moduleDef.hideTools ? (
+          !moduleDef.hideTools &&
+          !moduleDef.fanOutAllTools ? (
             <div
               aria-label="Module tools"
               className="module-search-tools"
