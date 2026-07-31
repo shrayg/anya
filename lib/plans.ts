@@ -47,7 +47,7 @@ export const FREE_MODULE_SLUGS = new Set([
   "github",
 ]);
 
-/** Starter homepage: Email, Phone, Username, Discord only. */
+/** Starter homepage: Email, Phone, Username, Discord, Breaches. */
 export const STARTER_MODULE_SLUGS = new Set([
   "breaches",
   "phone",

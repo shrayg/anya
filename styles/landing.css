@@ -609,7 +609,7 @@
   display: grid;
   gap: 0;
   margin-bottom: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .anya-landing .starter-search-mode {
@@ -3025,6 +3025,10 @@
 
   .anya-landing .home-search-module-row {
     grid-template-columns: 7.4rem minmax(0, 1fr);
+  }
+
+  .anya-landing .starter-search-modes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .anya-landing .home-search-locked-trigger {

@@ -1,6 +1,11 @@
 import type { HomeSearchRoute } from "@/lib/home-search-route";
 
-export type StarterSearchMode = "email" | "phone" | "username" | "discord";
+export type StarterSearchMode =
+  | "email"
+  | "phone"
+  | "username"
+  | "discord"
+  | "breaches";
 
 export const STARTER_SEARCH_MODES: {
   id: StarterSearchMode;
@@ -27,6 +32,11 @@ export const STARTER_SEARCH_MODES: {
     label: "Discord",
     placeholder: "123456789012345678",
   },
+  {
+    id: "breaches",
+    label: "Breaches",
+    placeholder: "email or username",
+  },
 ];
 
 export function resolveStarterSearchRoute(
@@ -37,6 +47,7 @@ export function resolveStarterSearchRoute(
 
   switch (mode) {
     case "email":
+    case "breaches":
       return { apiType: "breaches", moduleSlug: "breaches" };
     case "phone":
       return { apiType: "breach", moduleSlug: "phone", scope: "phone" };

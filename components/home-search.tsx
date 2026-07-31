@@ -8,6 +8,7 @@ import clsx from "clsx";
 import {
   ArrowRight,
   AtSign,
+  Database,
   Hash,
   LockKeyhole,
   Phone,
@@ -61,6 +62,7 @@ const MODE_ICONS: Record<StarterSearchMode, ElementType> = {
   phone: Phone,
   username: User,
   discord: Hash,
+  breaches: Database,
 };
 
 const LOCKED_MODULES = getHubSections().flatMap((section) =>
