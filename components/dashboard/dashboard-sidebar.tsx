@@ -133,14 +133,14 @@ function isNavActive(item: NavItem, pathname: string) {
   if (item.name === "Case ID") {
     return pathname.startsWith("/dashboard/cases");
   }
+  if (item.name === "Admin" || item.name === "Admin Dashboard") {
+    return pathname.startsWith("/dashboard/admin");
+  }
   if (
     item.name === "Settings" ||
-    item.name === "Admin" ||
-    item.name === "Helper"
+    item.name === "Helper" ||
+    item.name === "Helper Dashboard"
   ) {
-    return pathname.startsWith("/dashboard/settings");
-  }
-  if (item.name === "Admin Dashboard" || item.name === "Helper Dashboard") {
     return pathname.startsWith("/dashboard/settings");
   }
   return pathname === item.href;
@@ -386,7 +386,7 @@ export function DashboardSidebar({ username }: { username: string }) {
     if (profile.canManageWorkspace) {
       items.unshift({
         name: "Admin",
-        href: "/dashboard/settings#admin",
+        href: "/dashboard/admin",
         icon: Shield,
         badge: "ADMIN",
       });

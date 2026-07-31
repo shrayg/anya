@@ -209,7 +209,7 @@ export function AccountPageContent() {
                 className="account-btn-ghost"
                 href={
                   canManageWorkspace
-                    ? "/dashboard/settings#admin"
+                    ? "/dashboard/admin"
                     : "/dashboard/settings#helper"
                 }
               >

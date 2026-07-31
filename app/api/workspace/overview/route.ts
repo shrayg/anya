@@ -26,6 +26,7 @@ export async function GET() {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fortnightAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
     const [
       totalUsers,
@@ -40,6 +41,7 @@ export async function GET() {
       signups24h,
       signups7d,
       revenue30d,
+      revenuePrev30d,
       payments,
       recentSearches,
       signupsRecent,
@@ -64,6 +66,13 @@ export async function GET() {
       prisma.payment.aggregate({
         where: {
           createdAt: { gte: monthAgo },
+          status: "completed",
+        },
+        _sum: { amount: true },
+      }),
+      prisma.payment.aggregate({
+        where: {
+          createdAt: { gte: twoMonthsAgo, lt: monthAgo },
           status: "completed",
         },
         _sum: { amount: true },
@@ -115,7 +124,6 @@ export async function GET() {
         take: 12,
       }),
     ]);
-
     const dailyKeys = Array.from({ length: 14 }, (_, index) => {
       const date = new Date(startOfDay(now));
 
@@ -164,6 +172,7 @@ export async function GET() {
         signups24h,
         signups7d,
         revenue30d: revenue30d._sum.amount ?? 0,
+        revenuePrev30d: revenuePrev30d._sum.amount ?? 0,
       },
       statusCounts,
       trafficByType: searchTypeGroups.map((entry) => ({

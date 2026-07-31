@@ -1,20 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Activity,
-  CreditCard,
-  RefreshCw,
-  Search,
-  Users,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import clsx from "clsx";
 
-import {
-  DashButton,
-  DashPanel,
-  StatCard,
-} from "@/components/dashboard/dashboard-ui";
+import { DashButton, DashPanel } from "@/components/dashboard/dashboard-ui";
 import { formatDate, formatTime } from "@/lib/format-datetime";
 
 type DayTraffic = { date: string; signups: number; searches: number; visits: number };
@@ -33,6 +23,7 @@ type OverviewResponse = {
     signups24h: number;
     signups7d: number;
     revenue30d: number;
+    revenuePrev30d?: number;
   };
   trafficByType: Array<{ type: string; count: number }>;
   trafficByDay: DayTraffic[];
@@ -56,6 +47,8 @@ type OverviewResponse = {
   }>;
 };
 
+const ICE = "#c3d3e6";
+
 function formatMoney(value: number) {
   return `$${value.toFixed(2)}`;
 }
@@ -66,6 +59,128 @@ function shortDay(date: string) {
   if (parts.length !== 3) return date;
 
   return `${parts[1]}/${parts[2]}`;
+}
+
+function percentChange(current: number, previous: number) {
+  if (previous <= 0) {
+    if (current <= 0) return 0;
+
+    return 100;
+  }
+
+  return ((current - previous) / previous) * 100;
+}
+
+function formatPct(value: number) {
+  const rounded = Math.round(value * 10) / 10;
+  const sign = rounded > 0 ? "+" : "";
+
+  return `${sign}${rounded}%`;
+}
+
+function sumSlice(
+  days: DayTraffic[],
+  start: number,
+  end: number,
+  key: keyof Pick<DayTraffic, "searches" | "signups" | "visits">,
+) {
+  return days
+    .slice(start, end)
+    .reduce((sum, day) => sum + (day[key] ?? 0), 0);
+}
+
+function Sparkline({
+  values,
+  color = ICE,
+}: {
+  values: number[];
+  color?: string;
+}) {
+  const width = 72;
+  const height = 28;
+  const pad = 2;
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = Math.max(max - min, 1);
+  const points = values
+    .map((value, index) => {
+      const x =
+        pad +
+        (values.length <= 1
+          ? width / 2
+          : (index / (values.length - 1)) * (width - pad * 2));
+      const y = height - pad - ((value - min) / range) * (height - pad * 2);
+
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  if (values.length === 0) {
+    return <div className="h-7 w-[72px]" />;
+  }
+
+  return (
+    <svg
+      aria-hidden
+      className="shrink-0"
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
+    >
+      <polyline
+        fill="none"
+        points={points}
+        stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeOpacity="0.85"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function MetricCard({
+  period,
+  value,
+  changePct,
+  series,
+  loading,
+}: {
+  period: string;
+  value: React.ReactNode;
+  changePct: number | null;
+  series: number[];
+  loading?: boolean;
+}) {
+  const up = (changePct ?? 0) > 0;
+  const down = (changePct ?? 0) < 0;
+  const flat = changePct === 0 || changePct === null;
+
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-[#141417] p-3.5">
+      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+        {period}
+      </p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50 tabular-nums">
+        {loading ? "—" : value}
+      </p>
+      <div className="mt-3 flex items-end justify-between gap-2">
+        <p
+          className={clsx(
+            "text-[11px] font-medium tabular-nums",
+            flat && "text-zinc-500",
+            up && "text-emerald-400",
+            down && "text-rose-400",
+          )}
+        >
+          {changePct === null ? "—" : formatPct(changePct)}
+          <span className="ml-1 font-normal text-zinc-600">vs prev</span>
+        </p>
+        <Sparkline values={series} />
+      </div>
+    </div>
+  );
 }
 
 function TrafficChart({ days }: { days: DayTraffic[] }) {
@@ -187,7 +302,7 @@ function TrafficChart({ days }: { days: DayTraffic[] }) {
           Signups
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-sm" style={{ backgroundColor: "#c3d3e6" }} />
+          <span className="size-2 rounded-sm" style={{ backgroundColor: ICE }} />
           Visits
         </span>
         <span className="text-zinc-600">14-day platform activity</span>
@@ -219,8 +334,11 @@ function ModuleShareChart({
             </p>
             <div className="h-1.5 self-center overflow-hidden rounded-full bg-white/[0.06]">
               <div
-                className="h-full rounded-full bg-teal-400/70"
-                style={{ width: `${Math.max(pct, 2)}%` }}
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.max(pct, 2)}%`,
+                  backgroundColor: "color-mix(in srgb, #c3d3e6 70%, transparent)",
+                }}
               />
             </div>
             <p className="text-right text-[10px] tabular-nums text-zinc-500">
@@ -270,26 +388,52 @@ export function AdminWorkspaceDashboard() {
   }, [loadOverview]);
 
   const days = overview?.trafficByDay ?? [];
-  const searches14d = useMemo(
-    () => days.reduce((sum, day) => sum + day.searches, 0),
-    [days],
-  );
-  const signups14d = useMemo(
-    () => days.reduce((sum, day) => sum + day.signups, 0),
-    [days],
-  );
-  const visits14d = useMemo(
-    () => days.reduce((sum, day) => sum + (day.visits ?? 0), 0),
-    [days],
-  );
+
+  const metrics = useMemo(() => {
+    const mid = Math.max(days.length - 7, 0);
+    const searchesNow = sumSlice(days, mid, days.length, "searches");
+    const searchesPrev = sumSlice(days, 0, mid, "searches");
+    const signupsNow = sumSlice(days, mid, days.length, "signups");
+    const signupsPrev = sumSlice(days, 0, mid, "signups");
+    const visitsNow = sumSlice(days, mid, days.length, "visits");
+    const visitsPrev = sumSlice(days, 0, mid, "visits");
+    const revenueNow = overview?.summary.revenue30d ?? 0;
+    const revenuePrev = overview?.summary.revenuePrev30d ?? 0;
+
+    return {
+      searches: {
+        value: searchesNow,
+        change: percentChange(searchesNow, searchesPrev),
+        series: days.map((d) => d.searches),
+      },
+      signups: {
+        value: signupsNow,
+        change: percentChange(signupsNow, signupsPrev),
+        series: days.map((d) => d.signups),
+      },
+      visits: {
+        value: visitsNow,
+        change: percentChange(visitsNow, visitsPrev),
+        series: days.map((d) => d.visits ?? 0),
+      },
+      revenue: {
+        value: revenueNow,
+        change:
+          overview?.summary.revenuePrev30d == null
+            ? null
+            : percentChange(revenueNow, revenuePrev),
+        series: [revenuePrev, revenueNow],
+      },
+    };
+  }, [days, overview]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] text-zinc-500">
           {loading
-            ? "Loading…"
-            : `${searches14d} searches · ${signups14d} signups · ${visits14d} visits · last 14 days`}
+            ? "Loading analytics…"
+            : `${metrics.searches.value} searches · ${metrics.signups.value} signups · ${metrics.visits.value} visits · last 7 days`}
         </p>
         <DashButton
           className="inline-flex h-7 items-center justify-center gap-1.5 px-2 text-[11px]"
@@ -307,39 +451,83 @@ export function AdminWorkspaceDashboard() {
         </p>
       ) : null}
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          accent="teal"
-          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
-          hint={`${overview?.summary.signups24h ?? 0} new · 24h`}
-          icon={Users}
-          label="Users"
-          value={overview?.summary.totalUsers ?? "—"}
+      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          changePct={metrics.searches.change}
+          loading={loading}
+          period="Searches · 7d"
+          series={metrics.searches.series}
+          value={metrics.searches.value}
         />
-        <StatCard
-          accent="violet"
-          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
-          hint={`${overview?.summary.searches7d ?? 0} · 7d`}
-          icon={Search}
-          label="Searches 24h"
-          value={overview?.summary.searches24h ?? "—"}
+        <MetricCard
+          changePct={metrics.signups.change}
+          loading={loading}
+          period="Signups · 7d"
+          series={metrics.signups.series}
+          value={metrics.signups.value}
         />
-        <StatCard
-          accent="amber"
-          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
-          hint="Completed"
-          icon={CreditCard}
-          label="Revenue 30d"
-          value={overview ? formatMoney(overview.summary.revenue30d) : "—"}
+        <MetricCard
+          changePct={metrics.visits.change}
+          loading={loading}
+          period="Visits · 7d"
+          series={metrics.visits.series}
+          value={metrics.visits.value}
         />
-        <StatCard
-          accent="rose"
-          className="!p-2.5 [&_.dash-stat-top]:!mb-1.5 [&_.dash-stat-value]:!text-xl [&_.dash-stat-hint]:!mt-1 [&_.dash-stat-hint]:!text-[10px] [&_.dash-stat-icon]:!size-7"
-          hint={`${overview?.summary.investigateUsers ?? 0} flagged`}
-          icon={Activity}
-          label="Open flags"
-          value={overview ? overview.summary.openSafetyFlags : "—"}
+        <MetricCard
+          changePct={metrics.revenue.change}
+          loading={loading}
+          period="Revenue · 30d"
+          series={metrics.revenue.series}
+          value={formatMoney(metrics.revenue.value)}
         />
+      </div>
+
+      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-white/[0.07] bg-[#141417] px-3.5 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+            Total users
+          </p>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums text-zinc-50">
+            {overview?.summary.totalUsers ?? "—"}
+          </p>
+          <p className="mt-1 text-[10px] text-zinc-600">
+            {overview?.summary.activeUsers ?? 0} active ·{" "}
+            {overview?.summary.frozenUsers ?? 0} frozen
+          </p>
+        </div>
+        <div className="rounded-xl border border-white/[0.07] bg-[#141417] px-3.5 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+            Searches · 24h
+          </p>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums text-zinc-50">
+            {overview?.summary.searches24h ?? "—"}
+          </p>
+          <p className="mt-1 text-[10px] text-zinc-600">
+            {overview?.summary.searches30d ?? 0} · 30d
+          </p>
+        </div>
+        <div className="rounded-xl border border-white/[0.07] bg-[#141417] px-3.5 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+            New · 24h
+          </p>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums text-zinc-50">
+            {overview?.summary.signups24h ?? "—"}
+          </p>
+          <p className="mt-1 text-[10px] text-zinc-600">
+            {overview?.summary.signups7d ?? 0} · 7d
+          </p>
+        </div>
+        <div className="rounded-xl border border-white/[0.07] bg-[#141417] px-3.5 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+            Open flags
+          </p>
+          <p className="mt-1.5 text-xl font-semibold tabular-nums text-zinc-50">
+            {overview ? overview.summary.openSafetyFlags : "—"}
+          </p>
+          <p className="mt-1 text-[10px] text-zinc-600">
+            {overview?.summary.investigateUsers ?? 0} investigate accounts
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-3 xl:grid-cols-5">
@@ -349,7 +537,7 @@ export function AdminWorkspaceDashboard() {
               Activity graph
             </h3>
             <p className="text-[10px] text-zinc-600">
-              searches vs signups vs visits (site growth proxy)
+              searches vs signups vs visits
             </p>
           </div>
           <TrafficChart days={days} />
