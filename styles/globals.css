@@ -141,7 +141,7 @@ html[data-splash="active"] [data-splash-target] {
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  /* Keep shell clear so Color Bends / HomeBackground shows through glass chrome */
+  /* Keep shell clear so Ferrofluid / HomeBackground shows through glass chrome */
   background: transparent;
   color: #fff;
 }

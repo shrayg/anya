@@ -4,21 +4,18 @@ import dynamic from "next/dynamic";
 
 import { themeAccent } from "@/config/branding";
 
-const ColorBends = dynamic(() => import("@/components/color-bends"), {
+const Ferrofluid = dynamic(() => import("@/components/ferrofluid"), {
   ssr: false,
   loading: () => null,
 });
 
 type HomeBackgroundProps = {
-  /** Dashboard uses CSS-only ambient bg — avoids loading Three.js on search pages. */
+  /** Dashboard uses CSS-only ambient bg — avoids loading WebGL on search pages. */
   mode?: "full" | "lite";
 };
 
-const BEND_COLORS = [
-  "#6f8499",
-  "#5a6d82",
-  "#7d91a6",
-];
+/** Ice-blue ferrofluid contours on void black (Anya palette). */
+const FERRO_COLORS = ["#c3d3e6", "#8fa8c4", "#d8e6f4"];
 
 function LiteBackground() {
   return (
@@ -46,21 +43,22 @@ export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
       aria-hidden
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#050508]"
     >
-      <ColorBends
-        autoRotate={0}
-        bandWidth={5.5}
-        colors={BEND_COLORS}
-        frequency={1}
-        intensity={0.45}
-        mouseInfluence={0}
-        noise={0.08}
-        parallax={0}
-        rotation={90}
-        scale={1.05}
-        speed={0.15}
-        style={{ width: "100%", height: "100%", opacity: 0.55 }}
-        transparent
-        warpStrength={0.85}
+      <Ferrofluid
+        colors={FERRO_COLORS}
+        flowDirection="down"
+        fluidity={0.1}
+        glow={1.65}
+        mouseDampening={0.18}
+        mouseInteraction
+        mouseRadius={0.32}
+        mouseStrength={0.75}
+        opacity={0.85}
+        rimWidth={0.2}
+        scale={1.55}
+        sharpness={2.4}
+        shimmer={1.25}
+        speed={0.42}
+        turbulence={0.95}
       />
     </div>
   );

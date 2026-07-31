@@ -39,7 +39,7 @@ function DashboardShellInner({ children, username }: DashboardShellProps) {
       )}
       style={accentVars as CSSProperties | undefined}
     >
-      {!TEST_MAC_DASHBOARD_THEME ? <HomeBackground /> : null}
+      {!TEST_MAC_DASHBOARD_THEME ? <HomeBackground mode="lite" /> : null}
       <DashboardSidebar username={username} />
       <main
         className={clsx("dash-main", isFrozen && "dash-main--frozen")}
