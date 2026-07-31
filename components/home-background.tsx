@@ -57,7 +57,7 @@ export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
         scale={1.55}
         sharpness={2.4}
         shimmer={0.95}
-        speed={0.24}
+        speed={0.14}
         turbulence={0.95}
       />
     </div>
