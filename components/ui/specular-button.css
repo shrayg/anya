@@ -1,0 +1,160 @@
+.specular-button {
+  --sb-radius: 14px;
+  --sb-tint: #c3d3e6;
+  --sb-tint-opacity: 0.12;
+  --sb-blur: 14px;
+  --sb-text-color: #f4f7fb;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: none;
+  margin: 0;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--sb-text-color);
+  background: color-mix(
+    in srgb,
+    var(--sb-tint) calc(var(--sb-tint-opacity) * 100%),
+    rgba(12, 16, 25, 0.55)
+  );
+  border-radius: var(--sb-radius);
+  backdrop-filter: blur(var(--sb-blur));
+  -webkit-backdrop-filter: blur(var(--sb-blur));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 0.5px color-mix(in srgb, #c3d3e6 22%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.specular-button:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--sb-tint) calc((var(--sb-tint-opacity) + 0.06) * 100%),
+    rgba(12, 16, 25, 0.48)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 0.5px color-mix(in srgb, #c3d3e6 32%, transparent),
+    0 10px 28px rgba(0, 0, 0, 0.32);
+}
+
+.specular-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.specular-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, #c3d3e6 65%, transparent);
+  outline-offset: 3px;
+}
+
+.specular-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.specular-button:disabled:active {
+  transform: none;
+}
+
+.specular-button--sm {
+  font-size: 0.85rem;
+  padding: 10px 20px;
+}
+
+.specular-button--md {
+  font-size: 0.95rem;
+  padding: 12px 26px;
+}
+
+.specular-button--lg {
+  font-size: 1.05rem;
+  padding: 16px 34px;
+}
+
+.specular-button--accent {
+  --sb-tint-opacity: 0.2;
+  background: color-mix(
+    in srgb,
+    var(--sb-tint) calc(var(--sb-tint-opacity) * 100%),
+    rgba(12, 16, 25, 0.42)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 0.5px color-mix(in srgb, #c3d3e6 30%, transparent),
+    0 10px 26px rgba(0, 0, 0, 0.32);
+}
+
+/* Canvas extends past the button so the rim glow can bleed outside the edge */
+.specular-button__fx {
+  position: absolute;
+  inset: -20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.specular-button__fx canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.specular-button__label {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+}
+
+/* Compact home search CTA */
+.home-search-submit.specular-button {
+  border-radius: 0.75rem;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.92rem;
+  color: #f4f7fb;
+}
+
+/* Auth / full-width primary */
+.specular-button.ui-btn-primary--lg,
+.specular-button.h-12 {
+  min-height: 3rem;
+  padding-block: 0.75rem;
+}
+
+/* Final marketing CTA — pill shape */
+.anya-final-card__actions .specular-button {
+  min-height: 3rem;
+  border-radius: 999px;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.88rem;
+}
+
+.anya-final-card__actions .specular-button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .specular-button,
+  .specular-button:active:not(:disabled) {
+    transition: none;
+    transform: none;
+  }
+
+  .specular-button__fx {
+    display: none;
+  }
+}

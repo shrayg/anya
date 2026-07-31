@@ -23,6 +23,7 @@ import Link from "next/link";
 
 import { Reveal } from "@/components/craft/reveal";
 import ScrollFloat from "@/components/scroll-float";
+import { SpecularButton } from "@/components/ui/specular-button";
 
 const ENTRY_POINTS = [
   { label: "Email", example: "name@domain.com", icon: AtSign },
@@ -321,10 +322,16 @@ export function HomeFinalCta() {
             </p>
           </div>
           <div className="anya-final-card__actions">
-            <Link href="/auth?action=register">
+            <SpecularButton
+              accent
+              autoAnimate
+              href="/auth?action=register"
+              radius={999}
+              size="md"
+            >
               Create account
               <ArrowRight aria-hidden />
-            </Link>
+            </SpecularButton>
             <Link href="/pricing">Compare plans</Link>
           </div>
         </Reveal>

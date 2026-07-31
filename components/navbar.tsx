@@ -28,6 +28,7 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { Lock, Sparkles, Unlock } from "lucide-react";
 
+import { SpecularButton } from "@/components/ui/specular-button";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
@@ -624,15 +625,15 @@ export const Navbar = () => {
                 >
                   Login
                 </Button>
-                <Button
-                  as={NextLink}
-                  className="font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
+                <SpecularButton
+                  accent
+                  className="font-semibold"
                   href="/auth?action=register"
-                  radius="full"
-                  variant="solid"
+                  radius={999}
+                  size="sm"
                 >
                   Get started
-                </Button>
+                </SpecularButton>
               </>
             )}
           </NavbarItem>
@@ -717,15 +718,16 @@ export const Navbar = () => {
                   <Button as={NextLink} href="/auth?action=login" radius="full" variant="light">
                     Login
                   </Button>
-                  <Button
-                    as={NextLink}
-                    className="font-semibold bg-anya-accent text-black hover:bg-[var(--anya-blush-hover)]"
+                  <SpecularButton
+                    accent
+                    className="w-full font-semibold"
                     href="/auth?action=register"
-                    radius="full"
-                    variant="solid"
+                    radius={999}
+                    size="md"
+                    onClick={() => setMenuOpen(false)}
                   >
                     Get started
-                  </Button>
+                  </SpecularButton>
                 </>
               )}
             </NavbarMenuItem>
