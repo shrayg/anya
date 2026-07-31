@@ -37,9 +37,6 @@ export function HingeLiveResults({ data }: { data: HingeLiveSearchResult }) {
         <p className="mt-2 text-[11px] text-rose-200/70">
           Session recommendation feed — not a full area database dump.
         </p>
-        {data.warning ? (
-          <p className="mt-2 text-xs text-amber-200/90">{data.warning}</p>
-        ) : null}
       </div>
 
       {data.profiles.length === 0 ? (

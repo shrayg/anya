@@ -353,14 +353,6 @@ export function InstagramSearchResults({
         />
       ) : null}
 
-      {result.warnings.length > 0 ? (
-        <div className="anya-ai-signal anya-ai-signal--warn space-y-1">
-          {result.warnings.map((warning) => (
-            <p key={warning}>{warning}</p>
-          ))}
-        </div>
-      ) : null}
-
       <div className="anya-ai-brief">
         <div className="anya-ai-brief-header">
           <span className="anya-ai-mode-tag inline-flex items-center gap-1.5">

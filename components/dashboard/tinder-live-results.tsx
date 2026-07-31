@@ -31,9 +31,6 @@ export function TinderLiveResults({ data }: { data: TinderLiveSearchResult }) {
           {data.applied.locationUpdated ? "updated" : "skipped"} · preferences{" "}
           {data.applied.preferencesUpdated ? "updated" : "skipped"}
         </p>
-        {data.warning ? (
-          <p className="mt-2 text-xs text-amber-200/90">{data.warning}</p>
-        ) : null}
       </div>
 
       {data.profiles.length === 0 ? (

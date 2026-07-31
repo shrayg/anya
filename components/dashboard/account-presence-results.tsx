@@ -143,12 +143,6 @@ export function AccountPresenceResults({
         />
       </div>
 
-      {data.warning ? (
-        <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-100/90">
-          {data.warning}
-        </p>
-      ) : null}
-
       <div className="space-y-6">
         {data.sources.map((source, sourceIndex) => (
           <section key={source.id} className="space-y-3">
@@ -162,9 +156,6 @@ export function AccountPresenceResults({
                 {(source.durationMs / 1000).toFixed(1)}s
               </span>
             </div>
-            {source.warning ? (
-              <p className="text-xs text-zinc-500">{source.warning}</p>
-            ) : null}
             <HitList
               blurResults={blurResults}
               hits={source.found}
@@ -214,12 +205,6 @@ export function EmailPresenceResults({
           value={`${(data.durationMs / 1000).toFixed(1)}s`}
         />
       </div>
-
-      {data.warning ? (
-        <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-100/90">
-          {data.warning}
-        </p>
-      ) : null}
 
       {profileHits.length > 0 ? (
         <section className="space-y-3">

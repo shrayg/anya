@@ -30,14 +30,6 @@ export function InstagramActivityPanel({
         </div>
       </div>
 
-      {activity.warnings.length > 0 ? (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          {activity.warnings.map((warning) => (
-            <p key={warning}>{warning}</p>
-          ))}
-        </div>
-      ) : null}
-
       <section className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-zinc-200">
           <MapPin className="size-4 text-emerald-300" />

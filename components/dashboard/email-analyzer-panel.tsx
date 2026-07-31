@@ -225,10 +225,7 @@ function cardsFromAnalyzerPayload(
           {
             key: "note",
             label: "Note",
-            value:
-              typeof sweep.warning === "string" && sweep.warning
-                ? sweep.warning
-                : "No live hits — dork templates available",
+            value: "No live hits — dork templates available",
           },
         ],
       });

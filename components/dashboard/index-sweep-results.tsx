@@ -114,12 +114,6 @@ export function IndexSweepResults({
         </section>
       ) : null}
 
-      {data.warning ? (
-        <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-zinc-400">
-          {data.warning}
-        </p>
-      ) : null}
-
       {data.locations && data.locations.length > 0 ? (
         <section className="space-y-3">
           <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">

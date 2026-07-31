@@ -79,12 +79,6 @@ export function UsernameAccountsResults({
         />
       </div>
 
-      {data.warning ? (
-        <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-100/90">
-          {data.warning}
-        </p>
-      ) : null}
-
       {data.count === 0 ? (
         <p className="text-sm text-zinc-500">
           No public profiles returned HTTP 200 for this handle

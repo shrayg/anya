@@ -254,15 +254,6 @@ export function UsCourtSearchResults({
           </>
         }
       />
-      {result.errors.length > 0 ? (
-        <div className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-3 py-2 text-sm text-amber-100">
-          {result.errors.map((error) => (
-            <p key={error.id}>
-              {error.label}: {error.message}
-            </p>
-          ))}
-        </div>
-      ) : null}
       {portals.length > 0 ? (
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-wide text-zinc-500">
@@ -327,16 +318,6 @@ export function UsIdentitySearchResults({
         ) : null}
         <ParsedHint result={result} />
       </div>
-      {result.errors.length > 0 ? (
-        <div className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-3 py-2 text-sm text-amber-100">
-          Partial source failures:
-          {result.errors.map((error) => (
-            <p key={error.id}>
-              {error.label}: {error.message}
-            </p>
-          ))}
-        </div>
-      ) : null}
       {result.people.length > 0 ? (
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-wide text-zinc-500">
@@ -418,15 +399,6 @@ export function UsVaSorSearchResults({
         ) : null}
         <ParsedHint result={result} />
       </div>
-      {result.errors.length > 0 ? (
-        <div className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-3 py-2 text-sm text-amber-100">
-          {result.errors.map((error) => (
-            <p key={error.id}>
-              {error.label}: {error.message}
-            </p>
-          ))}
-        </div>
-      ) : null}
       <ResultCardList>
         {result.people.map((item, i) => (
           <PersonCard

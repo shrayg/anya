@@ -3005,7 +3005,6 @@ export function ModuleSearchView({
           markNoResults(
             accountsData.message ||
               accountsData.error ||
-              accountsData.warning ||
               "No public profiles returned for that username.",
           );
 
@@ -3013,10 +3012,7 @@ export function ModuleSearchView({
         }
 
         if (!accountsData.count) {
-          markNoResults(
-            accountsData.warning ||
-              "No public profiles returned for that username.",
-          );
+          markNoResults("No public profiles returned for that username.");
 
           return;
         }
@@ -3042,7 +3038,6 @@ export function ModuleSearchView({
           markNoResults(
             presence.message ||
               presence.error ||
-              presence.warning ||
               "No registered accounts detected for that email or phone.",
           );
 
@@ -3833,7 +3828,8 @@ export function ModuleSearchView({
             <div className="space-y-8">
               {(structuredResult.data.count > 0 ||
                 (structuredResult.data.portals?.length ?? 0) > 0 ||
-                structuredResult.data.errors.length > 0) && (
+                structuredResult.data.people.length > 0 ||
+                structuredResult.data.cases.length > 0) && (
                 <UsIdentitySearchResults
                   blurResults={blurResults}
                   result={structuredResult.data}

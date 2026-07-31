@@ -64,8 +64,8 @@ export function DomainSearchResults({
           </p>
         </div>
         {result.stealerLogs.error ? (
-          <p className="border-l-2 border-amber-400/60 bg-amber-400/8 px-4 py-3 text-sm text-amber-100">
-            {result.stealerLogs.error}
+          <p className="text-sm text-zinc-500">
+            No stealer log rows for this domain.
           </p>
         ) : stealerRecords.length > 0 ? (
           <SearchResultCards
@@ -92,8 +92,8 @@ export function DomainSearchResults({
           </p>
         </div>
         {result.breachedDataError ? (
-          <p className="border-l-2 border-amber-400/60 bg-amber-400/8 px-4 py-3 text-sm text-amber-100">
-            {result.breachedDataError}
+          <p className="text-sm text-zinc-500">
+            No breached credentials for this domain.
           </p>
         ) : result.breachedData ? (
           <BreachesSearchResults
