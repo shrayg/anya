@@ -71,7 +71,7 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
   {
     id: "cases",
     title: "Cases & account",
-    body: "Case ID files intel from searches. Admin Dashboard manages users and plans. Search hub lists every module as cards if you prefer browsing.",
+    body: "Case ID files intel from searches. Admin Dashboard manages users and plans. Pick any module from the sidebar to open its workspace.",
     target: "[data-tour='case-id']",
     fallbackTargets: [
       "[data-tour='footer-admin']",

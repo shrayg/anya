@@ -79,7 +79,7 @@ export type ModuleTool = {
   aiMode?: string;
 };
 
-/** Optional narrowing fields â€” empty means open-ended search. */
+/** Optional narrowing fields - empty means open-ended search. */
 export type ModuleOptionalFilter = {
   id: "state" | "city" | "county" | "zip" | "dob";
   label: string;
@@ -88,7 +88,7 @@ export type ModuleOptionalFilter = {
 
 /**
  * Module catalog entry. Pages render via `ModuleSearchView`, which always
- * shows the shared Intel Signal Lattice loader while a run is in flight â€”
+ * shows the shared Intel Signal Lattice loader while a run is in flight  - 
  * new modules inherit that UI automatically (no per-module loader wiring).
  */
 export type SearchModuleDef = {
@@ -302,8 +302,8 @@ export const AI_SEARCH_MODULES: SearchModuleDef[] = [
     "AI Search",
     "ai-search",
     "ai",
-    "Any target â€” cross-source AI synthesis",
-    "Cross-source AI synthesis â€” breach, network, and social signals in one brief.",
+    "Any target - cross-source AI synthesis",
+    "Cross-source AI synthesis - breach, network, and social signals in one brief.",
     "search",
   ),
   mod(
@@ -312,7 +312,7 @@ export const AI_SEARCH_MODULES: SearchModuleDef[] = [
     "ai-deep-scan",
     "ai",
     "Email, IP, domain, username, or Discord ID",
-    "Maximum-depth pass â€” every relevant index queried in parallel.",
+    "Maximum-depth pass - every relevant index queried in parallel.",
     "deep",
   ),
   mod(
@@ -643,8 +643,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Phone",
         "phone",
         "auto",
-        "Detected automatically â€” enter any phone format",
-        "Drop a number â€” format is detected and the lookup is routed automatically.",
+        "Detected automatically - enter any phone format",
+        "Drop a number - format is detected and the lookup is routed automatically.",
         undefined,
         undefined,
         {
@@ -745,7 +745,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Index Sweep",
         "index-sweep",
         "index-sweep",
-        'Email or phone â€” strict "id" site: operators',
+        'Email or phone - strict "id" site: operators',
         'Strict quoted search operators across LinkedIn, GitHub, and other public indexed platforms. Loose leads stay low confidence unless corroborated.',
       ),
       mod(
@@ -796,7 +796,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "name-search",
         "breach",
         "First and last name",
-        "Search breach indexes by real name â€” or pivot into court and public registries.",
+        "Search breach indexes by real name - or pivot into court and public registries.",
         undefined,
         undefined,
         {
@@ -833,7 +833,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "contact-enrich",
         "contact-enrich",
         "Name, email, phone, or address",
-        "Validate and enrich contact records â€” names, phones, emails, and addresses.",
+        "Validate and enrich contact records - names, phones, emails, and addresses.",
         undefined,
         undefined,
         {
@@ -871,7 +871,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "propertyradar",
         "propertyradar/search",
         "Address, owner name, phone, or email",
-        "Property and owner skip-trace â€” search properties, persons, phones, emails, and combined skip-trace.",
+        "Property and owner skip-trace - search properties, persons, phones, emails, and combined skip-trace.",
         undefined,
         undefined,
         {
@@ -915,7 +915,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Public Records",
         "public-records",
         "public-records",
-        "First and last name â€” optional state, city, county, ZIP, or DOB",
+        "First and last name - optional state, city, county, ZIP, or DOB",
         "One search across court, identity, sanctions, wanted, sex-offender, state/international directories, breach indexes, and contact enrichment. Use Options next to Search to toggle sources (all on by default).",
         undefined,
         undefined,
@@ -1076,13 +1076,13 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "site-pentest",
         "site-pentest",
         "Domain or URL (e.g. example.com)",
-        "Passive website hardening dashboard â€” selectable recon (DNS/TLS/headers/cookies/CT/paths/crawl/host exposure). XSS/SQLi/CMDi/traversal/brute stay desktop lab only.",
+        "Passive website hardening dashboard - selectable recon (DNS/TLS/headers/cookies/CT/paths/crawl/host exposure). XSS/SQLi/CMDi/traversal/brute stay desktop lab only.",
         undefined,
         undefined,
         {
           lawfulUseNotice: true,
           lawfulUseCopy:
-            "For authorized defensive security research and hardening reviews only. Run this against systems you own or have explicit written permission to assess. Passive recon only â€” no exploit payloads, brute force, or active attack probes.",
+            "For authorized defensive security research and hardening reviews only. Run this against systems you own or have explicit written permission to assess. Passive recon only - no exploit payloads, brute force, or active attack probes.",
         },
       ),
     ],
@@ -1121,7 +1121,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "bank-search",
         "bank",
         "Bank name, US state code, or FDIC cert #",
-        "Search US FDIC-insured institutions â€” metadata only, not account balances.",
+        "Search US FDIC-insured institutions - metadata only, not account balances.",
       ),
       mod(
         "Financial & Assets",
@@ -1163,7 +1163,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "car-insurance-us",
         "car-insurance",
         "Insurer name, keyword, or US state code",
-        "Search major US auto insurers â€” State Farm, GEICO, Progressive, and more.",
+        "Search major US auto insurers - State Farm, GEICO, Progressive, and more.",
       ),
       mod(
         "Financial & Assets",
@@ -1171,7 +1171,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "healthcare-us",
         "healthcare",
         "Plan name, keyword, or US state code",
-        "Search US health insurers and systems â€” UnitedHealthcare, Aetna, Kaiser, and more.",
+        "Search US health insurers and systems - UnitedHealthcare, Aetna, Kaiser, and more.",
       ),
     ],
   },
@@ -1183,14 +1183,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Crypto Intel",
         "crypto-intel",
         "crypto-full",
-        "Wallet or tx hash â€” chain auto-detected (BTC / ETH / LTC / SOL)",
+        "Wallet or tx hash - chain auto-detected (BTC / ETH / LTC / SOL)",
         "Unified crypto suite: full intel, wallet balance, address labels, risk, fund flow, tx deep dive, and Crypto AI.",
         undefined,
         undefined,
         {
           lawfulUseNotice: true,
           lawfulUseCopy:
-            "Authorized OSINT / compliance research only. Public blockchain data and a static seed label list â€” not commercial chain analytics. Do not use to facilitate sanctions evasion or crime.",
+            "Authorized OSINT / compliance research only. Public blockchain data and a static seed label list - not commercial chain analytics. Do not use to facilitate sanctions evasion or crime.",
           // Keep chip picker: wallet / tx / AI modes are mutually exclusive inputs.
           fanOutAllTools: false,
           tools: [
@@ -1239,7 +1239,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "crypto-holders",
         "crypto-holders",
         "Token contract address",
-        "Holder heatmaps and concentration analysis â€” roadmap.",
+        "Holder heatmaps and concentration analysis - roadmap.",
         undefined,
         true,
       ),
@@ -1249,7 +1249,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "crypto-cex-flows",
         "crypto-cex-flows",
         "Exchange or wallet address",
-        "CEX deposit clustering and off-ramp signals â€” roadmap.",
+        "CEX deposit clustering and off-ramp signals - roadmap.",
         undefined,
         true,
       ),
@@ -1259,7 +1259,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "crypto-social",
         "crypto-social",
         "Token ticker or narrative keyword",
-        "KOL wallets and FUD/FOMO signals â€” coming soon (no aggressive social scraping).",
+        "KOL wallets and FUD/FOMO signals - coming soon (no aggressive social scraping).",
         undefined,
         true,
       ),
@@ -1269,7 +1269,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "crypto-bridge",
         "crypto-bridge",
         "Bridge tx or chain pair",
-        "Cross-chain bridge monitoring â€” roadmap.",
+        "Cross-chain bridge monitoring - roadmap.",
         undefined,
         true,
       ),
@@ -1455,50 +1455,50 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         undefined,
         {
           tools: [
-            { id: "mx-email", label: "MX Â· email", apiType: "notalivex/mx/email" },
+            { id: "mx-email", label: "MX / email", apiType: "notalivex/mx/email" },
             {
               id: "mx-telefono",
-              label: "MX Â· telÃ©fono",
+              label: "MX / telefono",
               apiType: "notalivex/mx/telefono",
             },
-            { id: "mx-curp", label: "MX Â· CURP", apiType: "notalivex/mx/curp" },
-            { id: "mx-rfc", label: "MX Â· RFC", apiType: "notalivex/mx/rfc" },
+            { id: "mx-curp", label: "MX / CURP", apiType: "notalivex/mx/curp" },
+            { id: "mx-rfc", label: "MX / RFC", apiType: "notalivex/mx/rfc" },
             {
               id: "mx-nombre",
-              label: "MX Â· nombre",
+              label: "MX / nombre",
               apiType: "notalivex/mx/nombre",
             },
-            { id: "ar-email", label: "AR Â· email", apiType: "notalivex/ar/email" },
-            { id: "ar-dni", label: "AR Â· DNI", apiType: "notalivex/ar/dni" },
+            { id: "ar-email", label: "AR / email", apiType: "notalivex/ar/email" },
+            { id: "ar-dni", label: "AR / DNI", apiType: "notalivex/ar/dni" },
             {
               id: "ar-telefono",
-              label: "AR Â· telÃ©fono",
+              label: "AR / telefono",
               apiType: "notalivex/ar/telefono",
             },
             {
               id: "ar-nombre",
-              label: "AR Â· nombre",
+              label: "AR / nombre",
               apiType: "notalivex/ar/nombre",
             },
-            { id: "br-email", label: "BR Â· email", apiType: "notalivex/br/email" },
-            { id: "br-cpf", label: "BR Â· CPF", apiType: "notalivex/br/cpf" },
-            { id: "br-fone", label: "BR Â· fone", apiType: "notalivex/br/fone" },
-            { id: "cl-email", label: "CL Â· email", apiType: "notalivex/cl/email" },
-            { id: "cl-rut", label: "CL Â· RUT", apiType: "notalivex/cl/rut" },
+            { id: "br-email", label: "BR / email", apiType: "notalivex/br/email" },
+            { id: "br-cpf", label: "BR / CPF", apiType: "notalivex/br/cpf" },
+            { id: "br-fone", label: "BR / fone", apiType: "notalivex/br/fone" },
+            { id: "cl-email", label: "CL / email", apiType: "notalivex/cl/email" },
+            { id: "cl-rut", label: "CL / RUT", apiType: "notalivex/cl/rut" },
             {
               id: "cl-telefono",
-              label: "CL Â· telÃ©fono",
+              label: "CL / telefono",
               apiType: "notalivex/cl/telefono",
             },
-            { id: "co-email", label: "CO Â· email", apiType: "notalivex/co/email" },
+            { id: "co-email", label: "CO / email", apiType: "notalivex/co/email" },
             {
               id: "co-cedula",
-              label: "CO Â· cÃ©dula",
+              label: "CO / cedula",
               apiType: "notalivex/co/cedula",
             },
-            { id: "pe-email", label: "PE Â· email", apiType: "notalivex/pe/email" },
-            { id: "us-email", label: "US Â· email", apiType: "notalivex/us/email" },
-            { id: "es-email", label: "ES Â· email", apiType: "notalivex/es/email" },
+            { id: "pe-email", label: "PE / email", apiType: "notalivex/pe/email" },
+            { id: "us-email", label: "US / email", apiType: "notalivex/us/email" },
+            { id: "es-email", label: "ES / email", apiType: "notalivex/es/email" },
           ],
         },
       ),
@@ -1515,37 +1515,37 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           tools: [
             {
               id: "tg-username",
-              label: "Telegram Â· username",
+              label: "Telegram / username",
               apiType: "notalivex/tg/username",
             },
             {
               id: "tg-id",
-              label: "Telegram Â· ID",
+              label: "Telegram / ID",
               apiType: "notalivex/tg/id",
             },
             {
               id: "tg-phone",
-              label: "Telegram Â· phone",
+              label: "Telegram / phone",
               apiType: "notalivex/tg/telefono",
             },
             {
               id: "ig-username",
-              label: "Instagram Â· username",
+              label: "Instagram / username",
               apiType: "notalivex/instagram/username",
             },
             {
               id: "ig-email",
-              label: "Instagram Â· email",
+              label: "Instagram / email",
               apiType: "notalivex/instagram/email",
             },
             {
               id: "ig-phone",
-              label: "Instagram Â· phone",
+              label: "Instagram / phone",
               apiType: "notalivex/instagram/telefono",
             },
             {
               id: "osint-social",
-              label: "OSINT Â· social",
+              label: "OSINT / social",
               apiType: "notalivex/osint/social",
             },
           ],
@@ -1556,7 +1556,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "AR Renaper",
         "notalivex-renaper",
         "notalivex/ar_rena/renaper",
-        "DNI and sex â€” e.g. 12345678 M",
+        "DNI and sex - e.g. 12345678 M",
         "Argentina RENAPER national registry lookup by DNI + sex (M/F).",
       ),
       mod(
@@ -2050,7 +2050,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "tinder-live",
         "tinder-live",
         "40.7128,-74.0060 ageMin=22 ageMax=35 distanceKm=40 gender=1",
-        "Live Tinder recommendations via operator session â€” apply age, distance, gender, and Passport location filters.",
+        "Live Tinder recommendations via operator session - apply age, distance, gender, and Passport location filters.",
         undefined,
         undefined,
         {
@@ -2081,7 +2081,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "hinge-live",
         "hinge-live",
         "40.7128,-74.0060 ageMin=22 ageMax=35 distanceMi=25 gender=1 q=alex",
-        "Live Hinge recommendations via operator session â€” set location/prefs, hydrate profiles, optional local keyword filter.",
+        "Live Hinge recommendations via operator session - set location/prefs, hydrate profiles, optional local keyword filter.",
         undefined,
         undefined,
         {
@@ -2134,14 +2134,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
   },
 ];
 
-/** Former Public Records sidebar modules â€” kept for deep links / API billing maps. */
+/** Former Public Records sidebar modules - kept for deep links / API billing maps. */
 export const LEGACY_PUBLIC_RECORDS_MODULES: SearchModuleDef[] = [
   mod(
     "Public Records",
     "Global Public Records",
     "global-public-records",
     "us-global",
-    "John Doe, VA â€” or John Doe, GB",
+    "John Doe, VA - or John Doe, GB",
     "Compose live US federal, state, sanctions, wanted, court, and international registry signals in one dossier.",
     undefined,
     undefined,
@@ -2152,7 +2152,7 @@ export const LEGACY_PUBLIC_RECORDS_MODULES: SearchModuleDef[] = [
     "Court Records",
     "court-records",
     "us-court",
-    "John Doe, VA â€” or John Doe, DE â€” or a federal docket number",
+    "John Doe, VA - or John Doe, DE - or a federal docket number",
     "Federal RECAP dockets and live state/county court adapters.",
     undefined,
     undefined,
@@ -2163,7 +2163,7 @@ export const LEGACY_PUBLIC_RECORDS_MODULES: SearchModuleDef[] = [
     "Identity Search",
     "identity-search",
     "us-identity",
-    "John Doe, Fairfax County, VA â€” or Name, 22030",
+    "John Doe, Fairfax County, VA - or Name, 22030",
     "Compose FEC, NPI, OFAC, UN sanctions, wanted, inmate, NSOPW, licenses, and court indexes.",
     undefined,
     undefined,
@@ -2207,7 +2207,7 @@ export const LEGACY_PUBLIC_RECORDS_MODULES: SearchModuleDef[] = [
     "National Sex Offender Registry",
     "national-sor",
     "us-sor-national",
-    "John Smith â€” or John Smith, VA â€” or ZIP 23220",
+    "John Smith - or John Smith, VA - or ZIP 23220",
     "Live NSOPW national search across US states & territories, plus Canada RCMP high-risk child SOR.",
     undefined,
     undefined,
@@ -2233,7 +2233,7 @@ export const LEGACY_PUBLIC_RECORDS_MODULES: SearchModuleDef[] = [
     "VA Sex Offender Registry",
     "va-sex-offender",
     "us-va-sor",
-    "John Smith, Fairfax County, VA â€” or John Smith, 22030",
+    "John Smith, Fairfax County, VA - or John Smith, 22030",
     "Live Virginia State Police registry plus NSOPW scoped to VA.",
     undefined,
     undefined,
@@ -2247,7 +2247,7 @@ export const LEGACY_PUBLIC_RECORDS_MODULES: SearchModuleDef[] = [
     "US State Records Directory",
     "state-records-directory",
     "us-state-directory",
-    "John Doe â€” optional state code (e.g. TX)",
+    "John Doe - optional state code (e.g. TX)",
     "Official court and sex-offender registry portals for all 50 US states + DC.",
     undefined,
     undefined,
@@ -2258,7 +2258,7 @@ export const LEGACY_PUBLIC_RECORDS_MODULES: SearchModuleDef[] = [
     "Portal Adapter Backlog",
     "portal-backlog",
     "us-portal-backlog",
-    "John Doe, FL â€” or John Doe, TX",
+    "John Doe, FL - or John Doe, TX",
     "150+ prioritized government portals queued for live adapters.",
     undefined,
     undefined,
@@ -2269,7 +2269,7 @@ export const LEGACY_PUBLIC_RECORDS_MODULES: SearchModuleDef[] = [
     "International Records Directory",
     "international-records-directory",
     "us-intl-directory",
-    "John Doe, GB â€” or country code",
+    "John Doe, GB - or country code",
     "Official court, business registry, and sanctions portal links for major countries.",
     undefined,
     undefined,

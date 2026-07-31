@@ -35,7 +35,7 @@ import type { FormattedRecord } from "@/lib/search-utils";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, FolderPlus, Home } from "lucide-react";
+import { FolderPlus, Home } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
   useSearchJobs,
@@ -3419,14 +3419,7 @@ export function ModuleSearchView({
 
   return (
     <div className="module-search px-6 pb-8 pt-14 md:px-8 md:pb-10 md:pt-20">
-      <div className="mb-8 flex items-center justify-between gap-4">
-        <Link
-          className="module-search-back inline-flex items-center gap-2"
-          href="/dashboard/search"
-        >
-          <ArrowLeft className="size-4" />
-          Search hub
-        </Link>
+      <div className="mb-8 flex items-center justify-end gap-4">
         <Link
           className="module-search-back inline-flex items-center gap-2"
           href="/"

@@ -70,9 +70,9 @@ export default function ModuleSearchPage() {
         </p>
         <Link
           className="anya-link-btn mt-6 inline-flex"
-          href="/dashboard/search"
+          href="/dashboard/search/ai-search"
         >
-          Back to search hub
+          Open AI Search
         </Link>
       </div>
     );
