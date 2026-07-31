@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { SiteVisitBeacon } from "@/components/marketing/site-visit-beacon";
 
 export default function MarketingLayout({
   children,
@@ -8,6 +9,7 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="relative flex min-h-screen flex-col">
+      <SiteVisitBeacon />
       <Navbar />
       {/* Extra top pad so content clears the floating nav island */}
       <main className="container mx-auto flex max-w-7xl flex-grow flex-col px-6 pt-20">

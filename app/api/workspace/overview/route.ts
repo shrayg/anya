@@ -44,6 +44,7 @@ export async function GET() {
       recentSearches,
       signupsRecent,
       searchRowsRecent,
+      visitRowsRecent,
       statusCounts,
       searchTypeGroups,
     ] = await Promise.all([
@@ -95,6 +96,14 @@ export async function GET() {
         where: { createdAt: { gte: fortnightAgo } },
         select: { createdAt: true, searchType: true },
       }),
+      prisma.siteVisitDaily.findMany({
+        where: {
+          date: {
+            gte: formatDayKey(fortnightAgo),
+          },
+        },
+        select: { date: true, count: true },
+      }),
       prisma.user.groupBy({
         by: ["accountStatus"],
         _count: { id: true },
@@ -117,6 +126,7 @@ export async function GET() {
 
     const signupMap = new Map(dailyKeys.map((key) => [key, 0]));
     const searchMap = new Map(dailyKeys.map((key) => [key, 0]));
+    const visitMap = new Map(dailyKeys.map((key) => [key, 0]));
 
     for (const signup of signupsRecent) {
       const key = formatDayKey(new Date(signup.createdAt));
@@ -131,6 +141,12 @@ export async function GET() {
 
       if (searchMap.has(key)) {
         searchMap.set(key, (searchMap.get(key) ?? 0) + 1);
+      }
+    }
+
+    for (const visit of visitRowsRecent) {
+      if (visitMap.has(visit.date)) {
+        visitMap.set(visit.date, visit.count);
       }
     }
 
@@ -158,6 +174,7 @@ export async function GET() {
         date,
         signups: signupMap.get(date) ?? 0,
         searches: searchMap.get(date) ?? 0,
+        visits: visitMap.get(date) ?? 0,
       })),
       payments: payments.map((payment) => ({
         id: payment.id,

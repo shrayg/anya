@@ -17,7 +17,7 @@ import {
 } from "@/components/dashboard/dashboard-ui";
 import { formatDate, formatTime } from "@/lib/format-datetime";
 
-type DayTraffic = { date: string; signups: number; searches: number };
+type DayTraffic = { date: string; signups: number; searches: number; visits: number };
 
 type OverviewResponse = {
   summary: {
@@ -77,16 +77,17 @@ function TrafficChart({ days }: { days: DayTraffic[] }) {
   const chartH = height - padY * 2 - 18;
   const max = Math.max(
     1,
-    ...days.map((d) => Math.max(d.searches, d.signups)),
+    ...days.map((d) => Math.max(d.searches, d.signups, d.visits ?? 0)),
   );
   const n = Math.max(days.length, 1);
   const groupW = chartW / n;
-  const barW = Math.max(3, groupW * 0.32);
+  const barW = Math.max(2.5, groupW * 0.22);
+  const gap = 1.5;
 
   return (
     <div className="w-full overflow-x-auto">
       <svg
-        aria-label="Searches and signups over the last 14 days"
+        aria-label="Searches, signups, and site visits over the last 14 days"
         className="min-w-full"
         role="img"
         viewBox={`0 0 ${width} ${height}`}
@@ -118,9 +119,11 @@ function TrafficChart({ days }: { days: DayTraffic[] }) {
         })}
 
         {days.map((day, index) => {
-          const x0 = padX + index * groupW + groupW * 0.18;
+          const visits = day.visits ?? 0;
+          const x0 = padX + index * groupW + groupW * 0.12;
           const searchH = (day.searches / max) * chartH;
           const signupH = (day.signups / max) * chartH;
+          const visitH = (visits / max) * chartH;
           const base = padY + chartH;
 
           return (
@@ -142,18 +145,30 @@ function TrafficChart({ days }: { days: DayTraffic[] }) {
                 height={Math.max(signupH, day.signups > 0 ? 2 : 0)}
                 rx="1.5"
                 width={barW}
-                x={x0 + barW + 2}
+                x={x0 + barW + gap}
                 y={base - signupH}
               >
                 <title>
                   {day.date}: {day.signups} signups
                 </title>
               </rect>
+              <rect
+                fill="rgba(195,211,230,0.9)"
+                height={Math.max(visitH, visits > 0 ? 2 : 0)}
+                rx="1.5"
+                width={barW}
+                x={x0 + (barW + gap) * 2}
+                y={base - visitH}
+              >
+                <title>
+                  {day.date}: {visits} visits
+                </title>
+              </rect>
               <text
                 fill="rgba(113,113,122,0.95)"
                 fontSize="7"
                 textAnchor="middle"
-                x={x0 + barW}
+                x={x0 + barW + gap}
                 y={height - 4}
               >
                 {shortDay(day.date)}
@@ -170,6 +185,10 @@ function TrafficChart({ days }: { days: DayTraffic[] }) {
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-sm bg-amber-400/80" />
           Signups
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-2 rounded-sm" style={{ backgroundColor: "#c3d3e6" }} />
+          Visits
         </span>
         <span className="text-zinc-600">14-day platform activity</span>
       </div>
@@ -259,6 +278,10 @@ export function AdminWorkspaceDashboard() {
     () => days.reduce((sum, day) => sum + day.signups, 0),
     [days],
   );
+  const visits14d = useMemo(
+    () => days.reduce((sum, day) => sum + (day.visits ?? 0), 0),
+    [days],
+  );
 
   return (
     <div className="space-y-3">
@@ -266,7 +289,7 @@ export function AdminWorkspaceDashboard() {
         <p className="text-[11px] text-zinc-500">
           {loading
             ? "Loading…"
-            : `${searches14d} searches · ${signups14d} signups · last 14 days`}
+            : `${searches14d} searches · ${signups14d} signups · ${visits14d} visits · last 14 days`}
         </p>
         <DashButton
           className="inline-flex h-7 items-center justify-center gap-1.5 px-2 text-[11px]"
@@ -326,7 +349,7 @@ export function AdminWorkspaceDashboard() {
               Activity graph
             </h3>
             <p className="text-[10px] text-zinc-600">
-              searches vs signups (site growth proxy)
+              searches vs signups vs visits (site growth proxy)
             </p>
           </div>
           <TrafficChart days={days} />

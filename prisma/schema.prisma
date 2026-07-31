@@ -232,3 +232,13 @@ model CaseSearch {
 
   @@unique([caseId, searchHistoryId])
 }
+
+/// Daily marketing-site visit counter (cookie-deduped ~1 count per browser/day).
+/// Historical days before collection started show as 0 on the admin Activity graph.
+model SiteVisitDaily {
+  id        Int      @id @default(autoincrement())
+  /// YYYY-MM-DD (UTC day key, matches workspace overview trafficByDay)
+  date      String   @unique
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
