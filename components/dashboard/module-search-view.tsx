@@ -3599,7 +3599,7 @@ export function ModuleSearchView({
 
       {!isSearching && emptyResult && moduleDef.slug !== "site-pentest" ? (
         <div
-          className="mt-5 border-t border-white/8 pt-5"
+          className="module-search-results mt-5 w-full max-w-none border-t border-white/8 pt-5"
           data-tour="search-results"
         >
           {lastSearchLabel ? (
@@ -3611,7 +3611,7 @@ export function ModuleSearchView({
 
       {moduleDef.slug === "site-pentest" ? (
         <div
-          className="mt-5 border-t border-white/8 pt-5"
+          className="module-search-results mt-5 w-full max-w-none border-t border-white/8 pt-5"
           data-tour="search-results"
         >
           {(structuredResult?.kind === "site-pentest" || lastSearchLabel) && (
@@ -3676,7 +3676,7 @@ export function ModuleSearchView({
         instagramResult ||
         (structuredResult && structuredResult.kind !== "site-pentest")) && (
         <div
-          className="mt-5 border-t border-white/8 pt-5"
+          className="module-search-results mt-5 w-full max-w-none border-t border-white/8 pt-5"
           data-tour="search-results"
         >
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

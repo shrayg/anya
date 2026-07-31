@@ -3061,6 +3061,8 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-result-stack {
   display: grid;
+  width: 100%;
+  max-width: none;
   gap: 0.75rem;
 }
 
@@ -3111,40 +3113,29 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-result-list {
   display: grid;
+  width: 100%;
+  max-width: none;
   gap: 0.55rem;
 }
 
+/* auto-fit: side-by-side when space allows; single card stretches full width */
 .anya-result-list--grid {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.5rem), 1fr));
   gap: 0.45rem;
 }
 
-@media (min-width: 768px) {
-  .anya-result-list--grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1280px) {
-  .anya-result-list--grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-/* Home / Discord: keep results tight — 2 cols max, denser gaps */
+/* Home / Discord: denser Breaches-style packing, more columns on wide panes */
 .anya-result-list--dense-home {
-  grid-template-columns: 1fr !important;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 16rem), 1fr)
+  ) !important;
   gap: 0.4rem !important;
-}
-
-@media (min-width: 860px) {
-  .anya-result-list--dense-home {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
 }
 
 .anya-result-stack--dense {
   gap: 0.45rem;
+  width: 100%;
 }
 
 .anya-result-stack--dense .anya-result-stack-meta {
@@ -6631,6 +6622,13 @@ html[data-splash="active"] [data-splash-target] {
   margin-bottom: 2.25rem;
 }
 
+/* Results sit outside the narrow search composer — full main-pane width */
+.module-search-results,
+.module-search [data-tour="search-results"] {
+  width: 100%;
+  max-width: none;
+}
+
 .module-search-section {
   display: block;
   font-size: 0.8125rem;
@@ -6840,6 +6838,8 @@ html[data-splash="active"] [data-splash-target] {
 
 /* Discord profile modal-style results */
 .discord-profile-shell {
+  width: 100%;
+  max-width: none;
   overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;
@@ -6852,6 +6852,8 @@ html[data-splash="active"] [data-splash-target] {
 /* Discord ID search — reference layout */
 .discord-id-shell {
   display: grid;
+  width: 100%;
+  max-width: none;
   gap: 0.85rem;
 }
 
@@ -6953,10 +6955,13 @@ html[data-splash="active"] [data-splash-target] {
 
 .discord-id-layout {
   display: grid;
+  width: 100%;
+  max-width: none;
   grid-template-columns: minmax(15.5rem, 18.5rem) minmax(0, 1fr);
   grid-template-areas: "profile data";
   gap: 0.65rem;
   align-items: start;
+  justify-content: stretch;
 }
 
 .discord-id-col-left {
@@ -6973,6 +6978,7 @@ html[data-splash="active"] [data-splash-target] {
   grid-area: data;
   display: flex;
   flex-direction: column;
+  width: 100%;
   min-width: 0;
   align-self: start;
   order: 2;
@@ -7132,10 +7138,12 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .discord-id-data-body .anya-result-stack {
+  width: 100%;
   gap: 0.45rem;
 }
 
 .discord-id-data-body .anya-result-list {
+  width: 100%;
   gap: 0.4rem;
 }
 
@@ -9127,6 +9135,7 @@ html[data-splash="active"] [data-splash-target] {
 .home-search-results {
   margin-top: 0.75rem;
   width: 100%;
+  max-width: none;
   overflow: visible;
   text-align: left;
 }

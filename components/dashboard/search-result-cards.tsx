@@ -208,7 +208,7 @@ export function SearchResultCards({
   variant: _variant = "compact",
   moduleSlug = "discord-id",
   defaultExpanded = "all",
-  dense = false,
+  dense = true,
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
@@ -223,7 +223,7 @@ export function SearchResultCards({
   moduleSlug?: string;
   /** How many cards start open. */
   defaultExpanded?: "all" | "first" | "none";
-  /** Tighter packing for home / Discord results. */
+  /** Tighter Breaches-style packing + multi-column auto-fit grid. */
   dense?: boolean;
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(() =>
