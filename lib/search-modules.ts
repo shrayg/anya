@@ -344,7 +344,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "stealer-logs",
         "stealer",
         "IP, email, or domain",
-        "One stealer search — SeekNow, Wentyn, DataVoid, OathNet, Hudson Rock, OsintCat, BreachHub, and COMB indexes in a single fan-out.",
+        "One stealer search across stealer and combo indexes in a single fan-out.",
         undefined,
         undefined,
         {
