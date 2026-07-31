@@ -1,0 +1,11 @@
+{
+  "zoneId": "fa64bf2094a6abda26a869712ac3dd81",
+  "zoneName": "anyaint.com",
+  "settings": {
+    "challenge_ttl": {
+      "value": 7200,
+      "label": "2 hours",
+      "description": "Challenge Passage — how long a visitor keeps access after completing a Challenge before a new one is issued."
+    }
+  }
+}
