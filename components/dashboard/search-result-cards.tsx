@@ -13,10 +13,6 @@ import {
 } from "@/components/dashboard/result-card";
 import { IpIntelPanel } from "@/components/dashboard/ip-intel-panel";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
-import {
-  RESULTS_PAGE_SIZE,
-  ResultsPager,
-} from "@/components/dashboard/results-pager";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { formatRecordAsText, formatRecordsAsText } from "@/lib/export-intel";
@@ -30,6 +26,8 @@ import {
   recordPreviewFacts,
 } from "@/lib/search-utils";
 
+/** Progressive paint only — never silently drop remaining records. */
+const PAGE_SIZE = 48;
 const VALUE_PREVIEW_LENGTH = 96;
 
 function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
@@ -204,22 +202,19 @@ export function SearchResultCards({
   totalCount,
   selectedExportIndex = null,
   onSelectExportIndex,
-  /** @deprecated Prefer pagination; kept so callers keep compiling. */
-  initialVisible: _initialVisible = RESULTS_PAGE_SIZE,
+  initialVisible = PAGE_SIZE,
   emptyDetail = "No results were found.",
   /** Kept for callers; all variants render the Breaches card layout. */
   variant: _variant = "compact",
   moduleSlug = "discord-id",
   defaultExpanded = "all",
   dense = true,
-  pageSize = RESULTS_PAGE_SIZE,
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
   totalCount?: number;
   selectedExportIndex?: number | null;
   onSelectExportIndex?: (index: number) => void;
-  /** @deprecated Unused — lists paginate at `pageSize`. */
   initialVisible?: number;
   emptyDetail?: string;
   /** @deprecated Always renders Breaches-style cards. */
@@ -230,8 +225,6 @@ export function SearchResultCards({
   defaultExpanded?: "all" | "first" | "none";
   /** Tighter Breaches-style packing + multi-column auto-fit grid. */
   dense?: boolean;
-  /** Results per page (default 10). */
-  pageSize?: number;
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(() =>
     defaultExpanded === "all"
@@ -240,7 +233,7 @@ export function SearchResultCards({
         ? new Set([records[0].index])
         : new Set(),
   );
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(initialVisible);
 
   const resultsKey = useMemo(
     () => records.map((record) => `${record.index}:${record.title}`).join("|"),
@@ -259,11 +252,6 @@ export function SearchResultCards({
     });
   }, [records]);
 
-  const pageCount = Math.max(
-    1,
-    Math.ceil(sortedRecords.length / Math.max(1, pageSize)),
-  );
-
   useEffect(() => {
     setExpanded(
       defaultExpanded === "all"
@@ -272,21 +260,17 @@ export function SearchResultCards({
           ? new Set([records[0].index])
           : new Set(),
     );
-    setPage(1);
-  }, [resultsKey, records, defaultExpanded]);
-
-  useEffect(() => {
-    setPage((current) => Math.min(current, pageCount));
-  }, [pageCount]);
+    setVisibleCount(initialVisible);
+  }, [resultsKey, initialVisible, records, defaultExpanded]);
 
   const selectable = Boolean(onSelectExportIndex);
   const shown = sortedRecords.length;
   const total = totalCount ?? shown;
-  const pageStart = (page - 1) * Math.max(1, pageSize);
   const visibleRecords = useMemo(
-    () => sortedRecords.slice(pageStart, pageStart + Math.max(1, pageSize)),
-    [sortedRecords, pageStart, pageSize],
+    () => sortedRecords.slice(0, visibleCount),
+    [sortedRecords, visibleCount],
   );
+  const hiddenCount = Math.max(0, sortedRecords.length - visibleCount);
   const expandedVisible = visibleRecords.filter((record) =>
     expanded.has(record.index),
   ).length;
@@ -353,7 +337,7 @@ export function SearchResultCards({
       </div>
 
       <ResultCardList
-        className={dense ? "anya-result-list--dense-fill" : undefined}
+        className={dense ? "anya-result-list--dense-home" : undefined}
       >
         {visibleRecords.map((record, index) => {
           const isExpanded = expanded.has(record.index);
@@ -433,14 +417,29 @@ export function SearchResultCards({
         })}
       </ResultCardList>
 
-      <ResultsPager
-        page={page}
-        pageCount={pageCount}
-        pageSize={Math.max(1, pageSize)}
-        total={sortedRecords.length}
-        onNext={() => setPage((current) => Math.min(pageCount, current + 1))}
-        onPrev={() => setPage((current) => Math.max(1, current - 1))}
-      />
+      {hiddenCount > 0 ? (
+        <div className="anya-result-stack-actions anya-result-stack-actions--left">
+          <button
+            className="anya-result-load-more"
+            type="button"
+            onClick={() =>
+              setVisibleCount((count) =>
+                Math.min(sortedRecords.length, count + PAGE_SIZE),
+              )
+            }
+          >
+            Show {Math.min(PAGE_SIZE, hiddenCount)} more record
+            {Math.min(PAGE_SIZE, hiddenCount) === 1 ? "" : "s"}
+          </button>
+          <button
+            className="anya-result-stack-action"
+            type="button"
+            onClick={() => setVisibleCount(sortedRecords.length)}
+          >
+            Show all {sortedRecords.length.toLocaleString()}
+          </button>
+        </div>
+      ) : null}
 
       {blurResults ? <ResultsBlurNotice /> : null}
     </div>

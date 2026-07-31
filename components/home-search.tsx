@@ -14,12 +14,11 @@ import {
   Search,
   User,
 } from "lucide-react";
-import { useCallback, useEffect, useState, type ElementType } from "react";
+import { useEffect, useState, type ElementType } from "react";
 
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
-import { HomeSearchResultsPopup } from "@/components/home-search-results-popup";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { LiquidGlassCard } from "@/components/ui/liquid-glass";
 import { getHubSections } from "@/lib/search-modules";
@@ -94,7 +93,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     useState<DiscordSearchResult | null>(null);
   const [combResult, setCombResult] = useState<CombSearchResult | null>(null);
   const [blurResults, setBlurResults] = useState(false);
-  const [resultsOpen, setResultsOpen] = useState(false);
 
   const visibleLockedModules =
     lockedModules ?? (isMounted ? LOCKED_MODULES : []);
@@ -145,14 +143,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     STARTER_SEARCH_MODES.find((mode) => mode.id === starterMode) ??
     STARTER_SEARCH_MODES[0];
 
-  const closeResults = useCallback(() => {
-    setResultsOpen(false);
-    setRecords([]);
-    setDiscordResult(null);
-    setCombResult(null);
-    setResultCount(0);
-  }, []);
-
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -182,7 +172,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     setDiscordResult(null);
     setCombResult(null);
     setResultCount(0);
-    setResultsOpen(false);
     setBlurResults(false);
 
     if (!quotaCheck.allowed) {
@@ -242,7 +231,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         }
 
         setDiscordResult(discordData);
-        setResultsOpen(true);
 
         return;
       }
@@ -294,7 +282,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             ? breachData.totalMatches
             : returned,
         );
-        setResultsOpen(true);
 
         return;
       }
@@ -314,7 +301,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         setResultCount(
           typeof data.count === "number" ? data.count : results.length,
         );
-        setResultsOpen(true);
 
         return;
       }
@@ -333,7 +319,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           ? (data as { count: number }).count
           : formatted.length,
       );
-      setResultsOpen(true);
     } catch {
       setError("Could not complete the search.");
     } finally {
@@ -467,59 +452,36 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
       {error ? <p className="home-search-error">{error}</p> : null}
 
-      <HomeSearchResultsPopup
-        open={
-          resultsOpen &&
-          Boolean(discordResult || combResult || records.length > 0)
-        }
-        subtitle={
-          resultCount > 0
-            ? `${resultCount.toLocaleString()} match${resultCount === 1 ? "" : "es"}`
-            : undefined
-        }
-        title={`${activeStarterMode.label} results`}
-        onClose={closeResults}
-      >
-        {discordResult ? (
-          <div
-            className="home-search-results home-search-results--popup"
-            data-tour="home-search-results"
-          >
-            <DiscordSearchResults
-              blurResults={blurResults}
-              result={discordResult}
-            />
-          </div>
-        ) : null}
+      {discordResult ? (
+        <div className="home-search-results" data-tour="home-search-results">
+          <DiscordSearchResults
+            blurResults={blurResults}
+            result={discordResult}
+          />
+        </div>
+      ) : null}
 
-        {combResult ? (
-          <div
-            className="home-search-results home-search-results--popup"
-            data-tour="home-search-results"
-          >
-            <BreachesSearchResults
-              blurResults={blurResults}
-              result={combResult}
-            />
-          </div>
-        ) : null}
+      {combResult ? (
+        <div className="home-search-results" data-tour="home-search-results">
+          <BreachesSearchResults
+            blurResults={blurResults}
+            result={combResult}
+          />
+        </div>
+      ) : null}
 
-        {records.length > 0 ? (
-          <div
-            className="home-search-results home-search-results--popup"
-            data-tour="home-search-results"
-          >
-            <SearchResultCards
-              blurResults={blurResults}
-              defaultExpanded="first"
-              dense
-              moduleSlug="breaches"
-              records={records}
-              totalCount={resultCount}
-            />
-          </div>
-        ) : null}
-      </HomeSearchResultsPopup>
+      {records.length > 0 ? (
+        <div className="home-search-results" data-tour="home-search-results">
+          <SearchResultCards
+            blurResults={blurResults}
+            defaultExpanded="first"
+            dense
+            moduleSlug="breaches"
+            records={records}
+            totalCount={resultCount}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
