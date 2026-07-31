@@ -15,7 +15,7 @@ type HomeBackgroundProps = {
 };
 
 /** Ice-blue ferrofluid contours on void black (Anya palette). */
-const FERRO_COLORS = ["#c3d3e6", "#8fa8c4", "#d8e6f4"];
+const FERRO_COLORS = ["#9aafc4", "#6e869e", "#b0c4d6"];
 
 function LiteBackground() {
   return (
@@ -47,17 +47,17 @@ export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
         colors={FERRO_COLORS}
         flowDirection="down"
         fluidity={0.1}
-        glow={1.65}
+        glow={1.25}
         mouseDampening={0.18}
         mouseInteraction
         mouseRadius={0.32}
         mouseStrength={0.75}
-        opacity={0.85}
+        opacity={0.62}
         rimWidth={0.2}
         scale={1.55}
         sharpness={2.4}
-        shimmer={1.25}
-        speed={0.42}
+        shimmer={0.95}
+        speed={0.24}
         turbulence={0.95}
       />
     </div>
