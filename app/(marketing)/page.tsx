@@ -1,4 +1,5 @@
 import { HomeBackground } from "@/components/home-background";
+import { HomeDiscordNotify } from "@/components/home-discord-notify";
 import { HomeSearch } from "@/components/home-search";
 import {
   HomeAudiences,
@@ -29,6 +30,7 @@ export default function Home() {
   return (
     <>
       <HomeBackground />
+      <HomeDiscordNotify />
 
       <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-end gap-8 px-4 pb-[min(26svh,12rem)] pt-10 text-center md:gap-10">
         <Reveal

@@ -35,6 +35,7 @@ export const siteConfig = {
   ] as NavItem[],
   links: {
     telegram: "https://t.me/anyaintel",
+    discord: "https://discord.gg/ZgHUpeYxr",
     supportEmail: "support@anyaint.com",
   },
   legalLinks: [
