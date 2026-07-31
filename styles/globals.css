@@ -2479,6 +2479,55 @@ html[data-splash="active"] [data-splash-target] {
   gap: 0.4rem;
 }
 
+.anya-results-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.15rem 0.1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.anya-results-pager-meta {
+  font-size: 0.68rem;
+  color: #71717a;
+}
+
+.anya-results-pager-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.anya-results-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #e4e4e7;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.anya-results-pager-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.anya-results-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .anya-stealer-btn {
   display: inline-flex;
   align-items: center;
@@ -3125,7 +3174,8 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 /* Home / Discord: denser Breaches-style packing, more columns on wide panes */
-.anya-result-list--dense-home {
+.anya-result-list--dense-home,
+.anya-result-list--dense-fill {
   grid-template-columns: repeat(
     auto-fit,
     minmax(min(100%, 16rem), 1fr)
@@ -3142,7 +3192,7 @@ html[data-splash="active"] [data-splash-target] {
   color: #a1a1aa;
 }
 
-/* Breaches: three-column layout — IP | credentials | Email Analyzer */
+/* Breaches: context row (IP + analyzer) then full-width credential grid */
 .anya-result-stack--breaches {
   justify-items: stretch;
   width: 100%;
@@ -3154,6 +3204,7 @@ html[data-splash="active"] [data-splash-target] {
   max-width: none;
 }
 
+/* Legacy three-column shell — kept for any residual class usage */
 .anya-breaches-layout {
   display: grid;
   width: 100%;
@@ -3162,6 +3213,21 @@ html[data-splash="active"] [data-splash-target] {
   grid-template-columns: 1fr;
   align-items: start;
   justify-content: stretch;
+}
+
+.anya-breaches-context {
+  display: grid;
+  width: 100%;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.anya-breaches-credentials {
+  display: grid;
+  width: 100%;
+  gap: 0.55rem;
+  min-width: 0;
 }
 
 .anya-breaches-col {
@@ -3182,8 +3248,29 @@ html[data-splash="active"] [data-splash-target] {
   order: 3;
 }
 
+.anya-breaches-col--context {
+  order: 0;
+}
+
+@media (min-width: 900px) {
+  .anya-breaches-context {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .anya-breaches-context .anya-breaches-side-panel--analyzer {
+    max-height: min(42vh, 28rem);
+    overflow: auto;
+  }
+
+  .anya-breaches-context .anya-breaches-side-panel--ip {
+    max-height: min(42vh, 28rem);
+    overflow: auto;
+  }
+}
+
 @media (min-width: 1100px) {
-  /* Full-width three columns: IP | credentials | Email Analyzer */
+  /* Legacy three-column layout fallback */
   .anya-breaches-layout {
     grid-template-columns:
       minmax(15rem, 0.85fr)
@@ -3341,8 +3428,7 @@ html[data-splash="active"] [data-splash-target] {
 }
 
 .anya-result-list--dense-main,
-.anya-result-list--dense-left,
-.anya-result-list--analyzer {
+.anya-result-list--dense-left {
   width: 100%;
   justify-self: stretch;
   grid-template-columns: 1fr !important;
@@ -3353,8 +3439,16 @@ html[data-splash="active"] [data-splash-target] {
   max-width: none;
 }
 
+/* Presence / analyzer cards pack across the panel width */
 .anya-result-list--analyzer {
+  width: 100%;
   max-width: none;
+  justify-self: stretch;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 13.5rem), 1fr)
+  ) !important;
+  gap: 0.35rem;
 }
 
 .anya-result-card--dense.anya-breach-card {
@@ -9138,6 +9232,121 @@ html[data-splash="active"] [data-splash-target] {
   max-width: none;
   overflow: visible;
   text-align: left;
+}
+
+.home-search-results--popup {
+  margin-top: 0;
+}
+
+.home-search-results-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.home-search-results-popup__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+
+.home-search-results-popup__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 92rem);
+  max-height: min(92vh, 58rem);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background: #0a0a0b;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+  animation: home-search-results-pop 0.22s ease-out;
+}
+
+@keyframes home-search-results-pop {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.home-search-results-popup__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+  padding: 0.9rem 1rem 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.home-search-results-popup__titles {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.home-search-results-popup__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  color: #fafafa;
+  letter-spacing: -0.01em;
+}
+
+.home-search-results-popup__subtitle {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+}
+
+.home-search-results-popup__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: #d4d4d8;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.home-search-results-popup__close:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fafafa;
+}
+
+.home-search-results-popup__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.85rem 1rem 1.1rem;
+  overscroll-behavior: contain;
 }
 
 .home-search-results .discord-id-results,
