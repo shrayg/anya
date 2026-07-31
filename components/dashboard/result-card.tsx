@@ -54,10 +54,16 @@ export function ResultCardField({
   blurResults?: boolean;
   showCopy?: boolean;
 }) {
+  const isToken = looksLikeLongToken(field.value);
   const spanFull =
+    Boolean(field.block) || isToken || field.value.length > 72 || field.value.includes("\n");
+  const humanReadable =
     Boolean(field.block) ||
-    looksLikeLongToken(field.value) ||
-    field.value.length > 72;
+    field.value.includes("\n") ||
+    field.value.includes(" ") ||
+    /^(Risk|Badges|Bio|Email|Username|Display name|Country|City|Region|ISP|Member since|Indexed|Last seen|Linked accounts|FiveM)$/i.test(
+      field.label,
+    );
 
   return (
     <div
@@ -73,9 +79,15 @@ export function ResultCardField({
         className={clsx(
           "anya-breach-value-box",
           field.highlight && "anya-breach-value-box--accent",
+          humanReadable && !isToken && "anya-breach-value-box--human",
         )}
       >
-        <p className="anya-breach-value-text">
+        <p
+          className={clsx(
+            "anya-breach-value-text",
+            humanReadable && !isToken && "anya-breach-value-text--human",
+          )}
+        >
           <BlurredValue forceBlur={blurResults} text={field.value} />
         </p>
         {showCopy && field.value.trim() ? (

@@ -21,10 +21,14 @@ import {
   isIpAddress,
   isIpFieldKey,
 } from "@/lib/ip-detect";
+import {
+  groupRecordFields,
+  recordPreviewFacts,
+} from "@/lib/search-utils";
 
 /** Progressive paint only — never silently drop remaining records. */
 const PAGE_SIZE = 48;
-const VALUE_PREVIEW_LENGTH = 72;
+const VALUE_PREVIEW_LENGTH = 96;
 
 function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
   if (value.length <= max) return value;
@@ -87,6 +91,108 @@ function CompactField({
       }}
       showCopy={expanded && Boolean(field.value.trim())}
     />
+  );
+}
+
+function RecordFieldsBody({
+  record,
+  blurResults,
+  isExpanded,
+}: {
+  record: FormattedRecord;
+  blurResults: boolean;
+  isExpanded: boolean;
+}) {
+  const sections = useMemo(
+    () => groupRecordFields(record.fields),
+    [record.fields],
+  );
+  const previewFacts = useMemo(
+    () => recordPreviewFacts(record),
+    [record],
+  );
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    setShowAdvanced(false);
+  }, [record.index]);
+
+  if (!isExpanded) {
+    if (previewFacts.length === 0) return null;
+
+    return (
+      <div className="anya-result-preview">
+        {previewFacts.map((fact) => (
+          <span key={fact} className="anya-result-preview-chip">
+            {fact}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  const mainSections = sections.filter((section) => !section.advanced);
+  const advancedSection = sections.find((section) => section.advanced);
+
+  return (
+    <div className="anya-result-sections">
+      {mainSections.map((section) => (
+        <section
+          key={section.id}
+          className="anya-result-section"
+          aria-label={section.label}
+        >
+          <p className="anya-breach-group-label">{section.label}</p>
+          <div className="anya-result-section-fields">
+            {section.fields.map((field) => (
+              <CompactField
+                key={`${record.index}-${section.id}-${field.key}`}
+                blurResults={blurResults}
+                expanded={isExpanded}
+                field={field}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+
+      {advancedSection && advancedSection.fields.length > 0 ? (
+        <div className="anya-result-more">
+          <button
+            aria-expanded={showAdvanced}
+            className={clsx(
+              "anya-result-more-toggle",
+              showAdvanced && "anya-result-more-toggle--open",
+            )}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowAdvanced((open) => !open);
+            }}
+          >
+            <span>
+              {showAdvanced ? "Hide details" : "More details"}
+              <span className="anya-result-more-count">
+                {advancedSection.fields.length}
+              </span>
+            </span>
+            <ChevronDown className="size-3.5" />
+          </button>
+          {showAdvanced ? (
+            <div className="anya-result-section-fields anya-result-section-fields--advanced">
+              {advancedSection.fields.map((field) => (
+                <CompactField
+                  key={`${record.index}-more-${field.key}`}
+                  blurResults={blurResults}
+                  expanded={isExpanded}
+                  field={field}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -258,6 +364,7 @@ export function SearchResultCards({
               className={clsx(
                 isExpanded && "anya-result-card--expanded",
                 dense && "anya-result-card--dense",
+                "anya-result-card--readable",
               )}
               copyText={formatRecordAsText(record)}
               footer={
@@ -300,16 +407,11 @@ export function SearchResultCards({
                   : undefined
               }
             >
-              {!isExpanded
-                ? null
-                : record.fields.map((field) => (
-                    <CompactField
-                      key={`${record.index}-${field.key}`}
-                      blurResults={blurResults}
-                      expanded={isExpanded}
-                      field={field}
-                    />
-                  ))}
+              <RecordFieldsBody
+                blurResults={blurResults}
+                isExpanded={isExpanded}
+                record={record}
+              />
             </ResultCard>
           );
         })}

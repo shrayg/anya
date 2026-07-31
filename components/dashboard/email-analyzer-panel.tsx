@@ -60,7 +60,10 @@ function pushScalarFields(
       key === "hits" ||
       key === "dorks" ||
       key === "locations" ||
-      key === "linkedInResolve"
+      key === "linkedInResolve" ||
+      /^ai[_-]?summary$/i.test(key) ||
+      /^ai[_-]?analysis$/i.test(key) ||
+      /^ai[_-]?brief$/i.test(key)
     ) {
       continue;
     }
