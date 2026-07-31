@@ -23,7 +23,6 @@ import { motion, useInView, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
 import ScrollFloat from "@/components/scroll-float";
-import { PanelDemo } from "@/components/panel-demo";
 
 const ENTRY_POINTS = [
   { label: "Email", example: "name@domain.com", icon: AtSign },
@@ -143,8 +142,6 @@ export function HomeShowcase() {
             accounts—then arranges what matters in one readable workspace.
           </p>
         </header>
-
-        <PanelDemo />
 
         <div className="anya-proof-rail" role="list">
           <div role="listitem">
