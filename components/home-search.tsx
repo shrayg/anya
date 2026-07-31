@@ -2,7 +2,6 @@
 
 import type { UserProfile } from "@/lib/account-plan";
 import type { DiscordSearchResult } from "@/lib/discord-profile";
-
 import Link from "next/link";
 import clsx from "clsx";
 import {
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ElementType } from "react";
 
+import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
@@ -27,6 +27,10 @@ import {
   resolveStarterSearchRoute,
   type StarterSearchMode,
 } from "@/lib/starter-search";
+import {
+  normalizeEmail,
+  type CombSearchResult,
+} from "@/lib/proxynova-comb";
 import { sanitizePublicText } from "@/lib/public-branding";
 import {
   AutofillDecoyFields,
@@ -87,6 +91,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const [resultCount, setResultCount] = useState(0);
   const [discordResult, setDiscordResult] =
     useState<DiscordSearchResult | null>(null);
+  const [combResult, setCombResult] = useState<CombSearchResult | null>(null);
   const [blurResults, setBlurResults] = useState(false);
 
   const visibleLockedModules =
@@ -165,6 +170,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     setError("");
     setRecords([]);
     setDiscordResult(null);
+    setCombResult(null);
     setResultCount(0);
     setBlurResults(false);
 
@@ -191,10 +197,20 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       ? `&scope=${encodeURIComponent(route.scope)}`
       : "";
     const moduleParam = `&moduleSlug=${encodeURIComponent(route.moduleSlug)}`;
+    // Match dashboard Breaches: pass field-type hint so email fan-out runs.
+    const breachType =
+      route.apiType === "breaches"
+        ? starterMode === "email" || normalizeEmail(searchQuery)
+          ? "email"
+          : null
+        : null;
+    const breachesTypeParam = breachType
+      ? `&type=${encodeURIComponent(breachType)}`
+      : "";
 
     try {
       const response = await fetch(
-        `/api/osint/${route.apiType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}`,
+        `/api/osint/${route.apiType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${breachesTypeParam}`,
         { credentials: "include" },
       );
       const data = await response.json();
@@ -220,18 +236,35 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       }
 
       if (route.apiType === "breaches") {
-        const breachData = data as {
-          results?: unknown[];
-          count?: number;
-          returned?: number;
-          message?: string;
+        // API returns CombSearchResult ({ credentials, returned }), not { results }.
+        const breachData = data as CombSearchResult & {
           error?: string;
+          message?: string;
+          hasGodsEyeReport?: boolean;
+          hasBreachVipResults?: boolean;
+          csintCount?: number;
+          breachHubCount?: number;
+          osintCatCount?: number;
+          godseyeSearchCount?: number;
         };
-        const results = Array.isArray(breachData.results)
-          ? breachData.results
+        const credentials = Array.isArray(breachData.credentials)
+          ? breachData.credentials
           : [];
+        const returned =
+          typeof breachData.returned === "number"
+            ? breachData.returned
+            : credentials.length;
+        const empty =
+          returned === 0 &&
+          credentials.length === 0 &&
+          !breachData.hasGodsEyeReport &&
+          !breachData.hasBreachVipResults &&
+          !(breachData.csintCount && breachData.csintCount > 0) &&
+          !(breachData.breachHubCount && breachData.breachHubCount > 0) &&
+          !(breachData.osintCatCount && breachData.osintCatCount > 0) &&
+          !(breachData.godseyeSearchCount && breachData.godseyeSearchCount > 0);
 
-        if (results.length === 0) {
+        if (empty) {
           setError(
             breachData.message || breachData.error || "No results were found.",
           );
@@ -239,15 +272,15 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           return;
         }
 
-        const formatted = formatSearchRecords(results);
-
-        setRecords(formatted);
+        setCombResult({
+          ...breachData,
+          credentials,
+          returned,
+        });
         setResultCount(
-          typeof breachData.count === "number"
-            ? breachData.count
-            : typeof breachData.returned === "number"
-              ? breachData.returned
-              : results.length,
+          typeof breachData.totalMatches === "number"
+            ? breachData.totalMatches
+            : returned,
         );
 
         return;
@@ -424,6 +457,15 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           <DiscordSearchResults
             blurResults={blurResults}
             result={discordResult}
+          />
+        </div>
+      ) : null}
+
+      {combResult ? (
+        <div className="home-search-results" data-tour="home-search-results">
+          <BreachesSearchResults
+            blurResults={blurResults}
+            result={combResult}
           />
         </div>
       ) : null}
