@@ -10878,10 +10878,19 @@ html[data-splash="active"] [data-splash-target] {
 
 /* Anya homepage product story — transparent so HomeBackground stays continuous */
 .anya-story {
+  --story-rule: color-mix(in srgb, var(--anya-blush) 14%, rgba(255, 255, 255, 0.07));
+  --story-rule-strong: color-mix(
+    in srgb,
+    var(--anya-blush) 28%,
+    rgba(255, 255, 255, 0.1)
+  );
+  --story-mute: #8b8b96;
+  --story-soft: #a8a8b2;
+  --story-ink: #f4f5f7;
   position: relative;
   isolation: isolate;
   overflow: visible;
-  color: #f7f7f8;
+  color: var(--story-ink);
   background: transparent;
 }
 
@@ -10890,41 +10899,85 @@ html[data-splash="active"] [data-splash-target] {
   z-index: -1;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
-  background-size: 72px 72px;
+    radial-gradient(
+      ellipse 70% 45% at 50% 0%,
+      color-mix(in srgb, var(--anya-blush) 5%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px
+    );
+  background-size:
+    auto,
+    80px 80px,
+    80px 80px;
   content: "";
   mask-image: linear-gradient(
     to bottom,
     transparent,
-    #000 18%,
-    #000 82%,
+    #000 14%,
+    #000 86%,
     transparent
   );
   pointer-events: none;
 }
 
+.anya-story::after {
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 4%,
+    var(--story-rule-strong) 28%,
+    color-mix(in srgb, var(--anya-blush) 55%, transparent) 50%,
+    var(--story-rule-strong) 72%,
+    transparent 96%
+  );
+  content: "";
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.anya-story--modules::after,
+.anya-story--proof::after {
+  opacity: 1;
+}
+
+.anya-story--scale::after,
+.anya-story--final::after {
+  opacity: 0.55;
+}
+
 .anya-story__inner {
-  width: min(100% - 2rem, 74rem);
+  width: min(100% - 2rem, 72rem);
   margin-inline: auto;
-  padding-block: clamp(5rem, 9vw, 8rem);
+  padding-block: clamp(4.75rem, 10vw, 8.5rem);
 }
 
 .anya-story__eyebrow {
-  margin: 0 0 1rem;
-  color: color-mix(in srgb, var(--anya-blush) 76%, white);
+  margin: 0 0 1.15rem;
+  color: color-mix(in srgb, var(--anya-blush) 82%, white);
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .anya-story__split-head {
   display: grid;
-  margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+  margin-bottom: clamp(2.75rem, 6vw, 4.75rem);
   align-items: end;
-  gap: 1.5rem 4rem;
+  gap: 1.75rem 5rem;
 }
 
 .anya-story__split-head h2,
@@ -10932,18 +10985,18 @@ html[data-splash="active"] [data-splash-target] {
 .anya-story__copy h2,
 .anya-final-card h2 {
   margin: 0;
-  color: #f7f7f8;
-  font-size: clamp(2.45rem, 6vw, 5.1rem);
-  font-weight: 590;
-  letter-spacing: -0.065em;
-  line-height: 0.94;
+  color: var(--story-ink);
+  font-size: clamp(2.55rem, 6.2vw, 5.25rem);
+  font-weight: 580;
+  letter-spacing: -0.07em;
+  line-height: 0.92;
 }
 
 .anya-story__split-head h2 .scroll-float-line--accent,
 .anya-story__section-head h2 .scroll-float-line--accent,
 .anya-story__copy h2 .scroll-float-line--accent {
   display: block;
-  color: color-mix(in srgb, var(--anya-blush) 74%, white);
+  color: color-mix(in srgb, var(--anya-blush) 78%, white);
 }
 
 .anya-story__split-head > p,
@@ -10951,78 +11004,104 @@ html[data-splash="active"] [data-splash-target] {
 .anya-story__copy > p,
 .anya-final-card > div > p:last-child {
   margin: 0;
-  max-width: 36rem;
-  color: #9c9ca4;
-  font-size: clamp(0.95rem, 1.5vw, 1.08rem);
-  line-height: 1.72;
+  max-width: 34rem;
+  color: var(--story-soft);
+  font-size: clamp(0.98rem, 1.45vw, 1.1rem);
+  line-height: 1.75;
 }
 
 @media (min-width: 900px) {
   .anya-story__split-head {
-    grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+    grid-template-columns: minmax(0, 1.4fr) minmax(17rem, 0.6fr);
   }
 }
 
+/* —— Proof rail ——————————————————————————————— */
 .anya-story--proof {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
   background: transparent;
 }
 
 .anya-proof-rail {
   display: grid;
-  overflow: hidden;
-  margin-top: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.095);
-  border-radius: 1.2rem;
-  background: rgba(255, 255, 255, 0.02);
+  gap: 0;
+  border-block: 1px solid var(--story-rule);
 }
 
 .anya-proof-rail > div {
+  position: relative;
   display: grid;
-  min-height: 7.2rem;
-  padding: 1rem 1.1rem;
+  min-height: 8.25rem;
+  padding: 1.45rem 0.15rem 1.45rem 0;
   grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   align-content: center;
-  gap: 0.2rem 0.7rem;
+  gap: 0.35rem 0.95rem;
 }
 
 .anya-proof-rail > div + div {
-  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  border-top: 1px solid var(--story-rule);
+}
+
+.anya-proof-rail__step {
+  position: absolute;
+  top: 1.35rem;
+  right: 0.15rem;
+  color: color-mix(in srgb, var(--anya-blush) 35%, #5c5c66);
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 .anya-proof-rail svg {
-  width: 1.05rem;
+  width: 1.15rem;
   grid-row: 1 / 3;
   align-self: center;
   color: var(--anya-blush);
 }
 
-.anya-proof-rail span {
-  color: #777780;
+.anya-proof-rail > div > span:not(.anya-proof-rail__step) {
+  color: color-mix(in srgb, var(--anya-blush) 45%, #6e6e78);
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.5rem;
-  letter-spacing: 0.13em;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
 }
 
 .anya-proof-rail strong {
-  color: #dedee2;
-  font-size: 0.78rem;
-  font-weight: 590;
+  color: #e8e8ed;
+  font-size: clamp(0.95rem, 1.4vw, 1.12rem);
+  font-weight: 560;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
 }
 
-@media (min-width: 760px) {
+@media (min-width: 800px) {
   .anya-proof-rail {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border-block: 0;
+    border-top: 1px solid var(--story-rule);
+  }
+
+  .anya-proof-rail > div {
+    padding: 1.75rem 1.5rem 1.75rem 0;
+    min-height: 9rem;
   }
 
   .anya-proof-rail > div + div {
     border-top: 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.075);
+    border-left: 1px solid var(--story-rule);
+    padding-left: 1.75rem;
+  }
+
+  .anya-proof-rail__step {
+    top: 1.65rem;
+    right: 0.35rem;
   }
 }
 
+/* —— Signal router ———————————————————————————— */
 .anya-story--router {
-  border-block: 1px solid rgba(255, 255, 255, 0.06);
   background: transparent;
 }
 
@@ -11030,13 +11109,13 @@ html[data-splash="active"] [data-splash-target] {
 .anya-trust-grid {
   display: grid;
   align-items: center;
-  gap: clamp(2.5rem, 7vw, 6.5rem);
+  gap: clamp(2.75rem, 7vw, 6.75rem);
 }
 
 .anya-story__copy {
   display: grid;
   align-content: center;
-  gap: 1.25rem;
+  gap: 1.35rem;
 }
 
 .anya-story__copy .anya-story__eyebrow {
@@ -11046,22 +11125,28 @@ html[data-splash="active"] [data-splash-target] {
 .anya-story__text-link {
   display: inline-flex;
   width: max-content;
-  margin-top: 0.35rem;
+  margin-top: 0.45rem;
   align-items: center;
-  gap: 0.5rem;
-  color: #f1f1f3;
-  font-size: 0.9rem;
+  gap: 0.55rem;
+  color: color-mix(in srgb, var(--anya-blush) 88%, white);
+  font-size: 0.92rem;
   font-weight: 650;
+  letter-spacing: -0.01em;
   text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.anya-story__text-link:hover {
+  color: #fff;
 }
 
 .anya-story__text-link svg {
   width: 1rem;
-  transition: transform 160ms ease;
+  transition: transform 180ms ease;
 }
 
 .anya-story__text-link:hover svg {
-  transform: translateX(0.25rem);
+  transform: translateX(0.28rem);
 }
 
 .anya-signal-router {
@@ -11069,51 +11154,51 @@ html[data-splash="active"] [data-splash-target] {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  gap: 1rem;
+  gap: 1.1rem;
 }
 
 .anya-signal-router__inputs {
   display: grid;
-  gap: 0.6rem;
+  gap: 0;
+  border-top: 1px solid var(--story-rule);
 }
 
 .anya-signal-router__input {
   display: grid;
-  min-height: 4rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.9rem;
-  padding: 0.65rem 0.8rem;
+  min-height: 3.85rem;
+  padding: 0.85rem 0.1rem;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.7rem;
-  background: rgba(255, 255, 255, 0.025);
+  gap: 0.85rem;
+  border-bottom: 1px solid var(--story-rule);
+  background: transparent;
 }
 
 .anya-signal-router__input > svg {
-  width: 1rem;
+  width: 1.05rem;
   color: var(--anya-blush);
 }
 
 .anya-signal-router__input > div {
   display: grid;
   min-width: 0;
-  gap: 0.2rem;
+  gap: 0.22rem;
 }
 
 .anya-signal-router__input span,
 .anya-signal-router__core span {
-  color: #74747d;
+  color: color-mix(in srgb, var(--anya-blush) 40%, #6a6a74);
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.48rem;
-  letter-spacing: 0.12em;
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .anya-signal-router__input code {
   overflow: hidden;
-  color: #d8d8dc;
+  color: #d9d9e0;
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.63rem;
+  font-size: 0.72rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -11124,44 +11209,51 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-signal-router__core {
   display: grid;
-  min-height: 10rem;
+  min-height: 11rem;
   border: 1px solid
-    color-mix(in srgb, var(--anya-blush) 42%, rgba(255, 255, 255, 0.08));
-  border-radius: 1.15rem;
-  padding: 1.2rem;
+    color-mix(in srgb, var(--anya-blush) 38%, rgba(255, 255, 255, 0.08));
+  border-radius: 1.35rem;
+  padding: 1.5rem 1.25rem;
   place-items: center;
   align-content: center;
-  gap: 0.55rem;
+  gap: 0.65rem;
   text-align: center;
   background:
     radial-gradient(
-      circle,
-      color-mix(in srgb, var(--anya-blush) 14%, transparent),
-      transparent 66%
+      circle at 50% 40%,
+      color-mix(in srgb, var(--anya-blush) 16%, transparent),
+      transparent 68%
     ),
-    rgba(255, 255, 255, 0.025);
-  box-shadow: 0 0 50px -28px var(--anya-blush);
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.01)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 64px -30px color-mix(in srgb, var(--anya-blush) 55%, transparent);
 }
 
 .anya-signal-router__core > svg {
-  width: 1.5rem;
+  width: 1.55rem;
   color: var(--anya-blush);
 }
 
 .anya-signal-router__core strong {
-  color: #ededf0;
-  font-size: 0.9rem;
-  font-weight: 620;
+  color: #f0f0f3;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 @media (min-width: 900px) {
   .anya-story__router-grid,
   .anya-trust-grid {
-    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
   }
 
   .anya-signal-router {
-    grid-template-columns: minmax(14rem, 0.78fr) 4.5rem minmax(12rem, 0.72fr);
+    grid-template-columns: minmax(14rem, 0.82fr) 5rem minmax(12rem, 0.78fr);
   }
 
   .anya-signal-router__rail {
@@ -11170,7 +11262,7 @@ html[data-splash="active"] [data-splash-target] {
     height: 1px;
     background: linear-gradient(
       90deg,
-      rgba(231, 88, 160, 0.15),
+      color-mix(in srgb, var(--anya-blush) 12%, transparent),
       var(--anya-blush)
     );
   }
@@ -11179,14 +11271,14 @@ html[data-splash="active"] [data-splash-target] {
     position: absolute;
     top: 50%;
     left: 0;
-    width: 0.38rem;
-    height: 0.38rem;
+    width: 0.4rem;
+    height: 0.4rem;
     border-radius: 50%;
     background: #fff;
-    box-shadow: 0 0 1rem var(--anya-blush);
+    box-shadow: 0 0 1.1rem var(--anya-blush);
     content: "";
     transform: translateY(-50%);
-    animation: anya-router-packet 2.2s ease-in-out infinite;
+    animation: anya-router-packet 2.4s ease-in-out infinite;
   }
 }
 
@@ -11200,20 +11292,21 @@ html[data-splash="active"] [data-splash-target] {
     opacity: 1;
   }
   to {
-    left: calc(100% - 0.38rem);
+    left: calc(100% - 0.4rem);
     opacity: 0;
   }
 }
 
+/* —— Questions (editorial rule grid) ——————————— */
 .anya-story--questions {
   background: transparent;
 }
 
 .anya-story__section-head {
   display: grid;
-  max-width: 54rem;
-  margin-bottom: clamp(2.2rem, 5vw, 4rem);
-  gap: 1.1rem;
+  max-width: 52rem;
+  margin-bottom: clamp(2.5rem, 5.5vw, 4.25rem);
+  gap: 1.2rem;
 }
 
 .anya-story__section-head .anya-story__eyebrow {
@@ -11222,259 +11315,264 @@ html[data-splash="active"] [data-splash-target] {
 
 .anya-question-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: 0;
+  border-top: 1px solid var(--story-rule);
 }
 
 .anya-question-card {
   position: relative;
   display: grid;
-  min-height: 17rem;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.095);
-  border-radius: 1.2rem;
-  padding: 1.3rem;
-  align-content: end;
-  gap: 0.7rem;
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      color-mix(in srgb, var(--anya-blush) 7%, transparent),
-      transparent 55%
-    ),
-    rgba(255, 255, 255, 0.02);
-  transition:
-    border-color 180ms ease,
-    transform 180ms ease,
-    background-color 180ms ease;
+  min-height: auto;
+  padding: 1.75rem 0.15rem 1.9rem;
+  align-content: start;
+  gap: 0.85rem;
+  border-bottom: 1px solid var(--story-rule);
+  background: transparent;
+  transition: background-color 200ms ease;
 }
 
 .anya-question-card:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--anya-blush) 35%,
-    rgba(255, 255, 255, 0.12)
-  );
-  background-color: rgba(255, 255, 255, 0.018);
-  transform: translateY(-0.2rem);
+  background: color-mix(in srgb, var(--anya-blush) 3.5%, transparent);
+}
+
+.anya-question-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
 }
 
 .anya-question-card__index {
-  position: absolute;
-  top: 1.15rem;
-  left: 1.25rem;
-  color: #666670;
+  position: static;
+  color: color-mix(in srgb, var(--anya-blush) 42%, #5e5e68);
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
-.anya-question-card > svg {
-  position: absolute;
-  top: 1rem;
-  right: 1.1rem;
-  width: 1.25rem;
-  color: color-mix(in srgb, var(--anya-blush) 74%, white);
+.anya-question-card__meta svg {
+  width: 1.15rem;
+  color: color-mix(in srgb, var(--anya-blush) 78%, white);
 }
 
 .anya-question-card h3 {
   margin: 0;
-  color: #f0f0f2;
-  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
-  font-weight: 580;
-  letter-spacing: -0.035em;
+  max-width: 18ch;
+  color: #f2f2f5;
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  font-weight: 560;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  transition: color 180ms ease;
+}
+
+.anya-question-card:hover h3 {
+  color: color-mix(in srgb, var(--anya-blush) 72%, white);
 }
 
 .anya-question-card p {
   margin: 0;
-  max-width: 30rem;
-  color: #898992;
-  font-size: 0.88rem;
-  line-height: 1.65;
+  max-width: 32rem;
+  color: var(--story-mute);
+  font-size: 0.92rem;
+  line-height: 1.68;
 }
 
-.anya-question-card__line {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--anya-blush),
-    transparent
-  );
-  opacity: 0;
-  transform: scaleX(0.45);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-}
-
-.anya-question-card:hover .anya-question-card__line {
-  opacity: 0.75;
-  transform: scaleX(1);
-}
-
-@media (min-width: 720px) {
+@media (min-width: 760px) {
   .anya-question-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-left: 1px solid var(--story-rule);
+  }
+
+  .anya-question-card {
+    min-height: 15.5rem;
+    padding: 2rem 1.85rem 2.1rem;
+    border-right: 1px solid var(--story-rule);
   }
 }
 
+/* —— Scale strip —————————————————————————————— */
 .anya-story--scale {
-  border-block: 1px solid rgba(255, 255, 255, 0.06);
   background: transparent;
 }
 
 .anya-story--scale .anya-story__inner {
-  padding-block: 1rem;
+  padding-block: clamp(2.25rem, 4vw, 3.25rem);
 }
 
 .anya-scale-strip {
   display: grid;
+  border-block: 1px solid var(--story-rule);
 }
 
 .anya-scale-strip > div {
   display: grid;
-  min-height: 7.5rem;
-  padding: 1rem;
+  min-height: 8rem;
+  padding: 1.35rem 0.75rem;
   place-items: center;
   align-content: center;
-  gap: 0.45rem;
+  gap: 0.65rem;
   text-align: center;
 }
 
 .anya-scale-strip > div + div {
-  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  border-top: 1px solid var(--story-rule);
 }
 
 .anya-scale-strip strong {
-  color: #f3f3f5;
-  font-size: clamp(1.75rem, 4vw, 2.55rem);
-  font-weight: 630;
-  letter-spacing: -0.055em;
+  color: color-mix(in srgb, var(--anya-blush) 55%, #f5f5f7);
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.06em;
   line-height: 1;
 }
 
 .anya-scale-strip span {
-  color: #74747d;
+  max-width: 12rem;
+  color: var(--story-mute);
   font-family: var(--font-anya-mono), ui-monospace, monospace;
-  font-size: 0.54rem;
-  letter-spacing: 0.13em;
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  line-height: 1.45;
   text-transform: uppercase;
 }
 
-@media (min-width: 700px) {
+@media (min-width: 720px) {
   .anya-scale-strip {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .anya-scale-strip > div + div {
     border-top: 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.075);
+    border-left: 1px solid var(--story-rule);
   }
 }
 
+/* —— Trust ———————————————————————————————————— */
 .anya-story--trust {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
   background: transparent;
 }
 
 .anya-trust-list {
   display: grid;
-  gap: 0.65rem;
+  gap: 0;
+  border-top: 1px solid var(--story-rule);
 }
 
 .anya-trust-list article {
   display: grid;
-  min-height: 6.8rem;
-  border: 1px solid rgba(255, 255, 255, 0.095);
-  border-radius: 1rem;
-  padding: 0.85rem 1rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.8rem;
-  background: rgba(255, 255, 255, 0.025);
+  min-height: 6.5rem;
+  padding: 1.35rem 0.1rem;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem 1.1rem;
+  border-bottom: 1px solid var(--story-rule);
+  background: transparent;
+  transition: background-color 180ms ease;
 }
 
-.anya-trust-list article > span {
+.anya-trust-list article:hover {
+  background: color-mix(in srgb, var(--anya-blush) 3%, transparent);
+}
+
+.anya-trust-list__index {
+  padding-top: 0.2rem;
+  color: color-mix(in srgb, var(--anya-blush) 40%, #5c5c66);
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.anya-trust-list__icon {
   display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid
+    color-mix(in srgb, var(--anya-blush) 28%, rgba(255, 255, 255, 0.08));
+  border-radius: 0.7rem;
   place-items: center;
   color: var(--anya-blush);
-  background: rgba(255, 255, 255, 0.025);
+  background: color-mix(in srgb, var(--anya-blush) 6%, transparent);
 }
 
-.anya-trust-list article > span svg,
-.anya-trust-list article > svg {
+.anya-trust-list__icon svg {
   width: 1rem;
-}
-
-.anya-trust-list article > svg {
-  color: #69dda5;
 }
 
 .anya-trust-list article > div {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  padding-top: 0.15rem;
 }
 
 .anya-trust-list h3 {
   margin: 0;
-  color: #ececef;
-  font-size: 0.93rem;
-  font-weight: 620;
+  color: #ececf0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .anya-trust-list p {
   margin: 0;
-  color: #81818a;
-  font-size: 0.78rem;
-  line-height: 1.55;
+  max-width: 28rem;
+  color: var(--story-mute);
+  font-size: 0.88rem;
+  line-height: 1.62;
 }
 
+/* —— Final CTA ———————————————————————————————— */
 .anya-story--final {
   background: transparent;
+  padding-bottom: clamp(1rem, 3vw, 2.5rem);
 }
 
 .anya-final-card {
   position: relative;
   display: grid;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 1.5rem;
-  padding: clamp(1.5rem, 5vw, 3.4rem);
+  border: 1px solid
+    color-mix(in srgb, var(--anya-blush) 22%, rgba(255, 255, 255, 0.1));
+  border-radius: 1.65rem;
+  padding: clamp(1.85rem, 5.5vw, 3.75rem);
   align-items: end;
-  gap: 2rem;
+  gap: 2.25rem;
   background:
     radial-gradient(
-      circle at 80% 15%,
-      color-mix(in srgb, var(--anya-blush) 17%, transparent),
-      transparent 22rem
+      ellipse 55% 70% at 88% 12%,
+      color-mix(in srgb, var(--anya-blush) 18%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 40% 50% at 8% 90%,
+      color-mix(in srgb, var(--anya-blush) 6%, transparent),
+      transparent 50%
     ),
     linear-gradient(
-      150deg,
-      rgba(255, 255, 255, 0.055),
-      rgba(255, 255, 255, 0.012)
+      155deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.012) 55%,
+      rgba(0, 0, 0, 0.2)
     );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 28px 60px -36px rgba(0, 0, 0, 0.75);
 }
 
 .anya-final-card::after {
   position: absolute;
-  top: -12rem;
-  right: -8rem;
-  width: 28rem;
-  height: 28rem;
-  border: 1px solid rgba(231, 88, 160, 0.16);
+  top: -14rem;
+  right: -10rem;
+  width: 30rem;
+  height: 30rem;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 22%, transparent);
   border-radius: 50%;
   content: "";
   box-shadow:
-    0 0 0 4rem rgba(231, 88, 160, 0.025),
-    0 0 0 8rem rgba(231, 88, 160, 0.018);
+    0 0 0 4.5rem color-mix(in srgb, var(--anya-blush) 4%, transparent),
+    0 0 0 9rem color-mix(in srgb, var(--anya-blush) 2.5%, transparent);
   pointer-events: none;
 }
 
@@ -11482,12 +11580,12 @@ html[data-splash="active"] [data-splash-target] {
   position: relative;
   z-index: 1;
   display: grid;
-  max-width: 42rem;
-  gap: 1rem;
+  max-width: 40rem;
+  gap: 1.1rem;
 }
 
 .anya-final-card h2 {
-  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  font-size: clamp(2.35rem, 5.2vw, 4.5rem);
 }
 
 .anya-final-card .anya-story__eyebrow {
@@ -11499,37 +11597,51 @@ html[data-splash="active"] [data-splash-target] {
   z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.7rem;
 }
 
 .anya-final-card__actions a {
   display: inline-flex;
-  min-height: 2.9rem;
+  min-height: 3rem;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
-  padding: 0.65rem 1.1rem;
+  padding: 0.7rem 1.25rem;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   color: #e9e9ec;
-  background: rgba(255, 255, 255, 0.035);
-  font-size: 0.84rem;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.88rem;
   font-weight: 650;
   text-decoration: none;
   transition:
     border-color 160ms ease,
     background-color 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .anya-final-card__actions a:first-child {
-  border-color: #f4f4f5;
-  color: #0b0c10;
-  background: #f4f4f5;
+  border-color: color-mix(in srgb, var(--anya-blush) 70%, white);
+  color: #07080a;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--anya-blush) 92%, white),
+    var(--anya-blush)
+  );
+  box-shadow: 0 10px 28px -14px color-mix(in srgb, var(--anya-blush) 55%, transparent);
 }
 
-.anya-final-card__actions a:hover {
+.anya-final-card__actions a:first-child:hover {
+  border-color: #fff;
+  background: #fff;
+  box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--anya-blush) 45%, transparent);
+}
+
+.anya-final-card__actions a:last-child:hover {
   border-color: color-mix(in srgb, var(--anya-blush) 55%, white);
+  background: color-mix(in srgb, var(--anya-blush) 8%, transparent);
+  color: #fff;
 }
 
 .anya-final-card__actions svg {
@@ -11546,9 +11658,84 @@ html[data-splash="active"] [data-splash-target] {
   }
 }
 
+/* —— Module directory bridge —————————————————— */
+.anya-story--modules {
+  background: transparent;
+}
+
+.anya-story--modules .anya-story__inner {
+  padding-block: clamp(3.5rem, 7vw, 5.5rem);
+}
+
+.anya-story--modules .mod-explorer-head {
+  margin-bottom: 1.35rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--story-rule);
+}
+
+.anya-story--modules .mod-kicker {
+  color: color-mix(in srgb, var(--anya-blush) 82%, white);
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.anya-story--modules .mod-explorer-title {
+  font-family: inherit;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 580;
+  letter-spacing: -0.055em;
+  line-height: 1;
+  color: var(--story-ink);
+}
+
+.anya-story--modules .mod-explorer-text {
+  margin-top: 0.65rem;
+  max-width: 28rem;
+  color: var(--story-soft);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.anya-story--modules .mod-cta {
+  border-color: color-mix(in srgb, var(--anya-blush) 40%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 10%, transparent);
+  color: color-mix(in srgb, var(--anya-blush) 88%, white);
+}
+
+.anya-story--modules .mod-cta:hover {
+  border-color: color-mix(in srgb, var(--anya-blush) 70%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 18%, transparent);
+  color: #fff;
+}
+
+.anya-story--modules .mod-index {
+  border-color: color-mix(
+    in srgb,
+    var(--anya-blush) 16%,
+    rgba(255, 255, 255, 0.1)
+  );
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--anya-blush) 5%, transparent),
+      transparent 28%
+    ),
+    rgba(4, 5, 8, 0.72);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 24px 56px -28px rgba(0, 0, 0, 0.85);
+}
+
 @media (max-width: 580px) {
   .anya-story__inner {
-    width: min(100% - 1.25rem, 74rem);
+    width: min(100% - 1.35rem, 72rem);
+  }
+
+  .anya-question-card h3 {
+    max-width: none;
   }
 }
 
@@ -11558,8 +11745,11 @@ html[data-splash="active"] [data-splash-target] {
   }
 
   .anya-question-card,
-  .anya-question-card__line,
-  .anya-story__text-link svg {
+  .anya-question-card h3,
+  .anya-trust-list article,
+  .anya-story__text-link,
+  .anya-story__text-link svg,
+  .anya-final-card__actions a {
     transition: none;
   }
 }

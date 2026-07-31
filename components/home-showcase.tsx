@@ -6,7 +6,6 @@ import {
   AtSign,
   BadgeCheck,
   BriefcaseBusiness,
-  Check,
   CircleUserRound,
   FolderLock,
   Globe2,
@@ -22,6 +21,7 @@ import {
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
+import { Reveal } from "@/components/craft/reveal";
 import ScrollFloat from "@/components/scroll-float";
 
 const ENTRY_POINTS = [
@@ -87,11 +87,12 @@ function SignalRouter({ moduleCount }: { moduleCount: number }) {
         {ENTRY_POINTS.map(({ label, example, icon: Icon }, index) => (
           <motion.div
             key={label}
-            animate={inView ? { opacity: 1, x: 0 } : { opacity: 0.4, x: -10 }}
+            animate={inView ? { opacity: 1, x: 0 } : { opacity: 0.45, x: -8 }}
             className="anya-signal-router__input"
             transition={{
-              delay: reduceMotion ? 0 : index * 0.08,
-              duration: 0.35,
+              delay: reduceMotion ? 0 : index * 0.07,
+              duration: 0.4,
+              ease: [0.22, 1, 0.36, 1],
             }}
           >
             <Icon aria-hidden />
@@ -109,10 +110,14 @@ function SignalRouter({ moduleCount }: { moduleCount: number }) {
 
       <motion.div
         animate={
-          inView ? { opacity: 1, scale: 1 } : { opacity: 0.4, scale: 0.96 }
+          inView ? { opacity: 1, scale: 1 } : { opacity: 0.45, scale: 0.97 }
         }
         className="anya-signal-router__core"
-        transition={{ delay: reduceMotion ? 0 : 0.28, duration: 0.4 }}
+        transition={{
+          delay: reduceMotion ? 0 : 0.26,
+          duration: 0.45,
+          ease: [0.22, 1, 0.36, 1],
+        }}
       >
         <Sparkles aria-hidden />
         <span>ANYA CROSS-REFERENCE</span>
@@ -143,23 +148,32 @@ export function HomeShowcase() {
           </p>
         </header>
 
-        <div className="anya-proof-rail" role="list">
+        <Reveal className="anya-proof-rail" role="list" y={22}>
           <div role="listitem">
+            <span className="anya-proof-rail__step" aria-hidden>
+              01
+            </span>
             <ScanSearch aria-hidden />
             <span>ONE ENTRY POINT</span>
             <strong>Search the signal you already have</strong>
           </div>
           <div role="listitem">
+            <span className="anya-proof-rail__step" aria-hidden>
+              02
+            </span>
             <Network aria-hidden />
             <span>CROSS-SOURCE CONTEXT</span>
             <strong>See how the findings connect</strong>
           </div>
           <div role="listitem">
+            <span className="anya-proof-rail__step" aria-hidden>
+              03
+            </span>
             <FolderLock aria-hidden />
             <span>CASE-READY OUTPUT</span>
             <strong>Keep the evidence and its source</strong>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -187,7 +201,9 @@ export function HomeHowItWorks({ moduleCount }: { moduleCount: number }) {
             <ArrowRight aria-hidden />
           </Link>
         </div>
-        <SignalRouter moduleCount={moduleCount} />
+        <Reveal y={20}>
+          <SignalRouter moduleCount={moduleCount} />
+        </Reveal>
       </div>
     </section>
   );
@@ -211,17 +227,18 @@ export function HomeAudiences() {
           </p>
         </header>
 
-        <div className="anya-question-grid">
+        <Reveal className="anya-question-grid" y={24}>
           {QUESTIONS.map(({ title, body, icon: Icon, index }) => (
             <article key={title} className="anya-question-card">
-              <span className="anya-question-card__index">{index}</span>
-              <Icon aria-hidden />
+              <div className="anya-question-card__meta">
+                <span className="anya-question-card__index">{index}</span>
+                <Icon aria-hidden />
+              </div>
               <h3>{title}</h3>
               <p>{body}</p>
-              <span aria-hidden className="anya-question-card__line" />
             </article>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -238,14 +255,14 @@ export function HomeStatsStrip({ moduleCount }: { moduleCount: number }) {
   return (
     <section className="anya-story anya-story--scale relative z-20 w-full">
       <div className="anya-story__inner">
-        <div className="anya-scale-strip" role="list">
+        <Reveal className="anya-scale-strip" role="list" y={16}>
           {stats.map((stat) => (
             <div key={stat.label} role="listitem">
               <strong>{stat.value}</strong>
               <span>{stat.label}</span>
             </div>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -269,20 +286,22 @@ export function HomeTrust() {
           </p>
         </div>
 
-        <div className="anya-trust-list">
-          {TRUST_POINTS.map(({ title, body, icon: Icon }) => (
+        <Reveal className="anya-trust-list" y={22}>
+          {TRUST_POINTS.map(({ title, body, icon: Icon }, i) => (
             <article key={title}>
-              <span>
+              <span className="anya-trust-list__index" aria-hidden>
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="anya-trust-list__icon">
                 <Icon aria-hidden />
               </span>
               <div>
                 <h3>{title}</h3>
                 <p>{body}</p>
               </div>
-              <Check aria-hidden />
             </article>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -292,13 +311,13 @@ export function HomeFinalCta() {
   return (
     <section className="anya-story anya-story--final relative z-20 w-full">
       <div className="anya-story__inner">
-        <div className="anya-final-card">
+        <Reveal className="anya-final-card" y={20}>
           <div>
             <p className="anya-story__eyebrow">START WITH ONE SIGNAL</p>
             <h2>See what connects.</h2>
             <p>
-              Run an entry search now, or open Panel when the investigation
-              needs every module and a place to keep the work.
+              Run an entry search now, or compare plans when you need every
+              module and a place to keep the work.
             </p>
           </div>
           <div className="anya-final-card__actions">
@@ -308,7 +327,7 @@ export function HomeFinalCta() {
             </Link>
             <Link href="/pricing">Compare plans</Link>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

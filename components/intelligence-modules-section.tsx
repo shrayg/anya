@@ -58,26 +58,28 @@ export function IntelligenceModulesSection({
   }
 
   return (
-    <section className="mod-shell relative z-20 mx-auto w-full max-w-6xl px-4 py-10 md:px-6 md:py-12">
-      <header className="mod-explorer-head">
-        <div>
-          <ScrollFloat as="p" containerClassName="mod-kicker mod-kicker--tight">
-            Module directory
-          </ScrollFloat>
-          <ScrollFloat containerClassName="mod-explorer-title">
-            {`${moduleCount} live modules`}
-          </ScrollFloat>
-          <p className="mod-explorer-text">
-            Pick a lane on the left. Open any module from the list.
-          </p>
-        </div>
-        <Link className="mod-cta" href={siteConfig.defaultWorkspacePath}>
-          Panel
-          <ArrowUpRight className="size-4" />
-        </Link>
-      </header>
+    <section className="anya-story anya-story--modules mod-shell relative z-20 w-full">
+      <div className="anya-story__inner">
+        <header className="mod-explorer-head">
+          <div>
+            <ScrollFloat as="p" containerClassName="mod-kicker mod-kicker--tight">
+              Module directory
+            </ScrollFloat>
+            <ScrollFloat containerClassName="mod-explorer-title">
+              {`${moduleCount} live modules`}
+            </ScrollFloat>
+            <p className="mod-explorer-text">
+              Pick a lane on the left. Open any module from the list.
+            </p>
+          </div>
+          <Link className="mod-cta" href={siteConfig.defaultWorkspacePath}>
+            Open workspace
+            <ArrowUpRight className="size-4" />
+          </Link>
+        </header>
 
-      <ModuleGraphExplorer sections={sections} />
+        <ModuleGraphExplorer sections={sections} />
+      </div>
     </section>
   );
 }
