@@ -4,15 +4,10 @@ import dynamic from "next/dynamic";
 
 import { themeAccent } from "@/config/branding";
 
-const Prism = dynamic(() => import("@/components/prism"), {
+const PixelBlast = dynamic(() => import("@/components/pixel-blast"), {
   ssr: false,
   loading: () => null,
 });
-
-/** Anya ice-blue (`#c3d3e6` / `--anya-blush`) on void — not the default React Bits purple. */
-const PRISM_HUE_SHIFT = 0.52;
-const PRISM_COLOR_FREQUENCY = 0.88;
-const VOID_BLACK = "#000000";
 
 type HomeBackgroundProps = {
   /** `lite` = CSS-only ambient bg (no WebGL). Default `full` matches marketing. */
@@ -30,7 +25,7 @@ function LiteBackground() {
         background: [
           `radial-gradient(ellipse 70% 55% at 50% 35%, ${themeAccent.pillarTop}28, transparent 68%)`,
           `radial-gradient(ellipse 55% 45% at 70% 70%, ${themeAccent.pillarBottom}18, transparent 62%)`,
-          `linear-gradient(180deg, ${VOID_BLACK} 0%, #0a0a0b 55%, ${VOID_BLACK} 100%)`,
+          "linear-gradient(180deg, #07070c 0%, #0b0b12 55%, #08080e 100%)",
         ].join(", "),
       }}
     />
@@ -47,35 +42,38 @@ export function HomeBackground({
 
   const scrim = denser
     ? [
-        "radial-gradient(ellipse 90% 60% at 50% 38%, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 55%, rgba(0,0,0,0.48) 100%)",
-        "linear-gradient(180deg, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.72) 100%)",
+        "radial-gradient(ellipse 90% 60% at 50% 38%, rgba(5,5,8,0.90) 0%, rgba(5,5,8,0.72) 55%, rgba(5,5,8,0.40) 100%)",
+        "linear-gradient(180deg, rgba(5,5,8,0.48) 0%, rgba(5,5,8,0.68) 100%)",
       ].join(", ")
     : [
-        "radial-gradient(ellipse 85% 55% at 50% 38%, rgba(0,0,0,0.86) 0%, rgba(0,0,0,0.62) 55%, rgba(0,0,0,0.32) 100%)",
-        "linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.58) 100%)",
+        "radial-gradient(ellipse 85% 55% at 50% 38%, rgba(5,5,8,0.86) 0%, rgba(5,5,8,0.6) 55%, rgba(5,5,8,0.28) 100%)",
+        "linear-gradient(180deg, rgba(5,5,8,0.35) 0%, rgba(5,5,8,0.55) 100%)",
       ].join(", ");
 
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-black"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#050508]"
     >
-      <div className="absolute inset-0 opacity-90">
-        <Prism
-          animationType="3drotate"
-          bloom={0.85}
-          colorFrequency={PRISM_COLOR_FREQUENCY}
-          glow={1.05}
-          height={3.5}
-          hueShift={PRISM_HUE_SHIFT}
-          noise={0.22}
-          scale={3.6}
-          suspendWhenOffscreen
-          timeScale={0.38}
-          transparent
-        />
-      </div>
-      {/* Scrim keeps glass sidebar / copy legible over the prism bloom. */}
+      <PixelBlast
+        enableRipples
+        transparent
+        color="#7d7c7c"
+        edgeFade={0.25}
+        interactionTarget="window"
+        patternDensity={1.15}
+        patternScale={3}
+        pixelSize={3}
+        pixelSizeJitter={1.05}
+        rippleIntensityScale={1.5}
+        rippleSpeed={0.4}
+        rippleThickness={0.12}
+        speed={4}
+        variant="diamond"
+      />
+      {/* Scrim keeps body copy legible over the dither without flattening the
+          pattern. Ripples come from window-level pointer events, so this whole
+          layer stays inert. */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{ background: scrim }}
