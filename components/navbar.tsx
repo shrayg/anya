@@ -32,7 +32,8 @@ import { SpecularButton } from "@/components/ui/specular-button";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
-import { formatCredits } from "@/lib/account-plan";
+import { formatCredits, formatSearchQuotaLabel, searchQuotaTitle } from "@/lib/account-plan";
+import { useUserStats } from "@/lib/use-user-stats";
 import {
   getAppLandingPath,
   getPlanDefinition,
@@ -50,22 +51,40 @@ function isNavActive(href: string, pathname: string) {
 
 function CreditBalanceChip({
   balance,
+  searchQuotaLabel,
+  searchTitle,
   className,
 }: {
   balance: number;
+  searchQuotaLabel?: string | null;
+  searchTitle?: string;
   className?: string;
 }) {
   return (
     <NextLink
       className={clsx("nav-credits-chip", className)}
       href="/pricing?tab=credits"
-      title="Buy credits"
+      title={
+        searchQuotaLabel
+          ? `Buy credits · ${searchTitle ?? searchQuotaLabel}`
+          : "Buy credits"
+      }
     >
       <Sparkles aria-hidden className="nav-credits-chip-icon" />
       <span className="nav-credits-chip-value tabular-nums">
         {formatCredits(balance)}
       </span>
       <span className="nav-credits-chip-label">credits</span>
+      {searchQuotaLabel ? (
+        <>
+          <span aria-hidden className="nav-credits-chip-sep">
+            ·
+          </span>
+          <span className="nav-credits-chip-searches tabular-nums">
+            {searchQuotaLabel}
+          </span>
+        </>
+      ) : null}
     </NextLink>
   );
 }
@@ -351,6 +370,9 @@ export const Navbar = () => {
   const highlightRef = useRef<HTMLSpanElement>(null);
   const activePillIndexRef = useRef(-1);
   const highlightPlacedRef = useRef(false);
+  const { stats } = useUserStats(Boolean(username));
+  const searchQuotaLabel = formatSearchQuotaLabel(stats);
+  const searchTitle = searchQuotaTitle(stats);
 
   const navItems = useMemo(() => siteConfig.navItems, []);
 
@@ -595,7 +617,11 @@ export const Navbar = () => {
             {username ? (
               <>
                 {creditBalance != null ? (
-                  <CreditBalanceChip balance={creditBalance} />
+                  <CreditBalanceChip
+                    balance={stats?.balance ?? creditBalance}
+                    searchQuotaLabel={searchQuotaLabel}
+                    searchTitle={searchTitle}
+                  />
                 ) : null}
                 <DashboardCta
                   href={workspacePath}
@@ -644,8 +670,10 @@ export const Navbar = () => {
             <>
               {creditBalance != null ? (
                 <CreditBalanceChip
-                  balance={creditBalance}
+                  balance={stats?.balance ?? creditBalance}
                   className="nav-credits-chip--compact"
+                  searchQuotaLabel={searchQuotaLabel}
+                  searchTitle={searchTitle}
                 />
               ) : null}
               <AccountMenu

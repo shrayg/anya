@@ -151,9 +151,28 @@ pre,
   text-transform: lowercase;
 }
 
+.nav-credits-chip-sep {
+  margin-inline: 0.05rem;
+  color: rgba(148, 163, 184, 0.5);
+  font-size: 0.6875rem;
+  user-select: none;
+}
+
+.nav-credits-chip-searches {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: rgba(186, 230, 253, 0.88);
+}
+
 .nav-credits-chip:hover .nav-credits-chip-label,
 .nav-credits-chip:focus-visible .nav-credits-chip-label {
   color: rgba(228, 228, 231, 0.75);
+}
+
+.nav-credits-chip:hover .nav-credits-chip-searches,
+.nav-credits-chip:focus-visible .nav-credits-chip-searches {
+  color: rgba(224, 242, 254, 0.98);
 }
 
 .nav-credits-chip--compact {

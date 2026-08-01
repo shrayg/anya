@@ -23,6 +23,7 @@ export type UserProfile = {
 
 export type UserStats = {
   plan: PlanId;
+  /** Daily search limit for the plan. `Infinity` (or null from JSON) = unlimited. */
   quota: number;
   balance: number;
   intelxUsedToday: number;
@@ -42,6 +43,30 @@ export type UserStats = {
   };
 };
 
+/** JSON cannot encode Infinity — API/clients may send null for unlimited. */
+export function normalizeUserStats(data: UserStats): UserStats {
+  const quota =
+    data.quota == null || !Number.isFinite(Number(data.quota))
+      ? Infinity
+      : Number(data.quota);
+
+  return {
+    ...data,
+    quota,
+    balance: Number(data.balance) || 0,
+    intelxUsedToday: Number(data.intelxUsedToday) || 0,
+    usage: {
+      last24h: Number(data.usage?.last24h) || 0,
+      last1w: Number(data.usage?.last1w) || 0,
+      last1m: Number(data.usage?.last1m) || 0,
+    },
+  };
+}
+
+export function isUnlimitedSearchQuota(quota: number | null | undefined) {
+  return quota == null || !Number.isFinite(Number(quota));
+}
+
 export function getUserPlan(user: UserProfile | null): PlanId {
   if (!user) return "free";
 
@@ -55,9 +80,42 @@ export function getPlanDisplayLabel(user: UserProfile | null) {
 export function formatAvailableSearches(stats: UserStats | null) {
   if (!stats) return "—";
 
-  if (stats.quota === Infinity) return "∞";
+  if (isUnlimitedSearchQuota(stats.quota)) return "∞";
 
   return String(Math.max(stats.quota - stats.usage.last24h, 0));
+}
+
+/** Remaining / plan daily quota, e.g. `12 / 50` or `∞`. */
+export function formatSearchQuota(stats: UserStats | null) {
+  if (!stats) return null;
+
+  if (isUnlimitedSearchQuota(stats.quota)) return "∞";
+
+  const remaining = Math.max(stats.quota - stats.usage.last24h, 0);
+
+  return `${remaining} / ${stats.quota}`;
+}
+
+/** Compact label for chips / sidebar: `12 / 50 searches` or `∞ searches`. */
+export function formatSearchQuotaLabel(stats: UserStats | null) {
+  const quota = formatSearchQuota(stats);
+
+  if (!quota) return null;
+
+  return isUnlimitedSearchQuota(stats?.quota) ? "∞ searches" : `${quota} searches`;
+}
+
+export function searchQuotaTitle(stats: UserStats | null) {
+  if (!stats) return "Daily search quota";
+
+  if (isUnlimitedSearchQuota(stats.quota)) {
+    return "Unlimited searches on your plan";
+  }
+
+  const remaining = Math.max(stats.quota - stats.usage.last24h, 0);
+  const used = stats.usage.last24h;
+
+  return `${remaining} of ${stats.quota} daily searches left (${used} used in last 24h)`;
 }
 
 /** Display User.balance as USD. */

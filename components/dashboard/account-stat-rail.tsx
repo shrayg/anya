@@ -9,6 +9,7 @@ import {
   formatCredits,
   formatPlanEndDate,
   getPlanDisplayLabel,
+  isUnlimitedSearchQuota,
   type UserProfile,
   type UserStats,
 } from "@/lib/account-plan";
@@ -35,7 +36,7 @@ function QuotaRefreshValue({ stats }: { stats: UserStats | null }) {
   const remainingMs = useLiveCountdown(stats?.quotaRefreshAt);
 
   if (!stats) return <span className="anya-stat-row-value">—</span>;
-  if (stats.quota === Infinity) {
+  if (isUnlimitedSearchQuota(stats.quota)) {
     return <span className="anya-stat-row-value">Unlimited</span>;
   }
   if (!stats.quotaRefreshAt || remainingMs == null) {

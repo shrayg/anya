@@ -34,7 +34,13 @@ import {
 } from "@/lib/search-modules";
 import { isCryptoIntelEnabled } from "@/lib/crypto-intel/enabled";
 import { checkModuleAccess, resolveUserPlan } from "@/lib/plans";
-import { getPlanDisplayLabel, formatCredits } from "@/lib/account-plan";
+import {
+  formatCredits,
+  formatSearchQuotaLabel,
+  getPlanDisplayLabel,
+  searchQuotaTitle,
+} from "@/lib/account-plan";
+import { useUserStats } from "@/lib/use-user-stats";
 import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider";
 import {
   SearchJobsSidebarButton,
@@ -321,6 +327,8 @@ export function DashboardSidebar({ username }: { username: string }) {
   const plan = resolveUserPlan(profile);
   const planLabel = getPlanDisplayLabel(profile);
   const balance = profile.balance ?? 0;
+  const { stats } = useUserStats(true);
+  const searchQuotaLabel = formatSearchQuotaLabel(stats);
   const staffMeta = getStaffRoleMeta(profile.staffRole);
   const {
     collapsed,
@@ -755,17 +763,38 @@ export function DashboardSidebar({ username }: { username: string }) {
                       : "Investigator"}
                 </p>
                 {!collapsed ? (
-                  <Link
-                    className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-[11px] text-zinc-400 transition hover:text-[var(--anya-blush)]"
-                    href="/pricing?tab=credits"
-                    title="Buy credits"
-                  >
-                    <Sparkles className="size-3 shrink-0 text-[var(--anya-blush)]" />
-                    <span className="tabular-nums font-medium text-zinc-300">
-                      {formatCredits(balance)}
-                    </span>
-                    <span>credits</span>
-                  </Link>
+                  <div className="dash-sidebar-quota mt-1 flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-zinc-400">
+                    <Link
+                      className="inline-flex max-w-full items-center gap-1 truncate transition hover:text-[var(--anya-blush)]"
+                      href="/pricing?tab=credits"
+                      title="Buy credits"
+                    >
+                      <Sparkles className="size-3 shrink-0 text-[var(--anya-blush)]" />
+                      <span className="tabular-nums font-medium text-zinc-300">
+                        {formatCredits(stats?.balance ?? balance)}
+                      </span>
+                      <span>credits</span>
+                    </Link>
+                    {searchQuotaLabel ? (
+                      <>
+                        <span
+                          aria-hidden
+                          className="select-none text-slate-500/50"
+                        >
+                          ·
+                        </span>
+                        <Link
+                          className="inline-flex max-w-full items-center gap-1 truncate transition hover:text-sky-200/90"
+                          href={accountHref}
+                          title={searchQuotaTitle(stats)}
+                        >
+                          <span className="tabular-nums font-medium text-sky-100/85">
+                            {searchQuotaLabel}
+                          </span>
+                        </Link>
+                      </>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </div>

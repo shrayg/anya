@@ -22,6 +22,8 @@ import {
   formatCredits,
   formatPlanEndDate,
   getPlanDisplayLabel,
+  isUnlimitedSearchQuota,
+  normalizeUserStats,
   type UserProfile,
   type UserStats,
 } from "@/lib/account-plan";
@@ -61,7 +63,7 @@ function QuotaLabel({ stats }: { stats: UserStats | null }) {
   const remainingMs = useLiveCountdown(stats?.quotaRefreshAt);
 
   if (!stats) return "—";
-  if (stats.quota === Infinity) return "Unlimited";
+  if (isUnlimitedSearchQuota(stats.quota)) return "Unlimited";
   if (!stats.quotaRefreshAt || remainingMs == null || remainingMs <= 0) {
     return "Ready";
   }
@@ -94,7 +96,7 @@ export function AccountPageContent() {
     fetch("/api/user/stats")
       .then((response) => response.json())
       .then((data) => {
-        if (!data.error) setStats(data);
+        if (!data.error) setStats(normalizeUserStats(data));
       })
       .catch(() => undefined);
   }, []);
