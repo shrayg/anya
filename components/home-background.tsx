@@ -9,8 +9,8 @@ const FloatingLines = dynamic(() => import("@/components/floating-lines"), {
   loading: () => null,
 });
 
-/** Anya ice-blue (`#c3d3e6` / `--anya-blush`) line stops on void black. */
-const LINES_GRADIENT = ["#8fa8c4", "#c3d3e6", "#e8f0f8"];
+/** Anya ice-blue (`#c3d3e6` / `--anya-blush`) line stops on void black — brighter stops for presence. */
+const LINES_GRADIENT = ["#a3bcd4", "#c3d3e6", "#f4f8fc"];
 const VOID_BLACK = "#000000";
 
 /**
@@ -51,14 +51,15 @@ export function HomeBackground({
     return <LiteBackground />;
   }
 
+  /* Softer scrims so ice-blue lines show through; denser still protects dashboard UI. */
   const scrim = denser
     ? [
-        "radial-gradient(ellipse 90% 60% at 50% 38%, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0.74) 55%, rgba(0,0,0,0.42) 100%)",
-        "linear-gradient(180deg, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.68) 100%)",
+        "radial-gradient(ellipse 90% 60% at 50% 38%, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.58) 55%, rgba(0,0,0,0.30) 100%)",
+        "linear-gradient(180deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.50) 100%)",
       ].join(", ")
     : [
-        "radial-gradient(ellipse 85% 55% at 50% 38%, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.28) 100%)",
-        "linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.52) 100%)",
+        "radial-gradient(ellipse 85% 55% at 50% 38%, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.38) 55%, rgba(0,0,0,0.16) 100%)",
+        "linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.34) 100%)",
       ].join(", ");
 
   return (
@@ -73,6 +74,7 @@ export function HomeBackground({
           bendStrength={BEND_STRENGTH}
           enabledWaves={["top", "bottom", "middle"]}
           interactive={false}
+          lineCount={8}
           linesGradient={LINES_GRADIENT}
           mixBlendMode="screen"
           parallax={false}
