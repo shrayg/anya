@@ -3569,9 +3569,9 @@ export function ModuleSearchView({
                     onFocus={unlockAutofillShield}
                   />
                   <div className="module-search-form-actions">
-                    <span />
+                    <span aria-hidden className="module-search-form-actions-spacer" />
                     <button
-                      className="ui-btn ui-btn-primary shrink-0"
+                      className="ui-btn ui-btn-primary module-search-submit shrink-0"
                       data-tour="search-submit"
                       disabled={
                         !query.trim() || isSearching || Boolean(moduleLocked)

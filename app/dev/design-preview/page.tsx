@@ -238,23 +238,44 @@ export default function DesignPreviewPage() {
                       }}
                     >
                       <div className="module-search-fields">
-                        <div className="module-search-field-row module-search-field-row--simple">
+                        <div className="module-search-field-row">
+                          <select
+                            aria-label="Field type"
+                            className="module-search-field-type dash-select"
+                            defaultValue="query"
+                          >
+                            <option value="query">Query</option>
+                            <option value="username">Username</option>
+                            <option value="url">URL</option>
+                          </select>
                           <input
                             className="ui-input module-search-field-input font-mono"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                           />
+                          <button
+                            aria-label="Remove field"
+                            className="module-search-field-remove"
+                            disabled
+                            type="button"
+                          >
+                            ×
+                          </button>
                         </div>
                       </div>
                       <div className="module-search-form-actions">
-                        <span />
-                        <button
-                          className="ui-btn ui-btn-primary shrink-0"
-                          disabled={scanning}
-                          type="submit"
-                        >
-                          {scanning ? "Scanning…" : "Run"}
+                        <button className="module-search-add-field" type="button">
+                          + Add field
                         </button>
+                        <div className="module-search-form-submit-group">
+                          <button
+                            className="ui-btn ui-btn-primary module-search-submit shrink-0"
+                            disabled={scanning || !query.trim()}
+                            type="submit"
+                          >
+                            {scanning ? "Scanning…" : "Run"}
+                          </button>
+                        </div>
                       </div>
                     </form>
                   </div>

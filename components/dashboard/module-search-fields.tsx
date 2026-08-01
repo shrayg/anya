@@ -224,22 +224,22 @@ export function ModuleSearchFields({
 
       <div className="module-search-form-actions">
         {singleInput ? (
-          <span />
+          <span aria-hidden className="module-search-form-actions-spacer" />
         ) : (
           <button
-            className="ui-btn ui-btn-ghost module-search-add-field"
+            className="module-search-add-field"
             disabled={disabled || fields.length >= MAX_FIELDS}
             type="button"
             onClick={addRow}
           >
-            <Plus className="size-4" />
+            <Plus aria-hidden className="size-3.5" strokeWidth={2.25} />
             Add field
           </button>
         )}
         <div className="module-search-form-submit-group">
           {extraActions}
           <button
-            className="ui-btn ui-btn-primary shrink-0"
+            className="ui-btn ui-btn-primary module-search-submit shrink-0"
             data-tour="search-submit"
             disabled={!canSubmit || isSearching || disabled}
             type="submit"
