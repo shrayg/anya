@@ -1,4 +1,8 @@
 import { siteConfig } from "@/config/site";
+import {
+  filterBlacklistedRecords,
+  getCachedBlacklistSet,
+} from "@/lib/data-blacklist";
 
 const BRAND = siteConfig.name.toLowerCase();
 
@@ -615,7 +619,11 @@ export function scrubIntelResults(results: unknown[]): unknown[] {
     if (clean) scrubbed.push(clean);
   }
 
-  return scrubbed;
+  const blacklist = getCachedBlacklistSet();
+
+  if (blacklist.size === 0) return scrubbed;
+
+  return filterBlacklistedRecords(scrubbed, blacklist);
 }
 
 function firstFingerprintField(

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionCookie } from "@/app/lib/session";
+import {
+  applyDataBlacklistToPayload,
+  warmDataBlacklistCache,
+} from "@/lib/data-blacklist";
 import { authorizeSearch } from "@/lib/plan-access";
 import { redactOsintTeaser } from "@/lib/osint-teaser-redact";
 import {
@@ -309,6 +313,9 @@ export async function requireOsintAccess(
 
   const session = await getSessionCookie();
 
+  // Warm blacklist cache so scrubIntelResults / osintJson can filter sync.
+  void warmDataBlacklistCache();
+
   if (!session?.userId) {
     if (!GUEST_HOME_MODULE_SLUGS.has(moduleSlug)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -334,6 +341,8 @@ export async function requireOsintAccess(
         },
       );
     }
+
+    await warmDataBlacklistCache();
 
     return { userId: null, blurResults: true, isGuest: true };
   }
@@ -369,20 +378,25 @@ export async function requireOsintAccess(
     Boolean("blurResults" in access && access.blurResults) ||
     ("plan" in access && shouldBlurResults(access.plan));
 
+  await warmDataBlacklistCache();
+
   return { userId, blurResults, isGuest: false };
 }
 
-/** JSON response that redacts sensitive fields when the caller is on a teaser plan. */
-export function osintJson(
+/** JSON response that strips blacklisted values, then redacts teaser plans. */
+export async function osintJson(
   access: OsintAccessOk,
   data: unknown,
   init?: ResponseInit,
-): NextResponse {
+): Promise<NextResponse> {
+  await warmDataBlacklistCache();
+  const filtered = applyDataBlacklistToPayload(data);
+
   if (!access.blurResults) {
-    return NextResponse.json(data, init);
+    return NextResponse.json(filtered, init);
   }
 
-  const redacted = redactOsintTeaser(data, { isGuest: access.isGuest });
+  const redacted = redactOsintTeaser(filtered, { isGuest: access.isGuest });
 
   if (redacted && typeof redacted === "object" && !Array.isArray(redacted)) {
     return NextResponse.json(

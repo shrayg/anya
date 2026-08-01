@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Shield, Users } from "lucide-react";
+import { Activity, Ban, Shield, Users } from "lucide-react";
 import clsx from "clsx";
 
 const TABS = [
@@ -19,6 +19,13 @@ const TABS = [
     href: "/dashboard/admin/users",
     icon: Users,
     match: (pathname: string) => pathname.startsWith("/dashboard/admin/users"),
+  },
+  {
+    name: "Blacklist",
+    href: "/dashboard/admin/blacklist",
+    icon: Ban,
+    match: (pathname: string) =>
+      pathname.startsWith("/dashboard/admin/blacklist"),
   },
   {
     name: "API",

@@ -242,3 +242,20 @@ model SiteVisitDaily {
   count     Int      @default(0)
   updatedAt DateTime @updatedAt
 }
+
+/// Admin-managed values stripped from OSINT / breach / search responses.
+/// Matching is exact against normalizeBlacklistValue (trim + lowercase).
+model DataBlacklist {
+  id              Int      @id @default(autoincrement())
+  /// Normalized value used for lookups (unique).
+  value           String   @unique
+  /// Original trimmed value as entered by the admin (display).
+  displayValue    String
+  note            String?
+  createdById     Int?
+  createdByUsername String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([createdAt])
+}

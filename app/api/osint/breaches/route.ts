@@ -38,6 +38,11 @@ import {
   settleWithinBudget,
 } from "@/lib/osint-search-guard";
 import {
+  filterBlacklistedCredentials,
+  getCachedBlacklistSet,
+  warmDataBlacklistCache,
+} from "@/lib/data-blacklist";
+import {
   mergeCombCredentialFields,
   normalizeEmail,
   searchProxynovaCombForEmail,
@@ -305,12 +310,18 @@ export async function GET(req: NextRequest) {
         [] as CombCredential[],
       );
 
+      await warmDataBlacklistCache();
+      const credentials = filterBlacklistedCredentials(
+        mergedCredentials,
+        getCachedBlacklistSet(),
+      );
+
       const response = {
         ...combResult,
         // Honest UI count = merged credential rows, not provider index ads.
-        totalMatches: mergedCredentials.length,
-        returned: mergedCredentials.length,
-        credentials: mergedCredentials,
+        totalMatches: credentials.length,
+        returned: credentials.length,
+        credentials,
         godseyeReport,
         hasGodsEyeReport: Boolean(godseyeReport),
         hasBreachVipResults: Boolean(breachVip && breachVip.returned > 0),
@@ -367,11 +378,17 @@ export async function GET(req: NextRequest) {
       [] as CombCredential[],
     );
 
+    await warmDataBlacklistCache();
+    const credentials = filterBlacklistedCredentials(
+      mergedCredentials,
+      getCachedBlacklistSet(),
+    );
+
     const response = {
       ...emptyComb(query, start),
-      totalMatches: mergedCredentials.length,
-      returned: mergedCredentials.length,
-      credentials: mergedCredentials,
+      totalMatches: credentials.length,
+      returned: credentials.length,
+      credentials,
       hasGodsEyeReport: false,
       hasBreachVipResults: false,
       breachVipCount: 0,

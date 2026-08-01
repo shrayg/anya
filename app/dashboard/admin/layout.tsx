@@ -50,7 +50,7 @@ export default function AdminLayout({
             </p>
             <h1 className="text-xl font-semibold text-white">Admin</h1>
             <p className="mt-0.5 max-w-xl text-xs text-zinc-500">
-              Site analytics, members, and APIs for {siteConfig.name}.
+              Site analytics, members, blacklist, and APIs for {siteConfig.name}.
               Admin-only.
             </p>
           </div>

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireOsintAccess } from "@/lib/osint-api-auth";
+import {
+  applyDataBlacklistToPayload,
+  warmDataBlacklistCache,
+} from "@/lib/data-blacklist";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import {
   OSINT_ROUTE_DEADLINE_MS,
@@ -73,7 +77,9 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      return NextResponse.json(response);
+      await warmDataBlacklistCache();
+
+      return NextResponse.json(applyDataBlacklistToPayload(response));
     } catch (err) {
       return osintFailureResponse(err, {
         softEmpty,
@@ -85,7 +91,19 @@ export async function GET(req: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      await warmDataBlacklistCache();
+
       const send = (event: StealerOsintProgressEvent) => {
+        if (event.type === "partial" || event.type === "done") {
+          const result = applyDataBlacklistToPayload(event.result);
+
+          controller.enqueue(
+            encoder.encode(`${JSON.stringify({ ...event, result })}\n`),
+          );
+
+          return;
+        }
+
         controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       };
 
