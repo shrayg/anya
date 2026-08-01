@@ -11171,8 +11171,8 @@ html[data-splash="active"] [data-splash-target] {
   top: 4.5rem;
   left: calc(var(--dash-sidebar-width) + 0.75rem);
   z-index: 75;
-  width: min(22rem, calc(100vw - 2rem));
-  max-height: min(32rem, calc(100vh - 6rem));
+  width: min(26rem, calc(100vw - 2rem));
+  max-height: min(36rem, calc(100vh - 6rem));
   display: flex;
   flex-direction: column;
   border-radius: 14px;
@@ -11286,6 +11286,10 @@ html[data-splash="active"] [data-splash-target] {
   font-size: 0.75rem;
   line-height: 1.5;
   color: rgba(228, 228, 231, 0.78);
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .site-updates-item-body:last-of-type {
@@ -11297,6 +11301,8 @@ html[data-splash="active"] [data-splash-target] {
   font-size: 0.72rem;
   font-style: italic;
   color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 55%, #a1a1aa);
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 /* Anya homepage product story — transparent so HomeBackground stays continuous */

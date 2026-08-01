@@ -3832,7 +3832,7 @@
 .home-discord-notify__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: 80;
   border: 0;
   padding: 0;
   margin: 0;
@@ -3840,12 +3840,14 @@
   cursor: default;
 }
 
+/* Portaled to document.body (fixed) so navbar overflow:hidden cannot clip copy */
 .home-discord-notify__panel {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  z-index: 2;
-  width: min(19.5rem, calc(100vw - 2rem));
+  position: fixed;
+  z-index: 81;
+  width: min(26rem, calc(100vw - 1.5rem));
+  max-height: min(36rem, calc(100vh - 5rem));
+  display: flex;
+  flex-direction: column;
   padding: 1.1rem 1.15rem 1.15rem;
   border-radius: 1rem;
   border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 22%, rgba(255, 255, 255, 0.1));
@@ -3864,6 +3866,7 @@
   backdrop-filter: blur(18px) saturate(1.25);
   -webkit-backdrop-filter: blur(18px) saturate(1.25);
   animation: home-discord-notify-in 0.18s ease-out;
+  overflow: visible;
 }
 
 @media (max-width: 767px) {
@@ -3879,7 +3882,7 @@
 
   .home-discord-notify__panel,
   .home-discord-notify__panel--feed {
-    right: max(-0.25rem, calc(-1 * env(safe-area-inset-right, 0px)));
+    width: min(24rem, calc(100vw - 1.25rem));
   }
 }
 
@@ -3910,8 +3913,8 @@
 }
 
 .home-discord-notify__panel--feed {
-  width: min(21rem, calc(100vw - 2rem));
-  padding: 1rem 1rem 1.05rem;
+  width: min(26rem, calc(100vw - 1.5rem));
+  padding: 1rem 1.05rem 1.1rem;
 }
 
 .home-discord-notify__eyebrow {
@@ -3927,16 +3930,28 @@
 
 .home-discord-notify__feed {
   margin: 0 0 0.9rem;
-  max-height: min(16rem, 42vh);
+  min-height: 0;
+  max-height: min(22rem, 52vh);
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
 .home-discord-notify__feed .site-updates-item {
   border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 14%, rgba(255, 255, 255, 0.08));
   background: color-mix(in srgb, var(--anya-blush, #c3d3e6) 5%, rgba(255, 255, 255, 0.02));
+  overflow: visible;
+}
+
+.home-discord-notify__feed .site-updates-item-body,
+.home-discord-notify__feed .site-updates-item-signoff {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .home-discord-notify__discord {
+  flex-shrink: 0;
   padding-top: 0.85rem;
   border-top: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 14%, rgba(255, 255, 255, 0.08));
 }
