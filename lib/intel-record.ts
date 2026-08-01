@@ -282,6 +282,117 @@ function isUselessIntelValue(value: string): boolean {
   return isBrandPlaceholderValue(trimmed);
 }
 
+function setIfEmpty(
+  into: Record<string, unknown>,
+  outKey: string,
+  raw: unknown,
+): boolean {
+  if (outKey in into && into[outKey] != null && into[outKey] !== "") {
+    return false;
+  }
+
+  if (typeof raw === "string" && raw.trim()) {
+    into[outKey] = raw.trim();
+
+    return true;
+  }
+
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    into[outKey] = raw;
+
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Nested stealer/victim envelopes often carry browseable log / machine ids.
+ * Lift those to canonical top-level keys instead of collapsing to
+ * `"id: … · machine_id: …"` blobs that Machine view cannot parse.
+ */
+function flattenStealerMetaField(
+  key: string,
+  value: Record<string, unknown>,
+  into: Record<string, unknown>,
+): boolean {
+  if (
+    !/^(log|victim|device|machine|archive|infection|stealer_?log)$/i.test(key)
+  ) {
+    return false;
+  }
+
+  let wrote = false;
+
+  const logKeys = [
+    "log_id",
+    "logId",
+    "victim_id",
+    "victimId",
+    "doc_id",
+    "docId",
+    "import_id",
+    "importId",
+    "id",
+  ] as const;
+  const machineKeys = [
+    "machine_id",
+    "machineId",
+    "hwid",
+    "uuid",
+    "_id",
+  ] as const;
+  const labelKeys = [
+    "hostname",
+    "computer_name",
+    "computerName",
+    "os",
+    "malware",
+    "stealer",
+    "country",
+    "date",
+  ] as const;
+
+  for (const nestedKey of logKeys) {
+    const nestedVal = value[nestedKey];
+    const outKey =
+      nestedKey === "logId" || nestedKey === "id"
+        ? "log_id"
+        : nestedKey === "victimId"
+          ? "victim_id"
+          : nestedKey === "docId"
+            ? "doc_id"
+            : nestedKey === "importId"
+              ? "import_id"
+              : nestedKey;
+
+    if (setIfEmpty(into, outKey, nestedVal)) {
+      wrote = true;
+    }
+  }
+
+  for (const nestedKey of machineKeys) {
+    const outKey =
+      nestedKey === "machineId"
+        ? "machine_id"
+        : nestedKey === "_id"
+          ? "_id"
+          : nestedKey;
+
+    if (setIfEmpty(into, outKey, value[nestedKey])) {
+      wrote = true;
+    }
+  }
+
+  for (const nestedKey of labelKeys) {
+    if (setIfEmpty(into, nestedKey, value[nestedKey])) {
+      wrote = true;
+    }
+  }
+
+  return wrote;
+}
+
 function flattenNestedField(
   key: string,
   value: Record<string, unknown>,
@@ -320,6 +431,10 @@ function flattenNestedField(
   ];
 
   let wrote = false;
+
+  if (flattenStealerMetaField(key, value, into)) {
+    return;
+  }
 
   // Lift geo / profile nested scalars into structured top-level fields instead
   // of dumping a JSON-ish "key: value · …" blob.

@@ -1,5 +1,5 @@
 import {
-  looksLikeVictimLogId,
+  asLogId,
   type StealerArchiveEntry,
   type StealerFileNode,
 } from "@/lib/breachhub";
@@ -200,67 +200,10 @@ export function archivesFromStealerResults(
   const archives: StealerArchiveEntry[] = [];
   const seen = new Set<string>();
 
-  const pickLogId = (record: Record<string, unknown>): string => {
-    const primary = [
-      asString(record.log_id),
-      asString(record.logId),
-      asString(record.victim_id),
-      asString(record.victimId),
-      asString(record.doc_id),
-      asString(record.import_id),
-      asString(record.importId),
-    ];
-
-    for (const value of primary) {
-      if (looksLikeVictimLogId(value)) return value;
-    }
-
-    const legacyLog = record.log;
-
-    if (typeof legacyLog === "string" && looksLikeVictimLogId(legacyLog)) {
-      return legacyLog.trim();
-    }
-
-    if (
-      legacyLog &&
-      typeof legacyLog === "object" &&
-      !Array.isArray(legacyLog)
-    ) {
-      const nested = pickLogId(legacyLog as Record<string, unknown>);
-
-      if (nested) return nested;
-    }
-
-    // machine_id / id / hwid only when they look like browseable UUIDs / long tokens
-    const secondary = [
-      asString(record.machine_id),
-      asString(record.machineId),
-      asString(record.uuid),
-      asString(record._id),
-      asString(record.id),
-      asString(record.hwid),
-    ];
-
-    for (const value of secondary) {
-      if (
-        looksLikeVictimLogId(value) &&
-        (value.length >= 24 ||
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-            value,
-          ) ||
-          /^[a-f0-9]{24,128}$/i.test(value))
-      ) {
-        return value;
-      }
-    }
-
-    return "";
-  };
-
   for (const entry of results) {
     if (!entry || typeof entry !== "object") continue;
     const record = entry as Record<string, unknown>;
-    const logId = pickLogId(record);
+    const logId = asLogId(record);
 
     if (!logId || seen.has(logId)) continue;
     seen.add(logId);
@@ -271,6 +214,8 @@ export function archivesFromStealerResults(
         asString(record.machine_id) ||
         asString(record.machineId) ||
         asString(record.hostname) ||
+        asString(record.computer_name) ||
+        asString(record.computerName) ||
         asString(record.log_name) ||
         undefined,
       machineId:

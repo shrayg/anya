@@ -3838,7 +3838,33 @@ function looksLikeMachineBrowseId(value: string): boolean {
   return false;
 }
 
-function asLogId(record: Record<string, unknown>): string {
+/** Recover a browse id from scrubbed `"id: … · machine_id: …"` blobs. */
+function logIdFromScrubBlob(value: string): string {
+  const text = value.trim();
+
+  if (!text || !text.includes(":")) return "";
+
+  const patterns = [
+    /(?:^|[·|,;\s])(?:log_id|logId|victim_id|victimId|doc_id|import_id|machine_id|machineId|hwid|uuid|_id|id)\s*[:=]\s*([a-zA-Z0-9_-]{8,128})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const candidate = match?.[1]?.trim() || "";
+
+    if (candidate && looksLikeVictimLogId(candidate)) {
+      return candidate;
+    }
+  }
+
+  return "";
+}
+
+/**
+ * Resolve a browseable stealer victim / machine id from a result row.
+ * Exported so Machine view extraction stays aligned with scrubbed intel rows.
+ */
+export function asLogId(record: Record<string, unknown>): string {
   const primary = [
     asString(record.log_id),
     asString(record.logId),
@@ -3848,23 +3874,47 @@ function asLogId(record: Record<string, unknown>): string {
     asString(record.docId),
     asString(record.import_id),
     asString(record.importId),
+    asString(record.stealer_id),
+    asString(record.stealerId),
+    asString(record.archive_id),
+    asString(record.archiveId),
   ];
 
   for (const candidate of primary) {
     if (candidate && looksLikeVictimLogId(candidate)) return candidate;
   }
 
-  // Legacy OathNet `log` field (string or { id / log_id }).
-  const legacyLog = record.log;
+  // Legacy OathNet `log` field (string, scrub blob, or { id / log_id }).
+  const nestKeys = [
+    "log",
+    "victim",
+    "device",
+    "machine",
+    "archive",
+    "infection",
+    "stealer_log",
+  ] as const;
 
-  if (typeof legacyLog === "string" && looksLikeVictimLogId(legacyLog)) {
-    return legacyLog.trim();
-  }
+  for (const nestKey of nestKeys) {
+    const nestedVal = record[nestKey];
 
-  if (legacyLog && typeof legacyLog === "object" && !Array.isArray(legacyLog)) {
-    const nested = asLogId(legacyLog as Record<string, unknown>);
+    if (typeof nestedVal === "string") {
+      if (looksLikeVictimLogId(nestedVal)) return nestedVal.trim();
+      const fromBlob = logIdFromScrubBlob(nestedVal);
 
-    if (nested) return nested;
+      if (fromBlob) return fromBlob;
+      continue;
+    }
+
+    if (
+      nestedVal &&
+      typeof nestedVal === "object" &&
+      !Array.isArray(nestedVal)
+    ) {
+      const nested = asLogId(nestedVal as Record<string, unknown>);
+
+      if (nested) return nested;
+    }
   }
 
   const secondary = [
