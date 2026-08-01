@@ -5,20 +5,26 @@ import { Bell, X } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import clsx from "clsx";
 
+import { AnnouncementFeed } from "@/components/announcement-feed";
 import { siteConfig } from "@/config/site";
+import {
+  hasUnreadAnnouncements,
+  markAnnouncementsSeen,
+} from "@/lib/announcements-seen";
 
-const SEEN_KEY = "anya:discord-notify-seen";
+const LEGACY_DISCORD_SEEN_KEY = "anya:discord-notify-seen";
 
 export function HomeDiscordNotify() {
   const titleId = useId();
-  const descId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(false);
 
   useEffect(() => {
     try {
-      setUnread(window.localStorage.getItem(SEEN_KEY) !== "1");
+      const legacyUnread =
+        window.localStorage.getItem(LEGACY_DISCORD_SEEN_KEY) !== "1";
+      setUnread(hasUnreadAnnouncements() || legacyUnread);
     } catch {
       setUnread(true);
     }
@@ -26,8 +32,9 @@ export function HomeDiscordNotify() {
 
   const markSeen = useCallback(() => {
     setUnread(false);
+    markAnnouncementsSeen();
     try {
-      window.localStorage.setItem(SEEN_KEY, "1");
+      window.localStorage.setItem(LEGACY_DISCORD_SEEN_KEY, "1");
     } catch {
       /* ignore */
     }
@@ -66,9 +73,7 @@ export function HomeDiscordNotify() {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={
-          unread
-            ? "Open notifications — new Discord invite"
-            : "Open notifications"
+          unread ? "Open updates — new announcement" : "Open updates"
         }
         className={clsx(
           "home-discord-notify__bell",
@@ -87,22 +92,31 @@ export function HomeDiscordNotify() {
       {open ? (
         <>
           <button
-            aria-label="Close notifications"
+            aria-label="Close updates"
             className="home-discord-notify__backdrop"
             type="button"
             onClick={close}
           />
           <div
-            aria-describedby={descId}
             aria-labelledby={titleId}
             aria-modal="true"
-            className="home-discord-notify__panel"
+            className="home-discord-notify__panel home-discord-notify__panel--feed"
             role="dialog"
           >
             <div className="home-discord-notify__panel-head">
-              <span aria-hidden className="home-discord-notify__panel-icon">
-                <SiDiscord className="size-5" />
-              </span>
+              <div className="home-discord-notify__panel-heading">
+                <span aria-hidden className="home-discord-notify__panel-icon">
+                  <Bell className="size-4" strokeWidth={1.75} />
+                </span>
+                <div>
+                  <h2 className="home-discord-notify__title" id={titleId}>
+                    Updates
+                  </h2>
+                  <p className="home-discord-notify__eyebrow">
+                    From the Anya team
+                  </p>
+                </div>
+              </div>
               <button
                 aria-label="Close"
                 className="home-discord-notify__close"
@@ -112,22 +126,23 @@ export function HomeDiscordNotify() {
                 <X aria-hidden className="size-4" strokeWidth={2} />
               </button>
             </div>
-            <h2 className="home-discord-notify__title" id={titleId}>
-              Join the official Discord
-            </h2>
-            <p className="home-discord-notify__copy" id={descId}>
-              Get product updates, support, and talk with the Anya community on
-              our official server.
-            </p>
-            <a
-              className="home-discord-notify__cta"
-              href={discordUrl}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <SiDiscord aria-hidden className="size-4 shrink-0" />
-              Join Discord
-            </a>
+
+            <AnnouncementFeed className="home-discord-notify__feed" />
+
+            <div className="home-discord-notify__discord">
+              <p className="home-discord-notify__discord-copy">
+                Want product updates and support live? Join the official Discord.
+              </p>
+              <a
+                className="home-discord-notify__cta"
+                href={discordUrl}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <SiDiscord aria-hidden className="size-4 shrink-0" />
+                Join Discord
+              </a>
+            </div>
           </div>
         </>
       ) : null}

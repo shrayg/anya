@@ -39,6 +39,7 @@ import { useDashboardUser } from "@/components/dashboard/dashboard-auth-provider
 import {
   SearchJobsSidebarButton,
 } from "@/components/dashboard/search-jobs-context";
+import { DashboardUpdatesButton } from "@/components/dashboard/dashboard-updates";
 import {
   hasPlatformBrandIcon,
   PlatformBrandIcon,
@@ -533,7 +534,8 @@ export function DashboardSidebar({ username }: { username: string }) {
                   onFocus={unlockAutofillShield}
                 />
               </div>
-              <div className="px-0.5 pb-1">
+              <div className="flex flex-col gap-1 px-0.5 pb-1">
+                <DashboardUpdatesButton collapsed={collapsed} />
                 <SearchJobsSidebarButton collapsed={collapsed} />
               </div>
             </div>
