@@ -244,6 +244,13 @@ html[data-splash="active"] [data-splash-target] {
   border-radius: 0 !important;
 }
 
+/* Square outer shell — override LiquidGlassCard layer inline radii */
+.dash-sidebar .dash-sidebar-liquid-glass .liquid-glass-card__bend,
+.dash-sidebar .dash-sidebar-liquid-glass .liquid-glass-card__face,
+.dash-sidebar .dash-sidebar-liquid-glass .liquid-glass-card__edge {
+  border-radius: 0 !important;
+}
+
 .dash-sidebar .dash-sidebar-liquid-glass .liquid-glass-card__bend {
   opacity: 1;
   background:

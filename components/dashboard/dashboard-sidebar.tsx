@@ -463,7 +463,7 @@ export function DashboardSidebar({ username }: { username: string }) {
     >
       <LiquidGlassCard
         blurIntensity="md"
-        borderRadius="16px"
+        borderRadius="0"
         className="dash-sidebar-liquid-glass"
         draggable={false}
         glowIntensity="none"
