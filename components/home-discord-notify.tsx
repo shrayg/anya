@@ -13,6 +13,17 @@ import {
 } from "@/lib/announcements-seen";
 
 const LEGACY_DISCORD_SEEN_KEY = "anya:discord-notify-seen";
+const ANNOUNCEMENTS_SEEN_EVENT = "anya:announcements-seen";
+
+function readUnread(): boolean {
+  try {
+    const legacyUnread =
+      window.localStorage.getItem(LEGACY_DISCORD_SEEN_KEY) !== "1";
+    return hasUnreadAnnouncements() || legacyUnread;
+  } catch {
+    return true;
+  }
+}
 
 export function HomeDiscordNotify() {
   const titleId = useId();
@@ -21,13 +32,15 @@ export function HomeDiscordNotify() {
   const [unread, setUnread] = useState(false);
 
   useEffect(() => {
-    try {
-      const legacyUnread =
-        window.localStorage.getItem(LEGACY_DISCORD_SEEN_KEY) !== "1";
-      setUnread(hasUnreadAnnouncements() || legacyUnread);
-    } catch {
-      setUnread(true);
-    }
+    setUnread(readUnread());
+
+    const sync = () => setUnread(readUnread());
+    window.addEventListener(ANNOUNCEMENTS_SEEN_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(ANNOUNCEMENTS_SEEN_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
 
   const markSeen = useCallback(() => {
@@ -38,6 +51,7 @@ export function HomeDiscordNotify() {
     } catch {
       /* ignore */
     }
+    window.dispatchEvent(new Event(ANNOUNCEMENTS_SEEN_EVENT));
   }, []);
 
   const close = useCallback(() => {

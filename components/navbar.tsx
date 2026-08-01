@@ -28,6 +28,7 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { Lock, Sparkles, Unlock } from "lucide-react";
 
+import { HomeDiscordNotify } from "@/components/home-discord-notify";
 import { SpecularButton } from "@/components/ui/specular-button";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
@@ -662,6 +663,7 @@ export const Navbar = () => {
                 </SpecularButton>
               </>
             )}
+            <HomeDiscordNotify />
           </NavbarItem>
         </NavbarContent>
 
@@ -684,6 +686,7 @@ export const Navbar = () => {
               />
             </>
           ) : null}
+          <HomeDiscordNotify />
           <NavbarMenuToggle className="text-white/80" />
         </NavbarContent>
 

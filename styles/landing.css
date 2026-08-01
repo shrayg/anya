@@ -3751,17 +3751,14 @@
   color: #fff;
 }
 
-/* Homepage Discord invite notification (fixed corner bell) */
+/* Updates bell — sits in the marketing navbar action cluster */
 .home-discord-notify {
-  /* Top-right, under the floating marketing nav (shell top 0.85rem + ~3.35rem bar). */
-  position: fixed;
-  top: max(5.25rem, calc(env(safe-area-inset-top, 0px) + 4.5rem));
-  right: max(1rem, env(safe-area-inset-right, 0px));
-  z-index: 55;
+  position: relative;
+  z-index: 30;
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.75rem;
 }
 
 .home-discord-notify__bell {
@@ -3770,8 +3767,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: var(--nav-action-h, 2.5rem);
+  height: var(--nav-action-h, 2.5rem);
   border-radius: 9999px;
   border: 1px solid color-mix(in srgb, var(--anya-blush, #c3d3e6) 28%, rgba(255, 255, 255, 0.12));
   background:
@@ -3780,8 +3777,7 @@
   color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 82%, #fff);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 14px 32px -18px rgba(0, 0, 0, 0.75),
-    0 0 24px color-mix(in srgb, var(--anya-blush, #c3d3e6) 10%, transparent);
+    0 10px 24px -18px rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
   cursor: pointer;
@@ -3809,10 +3805,10 @@
 
 .home-discord-notify__badge {
   position: absolute;
-  top: 0.38rem;
-  right: 0.42rem;
-  width: 0.55rem;
-  height: 0.55rem;
+  top: 0.32rem;
+  right: 0.36rem;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 9999px;
   background: #22c55e;
   box-shadow:
@@ -3845,7 +3841,9 @@
 }
 
 .home-discord-notify__panel {
-  position: relative;
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
   z-index: 2;
   width: min(19.5rem, calc(100vw - 2rem));
   padding: 1.1rem 1.15rem 1.15rem;
@@ -3866,6 +3864,23 @@
   backdrop-filter: blur(18px) saturate(1.25);
   -webkit-backdrop-filter: blur(18px) saturate(1.25);
   animation: home-discord-notify-in 0.18s ease-out;
+}
+
+@media (max-width: 767px) {
+  .home-discord-notify__bell {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .home-discord-notify__bell svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .home-discord-notify__panel,
+  .home-discord-notify__panel--feed {
+    right: max(-0.25rem, calc(-1 * env(safe-area-inset-right, 0px)));
+  }
 }
 
 @keyframes home-discord-notify-in {
