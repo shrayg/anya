@@ -35,7 +35,7 @@ import {
 import {
   OSINT_ROUTE_DEADLINE_MS,
   osintFailureResponse,
-  withDeadline,
+  settleWithinBudget,
 } from "@/lib/osint-search-guard";
 import {
   mergeCombCredentialFields,
@@ -48,8 +48,22 @@ import {
 /** Memory-safety ceiling only — never reintroduce 50/100 caps on paid indexes. */
 const BREACH_FANOUT_MAX_ROWS = 250_000;
 const COMBINED_GODSEYE_TIMEOUT_MS = 18_000;
-const COMBINED_CSINT_TIMEOUT_MS = 22_000;
-const COMBINED_BREACHHUB_TIMEOUT_MS = 36_000;
+const COMBINED_CSINT_TIMEOUT_MS = 28_000;
+const COMBINED_BREACHHUB_TIMEOUT_MS = 48_000;
+/** Leave headroom under the route deadline for Comb + BH large payloads. */
+const BREACH_SETTLE_BUDGET_MS = OSINT_ROUTE_DEADLINE_MS - 3_000;
+const COMB_BUDGET_MS = 48_000;
+
+function credentialMergeKey(row: CombCredential): string {
+  const id = row.identifier.toLowerCase();
+  const secret = row.secret;
+  // Passwordless rows from different dumps must stay distinct.
+  if (!secret) {
+    return `${id}\0\0${(row.raw ?? "").toLowerCase()}`;
+  }
+
+  return `${id}\0${secret}`;
+}
 
 function mergeCredentials(
   primary: CombCredential[],
@@ -58,7 +72,7 @@ function mergeCredentials(
   const byKey = new Map<string, CombCredential>();
 
   for (const row of [...primary, ...secondary]) {
-    const key = `${row.identifier.toLowerCase()}\0${row.secret}`;
+    const key = credentialMergeKey(row);
     const existing = byKey.get(key);
 
     if (!existing) {
@@ -226,20 +240,23 @@ export async function GET(req: NextRequest) {
 
       // Parallel: Comb + GodsEye (+ BreachVIP only when BH is off).
       // Sequential: BreachHub → CSINT; OsintCat direct only after BH miss.
+      // settleWithinBudget keeps finished providers when Comb/BH run long —
+      // withDeadline(allSettled) used to discard everything on one slow slot.
       const [
         combSettled,
         godseyeReportSettled,
         godseyeSearchSettled,
         breachVipSettled,
         gatewaySettled,
-      ] = await withDeadline(
-        Promise.allSettled([
+      ] = await settleWithinBudget(
+        [
           searchProxynovaCombForEmail(email, {
             start,
             limit: Math.min(
               Math.max(1, limit),
               BREACH_FANOUT_MAX_ROWS,
             ),
+            budgetMs: COMB_BUDGET_MS,
           }),
           fetchGodsEyeEmailReport(email),
           fetchGodsEyeSearchSafe(email, "email"),
@@ -249,8 +266,9 @@ export async function GET(req: NextRequest) {
               })
             : Promise.resolve(null),
           fetchBreachThenCsint(email, "email"),
-        ]),
-        OSINT_ROUTE_DEADLINE_MS,
+        ],
+        BREACH_SETTLE_BUDGET_MS,
+        15_000,
       );
 
       const combResult = settledValue(combSettled) ?? emptyComb(email, start);
@@ -332,12 +350,13 @@ export async function GET(req: NextRequest) {
       kindHint && kindHint !== "auto"
         ? kindHint
         : detectCsintSearchType(query);
-    const [gatewaySettled, godseyeSearchSettled] = await withDeadline(
-      Promise.allSettled([
+    const [gatewaySettled, godseyeSearchSettled] = await settleWithinBudget(
+      [
         fetchBreachThenCsint(query, resolvedKind),
         fetchGodsEyeSearchSafe(query, resolvedKind),
-      ]),
-      OSINT_ROUTE_DEADLINE_MS,
+      ],
+      BREACH_SETTLE_BUDGET_MS,
+      15_000,
     );
 
     const gateway = settledValue(gatewaySettled);

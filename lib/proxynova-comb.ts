@@ -214,7 +214,7 @@ export function filterCredentialsForEmail(
 
 export async function searchProxynovaCombForEmail(
   email: string,
-  options?: { start?: number; limit?: number },
+  options?: { start?: number; limit?: number; budgetMs?: number },
 ): Promise<CombSearchResult> {
   const raw = await searchProxynovaComb(email, options);
   const credentials = filterCredentialsForEmail(raw.credentials, email);
@@ -223,7 +223,8 @@ export async function searchProxynovaCombForEmail(
     ...raw,
     query: email,
     source: "Breached Data",
-    totalMatches: credentials.length,
+    // Keep provider-reported index size when larger than the returned page(s).
+    totalMatches: Math.max(raw.totalMatches, credentials.length),
     returned: credentials.length,
     credentials,
   };
@@ -231,7 +232,7 @@ export async function searchProxynovaCombForEmail(
 
 export async function searchProxynovaCombForDomain(
   domain: string,
-  options?: { start?: number; limit?: number },
+  options?: { start?: number; limit?: number; budgetMs?: number },
 ): Promise<CombSearchResult> {
   const raw = await searchProxynovaComb(domain, options);
   const credentials = filterCredentialsForDomain(raw.credentials, domain);
@@ -240,7 +241,7 @@ export async function searchProxynovaCombForDomain(
     ...raw,
     query: domain,
     source: "Breached Data",
-    totalMatches: credentials.length,
+    totalMatches: Math.max(raw.totalMatches, credentials.length),
     returned: credentials.length,
     credentials,
   };
@@ -248,13 +249,29 @@ export async function searchProxynovaCombForDomain(
 
 /**
  * Hard per-request page size enforced by the ProxyNova COMB API.
- * Our client paginates (`start`/`limit`) to retrieve the full hit set — do not
- * reintroduce a silent single-page cap that drops results past this size.
+ * Walk every page when the index allows; never discard already-fetched rows
+ * if a later page hits a provider hard-cap / 400 / rate limit.
  */
 export const PROXYNOVA_COMB_PAGE_LIMIT = 100;
 
 /** Memory-safety ceiling when walking every COMB page. */
 const PROXYNOVA_COMB_MAX_ROWS = 250_000;
+
+/** ProxyNova now rejects start>0 with this message (account/IP hard cap). */
+const PROXYNOVA_HARD_CAP_RE = /limited to\s+(\d+)\s+results/i;
+
+class ProxynovaCombPageError extends Error {
+  readonly status: number;
+  readonly hardCap: number | null;
+
+  constructor(status: number, detail: string) {
+    super(detail || `ProxyNova COMB returned ${status}`);
+    this.name = "ProxynovaCombPageError";
+    this.status = status;
+    const match = PROXYNOVA_HARD_CAP_RE.exec(detail);
+    this.hardCap = match ? Number(match[1]) : null;
+  }
+}
 
 async function fetchProxynovaCombPage(
   query: string,
@@ -279,13 +296,28 @@ async function fetchProxynovaCombPage(
   });
 
   if (res.status === 429) {
-    throw new Error(
+    throw new ProxynovaCombPageError(
+      429,
       "Rate limited — ProxyNova allows about 100 requests per minute.",
     );
   }
 
   if (!res.ok) {
-    throw new Error(`ProxyNova COMB returned ${res.status}`);
+    let detail = `ProxyNova COMB returned ${res.status}`;
+
+    try {
+      const errJson = (await res.json()) as { error?: string; message?: string };
+      const msg =
+        (typeof errJson.error === "string" && errJson.error) ||
+        (typeof errJson.message === "string" && errJson.message) ||
+        "";
+
+      if (msg.trim()) detail = msg.trim();
+    } catch {
+      // keep status fallback
+    }
+
+    throw new ProxynovaCombPageError(res.status, detail);
   }
 
   const data = (await res.json()) as { count?: number; lines?: string[] };
@@ -306,29 +338,55 @@ async function fetchProxynovaCombPage(
 }
 
 /**
- * ProxyNova COMB search. Pages through the provider (100 rows/request hard
- * limit) until `options.limit` rows are collected or the index is exhausted.
+ * ProxyNova COMB search. Pages through the provider (100 rows/request) when
+ * allowed. If the account is hard-capped (currently 100 total) or a later page
+ * fails, return every row already collected — never throw away the first page.
  */
 export async function searchProxynovaComb(
   query: string,
-  options?: { start?: number; limit?: number },
+  options?: { start?: number; limit?: number; budgetMs?: number },
 ): Promise<CombSearchResult> {
   const start = Math.max(0, options?.start ?? 0);
   const requested = Math.min(
     Math.max(1, options?.limit ?? PROXYNOVA_COMB_MAX_ROWS),
     PROXYNOVA_COMB_MAX_ROWS,
   );
+  const budgetMs =
+    typeof options?.budgetMs === "number" && options.budgetMs > 0
+      ? options.budgetMs
+      : null;
+  const startedAt = Date.now();
 
   const credentials: CombCredential[] = [];
   let totalMatches = 0;
   let cursor = start;
+  let providerCapMessage: string | undefined;
 
   while (credentials.length < requested) {
+    if (budgetMs != null && Date.now() - startedAt >= budgetMs) {
+      break;
+    }
+
     const pageSize = Math.min(
       PROXYNOVA_COMB_PAGE_LIMIT,
       requested - credentials.length,
     );
-    const page = await fetchProxynovaCombPage(query, cursor, pageSize);
+
+    let page: CombSearchResult;
+
+    try {
+      page = await fetchProxynovaCombPage(query, cursor, pageSize);
+    } catch (err) {
+      // Keep partials — ProxyNova hard-caps pagination for many clients.
+      if (credentials.length > 0) {
+        if (err instanceof ProxynovaCombPageError && err.hardCap != null) {
+          providerCapMessage = `ProxyNova COMB hard-caps at ${err.hardCap} rows for this client; other breach indexes continue.`;
+          totalMatches = Math.max(totalMatches, err.hardCap, credentials.length);
+        }
+        break;
+      }
+      throw err;
+    }
 
     totalMatches = Math.max(totalMatches, page.totalMatches);
     credentials.push(...page.credentials);
@@ -348,5 +406,6 @@ export async function searchProxynovaComb(
     returned: credentials.length,
     start,
     credentials,
+    ...(providerCapMessage ? { message: providerCapMessage } : {}),
   };
 }

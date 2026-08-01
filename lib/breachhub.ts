@@ -2899,17 +2899,56 @@ function endpointCallTimeoutMs(
     return Math.min(baseTimeoutMs, SEEKNOW_TIMEOUT_MS);
   }
 
+  // Keep short timeouts only on infection/noise vendors — never starve
+  // high-yield breach indexes (Snusbase / LeakOsint / LeakCheck / …).
   if (
     id.includes("hudsonrock") ||
     id.includes("datavoid") ||
-    id.includes("leakosint") ||
-    id.includes("snusbase") ||
     id.includes("infodra")
   ) {
     return Math.min(baseTimeoutMs, FLAKY_VENDOR_TIMEOUT_MS);
   }
 
   return baseTimeoutMs;
+}
+
+/** High-volume credential indexes — run first so budgets cannot starve them. */
+const BREACH_PRIORITY_ENDPOINT_IDS = [
+  "snusbase",
+  "snusbase-combo",
+  "leakosint",
+  "leakcheck-v2",
+  "hackcheck",
+  "breachvip",
+  "intelvault",
+  "intelvault-breaches",
+  "oathnet-breach",
+  "breachhub-search",
+  "osintcat-database",
+  "osintbat-email-breach",
+  "akula",
+  "leaksight",
+  "cypherdynamics",
+  "inf0sec",
+  "seeknow-search",
+  "xosint",
+] as const;
+
+function prioritizeBreachEndpoints(
+  endpoints: BreachHubEndpointDef[],
+): BreachHubEndpointDef[] {
+  const rank = new Map<string, number>(
+    BREACH_PRIORITY_ENDPOINT_IDS.map((id, index) => [id, index]),
+  );
+
+  return [...endpoints].sort((a, b) => {
+    const aRank = rank.get(a.id) ?? 1_000;
+    const bRank = rank.get(b.id) ?? 1_000;
+
+    if (aRank !== bRank) return aRank - bRank;
+
+    return a.id.localeCompare(b.id);
+  });
 }
 
 function endpointRequestKey(
@@ -3193,20 +3232,21 @@ export async function fetchBreachHubAdditiveBreachSearch(
   // Keep pure stealer/infection indexes out — but never exclude Snusbase,
   // LeakOsint, LeakCheck, IntelVault, etc. (those used to sit on the stealer
   // secondary list and starved breach searches).
-  const endpoints = additiveForKind(kind).filter(
-    (endpoint) => !isPureStealerEndpoint(endpoint),
+  const endpoints = prioritizeBreachEndpoints(
+    additiveForKind(kind).filter(
+      (endpoint) => !isPureStealerEndpoint(endpoint),
+    ),
   );
 
-  // Coverage-first: give the full Data Breach catalog enough wall-clock to
-  // finish multiple concurrency waves. Do not early-exit after a few hits —
-  // that silently truncated large breach sets under short budgets.
-  const perCall = Math.min(Math.max(timeoutMs, 18_000), 28_000);
-  const budget = Math.min(Math.max(timeoutMs, 32_000), 42_000);
+  // Coverage-first: prioritize high-yield indexes and give them enough
+  // wall-clock for large payloads. Do not early-exit after a few hits.
+  const perCall = Math.min(Math.max(timeoutMs, 22_000), 32_000);
+  const budget = Math.min(Math.max(timeoutMs, 40_000), 52_000);
 
   return fanOutEndpoints(endpoints, query, kind, perCall, {
     minResults: 0,
     budgetMs: budget,
-    concurrency: 10,
+    concurrency: 12,
   });
 }
 
@@ -4833,11 +4873,6 @@ export function breachHubRowsToCredentials(
 
     if (isBrandPlaceholderValue(id)) continue;
 
-    const key = `${id.toLowerCase()}\0${secret}`;
-
-    if (seen.has(key)) continue;
-    seen.add(key);
-
     const breachSource =
       asString(record.database) ||
       asString(record.dbname) ||
@@ -4848,6 +4883,13 @@ export function breachHubRowsToCredentials(
       identifier: id,
       secret,
     });
+    // Passwordless rows from different dumps must stay distinct.
+    const key = secret
+      ? `${id.toLowerCase()}\0${secret}`
+      : `${id.toLowerCase()}\0\0${(breachSource || raw).toLowerCase()}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
 
     credentials.push({
       identifier: id,

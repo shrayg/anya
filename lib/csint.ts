@@ -829,20 +829,28 @@ export function csintRowsToCredentials(results: unknown[]): CombCredential[] {
     const id = identifier || "(unknown)";
 
     if (isBrandPlaceholderValue(id)) continue;
-    const key = `${id.toLowerCase()}\0${secret}`;
 
-    if (seen.has(key)) continue;
-    seen.add(key);
-
+    const breachSource =
+      asString(record.database) ||
+      asString(record.dbname) ||
+      asString(record.origin) ||
+      asString(record.title);
+    const raw = secret ? `${id}:${secret}` : id;
     const fields = connectedFieldsFromBreachRecord(record, {
       identifier: id,
       secret,
     });
+    const key = secret
+      ? `${id.toLowerCase()}\0${secret}`
+      : `${id.toLowerCase()}\0\0${(breachSource || raw).toLowerCase()}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
 
     credentials.push({
       identifier: id,
       secret,
-      raw: secret ? `${id}:${secret}` : id,
+      raw: breachSource ? `${breachSource} · ${raw}` : raw,
       ...(fields.length > 0 ? { fields } : {}),
     });
   }

@@ -255,12 +255,12 @@ export function BreachesSearchResults({
       ) : null}
       {result.totalMatches > result.returned ? (
         <p className="text-xs text-zinc-500">
-          Provider indexes may paginate large corpora. Shown{" "}
+          Provider indexes may report more matches than returned. Shown{" "}
           {result.returned.toLocaleString()} of{" "}
           {result.totalMatches.toLocaleString()} reported matches
           {result.start > 0 ? ` (offset ${result.start})` : ""}. ProxyNova COMB
-          serves 100 rows per page; we walk every page up to the memory-safety
-          ceiling.
+          currently hard-caps at 100 rows per client; paid breach indexes are
+          merged without artificial caps (memory-safety ceiling only).
         </p>
       ) : null}
     </div>
