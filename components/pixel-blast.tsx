@@ -35,6 +35,12 @@ export interface PixelBlastProps {
   noiseAmount?: number;
   /** Freezes the simulation — wire this to `prefers-reduced-motion`. */
   paused?: boolean;
+  /**
+   * Where ripple/liquid pointer events are read from. Use `"window"` when the
+   * canvas sits behind other content that would otherwise swallow the events
+   * (e.g. a full-viewport background).
+   */
+  interactionTarget?: "self" | "window";
 }
 
 const SHAPE_MAP: Record<PixelBlastVariant, number> = {
@@ -443,6 +449,7 @@ const PixelBlast = ({
   edgeFade = 0.25,
   noiseAmount = 0,
   paused = false,
+  interactionTarget = "self",
 }: PixelBlastProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const instanceRef = useRef<PixelBlastInstance | null>(null);
@@ -658,12 +665,23 @@ const PixelBlast = ({
       touch.addTouch({ x: fx / w, y: fy / h });
     };
 
-    renderer.domElement.addEventListener("pointerdown", onPointerDown, {
-      passive: true,
-    });
-    renderer.domElement.addEventListener("pointermove", onPointerMove, {
-      passive: true,
-    });
+    const pointerSource: HTMLElement | Window =
+      interactionTarget === "window" ? window : renderer.domElement;
+
+    pointerSource.addEventListener(
+      "pointerdown",
+      onPointerDown as EventListener,
+      {
+        passive: true,
+      },
+    );
+    pointerSource.addEventListener(
+      "pointermove",
+      onPointerMove as EventListener,
+      {
+        passive: true,
+      },
+    );
 
     let onScreen = true;
     const intersectionObserver = autoPauseOffscreen
@@ -733,8 +751,14 @@ const PixelBlast = ({
       resizeObserver.disconnect();
       intersectionObserver?.disconnect();
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
-      renderer.domElement.removeEventListener("pointermove", onPointerMove);
+      pointerSource.removeEventListener(
+        "pointerdown",
+        onPointerDown as EventListener,
+      );
+      pointerSource.removeEventListener(
+        "pointermove",
+        onPointerMove as EventListener,
+      );
       touch?.dispose();
       composer?.dispose();
       geometry.dispose();
@@ -744,7 +768,7 @@ const PixelBlast = ({
       renderer.domElement.remove();
       instanceRef.current = null;
     };
-  }, [antialias, liquid, noiseAmount, autoPauseOffscreen]);
+  }, [antialias, liquid, noiseAmount, autoPauseOffscreen, interactionTarget]);
 
   useEffect(() => {
     const instance = instanceRef.current;

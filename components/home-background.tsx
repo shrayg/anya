@@ -1,6 +1,5 @@
 "use client";
 
-import { useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 
 import { themeAccent } from "@/config/branding";
@@ -32,26 +31,27 @@ function LiteBackground() {
 }
 
 export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
-  const reduceMotion = useReducedMotion();
-
   if (mode === "lite") {
     return <LiteBackground />;
   }
 
   return (
-    <div aria-hidden className="fixed inset-0 z-0 overflow-hidden bg-[#050508]">
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#050508]"
+    >
       <PixelBlast
         enableRipples
         liquid
         transparent
         color="#727171"
         edgeFade={0.25}
+        interactionTarget="window"
         liquidRadius={1.2}
         liquidStrength={0.12}
         liquidWobbleSpeed={5}
         patternDensity={1.15}
         patternScale={3}
-        paused={Boolean(reduceMotion)}
         pixelSize={3}
         pixelSizeJitter={1.05}
         rippleIntensityScale={1.5}
@@ -61,7 +61,8 @@ export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
         variant="diamond"
       />
       {/* Scrim keeps body copy legible over the dither without flattening the
-          pattern. pointer-events stay off so ripples still reach the canvas. */}
+          pattern. Ripples come from window-level pointer events, so this whole
+          layer stays inert. */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
