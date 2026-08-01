@@ -223,8 +223,8 @@ export async function searchProxynovaCombForEmail(
     ...raw,
     query: email,
     source: "Breached Data",
-    // Keep provider-reported index size when larger than the returned page(s).
-    totalMatches: Math.max(raw.totalMatches, credentials.length),
+    // Honest count = rows kept after email filter, not Comb's index advertisement.
+    totalMatches: credentials.length,
     returned: credentials.length,
     credentials,
   };
@@ -241,7 +241,8 @@ export async function searchProxynovaCombForDomain(
     ...raw,
     query: domain,
     source: "Breached Data",
-    totalMatches: Math.max(raw.totalMatches, credentials.length),
+    // Honest count = rows kept after domain filter, not Comb's index advertisement.
+    totalMatches: credentials.length,
     returned: credentials.length,
     credentials,
   };
@@ -358,7 +359,8 @@ export async function searchProxynovaComb(
   const startedAt = Date.now();
 
   const credentials: CombCredential[] = [];
-  let totalMatches = 0;
+  // Provider index size — used only to decide when paging is exhausted.
+  let providerIndexCount = 0;
   let cursor = start;
   let providerCapMessage: string | undefined;
 
@@ -381,14 +383,13 @@ export async function searchProxynovaComb(
       if (credentials.length > 0) {
         if (err instanceof ProxynovaCombPageError && err.hardCap != null) {
           providerCapMessage = `ProxyNova COMB hard-caps at ${err.hardCap} rows for this client; other breach indexes continue.`;
-          totalMatches = Math.max(totalMatches, err.hardCap, credentials.length);
         }
         break;
       }
       throw err;
     }
 
-    totalMatches = Math.max(totalMatches, page.totalMatches);
+    providerIndexCount = Math.max(providerIndexCount, page.totalMatches);
     credentials.push(...page.credentials);
 
     if (page.credentials.length === 0) break;
@@ -396,13 +397,14 @@ export async function searchProxynovaComb(
 
     cursor += page.credentials.length;
 
-    if (cursor >= totalMatches) break;
+    if (providerIndexCount > 0 && cursor >= providerIndexCount) break;
   }
 
   return {
     source: "Breached Data",
     query,
-    totalMatches: Math.max(totalMatches, credentials.length),
+    // Surface rows we actually return — never Comb's advertised index size.
+    totalMatches: credentials.length,
     returned: credentials.length,
     start,
     credentials,

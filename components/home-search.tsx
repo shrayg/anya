@@ -255,13 +255,9 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         const credentials = Array.isArray(breachData.credentials)
           ? breachData.credentials
           : [];
-        const returned =
-          typeof breachData.returned === "number"
-            ? breachData.returned
-            : credentials.length;
+        const matchCount = credentials.length;
         const empty =
-          returned === 0 &&
-          credentials.length === 0 &&
+          matchCount === 0 &&
           !breachData.hasGodsEyeReport &&
           !breachData.hasBreachVipResults &&
           !(breachData.csintCount && breachData.csintCount > 0) &&
@@ -280,13 +276,10 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         setCombResult({
           ...breachData,
           credentials,
-          returned,
+          returned: matchCount,
+          totalMatches: matchCount,
         });
-        setResultCount(
-          typeof breachData.totalMatches === "number"
-            ? breachData.totalMatches
-            : returned,
-        );
+        setResultCount(matchCount);
 
         return;
       }

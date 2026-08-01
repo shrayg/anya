@@ -99,6 +99,9 @@ export function BreachesSearchResults({
     pageStart,
     pageStart + RESULTS_PAGE_SIZE,
   );
+  // Always derive from credential rows — never trust provider index ads.
+  const matchCount = result.credentials.length;
+  const shownCount = visibleRows.length;
 
   const goToPage = (nextPage: number) => {
     setPage(nextPage);
@@ -112,17 +115,14 @@ export function BreachesSearchResults({
       <div className="anya-result-stack--breaches-stats grid gap-1.5 sm:grid-cols-2">
         <ResultStatStrip
           label="Total matches"
-          value={result.totalMatches.toLocaleString()}
+          value={matchCount.toLocaleString()}
         />
         <ResultStatStrip
           label="Shown"
           value={
-            <>
-              {result.returned.toLocaleString()}
-              {result.totalMatches > result.returned
-                ? ` (offset ${result.start})`
-                : ""}
-            </>
+            matchCount === 0
+              ? "0"
+              : `${shownCount.toLocaleString()} of ${matchCount.toLocaleString()}`
           }
         />
       </div>
@@ -274,16 +274,6 @@ export function BreachesSearchResults({
       </div>
 
       {blurResults ? <ResultsBlurNotice isGuest={blurNoticeIsGuest} /> : null}
-      {result.totalMatches > result.returned ? (
-        <p className="text-xs text-zinc-500">
-          Provider indexes may report more matches than returned. Shown{" "}
-          {result.returned.toLocaleString()} of{" "}
-          {result.totalMatches.toLocaleString()} reported matches
-          {result.start > 0 ? ` (offset ${result.start})` : ""}. ProxyNova COMB
-          currently hard-caps at 100 rows per client; paid breach indexes are
-          merged without artificial caps (memory-safety ceiling only).
-        </p>
-      ) : null}
     </div>
   );
 }

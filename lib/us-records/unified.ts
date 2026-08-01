@@ -150,12 +150,9 @@ async function searchNameBreaches(query: string): Promise<CombSearchResult> {
     godseye ? breachHubRowsToCredentials(godseye.results) : [],
   ].reduce((acc, next) => mergeCredentials(acc, next), [] as CombCredential[]);
 
-  const extras =
-    (csint?.count ?? 0) + (breachHub?.count ?? 0) + (godseye?.count ?? 0);
-
   return {
     ...emptyComb(query),
-    totalMatches: extras,
+    totalMatches: credentials.length,
     returned: credentials.length,
     credentials,
   };

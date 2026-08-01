@@ -305,26 +305,20 @@ export async function GET(req: NextRequest) {
         [] as CombCredential[],
       );
 
-      const extras =
-        (breachVip?.totalMatches ?? 0) +
-        (godseyeSearch?.count ?? 0) +
-        (csint?.count ?? 0) +
-        (breachHub?.count ?? 0) +
-        (osintCat?.count ?? 0);
-
       const response = {
         ...combResult,
-        totalMatches: combResult.totalMatches + extras,
+        // Honest UI count = merged credential rows, not provider index ads.
+        totalMatches: mergedCredentials.length,
         returned: mergedCredentials.length,
         credentials: mergedCredentials,
         godseyeReport,
         hasGodsEyeReport: Boolean(godseyeReport),
         hasBreachVipResults: Boolean(breachVip && breachVip.returned > 0),
-        breachVipCount: breachVip?.totalMatches ?? 0,
-        csintCount: csint?.count ?? 0,
-        breachHubCount: breachHub?.count ?? 0,
-        osintCatCount: osintCat?.count ?? 0,
-        godseyeSearchCount: godseyeSearch?.count ?? 0,
+        breachVipCount: breachVip?.credentials?.length ?? 0,
+        csintCount: csint?.results?.length ?? 0,
+        breachHubCount: breachHub?.results?.length ?? 0,
+        osintCatCount: osintCat?.results?.length ?? 0,
+        godseyeSearchCount: godseyeSearch?.results?.length ?? 0,
       };
 
       if (
@@ -373,23 +367,18 @@ export async function GET(req: NextRequest) {
       [] as CombCredential[],
     );
 
-    const extras =
-      (csint?.count ?? 0) +
-      (breachHub?.count ?? 0) +
-      (godseyeSearch?.count ?? 0);
-
     const response = {
       ...emptyComb(query, start),
-      totalMatches: extras,
+      totalMatches: mergedCredentials.length,
       returned: mergedCredentials.length,
       credentials: mergedCredentials,
       hasGodsEyeReport: false,
       hasBreachVipResults: false,
       breachVipCount: 0,
-      csintCount: csint?.count ?? 0,
-      breachHubCount: breachHub?.count ?? 0,
+      csintCount: csint?.results?.length ?? 0,
+      breachHubCount: breachHub?.results?.length ?? 0,
       osintCatCount: 0,
-      godseyeSearchCount: godseyeSearch?.count ?? 0,
+      godseyeSearchCount: godseyeSearch?.results?.length ?? 0,
     };
 
     if (response.returned === 0) {
