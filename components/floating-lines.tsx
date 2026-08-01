@@ -105,8 +105,7 @@ vec3 getLineColor(float t, vec3 baseColor) {
     gradientColor = mix(c1, c2, f);
   }
 
-  /* 0.82 keeps ice-blue readable without washing into neon glow. */
-  return gradientColor * 0.82;
+  return gradientColor * 0.5;
 }
 
 float wave(vec2 uv, float offset, vec2 screenUv, vec2 mouseUv, bool shouldBend) {
@@ -125,8 +124,7 @@ float wave(vec2 uv, float offset, vec2 screenUv, vec2 mouseUv, bool shouldBend) 
   }
 
   float m = uv.y - y;
-  /* Slightly thicker core + soft halo vs stock 0.0175. */
-  return 0.024 / max(abs(m) + 0.009, 1e-3) + 0.012;
+  return 0.0175 / max(abs(m) + 0.01, 1e-3) + 0.01;
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
@@ -161,7 +159,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         baseUv,
         mouseUv,
         interactive
-      ) * 0.38;
+      ) * 0.2;
     }
   }
 
@@ -179,7 +177,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         baseUv,
         mouseUv,
         interactive
-      ) * 1.15;
+      );
     }
   }
 
@@ -198,7 +196,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         baseUv,
         mouseUv,
         interactive
-      ) * 0.22;
+      ) * 0.1;
     }
   }
 
