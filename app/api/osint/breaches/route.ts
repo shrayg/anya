@@ -8,6 +8,8 @@ import {
 } from "@/lib/breachhub";
 import {
   searchBreachVipForEmail,
+  searchBreachVipForField,
+  type BreachVipField,
 } from "@/lib/breachvip";
 import {
   csintRowsToCredentials,
@@ -29,8 +31,7 @@ import {
 import {
   hasOsintCatDirect,
   isBreachHubPrimaryActive,
-  shouldUseDirectBreachVip,
-  withPrimaryFallback,
+  shouldUseAdditiveBreachVip,
 } from "@/lib/provider-dedupe";
 import {
   OSINT_ROUTE_DEADLINE_MS,
@@ -128,14 +129,29 @@ async function fetchGodsEyeSearchSafe(query: string, typeHint?: string) {
   }
 }
 
-/** BreachHub additive first; CSINT only after BH miss. */
-async function fetchBreachThenCsint(
+async function fetchBreachHubSafe(
   query: string,
   kindHint: string,
-): Promise<{
-  breachHub: SanitizedBreachResponse | null;
-  csint: SanitizedBreachResponse | null;
-}> {
+): Promise<SanitizedBreachResponse | null> {
+  if (!isBreachHubEnabled()) return null;
+
+  try {
+    return await fetchBreachHubAdditiveBreachSearch(
+      query,
+      kindHint,
+      COMBINED_BREACHHUB_TIMEOUT_MS,
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCsintSafe(
+  query: string,
+  kindHint: string,
+): Promise<SanitizedBreachResponse | null> {
+  if (!isCsintEnabled()) return null;
+
   const csintType =
     kindHint === "email" ||
     kindHint === "phone" ||
@@ -145,37 +161,83 @@ async function fetchBreachThenCsint(
       ? kindHint
       : detectCsintSearchType(query);
 
-  const { value, used } = await withPrimaryFallback(
-    async () => {
-      if (!isBreachHubEnabled()) return null;
-
-      return fetchBreachHubAdditiveBreachSearch(
-        query,
-        kindHint,
-        COMBINED_BREACHHUB_TIMEOUT_MS,
-      );
-    },
-    async () => {
-      if (!isCsintEnabled()) return null;
-
-      return fetchCsintAdditiveBreachSearch(
-        query,
-        csintType,
-        COMBINED_CSINT_TIMEOUT_MS,
-      );
-    },
-    (row) => Boolean(row && row.count > 0),
-  );
-
-  if (used === "primary") {
-    return { breachHub: value, csint: null };
+  try {
+    return await fetchCsintAdditiveBreachSearch(
+      query,
+      csintType,
+      COMBINED_CSINT_TIMEOUT_MS,
+    );
+  } catch {
+    return null;
   }
+}
 
-  if (used === "fallback") {
-    return { breachHub: null, csint: value };
+/** BreachHub + CSINT both contribute — parallel additive, merge-deduped upstream. */
+async function fetchBreachAndCsintParallel(
+  query: string,
+  kindHint: string,
+): Promise<{
+  breachHub: SanitizedBreachResponse | null;
+  csint: SanitizedBreachResponse | null;
+}> {
+  const [breachHubSettled, csintSettled] = await Promise.allSettled([
+    fetchBreachHubSafe(query, kindHint),
+    fetchCsintSafe(query, kindHint),
+  ]);
+
+  return {
+    breachHub: settledValue(breachHubSettled),
+    csint: settledValue(csintSettled),
+  };
+}
+
+function breachVipFieldForKind(kind: string): BreachVipField | null {
+  switch (kind) {
+    case "email":
+      return "email";
+    case "phone":
+      return "phone";
+    case "username":
+      return "username";
+    case "ip":
+      return "ip";
+    case "domain":
+      return "domain";
+    case "name":
+      return "name";
+    case "password":
+      return "password";
+    case "discord":
+      return "discordid";
+    default:
+      return null;
   }
+}
 
-  return { breachHub: null, csint: null };
+async function fetchBreachVipSafe(
+  query: string,
+  kindHint: string,
+  email: string | null,
+) {
+  if (!shouldUseAdditiveBreachVip()) return null;
+
+  try {
+    if (email && (kindHint === "email" || kindHint === "auto")) {
+      return await searchBreachVipForEmail(email, {
+        maxRows: BREACH_FANOUT_MAX_ROWS,
+      });
+    }
+
+    const field = breachVipFieldForKind(kindHint);
+
+    if (!field) return null;
+
+    return await searchBreachVipForField(query, field, {
+      maxRows: BREACH_FANOUT_MAX_ROWS,
+    });
+  } catch {
+    return null;
+  }
 }
 
 function emptyComb(query: string, start: number): CombSearchResult {
@@ -243,8 +305,7 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      // Parallel: Comb + GodsEye (+ BreachVIP only when BH is off).
-      // Sequential: BreachHub → CSINT; OsintCat direct only after BH miss.
+      // Parallel additive: Comb + GodsEye + BreachVIP + BreachHub + CSINT.
       // settleWithinBudget keeps finished providers when Comb/BH run long —
       // withDeadline(allSettled) used to discard everything on one slow slot.
       const [
@@ -265,12 +326,8 @@ export async function GET(req: NextRequest) {
           }),
           fetchGodsEyeEmailReport(email),
           fetchGodsEyeSearchSafe(email, "email"),
-          shouldUseDirectBreachVip()
-            ? searchBreachVipForEmail(email, {
-                maxRows: BREACH_FANOUT_MAX_ROWS,
-              })
-            : Promise.resolve(null),
-          fetchBreachThenCsint(email, "email"),
+          fetchBreachVipSafe(email, "email", email),
+          fetchBreachAndCsintParallel(email, "email"),
         ],
         BREACH_SETTLE_BUDGET_MS,
         15_000,
@@ -282,7 +339,7 @@ export async function GET(req: NextRequest) {
       const breachVip = settledValue(breachVipSettled);
       const gateway = settledValue(gatewaySettled);
       const breachHub = gateway?.breachHub ?? null;
-      let csint = gateway?.csint ?? null;
+      const csint = gateway?.csint ?? null;
       let osintCat: SanitizedBreachResponse | null = null;
 
       // OsintCat: BH primary already includes osintcat-* when BH is up.
@@ -350,26 +407,30 @@ export async function GET(req: NextRequest) {
       return osintJson(access, response);
     }
 
-    // Username / phone / domain / free-text — BH→CSINT sequential + GodsEye.
+    // Username / phone / domain / free-text — BH ∥ CSINT ∥ BreachVIP + GodsEye.
     const resolvedKind =
       kindHint && kindHint !== "auto"
         ? kindHint
         : detectCsintSearchType(query);
-    const [gatewaySettled, godseyeSearchSettled] = await settleWithinBudget(
-      [
-        fetchBreachThenCsint(query, resolvedKind),
-        fetchGodsEyeSearchSafe(query, resolvedKind),
-      ],
-      BREACH_SETTLE_BUDGET_MS,
-      15_000,
-    );
+    const [gatewaySettled, godseyeSearchSettled, breachVipSettled] =
+      await settleWithinBudget(
+        [
+          fetchBreachAndCsintParallel(query, resolvedKind),
+          fetchGodsEyeSearchSafe(query, resolvedKind),
+          fetchBreachVipSafe(query, resolvedKind, null),
+        ],
+        BREACH_SETTLE_BUDGET_MS,
+        15_000,
+      );
 
     const gateway = settledValue(gatewaySettled);
     const breachHub = gateway?.breachHub ?? null;
     const csint = gateway?.csint ?? null;
     const godseyeSearch = settledValue(godseyeSearchSettled);
+    const breachVip = settledValue(breachVipSettled);
 
     const mergedCredentials = [
+      breachVip?.credentials ?? [],
       csint ? csintRowsToCredentials(csint.results) : [],
       breachHub ? breachHubRowsToCredentials(breachHub.results) : [],
       godseyeSearch ? breachHubRowsToCredentials(godseyeSearch.results) : [],
@@ -390,8 +451,8 @@ export async function GET(req: NextRequest) {
       returned: credentials.length,
       credentials,
       hasGodsEyeReport: false,
-      hasBreachVipResults: false,
-      breachVipCount: 0,
+      hasBreachVipResults: Boolean(breachVip && breachVip.returned > 0),
+      breachVipCount: breachVip?.credentials?.length ?? 0,
       csintCount: csint?.results?.length ?? 0,
       breachHubCount: breachHub?.results?.length ?? 0,
       osintCatCount: 0,

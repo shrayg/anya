@@ -296,7 +296,8 @@ export async function fetchIntelxExportWithFallback(
   );
 }
 
-/** Whether combined search should run CSINT additive only after BH misses. */
+/** Whether specialty combined search should run CSINT only after BH misses.
+ *  Breaches route is additive and does not use this gate. */
 export function csintIsFallbackOnly(): boolean {
   return isBreachHubPrimaryActive() && isCsintEnabled();
 }

@@ -112,6 +112,27 @@ export async function fetchCsintQuotaBlockedStub(
   return null;
 }
 
+/** csint.pro documents ~3 req/s — space POSTs so additive fan-out stays polite. */
+const CSINT_MIN_INTERVAL_MS = 350;
+let csintGate: Promise<void> = Promise.resolve();
+let csintNextAt = 0;
+
+async function acquireCsintSlot(): Promise<void> {
+  const run = csintGate.then(async () => {
+    const wait = Math.max(0, csintNextAt - Date.now());
+
+    if (wait > 0) {
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+
+    csintNextAt = Date.now() + CSINT_MIN_INTERVAL_MS;
+  });
+
+  // Keep the chain alive even if a waiter fails.
+  csintGate = run.catch(() => undefined);
+  await run;
+}
+
 async function csintPost(
   path: string,
   body: Record<string, unknown>,
@@ -122,6 +143,8 @@ async function csintPost(
   if (!apiKey) {
     throw new Error(publicServiceUnavailable());
   }
+
+  await acquireCsintSlot();
 
   const started = Date.now();
   let logged = false;

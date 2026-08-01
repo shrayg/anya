@@ -1,12 +1,15 @@
 /**
  * Cross-gateway vendor dedupe for OSINT fan-out.
  *
- * Exact policy:
+ * Exact policy (specialty routes — Shodan, Melissa, IntelX, stealer, …):
  * 1. One underlying vendor = one call path at a time (never CSINT ∥ BreachHub).
  * 2. Prefer BreachHub first for every mirrored vendor.
  * 3. If BreachHub fails / errors / returns empty for that vendor, fall back to
  *    CSINT.pro (or the direct client: OsintCat / Breach.vip / CordCat).
  * 4. Sequential primary → fallback only — never fire both at once.
+ *
+ * Exception — /api/osint/breaches: Comb + GodsEye + BreachHub + CSINT +
+ * direct BreachVIP run additively in parallel; credentials are merge-deduped.
  *
  * Vendor map (primary → fallback):
  * | Vendor                      | Primary     | Fallback                         |
@@ -285,16 +288,17 @@ export function hasOsintCatDirect(): boolean {
 }
 
 /**
- * True when BreachHub is the live primary — CSINT additive / directs must not
- * run in parallel for mirrored vendors (use sequential fallback instead).
+ * True when BreachHub is the live primary — specialty routes still use
+ * sequential BH→CSINT fallback. Breaches searches are an exception: CSINT +
+ * direct BreachVIP run additively in parallel with BH (see /api/osint/breaches).
  */
 export function isBreachHubPrimaryActive(): boolean {
   return isBreachHubKeyConfigured();
 }
 
 /**
- * CSINT additive fan-out should not run beside BreachHub for the same vendors.
- * Call CSINT only as fallback after BH fails/returns empty (see wrappers).
+ * Specialty modules (Shodan / Melissa / IntelX / …) still defer CSINT until
+ * after BH miss. Breaches route ignores this and always fans out CSINT.
  */
 export function shouldDeferCsintAdditive(): boolean {
   return isBreachHubPrimaryActive() && isCsintEnabled();
@@ -305,9 +309,18 @@ export function shouldUseDirectOsintCatInParallel(): boolean {
   return hasOsintCatDirect() && !isBreachHubPrimaryActive();
 }
 
-/** Direct breach.vip — only when BH is off. */
+/**
+ * Direct breach.vip for specialty / combined modules — only when BH is off
+ * (BH already mirrors breachvip). Breaches route uses
+ * {@link shouldUseAdditiveBreachVip} instead.
+ */
 export function shouldUseDirectBreachVip(): boolean {
   return isBreachVipEnabled() && !isBreachHubPrimaryActive();
+}
+
+/** Breaches searches: always call direct BreachVIP when enabled (merge + dedupe). */
+export function shouldUseAdditiveBreachVip(): boolean {
+  return isBreachVipEnabled();
 }
 
 /** Direct CordCat — only when BH is off. */

@@ -5,9 +5,10 @@
  * (Scalar also loads https://breachhub.org/api/openapi — fuller path catalog.)
  * Auth: query param `key` (ApiKeyAuth). Disable with BREACHHUB_ENABLED=false.
  *
- * Vendor policy (lib/provider-dedupe.ts): BreachHub is primary for mirrored
- * vendors; CSINT / direct clients are sequential fallbacks — never parallel
- * double-hits. IntelBase * mirrors of direct BH catalog ids are always skipped.
+ * Vendor policy (lib/provider-dedupe.ts): specialty routes keep BreachHub
+ * primary with sequential CSINT/direct fallbacks. Breaches searches run BH
+ * additively beside CSINT + direct BreachVIP (merge-dedupe). IntelBase *
+ * mirrors of direct BH catalog ids are always skipped.
  *
  * Sidebar sections mirrored here:
  * 1. Data Breach APIs
