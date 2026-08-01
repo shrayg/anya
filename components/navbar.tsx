@@ -538,7 +538,7 @@ export const Navbar = () => {
           base: "anya-floating-nav !bg-transparent !border-none !shadow-none !backdrop-blur-none",
           // Fixed 3-zone grid — avoids absolute-center overlapping brand/account on medium widths.
           wrapper:
-            "anya-marketing-nav-wrapper !max-w-none px-1 sm:px-2 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-4 lg:gap-6 xl:gap-8",
+            "anya-marketing-nav-wrapper !max-w-none px-1.5 sm:px-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-5 lg:gap-8 xl:gap-10",
         }}
         isBlurred={false}
         isMenuOpen={menuOpen}
@@ -620,7 +620,7 @@ export const Navbar = () => {
           className="hidden basis-auto md:flex md:min-w-0 md:max-w-full md:justify-self-end"
           justify="end"
         >
-          <NavbarItem className="nav-auth-cluster flex min-w-0 max-w-full shrink items-center gap-3.5">
+          <NavbarItem className="nav-auth-cluster flex min-w-0 max-w-full shrink items-center gap-5">
             {username ? (
               <>
                 {creditBalance != null ? (
