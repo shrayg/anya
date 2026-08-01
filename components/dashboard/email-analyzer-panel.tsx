@@ -96,10 +96,12 @@ function pushScalarFields(
 function cardsFromAnalyzerPayload(
   data: Record<string, unknown>,
   email: string,
+  options?: { omitContactProfiles?: boolean },
 ): FormattedRecord[] {
   const cards: FormattedRecord[] = [];
   let index = 1;
   const sources = asRecord(data.sources) ?? data;
+  const omitContactProfiles = options?.omitContactProfiles === true;
 
   const brief = asRecord(sources.brief);
 
@@ -139,7 +141,9 @@ function cardsFromAnalyzerPayload(
     }
   }
 
-  const presence = asRecord(sources.contactProfiles ?? data.contactProfiles);
+  const presence = omitContactProfiles
+    ? null
+    : asRecord(sources.contactProfiles ?? data.contactProfiles);
 
   if (presence) {
     const found = Array.isArray(presence.found)
@@ -365,13 +369,17 @@ function cardsFromAnalyzerPayload(
 /**
  * Right-side Email Analyzer box for Breaches.
  * Fans out every Email Analyzer endpoint (brief, presence, sweep, Seekria, SeekNow).
+ * When `omitContactProfiles` is set, presence cards are skipped so the dedicated
+ * Contact Profiles companion panel can own that surface (with proper plan gating).
  */
 export function EmailAnalyzerPanel({
   query,
   blurResults = false,
+  omitContactProfiles = false,
 }: {
   query: string;
   blurResults?: boolean;
+  omitContactProfiles?: boolean;
 }) {
   const email = useMemo(() => normalizeEmail(query), [query]);
   const [state, setState] = useState<AnalyzerState>(() =>
@@ -443,8 +451,10 @@ export function EmailAnalyzerPanel({
   const cards = useMemo((): FormattedRecord[] => {
     if (state.status !== "ready") return [];
 
-    return cardsFromAnalyzerPayload(state.data, email ?? query);
-  }, [state, email, query]);
+    return cardsFromAnalyzerPayload(state.data, email ?? query, {
+      omitContactProfiles,
+    });
+  }, [state, email, query, omitContactProfiles]);
 
   return (
     <aside className="anya-breaches-side-panel anya-breaches-side-panel--analyzer">

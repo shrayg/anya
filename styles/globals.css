@@ -3283,8 +3283,9 @@ html[data-splash="active"] [data-splash-target] {
     order: 0;
   }
 
-  .anya-breaches-side-panel--analyzer {
-    max-height: min(78vh, 52rem);
+  .anya-breaches-side-panel--analyzer,
+  .anya-breaches-side-panel--companion {
+    max-height: min(42vh, 28rem);
     overflow: auto;
   }
 }

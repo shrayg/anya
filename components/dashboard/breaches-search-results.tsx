@@ -10,7 +10,9 @@ import {
   ResultStatStrip,
   type ResultCardFieldDef,
 } from "@/components/dashboard/result-card";
+import { ContactProfilesPanel } from "@/components/dashboard/contact-profiles-panel";
 import { EmailAnalyzerPanel } from "@/components/dashboard/email-analyzer-panel";
+import { FraudFootprintPanel } from "@/components/dashboard/fraud-footprint-panel";
 import { IpIntelPanel } from "@/components/dashboard/ip-intel-panel";
 import {
   RESULTS_PAGE_SIZE,
@@ -253,9 +255,21 @@ export function BreachesSearchResults({
           />
         </div>
 
-        {/* RIGHT — Email Analyzer findings */}
+        {/* RIGHT — Email Analyzer + Contact Profiles + Fraud Footprint (email) */}
         <div className="anya-breaches-col anya-breaches-col--right">
-          <EmailAnalyzerPanel blurResults={blurResults} query={result.query} />
+          <EmailAnalyzerPanel
+            blurResults={blurResults}
+            omitContactProfiles
+            query={result.query}
+          />
+          <ContactProfilesPanel
+            blurResults={blurResults}
+            query={result.query}
+          />
+          <FraudFootprintPanel
+            blurResults={blurResults}
+            query={result.query}
+          />
         </div>
       </div>
 

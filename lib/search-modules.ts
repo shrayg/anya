@@ -158,7 +158,8 @@ export type ModuleFanOutBehavior =
  */
 const FAN_OUT_CHIP_OPT_OUT_SLUGS = new Set([
   // Unified hub: hideTools + tools[0] "all-breaches" already composites indexes;
-  // Email Analyzer panel is embedded in Breaches results — do not client-fan 17 chips.
+  // Email Analyzer / Contact Profiles / Fraud Footprint panels are embedded in
+  // Breaches results — do not client-fan companion chips.
   "breaches",
   // Wallet vs tx vs Crypto AI are different inputs/UIs; "Full intel" composites core.
   "crypto-intel",
@@ -369,7 +370,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breaches",
         "breaches",
         "Email or username",
-        "Unified breach search across leak indexes, recovery data, and email analysis in one module.",
+        "Unified breach search across leak indexes, recovery data, email analysis, contact profiles, and email fraud signals.",
         undefined,
         undefined,
         {
@@ -385,6 +386,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               id: "email-analyze",
               label: "Email Analyzer",
               apiType: "email-analyze",
+            },
+            {
+              id: "email-presence",
+              label: "Contact Profiles",
+              apiType: "email-presence",
+            },
+            {
+              id: "seon-email",
+              label: "Fraud Footprint",
+              apiType: "seon/email",
             },
             {
               id: "seeknow-search",
@@ -739,7 +750,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "email-presence",
         "email-presence",
         "Email or phone number",
-        "Check whether an email or phone has accounts across social, dating, adult, commerce, and media sites — then surface a username/profile URL when a platform still leaks one. Dating apps (Tinder/Hinge/Bumble) no longer expose public registration checks.",
+        "Check whether an email or phone has accounts across social, dating, adult, commerce, and media sites — then surface a username/profile URL when a platform still leaks one. Also runs beside Breaches for email/phone queries. Dating apps (Tinder/Hinge/Bumble) no longer expose public registration checks.",
       ),
       mod(
         "Identity",
@@ -763,7 +774,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "fraud-footprint",
         "seon/email",
         "Email, phone, IP, or BIN",
-        "Email, phone, IP, and BIN reputation, deliverability, and fraud signals.",
+        "Email, phone, IP, and BIN reputation, deliverability, and fraud signals. Email footprint also runs beside Breaches when the query is an email.",
         undefined,
         undefined,
         {
