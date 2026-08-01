@@ -35,6 +35,7 @@ import type { FormattedRecord } from "@/lib/search-utils";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import clsx from "clsx";
 import { FolderPlus, Home } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -615,6 +616,41 @@ export function ModuleSearchView({
       robloxResult,
     ],
   );
+
+  /** Idle = no results surface yet — center the search composer in the viewport. */
+  const hasResultsSurface = useMemo(() => {
+    // Site pentest always mounts its results chrome; keep top layout.
+    if (moduleDef.slug === "site-pentest") return true;
+
+    return (
+      Boolean(emptyResult) ||
+      records.length > 0 ||
+      Boolean(aiResult) ||
+      Boolean(combResult) ||
+      Boolean(domainResult) ||
+      Boolean(discordResult) ||
+      Boolean(intelxResult) ||
+      Boolean(fivemResult) ||
+      Boolean(stealerResult) ||
+      Boolean(robloxResult) ||
+      Boolean(instagramResult) ||
+      Boolean(structuredResult)
+    );
+  }, [
+    aiResult,
+    combResult,
+    discordResult,
+    domainResult,
+    emptyResult,
+    fivemResult,
+    instagramResult,
+    intelxResult,
+    moduleDef.slug,
+    records.length,
+    robloxResult,
+    stealerResult,
+    structuredResult,
+  ]);
 
   const handleSelectExportIndex = (index: number) => {
     setSelectedExportIndex(index < 0 ? null : index);
@@ -3418,8 +3454,15 @@ export function ModuleSearchView({
   };
 
   return (
-    <div className="module-search px-6 pb-8 pt-14 md:px-8 md:pb-10 md:pt-20">
-      <div className="mb-8 flex items-center justify-end gap-4">
+    <div
+      className={clsx(
+        "module-search px-6 pb-8 md:px-8 md:pb-10",
+        hasResultsSurface
+          ? "pt-14 md:pt-20"
+          : "module-search--idle pt-6 md:pt-8",
+      )}
+    >
+      <div className="module-search-nav mb-6 flex items-center justify-end gap-4 md:mb-8">
         <Link
           className="module-search-back inline-flex items-center gap-2"
           href="/"
@@ -3429,173 +3472,175 @@ export function ModuleSearchView({
         </Link>
       </div>
 
-      <header className="module-search-hero">
-        <p className="module-search-section">{moduleDef.section}</p>
-        <h1 className="module-search-title flex items-center gap-2">
-          <ModuleStatusDot className="size-2" slug={moduleDef.slug} />
-          {moduleDef.name}
-        </h1>
-        <p className="module-search-tagline">{moduleDef.tagline}</p>
-        <p className="module-search-hint">{moduleDef.hint}</p>
-        {moduleDef.lawfulUseNotice ? (
-          <p className="mt-3 border-l-2 border-white/15 bg-white/5 px-4 py-3 text-sm text-zinc-300">
-            {moduleDef.lawfulUseCopy ??
-              "For lawful investigative and research use only. Not a consumer reporting agency and not for FCRA-covered decisions (credit, employment, housing, insurance). Results are composed from public government indexes and may be incomplete."}
-          </p>
-        ) : null}
-        {moduleLocked && (
-          <p className="mt-3 border-l-2 border-amber-400/60 bg-amber-400/8 px-4 py-3 text-sm text-amber-100">
-            {moduleLocked}{" "}
-            <Link className="text-anya-accent underline" href="/pricing">
-              View plans
-            </Link>
-          </p>
-        )}
-      </header>
-
-      <section className="ui-panel module-search-panel">
-        <div className="ui-panel-body">
-          {moduleDef.tools &&
-          moduleDef.tools.length > 0 &&
-          !hideToolChips ? (
-            <div
-              aria-label="Module tools"
-              className="module-search-tools"
-              role="toolbar"
-            >
-              {moduleDef.tools.map((tool) => {
-                const active = tool.id === selectedToolId;
-
-                return (
-                  <button
-                    key={tool.id}
-                    aria-pressed={active}
-                    className={
-                      active
-                        ? "module-search-tool module-search-tool--active"
-                        : "module-search-tool"
-                    }
-                    type="button"
-                    onClick={() => {
-                      toolLockedRef.current = true;
-                      setSelectedToolId(tool.id);
-                    }}
-                  >
-                    {tool.label}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-          {isCryptoIntel && cryptoDetection?.chainLabel ? (
-            <p className="mb-3 text-xs text-zinc-400">
-              Detected:{" "}
-              <span className="font-medium text-zinc-200">
-                {cryptoDetection.chainLabel}
-              </span>
-              {cryptoDetection.kind === "tx" ? " · transaction" : " · wallet"}
-                  {!toolLockedRef.current ? (
-                <span className="text-zinc-500">
-                  {" "}
-                  · routing to{" "}
-                  {cryptoDetection.suggestedToolId === "full"
-                    ? "Full intel"
-                    : cryptoDetection.suggestedToolId}
-                </span>
-              ) : null}
+      <div className="module-search-stage">
+        <header className="module-search-hero">
+          <p className="module-search-section">{moduleDef.section}</p>
+          <h1 className="module-search-title flex items-center gap-2">
+            <ModuleStatusDot className="size-2" slug={moduleDef.slug} />
+            {moduleDef.name}
+          </h1>
+          <p className="module-search-tagline">{moduleDef.tagline}</p>
+          <p className="module-search-hint">{moduleDef.hint}</p>
+          {moduleDef.lawfulUseNotice ? (
+            <p className="mt-3 border-l-2 border-white/15 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+              {moduleDef.lawfulUseCopy ??
+                "For lawful investigative and research use only. Not a consumer reporting agency and not for FCRA-covered decisions (credit, employment, housing, insurance). Results are composed from public government indexes and may be incomplete."}
             </p>
           ) : null}
-          <form
-            autoComplete="off"
-            className="relative"
-            onSubmit={handleSearch}
-          >
-            {isSummary ? (
-              <div className="module-search-summary-form space-y-4">
-                <AutofillDecoyFields />
-                <textarea
-                  {...TEXTAREA_AUTOFILL_SHIELD}
-                  readOnly
-                  className="ui-input w-full resize-y font-mono"
-                  data-tour="search-input"
-                  name="osint-summary-query"
-                  placeholder="Paste intel, JSON, logs, or case notes…"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onFocus={unlockAutofillShield}
-                />
-                <div className="module-search-form-actions">
-                  <span />
-                  <button
-                    className="ui-btn ui-btn-primary shrink-0"
-                    data-tour="search-submit"
-                    disabled={
-                      !query.trim() || isSearching || Boolean(moduleLocked)
-                    }
-                    type="submit"
-                  >
-                    {isSearching ? "Scanning…" : "Analyse"}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <ModuleSearchFields
-                canSubmit={
-                  composedFields.hasInput &&
-                  !isSearching &&
-                  !moduleLocked
-                }
-                disabled={Boolean(moduleLocked)}
-                extraActions={
-                  isPublicRecords ? (
-                    <button
-                      className="ui-btn shrink-0 sm:min-w-[6.5rem]"
-                      disabled={Boolean(moduleLocked)}
-                      type="button"
-                      onClick={() =>
-                        setShowPublicRecordsOptions((open) => !open)
-                      }
-                    >
-                      Options
-                      <span className="ml-1 text-[10px] text-zinc-500">
-                        ({publicRecordsSources.length})
-                      </span>
-                    </button>
-                  ) : null
-                }
-                fields={searchFields}
-                isSearching={isSearching}
-                moduleDef={moduleDef}
-                submitLabel={
-                  isAi
-                    ? "Analyse"
-                    : moduleDef.slug === "intelx"
-                      ? "Open"
-                      : isPublicRecords
-                        ? "Search"
-                        : "Run"
-                }
-                onChange={setSearchFields}
-              />
-            )}
-          </form>
-
-          {isPublicRecords ? (
-            <PublicRecordsOptionsPanel
-              open={showPublicRecordsOptions}
-              selected={publicRecordsSources}
-              onChange={setPublicRecordsSources}
-              onClose={() => setShowPublicRecordsOptions(false)}
-            />
-          ) : null}
-
-          {error && (
-            <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-sm text-red-200">
-              {error}
+          {moduleLocked && (
+            <p className="mt-3 border-l-2 border-amber-400/60 bg-amber-400/8 px-4 py-3 text-sm text-amber-100">
+              {moduleLocked}{" "}
+              <Link className="text-anya-accent underline" href="/pricing">
+                View plans
+              </Link>
             </p>
           )}
-        </div>
-      </section>
+        </header>
+
+        <section className="ui-panel module-search-panel">
+          <div className="ui-panel-body">
+            {moduleDef.tools &&
+            moduleDef.tools.length > 0 &&
+            !hideToolChips ? (
+              <div
+                aria-label="Module tools"
+                className="module-search-tools"
+                role="toolbar"
+              >
+                {moduleDef.tools.map((tool) => {
+                  const active = tool.id === selectedToolId;
+
+                  return (
+                    <button
+                      key={tool.id}
+                      aria-pressed={active}
+                      className={
+                        active
+                          ? "module-search-tool module-search-tool--active"
+                          : "module-search-tool"
+                      }
+                      type="button"
+                      onClick={() => {
+                        toolLockedRef.current = true;
+                        setSelectedToolId(tool.id);
+                      }}
+                    >
+                      {tool.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            {isCryptoIntel && cryptoDetection?.chainLabel ? (
+              <p className="mb-3 text-xs text-zinc-400">
+                Detected:{" "}
+                <span className="font-medium text-zinc-200">
+                  {cryptoDetection.chainLabel}
+                </span>
+                {cryptoDetection.kind === "tx" ? " · transaction" : " · wallet"}
+                {!toolLockedRef.current ? (
+                  <span className="text-zinc-500">
+                    {" "}
+                    · routing to{" "}
+                    {cryptoDetection.suggestedToolId === "full"
+                      ? "Full intel"
+                      : cryptoDetection.suggestedToolId}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
+            <form
+              autoComplete="off"
+              className="relative"
+              onSubmit={handleSearch}
+            >
+              {isSummary ? (
+                <div className="module-search-summary-form space-y-4">
+                  <AutofillDecoyFields />
+                  <textarea
+                    {...TEXTAREA_AUTOFILL_SHIELD}
+                    readOnly
+                    className="ui-input w-full resize-y font-mono"
+                    data-tour="search-input"
+                    name="osint-summary-query"
+                    placeholder="Paste intel, JSON, logs, or case notes…"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onFocus={unlockAutofillShield}
+                  />
+                  <div className="module-search-form-actions">
+                    <span />
+                    <button
+                      className="ui-btn ui-btn-primary shrink-0"
+                      data-tour="search-submit"
+                      disabled={
+                        !query.trim() || isSearching || Boolean(moduleLocked)
+                      }
+                      type="submit"
+                    >
+                      {isSearching ? "Scanning…" : "Analyse"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <ModuleSearchFields
+                  canSubmit={
+                    composedFields.hasInput &&
+                    !isSearching &&
+                    !moduleLocked
+                  }
+                  disabled={Boolean(moduleLocked)}
+                  extraActions={
+                    isPublicRecords ? (
+                      <button
+                        className="ui-btn shrink-0 sm:min-w-[6.5rem]"
+                        disabled={Boolean(moduleLocked)}
+                        type="button"
+                        onClick={() =>
+                          setShowPublicRecordsOptions((open) => !open)
+                        }
+                      >
+                        Options
+                        <span className="ml-1 text-[10px] text-zinc-500">
+                          ({publicRecordsSources.length})
+                        </span>
+                      </button>
+                    ) : null
+                  }
+                  fields={searchFields}
+                  isSearching={isSearching}
+                  moduleDef={moduleDef}
+                  submitLabel={
+                    isAi
+                      ? "Analyse"
+                      : moduleDef.slug === "intelx"
+                        ? "Open"
+                        : isPublicRecords
+                          ? "Search"
+                          : "Run"
+                  }
+                  onChange={setSearchFields}
+                />
+              )}
+            </form>
+
+            {isPublicRecords ? (
+              <PublicRecordsOptionsPanel
+                open={showPublicRecordsOptions}
+                selected={publicRecordsSources}
+                onChange={setPublicRecordsSources}
+                onClose={() => setShowPublicRecordsOptions(false)}
+              />
+            ) : null}
+
+            {error && (
+              <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-sm text-red-200">
+                {error}
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
 
       {!isSearching && emptyResult && moduleDef.slug !== "site-pentest" ? (
         <div

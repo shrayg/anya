@@ -614,10 +614,46 @@ pre,
   );
 }
 
+/* Idle: fill the main pane and vertically center the search composition */
+.module-search--idle {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.module-search-nav {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.module-search-stage {
+  width: 100%;
+}
+
+.module-search--idle .module-search-stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  /* Optical nudge: nav sits above, so slightly less bottom weight */
+  padding-bottom: clamp(1.5rem, 6vh, 4.5rem);
+}
+
+.module-search--idle .module-search-hero,
+.module-search--idle .module-search-panel {
+  width: 100%;
+  max-width: var(--module-search-shell);
+}
+
 .module-search > .ui-panel,
 .module-search-panel {
   width: 100%;
   max-width: var(--module-search-shell);
+  margin-left: auto;
+  margin-right: auto;
   position: relative;
   overflow: hidden;
   border: 1px solid

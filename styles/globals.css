@@ -6619,7 +6619,41 @@ html[data-splash="active"] [data-splash-target] {
 .module-search-hero {
   position: relative;
   max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
   margin-bottom: 2.25rem;
+}
+
+/* Idle composer fills the scrollport under the Home nav */
+.module-search--idle {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.module-search-nav {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.module-search-stage {
+  width: 100%;
+}
+
+.module-search--idle .module-search-stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding-bottom: clamp(1.5rem, 6vh, 4.5rem);
+}
+
+.module-search--idle .module-search-hero,
+.module-search--idle .module-search-panel {
+  width: 100%;
 }
 
 /* Results sit outside the narrow search composer — full main-pane width */
