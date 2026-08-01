@@ -31,18 +31,21 @@ const ALLOWED_SCOPES = new Set([
   "discord-roblox",
 ]);
 
+/** Plan-module slug for BreachHub specialty scopes (when moduleSlug is omitted). */
+const SCOPE_MODULE_SLUG: Record<string, string> = {
+  "google-docs": "google-docs",
+  ganknow: "ganknow",
+  passport: "passport",
+  fivem: "fivem",
+  facebook: "facebook-id",
+  hwid: "hwid",
+  xbox: "xbox",
+  telegram: "telegram",
+  twitter: "twitter",
+  snapchat: "snapchat",
+};
+
 export async function GET(req: NextRequest) {
-  const access = await requireOsintAccess(req, "breachhub");
-
-  if (access instanceof NextResponse) return access;
-
-  if (!isBreachHubEnabled()) {
-    return NextResponse.json(
-      { error: publicServiceUnavailable() },
-      { status: 503 },
-    );
-  }
-
   const query = req.nextUrl.searchParams.get("query")?.trim();
   const rawScope =
     req.nextUrl.searchParams.get("scope")?.trim() ||
@@ -53,6 +56,20 @@ export async function GET(req: NextRequest) {
     "oathnet-roblox": "discord-roblox",
   };
   const scope = scopeAliases[rawScope] || rawScope;
+
+  const access = await requireOsintAccess(
+    req,
+    SCOPE_MODULE_SLUG[scope] ?? "breachhub",
+  );
+
+  if (access instanceof NextResponse) return access;
+
+  if (!isBreachHubEnabled()) {
+    return NextResponse.json(
+      { error: publicServiceUnavailable() },
+      { status: 503 },
+    );
+  }
 
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });

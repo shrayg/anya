@@ -71,6 +71,33 @@ export const PROFESSIONAL_INTELX_DAILY_LIMIT = 5;
 /** Account balance unit: 1 credit ≈ $1 USD. Pack prices mirror credit counts. */
 export const CREDIT_USD_VALUE = 1;
 
+/**
+ * Premium investigation modules — Free/Starter see sidebar lock; Professional+ can use.
+ * IntelX / Stealer Logs are also in PAY_PER_USE_MODULE_SLUGS (Pro quota / credits).
+ * Legacy crypto-* slugs fold into Crypto Intel for API gating without moduleSlug.
+ */
+export const PROFESSIONAL_MODULE_SLUGS = new Set([
+  "intelx",
+  "stealer-logs",
+  "crypto-intel",
+  "crypto-wallet",
+  "crypto-address",
+  "crypto-tx",
+  "crypto-risk",
+  "crypto-flow",
+  "passport",
+  "notalivex-country",
+  "notalivex-platform",
+  "notalivex-renaper",
+  "google-docs",
+  "ganknow",
+  "fivem",
+  "seekria-fivem",
+]);
+
+const PROFESSIONAL_MODULE_DENY_REASON =
+  "IntelX, Stealer Logs, Crypto Intel, Passport, LATAM Country DB, NotAliveX Social, AR Renaper, Google Docs Intel, Ganknow, and FiveM require Professional or higher.";
+
 /** Public-records modules require Professional panel access (not Free/Starter homepage set). */
 export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
   "public-records",
@@ -131,7 +158,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Email, Phone, Username, Discord ID",
       "Linked accounts, aliases, breach exposure, profile photos",
       "No dashboard / panel access",
-      "Upgrade to Professional for the full panel",
+      "Upgrade to Professional for IntelX, Stealer Logs, Crypto Intel, LATAM tools & the full panel",
     ],
   },
   {
@@ -145,7 +172,8 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     features: [
       "500 searches per day",
       "Full dashboard / panel access",
-      "All modules except unrestricted AI",
+      "Professional modules: IntelX, Stealer Logs, Crypto Intel, Passport, LATAM Country DB, NotAliveX Social, AR Renaper, Google Docs Intel, Ganknow & FiveM",
+      "All other panel modules except unrestricted AI",
       "Restricted AI Intelligence",
       "5 IntelX searches per day included",
     ],
@@ -162,6 +190,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Full dashboard / panel access",
       "Full AI Intelligence access",
       "IntelX & Stealer Logs included",
+      "All Professional modules (Crypto Intel, Passport, LATAM / NotAliveX, Google Docs Intel, Ganknow, FiveM)",
     ],
   },
   {
@@ -176,6 +205,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Unlimited searches",
       "Dedicated support & SLA",
       "Team seats & onboarding",
+      "All Professional modules included",
       "Priority feature requests",
     ],
   },
@@ -372,11 +402,10 @@ export function checkModuleAccess(
       };
     }
 
-    if (moduleSlug === "intelx") {
+    if (PROFESSIONAL_MODULE_SLUGS.has(moduleSlug)) {
       return {
         allowed: false,
-        reason:
-          "IntelX is not available on the Free plan. Upgrade to Professional or higher.",
+        reason: PROFESSIONAL_MODULE_DENY_REASON,
       };
     }
 
@@ -400,10 +429,10 @@ export function checkModuleAccess(
       };
     }
 
-    if (PAY_PER_USE_MODULE_SLUGS.has(moduleSlug)) {
+    if (PROFESSIONAL_MODULE_SLUGS.has(moduleSlug)) {
       return {
         allowed: false,
-        reason: "IntelX and Stealer Logs require Professional or higher.",
+        reason: PROFESSIONAL_MODULE_DENY_REASON,
       };
     }
 

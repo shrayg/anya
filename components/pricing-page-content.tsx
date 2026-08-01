@@ -475,8 +475,9 @@ export function PricingPageContent({
                   1 credit ≈ $1
                 </div>
                 <p className="pricing-credit-intro text-sm leading-relaxed text-zinc-400">
-                  Top up once, spend across pay-per-use modules. Credits never
-                  expire
+                  Top up once, spend across pay-per-use modules on Professional+
+                  (Stealer Logs, and IntelX after the daily included quota).
+                  Credits never expire
                   {creditBalance != null ? (
                     <>
                       {" "}
