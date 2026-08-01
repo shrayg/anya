@@ -10,8 +10,8 @@ import {
 import { BlurredValue } from "@/components/dashboard/blurred-value";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
 
-/** First-row pop count (matches 3-col desktop grid). */
-export const RESULT_POP_COUNT = 3;
+/** Cards that pop in when a page of results mounts (matches 10/page pager). */
+export const RESULT_POP_COUNT = 10;
 
 export function resultPopClass(listIndex: number): string | false {
   return listIndex < RESULT_POP_COUNT && "anya-pop-in";
@@ -125,7 +125,7 @@ export function ResultCard({
   selected?: boolean;
   onSelect?: () => void;
   copyText?: string;
-  /** 0-based position in the visible list — drives first-row pop. */
+  /** 0-based position in the visible list — drives page pop-in stagger. */
   listIndex?: number;
   headerExtra?: ReactNode;
   children?: ReactNode;

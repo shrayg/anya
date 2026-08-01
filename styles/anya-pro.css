@@ -1498,15 +1498,15 @@ pre,
   border-radius: 0.3rem;
 }
 
-/* Result pop-in — first 3 cards in the first result row */
+/* Result pop-in — stagger across the visible page (up to 10 cards) */
 @keyframes anya-result-pop-in {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.92);
+    transform: translateY(10px) scale(0.94);
   }
   70% {
     opacity: 1;
-    transform: translateY(-2px) scale(1.03);
+    transform: translateY(-1px) scale(1.015);
   }
   100% {
     opacity: 1;
@@ -1516,8 +1516,8 @@ pre,
 
 .anya-pop-in {
   --pop-i: 0;
-  animation: anya-result-pop-in 0.32s cubic-bezier(0.22, 1.35, 0.36, 1) both;
-  animation-delay: calc(var(--pop-i) * 55ms);
+  animation: anya-result-pop-in 0.34s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+  animation-delay: calc(var(--pop-i) * 45ms);
   transform-origin: center top;
   will-change: transform, opacity;
 }

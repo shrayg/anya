@@ -453,7 +453,10 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       {error ? <p className="home-search-error">{error}</p> : null}
 
       {discordResult ? (
-        <div className="home-search-results" data-tour="home-search-results">
+        <div
+          className="home-search-results home-search-results--enter"
+          data-tour="home-search-results"
+        >
           <DiscordSearchResults
             blurResults={blurResults}
             result={discordResult}
@@ -462,7 +465,10 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       ) : null}
 
       {combResult ? (
-        <div className="home-search-results" data-tour="home-search-results">
+        <div
+          className="home-search-results home-search-results--enter"
+          data-tour="home-search-results"
+        >
           <BreachesSearchResults
             blurResults={blurResults}
             result={combResult}
@@ -471,12 +477,16 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       ) : null}
 
       {records.length > 0 ? (
-        <div className="home-search-results" data-tour="home-search-results">
+        <div
+          className="home-search-results home-search-results--enter"
+          data-tour="home-search-results"
+        >
           <SearchResultCards
             blurResults={blurResults}
             defaultExpanded="first"
             dense
             moduleSlug="breaches"
+            pageSize={10}
             records={records}
             totalCount={resultCount}
           />

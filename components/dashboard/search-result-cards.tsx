@@ -4,7 +4,7 @@ import type { FormattedField, FormattedRecord } from "@/lib/search-utils";
 
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ResultCard,
@@ -13,6 +13,10 @@ import {
 } from "@/components/dashboard/result-card";
 import { IpIntelPanel } from "@/components/dashboard/ip-intel-panel";
 import { ResultCopyButton } from "@/components/dashboard/result-copy-button";
+import {
+  RESULTS_PAGE_SIZE,
+  ResultsPager,
+} from "@/components/dashboard/results-pager";
 import { SearchEmptyState } from "@/components/dashboard/search-empty-state";
 import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { formatRecordAsText, formatRecordsAsText } from "@/lib/export-intel";
@@ -26,8 +30,6 @@ import {
   recordPreviewFacts,
 } from "@/lib/search-utils";
 
-/** Progressive paint only — never silently drop remaining records. */
-const PAGE_SIZE = 48;
 const VALUE_PREVIEW_LENGTH = 96;
 
 function truncateValue(value: string, max = VALUE_PREVIEW_LENGTH) {
@@ -202,19 +204,22 @@ export function SearchResultCards({
   totalCount,
   selectedExportIndex = null,
   onSelectExportIndex,
-  initialVisible = PAGE_SIZE,
+  /** @deprecated Prefer pagination; kept so callers keep compiling. */
+  initialVisible: _initialVisible = RESULTS_PAGE_SIZE,
   emptyDetail = "No results were found.",
   /** Kept for callers; all variants render the Breaches card layout. */
   variant: _variant = "compact",
   moduleSlug = "discord-id",
   defaultExpanded = "all",
   dense = true,
+  pageSize = RESULTS_PAGE_SIZE,
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
   totalCount?: number;
   selectedExportIndex?: number | null;
   onSelectExportIndex?: (index: number) => void;
+  /** @deprecated Unused — lists paginate at `pageSize`. */
   initialVisible?: number;
   emptyDetail?: string;
   /** @deprecated Always renders Breaches-style cards. */
@@ -225,7 +230,10 @@ export function SearchResultCards({
   defaultExpanded?: "all" | "first" | "none";
   /** Tighter Breaches-style packing + multi-column auto-fit grid. */
   dense?: boolean;
+  /** Results per page (default 10). Display-only — does not cap the API. */
+  pageSize?: number;
 }) {
+  const safePageSize = Math.max(1, pageSize);
   const [expanded, setExpanded] = useState<Set<number>>(() =>
     defaultExpanded === "all"
       ? indexesOf(records)
@@ -233,7 +241,8 @@ export function SearchResultCards({
         ? new Set([records[0].index])
         : new Set(),
   );
-  const [visibleCount, setVisibleCount] = useState(initialVisible);
+  const [page, setPage] = useState(1);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const resultsKey = useMemo(
     () => records.map((record) => `${record.index}:${record.title}`).join("|"),
@@ -252,6 +261,11 @@ export function SearchResultCards({
     });
   }, [records]);
 
+  const pageCount = Math.max(
+    1,
+    Math.ceil(sortedRecords.length / safePageSize),
+  );
+
   useEffect(() => {
     setExpanded(
       defaultExpanded === "all"
@@ -260,17 +274,21 @@ export function SearchResultCards({
           ? new Set([records[0].index])
           : new Set(),
     );
-    setVisibleCount(initialVisible);
-  }, [resultsKey, initialVisible, records, defaultExpanded]);
+    setPage(1);
+  }, [resultsKey, records, defaultExpanded]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount));
+  }, [pageCount]);
 
   const selectable = Boolean(onSelectExportIndex);
   const shown = sortedRecords.length;
   const total = totalCount ?? shown;
+  const pageStart = (page - 1) * safePageSize;
   const visibleRecords = useMemo(
-    () => sortedRecords.slice(0, visibleCount),
-    [sortedRecords, visibleCount],
+    () => sortedRecords.slice(pageStart, pageStart + safePageSize),
+    [sortedRecords, pageStart, safePageSize],
   );
-  const hiddenCount = Math.max(0, sortedRecords.length - visibleCount);
   const expandedVisible = visibleRecords.filter((record) =>
     expanded.has(record.index),
   ).length;
@@ -288,6 +306,13 @@ export function SearchResultCards({
       }
 
       return next;
+    });
+  };
+
+  const goToPage = (nextPage: number) => {
+    setPage(nextPage);
+    window.requestAnimationFrame(() => {
+      listRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
   };
 
@@ -336,110 +361,98 @@ export function SearchResultCards({
         </div>
       </div>
 
-      <ResultCardList
-        className={dense ? "anya-result-list--dense-home" : undefined}
-      >
-        {visibleRecords.map((record, index) => {
-          const isExpanded = expanded.has(record.index);
-          const selected = selectedExportIndex === record.index;
-          const stableKey = cardStableKey(record);
-          const ips = extractIpsFromTexts(
-            record.fields
-              .filter(
-                (field) =>
-                  isIpFieldKey(field.key) || isIpAddress(field.value),
-              )
-              .map((field) => field.value),
-          );
+      <div ref={listRef}>
+        <ResultCardList
+          key={page}
+          className={dense ? "anya-result-list--dense-home" : undefined}
+        >
+          {visibleRecords.map((record, index) => {
+            const isExpanded = expanded.has(record.index);
+            const selected = selectedExportIndex === record.index;
+            const stableKey = cardStableKey(record);
+            const ips = extractIpsFromTexts(
+              record.fields
+                .filter(
+                  (field) =>
+                    isIpFieldKey(field.key) || isIpAddress(field.value),
+                )
+                .map((field) => field.value),
+            );
 
-          return (
-            <ResultCard
-              key={stableKey}
-              badge={
-                record.badge && record.badge !== record.title
-                  ? record.badge
-                  : null
-              }
-              blurResults={blurResults}
-              className={clsx(
-                isExpanded && "anya-result-card--expanded",
-                dense && "anya-result-card--dense",
-                "anya-result-card--readable",
-              )}
-              copyText={formatRecordAsText(record)}
-              footer={
-                isExpanded && ips[0] ? (
-                  <IpIntelPanel
-                    blurResults={blurResults}
-                    ip={ips[0]!}
-                    moduleSlug={moduleSlug}
-                  />
-                ) : null
-              }
-              headerExtra={
-                <button
-                  aria-expanded={isExpanded}
-                  aria-label={
-                    isExpanded ? "Collapse record" : "Expand record"
-                  }
-                  className={clsx(
-                    "anya-result-expand",
-                    isExpanded && "anya-result-expand--open",
-                  )}
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    toggleExpanded(record.index);
-                  }}
-                >
-                  <ChevronDown className="size-3.5" />
-                </button>
-              }
-              indexLabel={record.index}
-              listIndex={index}
-              selectable={selectable}
-              selected={selected}
-              subtitle={record.subtitle}
-              title={record.title}
-              onSelect={
-                selectable
-                  ? () => onSelectExportIndex?.(selected ? -1 : record.index)
-                  : undefined
-              }
-            >
-              <RecordFieldsBody
+            return (
+              <ResultCard
+                key={stableKey}
+                badge={
+                  record.badge && record.badge !== record.title
+                    ? record.badge
+                    : null
+                }
                 blurResults={blurResults}
-                isExpanded={isExpanded}
-                record={record}
-              />
-            </ResultCard>
-          );
-        })}
-      </ResultCardList>
+                className={clsx(
+                  isExpanded && "anya-result-card--expanded",
+                  dense && "anya-result-card--dense",
+                  "anya-result-card--readable",
+                )}
+                copyText={formatRecordAsText(record)}
+                footer={
+                  isExpanded && ips[0] ? (
+                    <IpIntelPanel
+                      blurResults={blurResults}
+                      ip={ips[0]!}
+                      moduleSlug={moduleSlug}
+                    />
+                  ) : null
+                }
+                headerExtra={
+                  <button
+                    aria-expanded={isExpanded}
+                    aria-label={
+                      isExpanded ? "Collapse record" : "Expand record"
+                    }
+                    className={clsx(
+                      "anya-result-expand",
+                      isExpanded && "anya-result-expand--open",
+                    )}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleExpanded(record.index);
+                    }}
+                  >
+                    <ChevronDown className="size-3.5" />
+                  </button>
+                }
+                indexLabel={record.index}
+                listIndex={index}
+                selectable={selectable}
+                selected={selected}
+                subtitle={record.subtitle}
+                title={record.title}
+                onSelect={
+                  selectable
+                    ? () => onSelectExportIndex?.(selected ? -1 : record.index)
+                    : undefined
+                }
+              >
+                <RecordFieldsBody
+                  blurResults={blurResults}
+                  isExpanded={isExpanded}
+                  record={record}
+                />
+              </ResultCard>
+            );
+          })}
+        </ResultCardList>
+      </div>
 
-      {hiddenCount > 0 ? (
-        <div className="anya-result-stack-actions anya-result-stack-actions--left">
-          <button
-            className="anya-result-load-more"
-            type="button"
-            onClick={() =>
-              setVisibleCount((count) =>
-                Math.min(sortedRecords.length, count + PAGE_SIZE),
-              )
-            }
-          >
-            Show {Math.min(PAGE_SIZE, hiddenCount)} more record
-            {Math.min(PAGE_SIZE, hiddenCount) === 1 ? "" : "s"}
-          </button>
-          <button
-            className="anya-result-stack-action"
-            type="button"
-            onClick={() => setVisibleCount(sortedRecords.length)}
-          >
-            Show all {sortedRecords.length.toLocaleString()}
-          </button>
-        </div>
-      ) : null}
+      <ResultsPager
+        page={page}
+        pageCount={pageCount}
+        pageSize={safePageSize}
+        total={sortedRecords.length}
+        onNext={() => goToPage(Math.min(pageCount, page + 1))}
+        onPrev={() => goToPage(Math.max(1, page - 1))}
+      />
 
       {blurResults ? <ResultsBlurNotice /> : null}
     </div>

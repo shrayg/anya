@@ -3118,6 +3118,73 @@ html[data-splash="active"] [data-splash-target] {
   justify-self: center;
 }
 
+.anya-results-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.15rem 0.1rem;
+  border-top: 1px solid color-mix(in srgb, #c3d3e6 10%, rgba(255, 255, 255, 0.05));
+}
+
+.anya-results-pager-meta {
+  font-size: 0.68rem;
+  color: #71717a;
+}
+
+.anya-results-pager-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.anya-results-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  border: 1px solid color-mix(in srgb, #c3d3e6 18%, rgba(255, 255, 255, 0.1));
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, #c3d3e6 4%, rgba(0, 0, 0, 0.35));
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #e4e4e7;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.anya-results-pager-btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, #c3d3e6 35%, rgba(255, 255, 255, 0.14));
+  background: color-mix(in srgb, #c3d3e6 10%, rgba(255, 255, 255, 0.05));
+  color: #fafafa;
+}
+
+.anya-results-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .anya-results-pager {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .anya-results-pager-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .anya-results-pager-btn {
+    justify-content: center;
+  }
+}
+
 .anya-result-list {
   display: grid;
   width: 100%;
@@ -9179,6 +9246,28 @@ html[data-splash="active"] [data-splash-target] {
   max-width: none;
   overflow: visible;
   text-align: left;
+}
+
+@keyframes home-search-results-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.65rem) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.home-search-results--enter {
+  animation: home-search-results-enter 0.38s cubic-bezier(0.22, 1.1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-search-results--enter {
+    animation: none;
+  }
 }
 
 .home-search-results .discord-id-results,

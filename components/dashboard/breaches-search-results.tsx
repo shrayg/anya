@@ -2,7 +2,7 @@
 
 import type { CombSearchResult } from "@/lib/proxynova-comb";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ResultCard,
@@ -12,6 +12,10 @@ import {
 } from "@/components/dashboard/result-card";
 import { EmailAnalyzerPanel } from "@/components/dashboard/email-analyzer-panel";
 import { IpIntelPanel } from "@/components/dashboard/ip-intel-panel";
+import {
+  RESULTS_PAGE_SIZE,
+  ResultsPager,
+} from "@/components/dashboard/results-pager";
 import { formatBreachCredentialAsText } from "@/lib/export-intel";
 import {
   extractIpsFromTexts,
@@ -19,9 +23,6 @@ import {
   isIpFieldKey,
 } from "@/lib/ip-detect";
 import { normalizeEmail } from "@/lib/proxynova-comb";
-
-/** Progressive paint — never drops remaining rows; "Show all" reveals everything. */
-const BREACH_RENDER_BATCH = 80;
 
 function collectIpsFromResult(result: CombSearchResult): string[] {
   const values: Array<string | null | undefined> = [];
@@ -50,7 +51,8 @@ export function BreachesSearchResults({
   onSelectExportIndex?: (index: number) => void;
 }) {
   const selectable = Boolean(onSelectExportIndex);
-  const [visibleCount, setVisibleCount] = useState(BREACH_RENDER_BATCH);
+  const [page, setPage] = useState(1);
+  const listRef = useRef<HTMLDivElement>(null);
   const ips = useMemo(() => collectIpsFromResult(result), [result]);
   const [activeIp, setActiveIp] = useState<string | null>(ips[0] ?? null);
   const queryEmail = useMemo(
@@ -66,9 +68,18 @@ export function BreachesSearchResults({
     [result.query, result.returned, result.credentials.length, result.start],
   );
 
+  const pageCount = Math.max(
+    1,
+    Math.ceil(result.credentials.length / RESULTS_PAGE_SIZE),
+  );
+
   useEffect(() => {
-    setVisibleCount(BREACH_RENDER_BATCH);
+    setPage(1);
   }, [resultsKey]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount));
+  }, [pageCount]);
 
   useEffect(() => {
     setActiveIp((current) => {
@@ -78,8 +89,18 @@ export function BreachesSearchResults({
     });
   }, [ips]);
 
-  const visibleRows = result.credentials.slice(0, visibleCount);
-  const hiddenCount = Math.max(0, result.credentials.length - visibleCount);
+  const pageStart = (page - 1) * RESULTS_PAGE_SIZE;
+  const visibleRows = result.credentials.slice(
+    pageStart,
+    pageStart + RESULTS_PAGE_SIZE,
+  );
+
+  const goToPage = (nextPage: number) => {
+    setPage(nextPage);
+    window.requestAnimationFrame(() => {
+      listRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
 
   return (
     <div className="anya-result-stack anya-result-stack--breaches">
@@ -157,88 +178,76 @@ export function BreachesSearchResults({
           ) : null}
         </div>
 
-        {/* MIDDLE — dense breach credential cards */}
+        {/* MIDDLE — dense breach credential cards (10 per page) */}
         <div className="anya-breaches-col anya-breaches-col--main">
-          <ResultCardList className="anya-result-list--dense-main">
-            {visibleRows.map((row, index) => {
-              const cardIndex = index + 1;
-              const selected = selectedExportIndex === cardIndex;
-              const connected = row.fields ?? [];
-              const fields: ResultCardFieldDef[] = [
-                {
-                  key: "identifier",
-                  label: "Email / login",
-                  value: row.identifier,
-                  highlight: true,
-                },
-                ...(row.secret
-                  ? [
-                      {
-                        key: "password",
-                        label: "Password",
-                        value: row.secret,
-                        sensitive: true,
-                      },
-                    ]
-                  : []),
-                ...connected.map((field) => ({
-                  key: field.key,
-                  label: field.label,
-                  value: field.value,
-                  sensitive: field.key === "password" || field.key === "hash",
-                })),
-              ];
+          <div ref={listRef}>
+            <ResultCardList
+              key={page}
+              className="anya-result-list--dense-main"
+            >
+              {visibleRows.map((row, index) => {
+                const cardIndex = pageStart + index + 1;
+                const selected = selectedExportIndex === cardIndex;
+                const connected = row.fields ?? [];
+                const fields: ResultCardFieldDef[] = [
+                  {
+                    key: "identifier",
+                    label: "Email / login",
+                    value: row.identifier,
+                    highlight: true,
+                  },
+                  ...(row.secret
+                    ? [
+                        {
+                          key: "password",
+                          label: "Password",
+                          value: row.secret,
+                          sensitive: true,
+                        },
+                      ]
+                    : []),
+                  ...connected.map((field) => ({
+                    key: field.key,
+                    label: field.label,
+                    value: field.value,
+                    sensitive: field.key === "password" || field.key === "hash",
+                  })),
+                ];
 
-              return (
-                <ResultCard
-                  key={`${row.raw}-${index}`}
-                  badge={null}
-                  blurResults={blurResults}
-                  className="anya-result-card--dense"
-                  copyText={formatBreachCredentialAsText(row, cardIndex)}
-                  fields={fields}
-                  indexLabel={cardIndex}
-                  listIndex={index}
-                  selectable={selectable}
-                  selected={selected}
-                  subtitle={row.identifier}
-                  title={row.secret ? "Leaked credential" : "Match"}
-                  onSelect={
-                    selectable
-                      ? () => onSelectExportIndex?.(selected ? -1 : cardIndex)
-                      : undefined
-                  }
-                />
-              );
-            })}
-          </ResultCardList>
+                return (
+                  <ResultCard
+                    key={`${row.raw}-${cardIndex}`}
+                    badge={null}
+                    blurResults={blurResults}
+                    className="anya-result-card--dense"
+                    copyText={formatBreachCredentialAsText(row, cardIndex)}
+                    fields={fields}
+                    indexLabel={cardIndex}
+                    listIndex={index}
+                    selectable={selectable}
+                    selected={selected}
+                    subtitle={row.identifier}
+                    title={row.secret ? "Leaked credential" : "Match"}
+                    onSelect={
+                      selectable
+                        ? () =>
+                            onSelectExportIndex?.(selected ? -1 : cardIndex)
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </ResultCardList>
+          </div>
 
-          {hiddenCount > 0 ? (
-            <div className="anya-result-stack-actions anya-result-stack-actions--main">
-              <button
-                className="anya-result-load-more"
-                type="button"
-                onClick={() =>
-                  setVisibleCount((count) =>
-                    Math.min(
-                      result.credentials.length,
-                      count + BREACH_RENDER_BATCH,
-                    ),
-                  )
-                }
-              >
-                Show {Math.min(BREACH_RENDER_BATCH, hiddenCount).toLocaleString()}{" "}
-                more
-              </button>
-              <button
-                className="anya-result-stack-action"
-                type="button"
-                onClick={() => setVisibleCount(result.credentials.length)}
-              >
-                Show all {result.credentials.length.toLocaleString()}
-              </button>
-            </div>
-          ) : null}
+          <ResultsPager
+            page={page}
+            pageCount={pageCount}
+            pageSize={RESULTS_PAGE_SIZE}
+            total={result.credentials.length}
+            onNext={() => goToPage(Math.min(pageCount, page + 1))}
+            onPrev={() => goToPage(Math.max(1, page - 1))}
+          />
         </div>
 
         {/* RIGHT — Email Analyzer findings */}
