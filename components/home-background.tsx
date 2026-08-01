@@ -42,14 +42,10 @@ export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
     >
       <PixelBlast
         enableRipples
-        liquid
         transparent
         color="#727171"
         edgeFade={0.25}
         interactionTarget="window"
-        liquidRadius={1.2}
-        liquidStrength={0.12}
-        liquidWobbleSpeed={5}
         patternDensity={1.15}
         patternScale={3}
         pixelSize={3}
@@ -57,7 +53,7 @@ export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
         rippleIntensityScale={1.5}
         rippleSpeed={0.4}
         rippleThickness={0.12}
-        speed={0.4}
+        speed={4}
         variant="diamond"
       />
       {/* Scrim keeps body copy legible over the dither without flattening the

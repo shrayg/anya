@@ -222,6 +222,9 @@ precision highp float;
 uniform vec3  uColor;
 uniform vec2  uResolution;
 uniform float uTime;
+// Ripples run on wall-clock seconds so that uSpeed (which only governs how
+// fast the dither field drifts) cannot also stretch or crush click decay.
+uniform float uRippleTime;
 uniform float uPixelSize;
 uniform float uScale;
 uniform float uDensity;
@@ -342,7 +345,7 @@ void main(){
       if (pos.x < 0.0) continue;
       float cellPixelSize = 8.0 * pixelSize;
       vec2 cuv = (((pos - uResolution * .5 - cellPixelSize * .5) / (uResolution))) * vec2(aspectRatio, 1.0);
-      float t = max(uTime - uClickTimes[i], 0.0);
+      float t = max(uRippleTime - uClickTimes[i], 0.0);
       float r = distance(uv, cuv);
       float waveR = speed * t;
       float ring  = exp(-pow((r - waveR) / thickness, 2.0));
@@ -385,6 +388,7 @@ void main(){
 type PixelBlastUniforms = {
   uResolution: { value: THREE.Vector2 };
   uTime: { value: number };
+  uRippleTime: { value: number };
   uColor: { value: THREE.Color };
   uClickPos: { value: THREE.Vector2[] };
   uClickTimes: { value: Float32Array };
@@ -528,6 +532,7 @@ const PixelBlast = ({
     const uniforms: PixelBlastUniforms = {
       uResolution: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
+      uRippleTime: { value: 0 },
       uColor: { value: new THREE.Color(cfg.color) },
       uClickPos: {
         value: Array.from(
@@ -653,7 +658,7 @@ const PixelBlast = ({
       const ix = instance.clickIx;
 
       uniforms.uClickPos.value[ix].set(fx, fy);
-      uniforms.uClickTimes.value[ix] = uniforms.uTime.value;
+      uniforms.uClickTimes.value[ix] = uniforms.uRippleTime.value;
       instance.clickIx = (ix + 1) % MAX_CLICKS;
       requestRender();
     };
@@ -703,6 +708,7 @@ const PixelBlast = ({
     // Accumulating scaled deltas keeps `speed` changes continuous instead of
     // rescaling the whole elapsed time and jumping the pattern.
     let elapsed = randomFloat() * 1000;
+    let rippleElapsed = 0;
     let raf = 0;
 
     const animate = () => {
@@ -714,9 +720,11 @@ const PixelBlast = ({
 
       if (!idle) {
         elapsed += delta * configRef.current.speed;
+        rippleElapsed += delta;
       }
 
       uniforms.uTime.value = elapsed;
+      uniforms.uRippleTime.value = rippleElapsed;
       for (const effect of timedEffects) {
         const uTime = effect.uniforms.get("uTime");
 
