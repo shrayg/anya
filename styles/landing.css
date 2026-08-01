@@ -3753,9 +3753,10 @@
 
 /* Homepage Discord invite notification (fixed corner bell) */
 .home-discord-notify {
+  /* Top-right, under the floating marketing nav (shell top 0.85rem + ~3.35rem bar). */
   position: fixed;
+  top: max(5.25rem, calc(env(safe-area-inset-top, 0px) + 4.5rem));
   right: max(1rem, env(safe-area-inset-right, 0px));
-  bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
   z-index: 55;
   display: flex;
   flex-direction: column;
@@ -3808,15 +3809,15 @@
 
 .home-discord-notify__badge {
   position: absolute;
-  top: 0.42rem;
-  right: 0.48rem;
-  width: 0.5rem;
-  height: 0.5rem;
+  top: 0.38rem;
+  right: 0.42rem;
+  width: 0.55rem;
+  height: 0.55rem;
   border-radius: 9999px;
-  background: var(--anya-blush, #c3d3e6);
+  background: #22c55e;
   box-shadow:
     0 0 0 2px rgba(8, 10, 14, 0.92),
-    0 0 10px color-mix(in srgb, var(--anya-blush, #c3d3e6) 55%, transparent);
+    0 0 10px color-mix(in srgb, #22c55e 60%, transparent);
   animation: home-discord-notify-pulse 2.2s ease-in-out infinite;
 }
 
@@ -3870,7 +3871,7 @@
 @keyframes home-discord-notify-in {
   from {
     opacity: 0;
-    transform: translateY(0.4rem) scale(0.98);
+    transform: translateY(-0.35rem) scale(0.98);
   }
   to {
     opacity: 1;
