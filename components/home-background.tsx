@@ -10,8 +10,10 @@ const PixelBlast = dynamic(() => import("@/components/pixel-blast"), {
 });
 
 type HomeBackgroundProps = {
-  /** Dashboard uses CSS-only ambient bg — avoids loading WebGL on search pages. */
+  /** `lite` = CSS-only ambient bg (no WebGL). Default `full` matches marketing. */
   mode?: "full" | "lite";
+  /** Stronger darkening for dense UIs (dashboard) without hiding the pattern. */
+  denser?: boolean;
 };
 
 function LiteBackground() {
@@ -30,10 +32,23 @@ function LiteBackground() {
   );
 }
 
-export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
+export function HomeBackground({
+  mode = "full",
+  denser = false,
+}: HomeBackgroundProps) {
   if (mode === "lite") {
     return <LiteBackground />;
   }
+
+  const scrim = denser
+    ? [
+        "radial-gradient(ellipse 90% 60% at 50% 38%, rgba(5,5,8,0.90) 0%, rgba(5,5,8,0.72) 55%, rgba(5,5,8,0.40) 100%)",
+        "linear-gradient(180deg, rgba(5,5,8,0.48) 0%, rgba(5,5,8,0.68) 100%)",
+      ].join(", ")
+    : [
+        "radial-gradient(ellipse 85% 55% at 50% 38%, rgba(5,5,8,0.86) 0%, rgba(5,5,8,0.6) 55%, rgba(5,5,8,0.28) 100%)",
+        "linear-gradient(180deg, rgba(5,5,8,0.35) 0%, rgba(5,5,8,0.55) 100%)",
+      ].join(", ");
 
   return (
     <div
@@ -61,12 +76,7 @@ export function HomeBackground({ mode = "full" }: HomeBackgroundProps) {
           layer stays inert. */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{
-          background: [
-            "radial-gradient(ellipse 85% 55% at 50% 38%, rgba(5,5,8,0.86) 0%, rgba(5,5,8,0.6) 55%, rgba(5,5,8,0.28) 100%)",
-            "linear-gradient(180deg, rgba(5,5,8,0.35) 0%, rgba(5,5,8,0.55) 100%)",
-          ].join(", "),
-        }}
+        style={{ background: scrim }}
       />
     </div>
   );
