@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireOsintAccess } from "@/lib/osint-api-auth";
+import { osintJson, requireOsintAccess } from "@/lib/osint-api-auth";
 import {
   runDiscordOsintSearch,
   type DiscordOsintProgressEvent,
@@ -68,7 +68,23 @@ export async function GET(req: NextRequest) {
         OSINT_ROUTE_DEADLINE_MS,
       );
 
-      return NextResponse.json(response);
+      return osintJson(access, response);
+    } catch (err) {
+      return osintFailureResponse(err, {
+        softEmpty,
+        fallbackMessage: "Failed to resolve Discord profile",
+      });
+    }
+  }
+
+  if (access.isGuest || access.blurResults) {
+    try {
+      const response = await withDeadline(
+        runDiscordOsintSearch(query),
+        OSINT_ROUTE_DEADLINE_MS,
+      );
+
+      return osintJson(access, response);
     } catch (err) {
       return osintFailureResponse(err, {
         softEmpty,

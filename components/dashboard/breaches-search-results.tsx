@@ -16,6 +16,7 @@ import {
   RESULTS_PAGE_SIZE,
   ResultsPager,
 } from "@/components/dashboard/results-pager";
+import { ResultsBlurNotice } from "@/components/results-blur-notice";
 import { formatBreachCredentialAsText } from "@/lib/export-intel";
 import {
   extractIpsFromTexts,
@@ -42,11 +43,13 @@ function collectIpsFromResult(result: CombSearchResult): string[] {
 export function BreachesSearchResults({
   result,
   blurResults = false,
+  blurNoticeIsGuest = false,
   selectedExportIndex = null,
   onSelectExportIndex,
 }: {
   result: CombSearchResult;
   blurResults?: boolean;
+  blurNoticeIsGuest?: boolean;
   selectedExportIndex?: number | null;
   onSelectExportIndex?: (index: number) => void;
 }) {
@@ -256,12 +259,7 @@ export function BreachesSearchResults({
         </div>
       </div>
 
-      {blurResults ? (
-        <p className="text-xs text-zinc-500">
-          Free plan results are partially blurred. Upgrade to see full
-          credentials.
-        </p>
-      ) : null}
+      {blurResults ? <ResultsBlurNotice isGuest={blurNoticeIsGuest} /> : null}
       {result.totalMatches > result.returned ? (
         <p className="text-xs text-zinc-500">
           Provider indexes may report more matches than returned. Shown{" "}

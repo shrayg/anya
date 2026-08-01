@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireOsintAccess } from "@/lib/osint-api-auth";
+import { osintJson, requireOsintAccess } from "@/lib/osint-api-auth";
 import {
   extractStealerArchives,
   fetchBreachHubStealerVictims,
@@ -81,13 +81,13 @@ export async function GET(req: NextRequest) {
       );
 
       if (data.count === 0) {
-        return NextResponse.json({
+        return osintJson(access, {
           ...data,
           message: "No results were found.",
         });
       }
 
-      return NextResponse.json(data);
+      return osintJson(access, data);
     } catch (err) {
       return osintFailureResponse(err, { softEmpty });
     }
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
           );
 
     if (data.count === 0 && mergedCredentials.length === 0 && archives.length === 0) {
-      return NextResponse.json({
+      return osintJson(access, {
         ...data,
         credentials: [],
         archives: [],
@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return osintJson(access, {
       ...data,
       count: Math.max(
         typeof data.count === "number" ? data.count : 0,

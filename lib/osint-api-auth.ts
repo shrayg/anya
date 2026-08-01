@@ -2,9 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionCookie } from "@/app/lib/session";
 import { authorizeSearch } from "@/lib/plan-access";
+import { redactOsintTeaser } from "@/lib/osint-teaser-redact";
+import {
+  shouldBlurResults,
+  STARTER_MODULE_SLUGS,
+} from "@/lib/plans";
 import { getPlatformSearchConfig } from "@/lib/platform-search";
 import { maybeAutoFlagRiskySearch } from "@/lib/safety-flag-server";
 import { assessSearchQueryForSafety } from "@/lib/safety-search-flags";
+import { consumeRateLimit } from "@/lib/simple-rate-limit";
+
+/** Homepage starter modules + email-analyze companion panel. */
+export const GUEST_HOME_MODULE_SLUGS = new Set([
+  ...STARTER_MODULE_SLUGS,
+  "email-analyze",
+]);
+
+const GUEST_DAILY_SEARCH_LIMIT = 5;
+const GUEST_RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export type OsintAccessOk = {
+  userId: number | null;
+  blurResults: boolean;
+  isGuest: boolean;
+};
+
+function clientIp(req: NextRequest): string {
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+
+  return forwarded || req.headers.get("x-real-ip")?.trim() || "unknown";
+}
 
 /**
  * Resolve which plan module a /api/osint/* call should be billed/gated as.
@@ -241,17 +268,42 @@ export function resolveOsintModuleSlug(
 export async function requireOsintAccess(
   req: NextRequest,
   apiSegment: string,
-): Promise<{ userId: number } | NextResponse> {
-  const session = await getSessionCookie();
-
-  if (!session?.userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+): Promise<OsintAccessOk | NextResponse> {
   const moduleSlug = resolveOsintModuleSlug(req, apiSegment);
 
   if (!moduleSlug) {
     return NextResponse.json({ error: "Missing moduleSlug" }, { status: 400 });
+  }
+
+  const session = await getSessionCookie();
+
+  if (!session?.userId) {
+    if (!GUEST_HOME_MODULE_SLUGS.has(moduleSlug)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rate = consumeRateLimit(
+      `guest-osint:${clientIp(req)}`,
+      GUEST_DAILY_SEARCH_LIMIT,
+      GUEST_RATE_WINDOW_MS,
+    );
+
+    if (!rate.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "Guest search limit reached. Create an account and buy a plan for more lookups.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.max(1, rate.retryAfterSeconds)),
+          },
+        },
+      );
+    }
+
+    return { userId: null, blurResults: true, isGuest: true };
   }
 
   const access = await authorizeSearch({
@@ -281,7 +333,40 @@ export async function requireOsintAccess(
     });
   }
 
-  return { userId };
+  const blurResults =
+    Boolean("blurResults" in access && access.blurResults) ||
+    ("plan" in access && shouldBlurResults(access.plan));
+
+  return { userId, blurResults, isGuest: false };
+}
+
+/** JSON response that redacts sensitive fields when the caller is on a teaser plan. */
+export function osintJson(
+  access: OsintAccessOk,
+  data: unknown,
+  init?: ResponseInit,
+): NextResponse {
+  if (!access.blurResults) {
+    return NextResponse.json(data, init);
+  }
+
+  const redacted = redactOsintTeaser(data, { isGuest: access.isGuest });
+
+  if (redacted && typeof redacted === "object" && !Array.isArray(redacted)) {
+    return NextResponse.json(
+      {
+        ...(redacted as Record<string, unknown>),
+        blurResults: true,
+        teaser: true,
+      },
+      init,
+    );
+  }
+
+  return NextResponse.json(
+    { data: redacted, blurResults: true, teaser: true },
+    init,
+  );
 }
 
 export async function requireAuthenticatedSession(): Promise<

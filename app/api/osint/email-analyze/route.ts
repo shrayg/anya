@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { searchContactPresence } from "@/lib/email-presence";
 import { searchIndexSweep } from "@/lib/index-sweep";
-import { requireOsintAccess } from "@/lib/osint-api-auth";
+import { osintJson, requireOsintAccess } from "@/lib/osint-api-auth";
 import { fetchCsintEmailAnalyze } from "@/lib/csint";
 import {
   OSINT_ROUTE_DEADLINE_MS,
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
       throw new Error(publicSearchError("No results from intelligence indexes."));
     }
 
-    return NextResponse.json({
+    return osintJson(access, {
       email,
       source: "email-analyze",
       sources: {

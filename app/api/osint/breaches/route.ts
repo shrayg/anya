@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireOsintAccess } from "@/lib/osint-api-auth";
+import { osintJson, requireOsintAccess } from "@/lib/osint-api-auth";
 import {
   breachHubRowsToCredentials,
   fetchBreachHubAdditiveBreachSearch,
@@ -336,13 +336,13 @@ export async function GET(req: NextRequest) {
         !response.osintCatCount &&
         !response.godseyeSearchCount
       ) {
-        return NextResponse.json({
+        return osintJson(access, {
           ...response,
           message: "No results were found.",
         });
       }
 
-      return NextResponse.json(response);
+      return osintJson(access, response);
     }
 
     // Username / phone / domain / free-text — BH→CSINT sequential + GodsEye.
@@ -393,13 +393,13 @@ export async function GET(req: NextRequest) {
     };
 
     if (response.returned === 0) {
-      return NextResponse.json({
+      return osintJson(access, {
         ...response,
         message: "No results were found.",
       });
     }
 
-    return NextResponse.json(response);
+    return osintJson(access, response);
   } catch (err) {
     return osintFailureResponse(err, {
       softEmpty: {

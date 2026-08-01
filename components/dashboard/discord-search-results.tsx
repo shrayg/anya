@@ -581,11 +581,13 @@ function DsaBlock({
 export function DiscordSearchResults({
   result,
   blurResults = false,
+  blurNoticeIsGuest = false,
   loadingMore = false,
   progressLabel = "",
 }: {
   result: DiscordSearchResult;
   blurResults?: boolean;
+  blurNoticeIsGuest?: boolean;
   /** True while more Discord fan-out modules are still settling. */
   loadingMore?: boolean;
   progressLabel?: string;
@@ -1097,7 +1099,7 @@ export function DiscordSearchResults({
         </div>
       </div>
 
-      {blurResults ? <ResultsBlurNotice /> : null}
+      {blurResults ? <ResultsBlurNotice isGuest={blurNoticeIsGuest} /> : null}
     </div>
   );
 }

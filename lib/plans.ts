@@ -38,6 +38,7 @@ const PLAN_RANK: Record<PlanId, number> = {
 export const ANNUAL_MONTHS_CHARGED = 10;
 
 export const FREE_MODULE_SLUGS = new Set([
+  "breaches",
   "phone",
   "username",
   "discord-id",
@@ -359,7 +360,7 @@ export function checkModuleAccess(
   }
 
   if (plan === "free") {
-    if (FREE_MODULE_SLUGS.has(moduleSlug)) {
+    if (FREE_MODULE_SLUGS.has(moduleSlug) || STARTER_MODULE_SLUGS.has(moduleSlug)) {
       return { allowed: true, blurResults: true };
     }
 

@@ -9,6 +9,16 @@ function stableHash(input: string): number {
   return hash >>> 0;
 }
 
+/** Length-preserving mask so forced-blur DOM never contains plaintext secrets. */
+export function buildMaskedTeaser(text: string): string {
+  const trimmed = text.trim();
+
+  if (!trimmed) return text;
+  if (trimmed.length <= 2) return "••";
+
+  return "•".repeat(Math.min(48, Math.max(4, trimmed.length)));
+}
+
 export function buildStableBlurMask(
   text: string,
   blurPercentage = 0.65,

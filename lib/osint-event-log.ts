@@ -9,7 +9,7 @@ export type OsintEventStatus =
   | "info";
 
 export type LogOsintEventInput = {
-  userId: number;
+  userId: number | null;
   /** Stable action key, e.g. search.us-identity or module:index-sweep */
   action: string;
   status: OsintEventStatus;
@@ -50,6 +50,8 @@ export function logOsintEvent(input: LogOsintEventInput): void {
 }
 
 export async function writeOsintEvent(input: LogOsintEventInput): Promise<void> {
+  if (input.userId == null) return;
+
   const message = truncate(input.message, 2000);
   const status = inferStatus(input.status, message);
 

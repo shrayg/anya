@@ -201,6 +201,7 @@ function RecordFieldsBody({
 export function SearchResultCards({
   records,
   blurResults = false,
+  blurNoticeIsGuest = false,
   totalCount,
   selectedExportIndex = null,
   onSelectExportIndex,
@@ -216,6 +217,7 @@ export function SearchResultCards({
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
+  blurNoticeIsGuest?: boolean;
   totalCount?: number;
   selectedExportIndex?: number | null;
   onSelectExportIndex?: (index: number) => void;
@@ -454,7 +456,7 @@ export function SearchResultCards({
         onPrev={() => goToPage(Math.max(1, page - 1))}
       />
 
-      {blurResults ? <ResultsBlurNotice /> : null}
+      {blurResults ? <ResultsBlurNotice isGuest={blurNoticeIsGuest} /> : null}
     </div>
   );
 }

@@ -150,22 +150,11 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
     if (!trimmed) return;
 
-    if (auth.status === "guest") {
-      window.location.href = "/auth?action=login";
-
-      return;
-    }
-
     if (auth.status === "loading") return;
 
-    const userPlan = resolveUserPlan(auth.user);
+    const isGuest = auth.status === "guest";
     const route = resolveStarterSearchRoute(starterMode, trimmed);
     const searchQuery = route.searchQuery ?? trimmed;
-    const quotaCheck = checkDailySearchQuota(userPlan, auth.searchesLast24h);
-    const accessCheck = checkModuleAccess(userPlan, route.moduleSlug, {
-      balance: auth.user.balance ?? 0,
-      intelxUsedToday: auth.intelxUsedToday,
-    });
 
     setError("");
     setRecords([]);
@@ -174,24 +163,36 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     setResultCount(0);
     setBlurResults(false);
 
-    if (!quotaCheck.allowed) {
-      setError(quotaCheck.reason ?? "Daily search limit reached.");
+    if (auth.status === "authenticated") {
+      const userPlan = resolveUserPlan(auth.user);
+      const quotaCheck = checkDailySearchQuota(userPlan, auth.searchesLast24h);
+      const accessCheck = checkModuleAccess(userPlan, route.moduleSlug, {
+        balance: auth.user.balance ?? 0,
+        intelxUsedToday: auth.intelxUsedToday,
+      });
 
-      return;
-    }
+      if (!quotaCheck.allowed) {
+        setError(quotaCheck.reason ?? "Daily search limit reached.");
 
-    if (!accessCheck.allowed) {
-      setError(
-        accessCheck.reason ?? "This lookup is not available on your plan.",
+        return;
+      }
+
+      if (!accessCheck.allowed) {
+        setError(
+          accessCheck.reason ?? "This lookup is not available on your plan.",
+        );
+
+        return;
+      }
+
+      setBlurResults(
+        Boolean(accessCheck.blurResults) || shouldBlurResults(userPlan),
       );
-
-      return;
+    } else {
+      setBlurResults(true);
     }
 
     setIsSearching(true);
-    setBlurResults(
-      Boolean(accessCheck.blurResults) || shouldBlurResults(userPlan),
-    );
 
     const scopeParam = route.scope
       ? `&scope=${encodeURIComponent(route.scope)}`
@@ -219,6 +220,10 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         setError(sanitizePublicText(data.error || "Search failed."));
 
         return;
+      }
+
+      if (data?.blurResults) {
+        setBlurResults(true);
       }
 
       if (route.apiType === "discord") {
@@ -458,6 +463,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           data-tour="home-search-results"
         >
           <DiscordSearchResults
+            blurNoticeIsGuest={auth.status === "guest"}
             blurResults={blurResults}
             result={discordResult}
           />
@@ -470,6 +476,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           data-tour="home-search-results"
         >
           <BreachesSearchResults
+            blurNoticeIsGuest={auth.status === "guest"}
             blurResults={blurResults}
             result={combResult}
           />
@@ -482,6 +489,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           data-tour="home-search-results"
         >
           <SearchResultCards
+            blurNoticeIsGuest={auth.status === "guest"}
             blurResults={blurResults}
             defaultExpanded="first"
             dense
