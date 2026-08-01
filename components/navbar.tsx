@@ -33,7 +33,11 @@ import { SpecularButton } from "@/components/ui/specular-button";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
-import { formatCredits, formatSearchQuotaLabel, searchQuotaTitle } from "@/lib/account-plan";
+import {
+  formatCredits,
+  formatSearchQuota,
+  searchQuotaTitle,
+} from "@/lib/account-plan";
 import { useUserStats } from "@/lib/use-user-stats";
 import {
   getAppLandingPath,
@@ -52,12 +56,13 @@ function isNavActive(href: string, pathname: string) {
 
 function CreditBalanceChip({
   balance,
-  searchQuotaLabel,
+  searchQuota,
   searchTitle,
   className,
 }: {
   balance: number;
-  searchQuotaLabel?: string | null;
+  /** Compact quota like `500 / 500` or `∞` — unit word is a separate span for CSS compaction. */
+  searchQuota?: string | null;
   searchTitle?: string;
   className?: string;
 }) {
@@ -66,8 +71,8 @@ function CreditBalanceChip({
       className={clsx("nav-credits-chip", className)}
       href="/pricing?tab=credits"
       title={
-        searchQuotaLabel
-          ? `Buy credits · ${searchTitle ?? searchQuotaLabel}`
+        searchQuota
+          ? `Buy credits · ${searchTitle ?? `${searchQuota} searches`}`
           : "Buy credits"
       }
     >
@@ -76,14 +81,15 @@ function CreditBalanceChip({
         {formatCredits(balance)}
       </span>
       <span className="nav-credits-chip-label">credits</span>
-      {searchQuotaLabel ? (
+      {searchQuota ? (
         <>
           <span aria-hidden className="nav-credits-chip-sep">
             ·
           </span>
           <span className="nav-credits-chip-searches tabular-nums">
-            {searchQuotaLabel}
+            {searchQuota}
           </span>
+          <span className="nav-credits-chip-searches-unit">searches</span>
         </>
       ) : null}
     </NextLink>
@@ -372,7 +378,7 @@ export const Navbar = () => {
   const activePillIndexRef = useRef(-1);
   const highlightPlacedRef = useRef(false);
   const { stats } = useUserStats(Boolean(username));
-  const searchQuotaLabel = formatSearchQuotaLabel(stats);
+  const searchQuota = formatSearchQuota(stats);
   const searchTitle = searchQuotaTitle(stats);
 
   const navItems = useMemo(() => siteConfig.navItems, []);
@@ -532,7 +538,7 @@ export const Navbar = () => {
           base: "anya-floating-nav !bg-transparent !border-none !shadow-none !backdrop-blur-none",
           // Fixed 3-zone grid — avoids absolute-center overlapping brand/account on medium widths.
           wrapper:
-            "anya-marketing-nav-wrapper !max-w-none px-1 sm:px-2 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-8",
+            "anya-marketing-nav-wrapper !max-w-none px-1 sm:px-2 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-4 lg:gap-6 xl:gap-8",
         }}
         isBlurred={false}
         isMenuOpen={menuOpen}
@@ -611,16 +617,16 @@ export const Navbar = () => {
 
         {/* Right — CTA + account */}
         <NavbarContent
-          className="hidden basis-auto md:flex md:min-w-0 md:justify-self-end"
+          className="hidden basis-auto md:flex md:min-w-0 md:max-w-full md:justify-self-end"
           justify="end"
         >
-          <NavbarItem className="nav-auth-cluster flex min-w-0 shrink items-center gap-3.5">
+          <NavbarItem className="nav-auth-cluster flex min-w-0 max-w-full shrink items-center gap-3.5">
             {username ? (
               <>
                 {creditBalance != null ? (
                   <CreditBalanceChip
                     balance={stats?.balance ?? creditBalance}
-                    searchQuotaLabel={searchQuotaLabel}
+                    searchQuota={searchQuota}
                     searchTitle={searchTitle}
                   />
                 ) : null}
@@ -674,7 +680,7 @@ export const Navbar = () => {
                 <CreditBalanceChip
                   balance={stats?.balance ?? creditBalance}
                   className="nav-credits-chip--compact"
-                  searchQuotaLabel={searchQuotaLabel}
+                  searchQuota={searchQuota}
                   searchTitle={searchTitle}
                 />
               ) : null}

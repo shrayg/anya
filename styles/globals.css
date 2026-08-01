@@ -72,22 +72,31 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    gap: 1.75rem;
+    column-gap: clamp(0.75rem, 1.6vw, 2rem);
   }
 
   .anya-marketing-nav-wrapper > *:nth-child(1) {
     justify-self: start;
     min-width: 0;
+    max-width: 100%;
   }
 
   .anya-marketing-nav-wrapper > *:nth-child(2) {
     justify-self: center;
     flex: 0 0 auto !important;
+    position: relative;
+    z-index: 1;
   }
 
+  /* Fill the 1fr track so the auth cluster can shrink inside it instead of spilling into the pill */
   .anya-marketing-nav-wrapper > *:nth-child(3) {
-    justify-self: end;
+    justify-self: stretch;
     min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    overflow: hidden;
+    display: flex !important;
+    justify-content: flex-end;
   }
 }
 

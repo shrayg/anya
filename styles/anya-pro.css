@@ -100,6 +100,8 @@ pre,
 .nav-auth-cluster {
   --nav-action-h: 2.5rem;
   gap: 0.85rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .nav-credits-chip {
@@ -107,6 +109,9 @@ pre,
   align-items: center;
   gap: 0.35rem;
   height: var(--nav-action-h, 2.5rem);
+  min-width: 0;
+  max-width: 100%;
+  flex-shrink: 1;
   padding: 0 0.85rem 0 0.7rem;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -118,6 +123,8 @@ pre,
     0 10px 24px -18px rgba(0, 0, 0, 0.65);
   color: #e4e4e7;
   text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
   transition:
     border-color 0.18s var(--anya-ease),
     background 0.18s var(--anya-ease),
@@ -142,6 +149,7 @@ pre,
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
 .nav-credits-chip-label {
@@ -149,6 +157,7 @@ pre,
   font-weight: 500;
   color: rgba(228, 228, 231, 0.55);
   text-transform: lowercase;
+  flex-shrink: 0;
 }
 
 .nav-credits-chip-sep {
@@ -156,6 +165,7 @@ pre,
   color: rgba(148, 163, 184, 0.5);
   font-size: 0.6875rem;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .nav-credits-chip-searches {
@@ -163,6 +173,16 @@ pre,
   font-weight: 600;
   letter-spacing: -0.02em;
   color: rgba(186, 230, 253, 0.88);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-credits-chip-searches-unit {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: rgba(186, 230, 253, 0.62);
+  flex-shrink: 0;
 }
 
 .nav-credits-chip:hover .nav-credits-chip-label,
@@ -171,7 +191,9 @@ pre,
 }
 
 .nav-credits-chip:hover .nav-credits-chip-searches,
-.nav-credits-chip:focus-visible .nav-credits-chip-searches {
+.nav-credits-chip:focus-visible .nav-credits-chip-searches,
+.nav-credits-chip:hover .nav-credits-chip-searches-unit,
+.nav-credits-chip:focus-visible .nav-credits-chip-searches-unit {
   color: rgba(224, 242, 254, 0.98);
 }
 
@@ -180,8 +202,56 @@ pre,
   gap: 0.28rem;
 }
 
-.nav-credits-chip--compact .nav-credits-chip-label {
+.nav-credits-chip--compact .nav-credits-chip-label,
+.nav-credits-chip--compact .nav-credits-chip-searches-unit {
   display: none;
+}
+
+/* Mid desktop: long credits + searches + plan labels collide with the center pill */
+@media (max-width: 1280px) {
+  .nav-auth-cluster {
+    gap: 0.55rem;
+  }
+
+  .nav-credits-chip-label {
+    display: none;
+  }
+
+  .nav-account-trigger {
+    max-width: 11rem;
+  }
+}
+
+@media (max-width: 1120px) {
+  .nav-credits-chip {
+    padding-inline: 0.65rem;
+    gap: 0.28rem;
+  }
+
+  .nav-credits-chip-searches-unit {
+    display: none;
+  }
+
+  .nav-account-trigger {
+    max-width: 9.25rem;
+  }
+
+  .nav-dashboard-cta {
+    padding-inline: 0.9rem !important;
+  }
+}
+
+/* Narrow desktop (pill + auth both visible): avatar-only account frees space */
+@media (min-width: 768px) and (max-width: 960px) {
+  .nav-account-meta,
+  .nav-account-chevron {
+    display: none;
+  }
+
+  .nav-account-trigger {
+    max-width: none;
+    padding-right: 0.35rem;
+  }
 }
 
 .nav-dashboard-cta {
