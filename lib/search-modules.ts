@@ -116,13 +116,14 @@ export type SearchModuleDef = {
    */
   fanOutAllTools?: boolean;
   /**
-   * Hide the Email/Username/Phone type dropdown and multi-field adder.
-   * Single query input with auto-detect.
+   * Hide the field-type chrome and multi-field adder.
+   * Single query input (type still auto-detected where applicable).
    */
   hideFieldTypePicker?: boolean;
   /**
-   * Single search row (no “Add field”), but still show the type picker when
-   * `hideFieldTypePicker` is off (e.g. Breaches: Email | Username).
+   * Single search row (no “Add field”). Most modules show a read-only
+   * detected-type hint; modules with multiple structural field roles
+   * (e.g. public records) still show a type picker.
    */
   singleSearchField?: boolean;
   /** Optional geographic / identity filters users can fill when they know them. */

@@ -970,6 +970,19 @@ pre,
   background-position: right 0.7rem center;
 }
 
+.module-search-field-type--hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 0.85rem;
+  cursor: default;
+  user-select: none;
+  /* No chevron — not a select */
+  appearance: none;
+  background-image: none;
+  pointer-events: none;
+}
+
 .module-search-field-dial {
   font-size: 0.74rem;
   padding: 0 1.75rem 0 0.6rem;
@@ -981,6 +994,12 @@ pre,
 .module-search-field-dial:hover {
   border-color: color-mix(in srgb, var(--anya-blush) 42%, rgba(255, 255, 255, 0.16));
   color: color-mix(in srgb, var(--anya-blush) 92%, #fff);
+}
+
+.module-search-field-type--hint:hover {
+  /* Keep the static hint look — no interactive hover lift */
+  border-color: color-mix(in srgb, var(--anya-blush) 28%, rgba(255, 255, 255, 0.12));
+  color: color-mix(in srgb, var(--anya-blush) 78%, #fff);
 }
 
 .module-search-field-type:focus,

@@ -7,7 +7,10 @@ import {
   createSearchFieldRow,
   detectSearchFieldType,
   getModuleSearchFieldOptions,
+  labelForFieldType,
+  moduleNeedsManualFieldTypePicker,
   placeholderForFieldType,
+  preferredAutoStartFieldType,
   shouldAutoDetectFieldType,
   type ModuleSearchFieldRow,
   type SearchFieldTypeId,
@@ -46,6 +49,9 @@ export function ModuleSearchFields({
   const options = getModuleSearchFieldOptions(moduleDef);
   const availableIds = options.map((option) => option.id);
   const hideTypePicker = Boolean(moduleDef.hideFieldTypePicker);
+  const needsManualPicker =
+    !hideTypePicker && moduleNeedsManualFieldTypePicker(availableIds);
+  const showTypeChrome = !hideTypePicker;
   const singleInput =
     hideTypePicker || Boolean(moduleDef.singleSearchField);
 
@@ -62,11 +68,19 @@ export function ModuleSearchFields({
 
   const addRow = () => {
     if (fields.length >= MAX_FIELDS || singleInput) return;
-    const used = new Set(fields.map((row) => row.type));
-    const nextType =
-      options.find((option) => !used.has(option.id))?.id ??
-      options[0]?.id ??
-      "query";
+
+    if (needsManualPicker) {
+      const used = new Set(fields.map((row) => row.type));
+      const nextType =
+        options.find((option) => !used.has(option.id))?.id ??
+        options[0]?.id ??
+        "query";
+
+      onChange([...fields, createSearchFieldRow(nextType)]);
+      return;
+    }
+
+    const nextType = preferredAutoStartFieldType(options);
 
     onChange([...fields, createSearchFieldRow(nextType)]);
   };
@@ -87,19 +101,29 @@ export function ModuleSearchFields({
 
     // Cleared input unlocks a manual type pick so the next value can auto-detect.
     if (!trimmed) {
+      const emptyType = needsManualPicker
+        ? row.type
+        : preferredAutoStartFieldType(options);
+
       updateRow(row.id, {
         value,
         typeManual: false,
-        ...(hideTypePicker ? { type: "query" as SearchFieldTypeId } : {}),
+        type: hideTypePicker ? ("query" as SearchFieldTypeId) : emptyType,
       });
       return;
     }
 
+    // Manual picker: respect an explicit pick until the value is cleared.
     if (
-      !hideTypePicker &&
+      needsManualPicker &&
       (row.typeManual || !shouldAutoDetectFieldType(row.type, availableIds))
     ) {
       updateRow(row.id, { value });
+      return;
+    }
+
+    if (hideTypePicker) {
+      updateRow(row.id, { value, type: "query", typeManual: false });
       return;
     }
 
@@ -123,44 +147,55 @@ export function ModuleSearchFields({
       <AutofillDecoyFields />
       <div className="module-search-fields">
         {visibleFields.map((row, index) => {
-          const showDial = !hideTypePicker && row.type === "phone";
+          const showDial = showTypeChrome && row.type === "phone";
+          const typeLabel = labelForFieldType(row.type, options);
 
           return (
             <div
               key={row.id}
               className={
-                hideTypePicker
+                !showTypeChrome
                   ? "module-search-field-row module-search-field-row--simple"
                   : showDial
                     ? "module-search-field-row module-search-field-row--phone"
                     : "module-search-field-row"
               }
             >
-              {hideTypePicker ? null : (
-                <>
-                  <label className="sr-only" htmlFor={`field-type-${row.id}`}>
-                    Field type
-                  </label>
-                  <select
-                    className="module-search-field-type dash-select"
-                    disabled={disabled}
-                    id={`field-type-${row.id}`}
-                    value={row.type}
-                    onChange={(event) =>
-                      onTypeChange(
-                        row,
-                        event.target.value as SearchFieldTypeId,
-                      )
-                    }
+              {showTypeChrome ? (
+                needsManualPicker ? (
+                  <>
+                    <label className="sr-only" htmlFor={`field-type-${row.id}`}>
+                      Field type
+                    </label>
+                    <select
+                      className="module-search-field-type dash-select"
+                      disabled={disabled}
+                      id={`field-type-${row.id}`}
+                      value={row.type}
+                      onChange={(event) =>
+                        onTypeChange(
+                          row,
+                          event.target.value as SearchFieldTypeId,
+                        )
+                      }
+                    >
+                      {options.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : (
+                  <span
+                    aria-live="polite"
+                    className="module-search-field-type module-search-field-type--hint"
+                    title={`Detected as ${typeLabel}`}
                   >
-                    {options.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
+                    {typeLabel}
+                  </span>
+                )
+              ) : null}
 
               {showDial ? (
                 <>

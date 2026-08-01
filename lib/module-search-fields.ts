@@ -66,6 +66,27 @@ const AUTO_DETECTABLE_TYPES = new Set<SearchFieldTypeId>([
   "discord-id",
 ]);
 
+/**
+ * Structural / specialty types that cannot be inferred from value shape alone.
+ * When two or more of these appear in a module's option set, keep a manual
+ * type picker (e.g. first-name + last-name, wallet + tx).
+ */
+const MANUAL_STRUCTURE_TYPES = new Set<SearchFieldTypeId>([
+  "wallet",
+  "tx",
+  "hash",
+  "password",
+  "storage-id",
+  "name",
+  "first-name",
+  "last-name",
+  "state",
+  "city",
+  "county",
+  "zip",
+  "dob",
+]);
+
 function looksLikeIpv4(value: string): boolean {
   const parts = value.split(".");
 
@@ -130,7 +151,8 @@ function looksLikeDiscordId(value: string): boolean {
 
 /**
  * Infer a field type from free-typed input, constrained to `available` options.
- * Priority: IP → Email → URL → Domain → Phone → Discord ID → Query/Text → current/fallback.
+ * Priority: IP → Email → URL → Domain → Phone → Discord ID →
+ * Username/Query/Text (soft) → current/fallback.
  */
 export function detectSearchFieldType(
   raw: string,
@@ -176,7 +198,7 @@ export function detectSearchFieldType(
   }
 
   // Soft / free-text types keep their selection when nothing stronger matched.
-  // Strong pattern types (ip/email/domain/…) fall back to Query.
+  // Strong pattern types (ip/email/domain/…) fall back to Username → Query/Text.
   const softKeep = new Set<SearchFieldTypeId>([
     "query",
     "text",
@@ -193,7 +215,7 @@ export function detectSearchFieldType(
     return fallback;
   }
 
-  return pick("query") ?? pick("text") ?? fallback;
+  return pick("username") ?? pick("query") ?? pick("text") ?? fallback;
 }
 
 export function shouldAutoDetectFieldType(
@@ -203,6 +225,49 @@ export function shouldAutoDetectFieldType(
   if (!AUTO_DETECTABLE_TYPES.has(type)) return false;
 
   return available.some((id) => AUTO_DETECTABLE_TYPES.has(id));
+}
+
+/**
+ * True when the module needs a manual type dropdown because multiple
+ * non-inferable field roles coexist (public records, crypto wallet/tx, …).
+ * Otherwise the UI shows a read-only detected-type hint.
+ */
+export function moduleNeedsManualFieldTypePicker(
+  available: SearchFieldTypeId[],
+): boolean {
+  return available.filter((id) => MANUAL_STRUCTURE_TYPES.has(id)).length >= 2;
+}
+
+/** Soft-start type for auto-detect modules (no manual picker). */
+export function preferredAutoStartFieldType(
+  options: ModuleSearchFieldOption[],
+): SearchFieldTypeId {
+  const first = options[0]?.id;
+  // Specialty-led modules keep their primary role until a stronger pattern hits.
+  if (
+    first === "hash" ||
+    first === "password" ||
+    first === "storage-id" ||
+    first === "wallet" ||
+    first === "tx"
+  ) {
+    return first;
+  }
+
+  return (
+    options.find((option) => option.id === "query" || option.id === "text")
+      ?.id ??
+    options.find((option) => option.id === "username")?.id ??
+    first ??
+    "query"
+  );
+}
+
+export function labelForFieldType(
+  type: SearchFieldTypeId,
+  options: ModuleSearchFieldOption[],
+): string {
+  return options.find((option) => option.id === type)?.label ?? type;
 }
 
 export type ComposedModuleSearch = {
@@ -319,7 +384,8 @@ function optionsFromOptionalFilters(
 }
 
 /**
- * Field types offered for a module — drives the per-row type dropdown.
+ * Field types offered for a module — drives auto-detect constraints and
+ * (when needed) the per-row type picker for structural fields.
  */
 export function getModuleSearchFieldOptions(
   moduleDef: SearchModuleDef,
@@ -443,12 +509,16 @@ export function defaultSearchFieldsForModule(
   moduleDef: SearchModuleDef,
 ): ModuleSearchFieldRow[] {
   const options = getModuleSearchFieldOptions(moduleDef);
+  const availableIds = options.map((option) => option.id);
+  const needsManual = moduleNeedsManualFieldTypePicker(availableIds);
   const initialType =
     moduleDef.slug === "public-records"
       ? "first-name"
       : moduleDef.hideFieldTypePicker
         ? "query"
-        : options[0]?.id ?? "email";
+        : needsManual
+          ? (options[0]?.id ?? "email")
+          : preferredAutoStartFieldType(options);
 
   if (moduleDef.slug === "public-records") {
     return [createSearchFieldRow("first-name"), createSearchFieldRow("last-name")];

@@ -239,15 +239,13 @@ export default function DesignPreviewPage() {
                     >
                       <div className="module-search-fields">
                         <div className="module-search-field-row">
-                          <select
-                            aria-label="Field type"
-                            className="module-search-field-type dash-select"
-                            defaultValue="query"
+                          <span
+                            aria-live="polite"
+                            className="module-search-field-type module-search-field-type--hint"
+                            title="Detected as Query"
                           >
-                            <option value="query">Query</option>
-                            <option value="username">Username</option>
-                            <option value="url">URL</option>
-                          </select>
+                            Query
+                          </span>
                           <input
                             className="ui-input module-search-field-input font-mono"
                             value={query}
