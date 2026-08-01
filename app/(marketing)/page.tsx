@@ -32,9 +32,9 @@ export default function Home() {
       <HomeBackground />
       <HomeDiscordNotify />
 
-      <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-end gap-8 px-4 pb-[min(26svh,12rem)] pt-10 text-center md:gap-10">
+      <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-end gap-4 px-4 pb-[min(34svh,15rem)] pt-10 text-center md:gap-5">
         <Reveal
-          className="flex max-w-5xl flex-col items-center gap-5 overflow-visible md:gap-6"
+          className="flex max-w-5xl flex-col items-center gap-4 overflow-visible md:gap-5"
           mode="mount"
         >
           <ShinyText
