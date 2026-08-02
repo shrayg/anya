@@ -12,9 +12,6 @@ export const siteConfig = {
   description:
     "Anya | Look people up across socials, exposure, and public records",
   tagline: "Look people up. Connect the trail. Keep the file.",
-  /** Homepage hero lede under the wordmark. */
-  heroLede:
-    "Start with one identifier — email, phone, username, or Discord ID — and fan out across breach, stealer, social, and public-record engines. Built for investigators who need clear answers without the noise.",
   defaultWorkspacePath: "/dashboard/search/ai-search",
   /** Brand operator name used in legal copy (Snoop-style — no LLC string required on-site). */
   legalEntityName: "Anya",

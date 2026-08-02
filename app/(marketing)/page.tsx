@@ -41,9 +41,6 @@ export default function Home() {
             className={brandTitleClassName}
             text={siteConfig.navName}
           />
-          <p className="max-w-2xl px-2 text-sm leading-6 text-gray-300 md:text-base md:leading-7">
-            {siteConfig.heroLede}
-          </p>
         </Reveal>
 
         <Reveal className="w-full max-w-[72rem]" delay={0.08} mode="mount">
