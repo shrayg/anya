@@ -101,7 +101,7 @@
   }
 }
 
-/* Sonner — match Anya dark chrome; center in the viewport */
+/* Sonner — match Anya dark chrome; pin stack to top-center */
 [data-sonner-toaster][data-theme="dark"] {
   --normal-bg: rgba(9, 10, 12, 0.94);
   --normal-border: rgba(255, 255, 255, 0.1);
@@ -109,12 +109,8 @@
   font-family: inherit;
 }
 
+/* Let Sonner's top-center placement stand; only keep width unconstrained. */
 [data-sonner-toaster].anya-sonner-toaster {
-  top: 50% !important;
-  left: 50% !important;
-  right: auto !important;
-  bottom: auto !important;
-  transform: translate(-50%, -50%) !important;
   width: auto !important;
 }
 
