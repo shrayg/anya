@@ -58,7 +58,7 @@ export function HomeBackground({
       <PixelBlast
         enableRipples
         transparent
-        color="#7d7c7c"
+        color="#969595"
         edgeFade={0.25}
         interactionTarget="window"
         patternDensity={1.15}

@@ -16,7 +16,6 @@ import {
   UserPlus,
 } from "lucide-react";
 
-import { HomeBackground } from "@/components/home-background";
 import {
   isTurnstileEnabledOnClient,
   TurnstileWidget,
@@ -626,18 +625,15 @@ function AuthForm() {
 
 export default function AuthPage() {
   return (
-    <>
-      <HomeBackground />
-      <Suspense
-        fallback={
-          <div className="brutal-auth-page relative z-20 flex w-full flex-1 items-center justify-center text-sm text-zinc-500">
-            <Clock className="mr-2 size-4 animate-spin text-anya-accent" />
-            Loading…
-          </div>
-        }
-      >
-        <AuthForm />
-      </Suspense>
-    </>
+    <Suspense
+      fallback={
+        <div className="brutal-auth-page relative z-20 flex w-full flex-1 items-center justify-center text-sm text-zinc-500">
+          <Clock className="mr-2 size-4 animate-spin text-anya-accent" />
+          Loading…
+        </div>
+      }
+    >
+      <AuthForm />
+    </Suspense>
   );
 }

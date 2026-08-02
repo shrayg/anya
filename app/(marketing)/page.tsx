@@ -1,4 +1,3 @@
-import { HomeBackground } from "@/components/home-background";
 import { HomeSearch } from "@/components/home-search";
 import {
   HomeAudiences,
@@ -28,8 +27,6 @@ const HOME_LOCKED_MODULES = getHubSections()
 export default function Home() {
   return (
     <>
-      <HomeBackground />
-
       <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-end gap-4 px-4 pb-[min(34svh,15rem)] pt-10 text-center md:gap-5">
         <Reveal
           className="flex max-w-5xl flex-col items-center gap-4 overflow-visible md:gap-5"

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { CreditCard } from "lucide-react";
 
 import { Reveal } from "@/components/craft/reveal";
-import { HomeBackground } from "@/components/home-background";
 import { PricingPageContent } from "@/components/pricing-page-content";
 
 export default function PricingPage() {
@@ -19,8 +18,6 @@ export default function PricingPage() {
 
   return (
     <>
-      <HomeBackground />
-
       <section className="brutal-page brutal-pricing-page relative z-20 mx-auto w-full max-w-6xl px-2 pb-24 pt-4 md:pt-6">
         <Reveal mode="mount">
           <header className="brutal-page-header mb-12 space-y-5">
