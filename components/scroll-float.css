@@ -1,23 +1,44 @@
 .scroll-float {
   overflow: hidden;
   margin: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .scroll-float-text {
   display: inline-block;
+  max-width: 100%;
   line-height: inherit;
   font: inherit;
   letter-spacing: inherit;
   color: inherit;
   text-align: inherit;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .scroll-float-line {
   display: block;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .scroll-float-line--accent {
   color: color-mix(in srgb, var(--anya-blush) 74%, white);
+}
+
+/* Keep glyph animation targets; never allow a wrap inside a word. */
+.scroll-float-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.scroll-float-gap {
+  display: inline;
+  white-space: normal;
 }
 
 .scroll-float-char {

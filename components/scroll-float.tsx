@@ -46,12 +46,35 @@ function normalizeLines(
   return [];
 }
 
+/**
+ * Animate per character, but wrap at word boundaries only.
+ * Letter-level inline-blocks otherwise allow mid-word line breaks
+ * (and NBSP between letters removed soft wrap opportunities at spaces).
+ */
 function splitChars(text: string, keyPrefix: string) {
-  return text.split("").map((char, index) => (
-    <span className="scroll-float-char" key={`${keyPrefix}-${index}`}>
-      {char === " " ? "\u00A0" : char}
-    </span>
-  ));
+  const tokens = text.split(/(\s+)/);
+  return tokens.flatMap((token, tokenIndex) => {
+    if (!token) return [];
+    if (/^\s+$/.test(token)) {
+      return [
+        <span className="scroll-float-gap" key={`${keyPrefix}-g${tokenIndex}`}>
+          {" "}
+        </span>,
+      ];
+    }
+    return [
+      <span className="scroll-float-word" key={`${keyPrefix}-w${tokenIndex}`}>
+        {token.split("").map((char, index) => (
+          <span
+            className="scroll-float-char"
+            key={`${keyPrefix}-${tokenIndex}-${index}`}
+          >
+            {char}
+          </span>
+        ))}
+      </span>,
+    ];
+  });
 }
 
 function visibleCharState() {
