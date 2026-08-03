@@ -16,7 +16,6 @@ import {
   ScanSearch,
   ShieldCheck,
   Smartphone,
-  Sparkles,
 } from "lucide-react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import Link from "next/link";
@@ -77,53 +76,90 @@ const TRUST_POINTS = [
   },
 ] as const;
 
+const ROUTER_EASE = [0.22, 1, 0.36, 1] as const;
+const PIVOT_INDEX = ENTRY_POINTS.findIndex((p) => p.label === "Username");
+
 function SignalRouter({ moduleCount }: { moduleCount: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.45 });
+  const inView = useInView(ref, { amount: 0.4, once: true });
   const reduceMotion = useReducedMotion();
 
   return (
-    <div ref={ref} className="anya-signal-router">
-      <div className="anya-signal-router__inputs">
-        {ENTRY_POINTS.map(({ label, example, icon: Icon }, index) => (
+    <div
+      ref={ref}
+      className={
+        inView ? "anya-signal-router is-live" : "anya-signal-router"
+      }
+      data-reduced-motion={reduceMotion ? "true" : undefined}
+    >
+      {ENTRY_POINTS.map(({ label, example, icon: Icon }, index) => {
+        const pivot = index === PIVOT_INDEX;
+
+        return (
           <motion.div
             key={label}
-            animate={inView ? { opacity: 1, x: 0 } : { opacity: 0.45, x: -8 }}
-            className="anya-signal-router__input"
+            animate={
+              inView
+                ? { opacity: 1, x: 0 }
+                : {
+                    opacity: reduceMotion ? 1 : 0.4,
+                    x: reduceMotion ? 0 : -10,
+                  }
+            }
+            className={
+              pivot
+                ? "anya-signal-router__input is-pivot"
+                : "anya-signal-router__input"
+            }
             transition={{
-              delay: reduceMotion ? 0 : index * 0.07,
-              duration: 0.4,
-              ease: [0.22, 1, 0.36, 1],
+              delay: reduceMotion ? 0 : 0.05 + index * 0.09,
+              duration: 0.48,
+              ease: ROUTER_EASE,
             }}
           >
+            <span className="anya-signal-router__index" aria-hidden>
+              {String(index + 1).padStart(2, "0")}
+            </span>
             <Icon aria-hidden />
             <div>
               <span>{label}</span>
               <code>{example}</code>
             </div>
+            {pivot ? (
+              <span aria-hidden className="anya-signal-router__pivot-node" />
+            ) : null}
           </motion.div>
-        ))}
-      </div>
+        );
+      })}
 
       <div aria-hidden className="anya-signal-router__rail">
-        <span />
+        <span className="anya-signal-router__rail-line" />
+        <span className="anya-signal-router__rail-packet" />
       </div>
 
-      <motion.div
+      <motion.aside
         animate={
-          inView ? { opacity: 1, scale: 1 } : { opacity: 0.45, scale: 0.97 }
+          inView
+            ? { opacity: 1, y: 0 }
+            : { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 14 }
         }
+        aria-label={`Anya cross-reference across ${moduleCount} intelligence modules`}
         className="anya-signal-router__core"
         transition={{
-          delay: reduceMotion ? 0 : 0.26,
-          duration: 0.45,
-          ease: [0.22, 1, 0.36, 1],
+          delay: reduceMotion ? 0 : 0.42,
+          duration: 0.55,
+          ease: ROUTER_EASE,
         }}
       >
-        <Sparkles aria-hidden />
-        <span>ANYA CROSS-REFERENCE</span>
-        <strong>{moduleCount} intelligence modules</strong>
-      </motion.div>
+        <div className="anya-signal-router__core-mark" aria-hidden>
+          <Network />
+        </div>
+        <p className="anya-signal-router__core-kicker">Anya cross-reference</p>
+        <p className="anya-signal-router__core-count">
+          <strong>{moduleCount}</strong>
+          <span>intelligence modules</span>
+        </p>
+      </motion.aside>
     </div>
   );
 }
