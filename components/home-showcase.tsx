@@ -25,10 +25,30 @@ import ScrollFloat from "@/components/scroll-float";
 import { SpecularButton } from "@/components/ui/specular-button";
 
 const ENTRY_POINTS = [
-  { label: "Email", example: "name@domain.com", icon: AtSign },
-  { label: "Phone", example: "+1 555 012 0142", icon: Smartphone },
-  { label: "Username", example: "northstar_01", icon: CircleUserRound },
-  { label: "Discord", example: "123456789012345678", icon: Hash },
+  {
+    label: "Email",
+    example: "m.reyes@proton.me",
+    icon: AtSign,
+    slot: "nw",
+  },
+  {
+    label: "Phone",
+    example: "+1 415 555 0198",
+    icon: Smartphone,
+    slot: "ne",
+  },
+  {
+    label: "Username",
+    example: "northstar",
+    icon: CircleUserRound,
+    slot: "sw",
+  },
+  {
+    label: "Discord",
+    example: "@northstar",
+    icon: Hash,
+    slot: "se",
+  },
 ] as const;
 
 const QUESTIONS = [
@@ -77,89 +97,82 @@ const TRUST_POINTS = [
 ] as const;
 
 const ROUTER_EASE = [0.22, 1, 0.36, 1] as const;
-const PIVOT_INDEX = ENTRY_POINTS.findIndex((p) => p.label === "Username");
 
 function SignalRouter({ moduleCount }: { moduleCount: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.4, once: true });
+  const inView = useInView(ref, { amount: 0.35, once: true });
   const reduceMotion = useReducedMotion();
 
   return (
     <div
       ref={ref}
-      className={
-        inView ? "anya-signal-router is-live" : "anya-signal-router"
-      }
+      aria-label={`One clue becomes a connected map across ${moduleCount} intelligence modules`}
+      className={inView ? "anya-signal-fan is-live" : "anya-signal-fan"}
       data-reduced-motion={reduceMotion ? "true" : undefined}
     >
-      {ENTRY_POINTS.map(({ label, example, icon: Icon }, index) => {
-        const pivot = index === PIVOT_INDEX;
-
-        return (
-          <motion.div
-            key={label}
-            animate={
-              inView
-                ? { opacity: 1, x: 0 }
-                : {
-                    opacity: reduceMotion ? 1 : 0.4,
-                    x: reduceMotion ? 0 : -10,
-                  }
-            }
-            className={
-              pivot
-                ? "anya-signal-router__input is-pivot"
-                : "anya-signal-router__input"
-            }
-            transition={{
-              delay: reduceMotion ? 0 : 0.05 + index * 0.09,
-              duration: 0.48,
-              ease: ROUTER_EASE,
-            }}
-          >
-            <span className="anya-signal-router__index" aria-hidden>
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <Icon aria-hidden />
-            <div>
-              <span>{label}</span>
-              <code>{example}</code>
-            </div>
-            {pivot ? (
-              <span aria-hidden className="anya-signal-router__pivot-node" />
-            ) : null}
-          </motion.div>
-        );
-      })}
-
-      <div aria-hidden className="anya-signal-router__rail">
-        <span className="anya-signal-router__rail-line" />
-        <span className="anya-signal-router__rail-packet" />
-      </div>
-
-      <motion.aside
-        animate={
-          inView
-            ? { opacity: 1, y: 0 }
-            : { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 14 }
-        }
-        aria-label={`Anya cross-reference across ${moduleCount} intelligence modules`}
-        className="anya-signal-router__core"
-        transition={{
-          delay: reduceMotion ? 0 : 0.42,
-          duration: 0.55,
-          ease: ROUTER_EASE,
-        }}
+      <svg
+        aria-hidden
+        className="anya-signal-fan__rays"
+        fill="none"
+        viewBox="0 0 480 320"
       >
-        <div className="anya-signal-router__core-mark" aria-hidden>
-          <Network />
-        </div>
-        <p className="anya-signal-router__core-kicker">Anya cross-reference</p>
-        <p className="anya-signal-router__core-count">
-          <strong>{moduleCount}</strong>
-          <span>intelligence modules</span>
-        </p>
-      </motion.aside>
+        <path d="M96 64 L240 160" pathLength={1} />
+        <path d="M384 64 L240 160" pathLength={1} />
+        <path d="M96 256 L240 160" pathLength={1} />
+        <path d="M384 256 L240 160" pathLength={1} />
+      </svg>
+
+      {ENTRY_POINTS.map(({ label, example, icon: Icon, slot }, index) => (
+        <motion.div
+          key={label}
+          animate={
+            inView
+              ? { opacity: 1, y: 0 }
+              : {
+                  opacity: reduceMotion ? 1 : 0,
+                  y: reduceMotion ? 0 : 12,
+                }
+          }
+          className="anya-signal-fan__chip"
+          data-slot={slot}
+          transition={{
+            delay: reduceMotion ? 0 : 0.08 + index * 0.1,
+            duration: 0.55,
+            ease: ROUTER_EASE,
+          }}
+        >
+          <Icon aria-hidden />
+          <div>
+            <span>{label}</span>
+            <strong>{example}</strong>
+          </div>
+        </motion.div>
+      ))}
+
+      <div className="anya-signal-fan__hub">
+        <motion.div
+          animate={
+            inView
+              ? { opacity: 1, y: 0 }
+              : {
+                  opacity: reduceMotion ? 1 : 0,
+                  y: reduceMotion ? 0 : 10,
+                }
+          }
+          className="anya-signal-fan__hub-inner"
+          transition={{
+            delay: reduceMotion ? 0 : 0.42,
+            duration: 0.6,
+            ease: ROUTER_EASE,
+          }}
+        >
+          <p className="anya-signal-fan__brand">Anya</p>
+          <p className="anya-signal-fan__meta">
+            <strong>{moduleCount}</strong>
+            <span>modules in the map</span>
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -219,8 +232,8 @@ export function HomeShowcase() {
 export function HomeHowItWorks({ moduleCount }: { moduleCount: number }) {
   return (
     <section className="anya-story anya-story--router relative z-20 w-full">
-      <div className="anya-story__inner anya-story__router-grid">
-        <div className="anya-story__copy">
+      <div className="anya-story__inner anya-story__router-stage">
+        <header className="anya-story__router-head">
           <p className="anya-story__eyebrow">START WITH WHAT YOU KNOW</p>
           <ScrollFloat
             lines={[
@@ -229,18 +242,20 @@ export function HomeHowItWorks({ moduleCount }: { moduleCount: number }) {
             ]}
           />
           <p>
-            You do not need to understand every database before you search. Anya
-            recognizes the input, routes it to the relevant modules, and brings
-            the useful signals back together.
+            Drop in an email, phone, username, or platform ID. Anya recognizes
+            the signal, fans it across the modules that matter, and returns a
+            readable map—not a pile of raw hits.
           </p>
-          <Link className="anya-story__text-link" href="/auth?action=register">
-            Run a search
-            <ArrowRight aria-hidden />
-          </Link>
-        </div>
-        <Reveal y={20}>
+        </header>
+
+        <Reveal y={18}>
           <SignalRouter moduleCount={moduleCount} />
         </Reveal>
+
+        <Link className="anya-story__text-link" href="/auth?action=register">
+          Run a search
+          <ArrowRight aria-hidden />
+        </Link>
       </div>
     </section>
   );
