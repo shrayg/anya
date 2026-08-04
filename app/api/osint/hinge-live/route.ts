@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
 
   if (disabled) return disabled;
 
-  const access = await requireOsintAccess(req, "hinge-live");
+  const access = await requireOsintAccess(req, "hinge-live", {
+    forceModuleSlug: "hinge-live",
+  });
 
   if (access instanceof NextResponse) return access;
 

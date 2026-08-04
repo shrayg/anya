@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     ] = await withDeadline(
       Promise.all([
         settled(fetchCsintEmailAnalyze(email)),
-        settled(searchContactPresence({ query: email })),
+        settled(searchContactPresence({ query: email, deep: false })),
         settled(
           searchIndexSweep({ query: email, liveProbe: true, kind: "email" }),
         ),

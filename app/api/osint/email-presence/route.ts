@@ -14,8 +14,22 @@ import {
 } from "@/lib/osint-search-guard";
 import { toUserFacingSearchMessage } from "@/lib/user-facing-errors";
 
+function parseDeepFlag(req: NextRequest): boolean {
+  const deep = req.nextUrl.searchParams.get("deep")?.trim().toLowerCase();
+  const moduleSlug = req.nextUrl.searchParams.get("moduleSlug")?.trim();
+
+  return (
+    deep === "1" ||
+    deep === "true" ||
+    moduleSlug === "email-presence-deep"
+  );
+}
+
 export async function GET(req: NextRequest) {
-  const access = await requireOsintAccess(req, "email-presence");
+  const deep = parseDeepFlag(req);
+  const access = await requireOsintAccess(req, "email-presence", {
+    forceModuleSlug: deep ? "email-presence-deep" : "email-presence",
+  });
 
   if (access instanceof NextResponse) return access;
 
@@ -31,9 +45,11 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const billingSlug = deep ? "email-presence-deep" : "email-presence";
+
   try {
     const result = await withDeadline(
-      searchContactPresence({ query }),
+      searchContactPresence({ query, deep }),
       OSINT_ROUTE_DEADLINE_MS,
     );
 
@@ -42,10 +58,11 @@ export async function GET(req: NextRequest) {
         userId: access.userId,
         action: "search.email-presence",
         status: result.rateLimited > 0 ? "rate_limited" : "partial",
-        moduleSlug: "email-presence",
+        moduleSlug: billingSlug,
         queryPreview: query,
-        message: `rateLimited=${result.rateLimited} errors=${result.errors} found=${result.count}`,
+        message: `deep=${deep} rateLimited=${result.rateLimited} errors=${result.errors} found=${result.count}`,
         meta: {
+          deep,
           rateLimited: result.rateLimited,
           errors: result.errors,
           checked: result.checked,
@@ -56,13 +73,13 @@ export async function GET(req: NextRequest) {
         userId: access.userId,
         action: "search.email-presence",
         status: "ok",
-        moduleSlug: "email-presence",
+        moduleSlug: billingSlug,
         queryPreview: query,
-        message: `${result.count} hit(s)`,
+        message: `deep=${deep} ${result.count} hit(s)`,
       });
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, deep });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Contact Profiles search failed";
@@ -75,7 +92,7 @@ export async function GET(req: NextRequest) {
       userId: access.userId,
       action: "search.email-presence",
       status: isSoftProviderFailure(err) ? "rate_limited" : "error",
-      moduleSlug: "email-presence",
+      moduleSlug: billingSlug,
       queryPreview: query,
       message,
     });

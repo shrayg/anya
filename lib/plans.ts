@@ -69,6 +69,54 @@ export const PAY_PER_USE_MODULE_SLUGS = new Set(["intelx", "stealer-logs"]);
 export const PAY_PER_USE_COST = 0.25;
 export const PROFESSIONAL_INTELX_DAILY_LIMIT = 5;
 
+/**
+ * Features that burn residential proxy bandwidth.
+ * Charged for every plan (including Ultimate/Enterprise) because egress is a real cost.
+ * - email-presence-deep: Contact Profiles optional deep probe set
+ * - instagram-live: Instagram session/graph search (/api/osint/instagram)
+ * - hinge-live: entire Hinge Live module
+ */
+export const RESIDENTIAL_PROXY_MODULE_SLUGS = new Set([
+  "email-presence-deep",
+  "instagram-live",
+  "hinge-live",
+]);
+/** Credits charged per residential-proxy search (1 credit ≈ $1). */
+export const RESIDENTIAL_PROXY_CREDIT_COST = 1;
+
+/**
+ * Billing slug for authorize/stats when a search burns residential proxy.
+ * Contact Profiles deep, Instagram Live tool, and Hinge Live module.
+ */
+export function resolveResidentialProxyBillingSlug(input: {
+  moduleSlug: string;
+  selectedToolId?: string | null;
+  contactProfilesDeep?: boolean;
+}): string | null {
+  const { moduleSlug, selectedToolId, contactProfilesDeep } = input;
+
+  if (moduleSlug === "hinge-live") return "hinge-live";
+
+  if (moduleSlug === "instagram") {
+    if (!selectedToolId || selectedToolId === "instagram-live") {
+      return "instagram-live";
+    }
+
+    return null;
+  }
+
+  if (selectedToolId === "instagram-live") return "instagram-live";
+
+  if (
+    contactProfilesDeep &&
+    (moduleSlug === "email-presence" || selectedToolId === "email-presence")
+  ) {
+    return "email-presence-deep";
+  }
+
+  return null;
+}
+
 /** Account balance unit: 1 credit ≈ $1 USD. Pack prices mirror credit counts. */
 export const CREDIT_USD_VALUE = 1;
 
@@ -417,6 +465,37 @@ export type SearchAccessResult = {
   usesIntelxQuota?: boolean;
 };
 
+function checkResidentialProxyAccess(
+  moduleSlug: string,
+  balance: number,
+): SearchAccessResult | null {
+  if (!RESIDENTIAL_PROXY_MODULE_SLUGS.has(moduleSlug)) return null;
+
+  const label =
+    moduleSlug === "email-presence-deep"
+      ? "Contact Profiles deep search"
+      : moduleSlug === "instagram-live"
+        ? "Instagram Live"
+        : moduleSlug === "hinge-live"
+          ? "Hinge Live"
+          : "Residential proxy search";
+
+  if (balance < RESIDENTIAL_PROXY_CREDIT_COST) {
+    return {
+      allowed: false,
+      reason: `${label} costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search (residential proxy). Top up on the Pricing page.`,
+      requiresBalance: true,
+      balanceCost: RESIDENTIAL_PROXY_CREDIT_COST,
+    };
+  }
+
+  return {
+    allowed: true,
+    requiresBalance: true,
+    balanceCost: RESIDENTIAL_PROXY_CREDIT_COST,
+  };
+}
+
 export function checkModuleAccess(
   plan: PlanId,
   moduleSlug: string,
@@ -425,7 +504,22 @@ export function checkModuleAccess(
   const balance = options?.balance ?? 0;
   const intelxUsedToday = options?.intelxUsedToday ?? 0;
 
+  // Residential proxy billing applies to all paid panel plans (incl. Ultimate).
+  const proxyGate = checkResidentialProxyAccess(moduleSlug, balance);
+
+  if (proxyGate && (plan === "free" || plan === "starter")) {
+    return {
+      allowed: false,
+      reason:
+        "Residential proxy tools require Professional or higher (and 1 credit per search).",
+      requiresBalance: true,
+      balanceCost: RESIDENTIAL_PROXY_CREDIT_COST,
+    };
+  }
+
   if (plan === "enterprise" || plan === "ultimate") {
+    if (proxyGate) return proxyGate;
+
     return { allowed: true };
   }
 
@@ -524,6 +618,8 @@ export function checkModuleAccess(
       };
     }
   }
+
+  if (proxyGate) return proxyGate;
 
   return { allowed: true };
 }

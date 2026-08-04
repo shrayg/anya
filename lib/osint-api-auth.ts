@@ -80,7 +80,7 @@ export function resolveOsintModuleSlug(
     "discord/export": "discord-id",
     "discord/snowflake": "discord-id",
     roblox: "roblox",
-    instagram: "instagram",
+    instagram: "instagram-live",
     "instagram/id": "instagram",
     reddit: "reddit",
     minecraft: "minecraft",
@@ -304,8 +304,10 @@ export function resolveOsintModuleSlug(
 export async function requireOsintAccess(
   req: NextRequest,
   apiSegment: string,
+  options?: { forceModuleSlug?: string },
 ): Promise<OsintAccessOk | NextResponse> {
-  const moduleSlug = resolveOsintModuleSlug(req, apiSegment);
+  const moduleSlug =
+    options?.forceModuleSlug ?? resolveOsintModuleSlug(req, apiSegment);
 
   if (!moduleSlug) {
     return NextResponse.json({ error: "Missing moduleSlug" }, { status: 400 });

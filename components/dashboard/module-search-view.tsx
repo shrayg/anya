@@ -133,6 +133,8 @@ import {
 } from "@/lib/site-pentest-shared";
 import {
   checkModuleAccess,
+  RESIDENTIAL_PROXY_CREDIT_COST,
+  resolveResidentialProxyBillingSlug,
   resolveUserPlan,
   shouldBlurResults,
 } from "@/lib/plans";
@@ -292,6 +294,8 @@ export function ModuleSearchView({
   const [selectedToolId, setSelectedToolId] = useState(
     moduleDef.tools?.[0]?.id ?? "",
   );
+  /** Contact Profiles deep search — residential proxy probes (+1 credit). */
+  const [contactProfilesDeep, setContactProfilesDeep] = useState(false);
 
   useEffect(() => {
     // Fan-out modules lock chips off and ignore ?tool= deep links.
@@ -319,6 +323,7 @@ export function ModuleSearchView({
     setShowPublicRecordsOptions(false);
     setPublicRecordsSources([...DEFAULT_PUBLIC_RECORDS_SOURCES]);
     setQuery("");
+    setContactProfilesDeep(false);
     if (moduleDef.slug === "public-records") {
       setFirstName("");
       setLastName("");
@@ -328,6 +333,58 @@ export function ModuleSearchView({
   const selectedTool = moduleDef.tools?.find(
     (tool) => tool.id === selectedToolId,
   );
+
+  const showsContactProfilesDeepToggle =
+    moduleDef.slug === "email-presence" ||
+    selectedToolId === "email-presence";
+
+  const billingModuleSlug = useMemo(
+    () =>
+      resolveResidentialProxyBillingSlug({
+        moduleSlug: moduleDef.slug,
+        selectedToolId,
+        contactProfilesDeep: showsContactProfilesDeepToggle
+          ? contactProfilesDeep
+          : false,
+      }) ?? moduleDef.slug,
+    [
+      contactProfilesDeep,
+      moduleDef.slug,
+      selectedToolId,
+      showsContactProfilesDeepToggle,
+    ],
+  );
+
+  const residentialProxyCostHint = useMemo(() => {
+    const proxySlug = resolveResidentialProxyBillingSlug({
+      moduleSlug: moduleDef.slug,
+      selectedToolId,
+      contactProfilesDeep: showsContactProfilesDeepToggle
+        ? contactProfilesDeep
+        : false,
+    });
+
+    if (!proxySlug) return null;
+
+    if (proxySlug === "email-presence-deep") {
+      return `Deep search costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit (residential proxy for Instagram, Snapchat, TikTok, Facebook, Discord, LinkedIn signup, adult sites).`;
+    }
+
+    if (proxySlug === "instagram-live") {
+      return `Instagram Live costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search (residential proxy). Instagram ID / DataVoid tools stay on plan quota.`;
+    }
+
+    if (proxySlug === "hinge-live") {
+      return `Hinge Live costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search (residential proxy).`;
+    }
+
+    return `This search costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit (residential proxy).`;
+  }, [
+    contactProfilesDeep,
+    moduleDef.slug,
+    selectedToolId,
+    showsContactProfilesDeepToggle,
+  ]);
   const toolAiMode = selectedTool?.aiMode;
   const isAi = moduleDef.module === "ai" || Boolean(toolAiMode);
   const aiMode = (() => {
@@ -593,14 +650,14 @@ export function ModuleSearchView({
   }, [applySnapshot, jobs]);
 
   const moduleLocked = useMemo(() => {
-    const access = checkModuleAccess(plan, moduleDef.slug, { balance });
+    const access = checkModuleAccess(plan, billingModuleSlug, { balance });
 
     if (access.allowed) {
       return null;
     }
 
     return access.reason || "This module is not available on your plan.";
-  }, [balance, moduleDef.slug, plan]);
+  }, [balance, billingModuleSlug, plan]);
 
   const hasSelectableCards = useMemo(
     () =>
@@ -820,7 +877,7 @@ export function ModuleSearchView({
 
     try {
       const response = await fetch(
-        `/api/osint/instagram?query=${encodeURIComponent(instagramResult.query)}&moduleSlug=instagram&maxUsers=500&enrichBios=1&bioLimit=60&bubbleMap=1&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4&secondDegree=1&secondDegreeBudget=12`,
+        `/api/osint/instagram?query=${encodeURIComponent(instagramResult.query)}&moduleSlug=instagram-live&followUp=1&maxUsers=500&enrichBios=1&bioLimit=60&bubbleMap=1&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4&secondDegree=1&secondDegreeBudget=12`,
       );
       const responseText = await response.text();
       let data: InstagramSearchPayload & { error?: string };
@@ -913,7 +970,7 @@ export function ModuleSearchView({
     const response = await apiFetch("/api/user/search/authorize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ moduleSlug: moduleDef.slug }),
+      body: JSON.stringify({ moduleSlug: billingModuleSlug }),
     });
 
     if (!response.ok) {
@@ -943,7 +1000,7 @@ export function ModuleSearchView({
       body: JSON.stringify({
         query: trimmed,
         type,
-        moduleSlug: moduleDef.slug,
+        moduleSlug: billingModuleSlug,
         resultData,
       }),
     });
@@ -1304,7 +1361,25 @@ export function ModuleSearchView({
               apiType === "instagram"
                 ? "&maxUsers=100&includeActivity=0&enrichBios=0"
                 : "";
-            const searchUrl = `${resolveSearchApiPath(apiType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(moduleDef.slug)}${indexSweepKindParam}${reconlyModeParam}${instagramParam}`;
+            const emailPresenceDeepParam =
+              apiType === "email-presence" &&
+              moduleDef.slug === "email-presence" &&
+              contactProfilesDeep
+                ? "&deep=1"
+                : "";
+            const toolBillingSlug =
+              apiType === "instagram"
+                ? "instagram-live"
+                : apiType === "email-presence" &&
+                    moduleDef.slug === "email-presence" &&
+                    contactProfilesDeep
+                  ? "email-presence-deep"
+                  : apiType === "email-presence"
+                    ? "email-presence"
+                    : moduleDef.slug === "hinge-live"
+                      ? "hinge-live"
+                      : moduleDef.slug;
+            const searchUrl = `${resolveSearchApiPath(apiType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(toolBillingSlug)}${indexSweepKindParam}${reconlyModeParam}${instagramParam}${emailPresenceDeepParam}`;
 
             try {
               const searchResponse = await fetch(searchUrl, { signal });
@@ -2445,12 +2520,16 @@ export function ModuleSearchView({
 
     try {
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
-      const moduleParam = `&moduleSlug=${encodeURIComponent(moduleDef.slug)}`;
+      const moduleParam = `&moduleSlug=${encodeURIComponent(billingModuleSlug)}`;
       // Progressive Instagram load: first ~100 for fast map paint, then paced
       // batches up to 500 so we self-rate-limit instead of scraping thousands.
       const instagramParam =
         activeType === "instagram"
           ? "&maxUsers=100&includeActivity=0&enrichBios=0"
+          : "";
+      const emailPresenceDeepParam =
+        activeType === "email-presence" && contactProfilesDeep
+          ? "&deep=1"
           : "";
       const pentestParam =
         activeType === "site-pentest"
@@ -2478,7 +2557,7 @@ export function ModuleSearchView({
       const searchUrl =
         moduleDef.slug === "twitter"
           ? `/api/osintcat/twitter-osint?query=${encodeURIComponent(searchQuery)}${moduleParam}`
-          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}${reconlyModeParam}`;
+          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${emailPresenceDeepParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}${reconlyModeParam}`;
       const searchResponse = await fetch(searchUrl, { signal });
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
@@ -2791,7 +2870,7 @@ export function ModuleSearchView({
             );
 
             const response = await fetch(
-              `/api/osint/instagram?query=${encodeURIComponent(username)}&moduleSlug=instagram&maxUsers=500&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4&enrichBios=0`,
+              `/api/osint/instagram?query=${encodeURIComponent(username)}&moduleSlug=instagram-live&followUp=1&maxUsers=500&includeActivity=1&maxPosts=12&maxTagged=12&commentPosts=4&enrichBios=0`,
             );
             const text = await response.text();
 
@@ -3757,8 +3836,30 @@ export function ModuleSearchView({
               <Link className="text-anya-accent underline" href="/pricing">
                 View plans
               </Link>
+              {residentialProxyCostHint ? (
+                <>
+                  {" "}
+                  <Link
+                    className="text-anya-accent underline"
+                    href="/pricing?tab=credits"
+                  >
+                    Buy credits
+                  </Link>
+                </>
+              ) : null}
             </p>
           )}
+          {!moduleLocked && residentialProxyCostHint ? (
+            <p className="mt-3 border-l-2 border-sky-400/50 bg-sky-400/8 px-4 py-3 text-sm text-sky-100">
+              {residentialProxyCostHint}{" "}
+              <Link
+                className="text-anya-accent underline"
+                href="/pricing?tab=credits"
+              >
+                Top up credits
+              </Link>
+            </p>
+          ) : null}
         </header>
 
         <div className="module-search-composer">
@@ -3795,6 +3896,29 @@ export function ModuleSearchView({
                     );
                   })}
                 </div>
+              ) : null}
+              {showsContactProfilesDeepToggle ? (
+                <label className="module-search-proxy-toggle mb-3 flex cursor-pointer items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-zinc-300">
+                  <input
+                    checked={contactProfilesDeep}
+                    className="mt-0.5 size-4 shrink-0 accent-[var(--anya-accent,#7dd3fc)]"
+                    type="checkbox"
+                    onChange={(event) =>
+                      setContactProfilesDeep(event.target.checked)
+                    }
+                  />
+                  <span>
+                    <span className="font-medium text-zinc-100">
+                      Deep search (+{RESIDENTIAL_PROXY_CREDIT_COST} credit)
+                    </span>
+                    <span className="mt-0.5 block text-xs text-zinc-500">
+                      Adds Instagram, Snapchat, TikTok, Facebook, Discord,
+                      LinkedIn signup, and adult platforms via residential
+                      proxy. Off by default — standard presence stays on plan
+                      quota.
+                    </span>
+                  </span>
+                </label>
               ) : null}
               {isCryptoIntel && cryptoDetection?.chainLabel ? (
                 <p className="mb-3 text-xs text-zinc-400">

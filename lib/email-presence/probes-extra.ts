@@ -530,15 +530,26 @@ export async function probeWordPress(
   }
 }
 
-export const EMAIL_PRESENCE_EXTRA_PROBES = [
+/** Direct probes — no residential proxy bandwidth. */
+export const EMAIL_PRESENCE_EXTRA_FREE_PROBES = [
   probeDuolingo,
-  probeSnapchat,
-  probeFacebook,
-  probeTikTok,
-  probeDiscord,
   probeAtlassian,
   probeDropbox,
   probeArchiveOrg,
   probeLastFm,
   probeWordPress,
+] as const;
+
+/** Snapchat / Facebook / TikTok / Discord — residential proxy. */
+export const EMAIL_PRESENCE_EXTRA_PROXY_PROBES = [
+  probeSnapchat,
+  probeFacebook,
+  probeTikTok,
+  probeDiscord,
+] as const;
+
+/** @deprecated Prefer FREE + PROXY arrays. */
+export const EMAIL_PRESENCE_EXTRA_PROBES = [
+  ...EMAIL_PRESENCE_EXTRA_FREE_PROBES,
+  ...EMAIL_PRESENCE_EXTRA_PROXY_PROBES,
 ] as const;

@@ -383,14 +383,27 @@ export async function probeWhatsAppPhone(
   }
 }
 
-export const PHONE_PRESENCE_PROBES: Array<
-  (phone: PhoneContact) => Promise<ContactPresenceProbeResult>
-> = [
+type PhoneProbe = (
+  phone: PhoneContact,
+) => Promise<ContactPresenceProbeResult>;
+
+/** Direct phone probes — no residential proxy. */
+export const PHONE_PRESENCE_FREE_PROBES: PhoneProbe[] = [
+  probeMicrosoftPhone,
+  probeWhatsAppPhone,
+];
+
+/** Social phone signup checks — residential proxy. */
+export const PHONE_PRESENCE_PROXY_PROBES: PhoneProbe[] = [
   probeTikTokPhone,
   probeInstagramPhone,
   probeSnapchatPhone,
   probeFacebookPhone,
-  probeMicrosoftPhone,
   probeTwitterPhone,
-  probeWhatsAppPhone,
+];
+
+/** @deprecated Prefer FREE + PROXY arrays. */
+export const PHONE_PRESENCE_PROBES: PhoneProbe[] = [
+  ...PHONE_PRESENCE_FREE_PROBES,
+  ...PHONE_PRESENCE_PROXY_PROBES,
 ];

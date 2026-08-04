@@ -646,7 +646,8 @@ export async function probeFlickr(
   }
 }
 
-export const EMAIL_PRESENCE_PROBES = [
+/** Direct probes — no residential proxy bandwidth. */
+export const EMAIL_PRESENCE_FREE_PROBES = [
   probeGravatar,
   probeGithub,
   probeMicrosoft,
@@ -657,12 +658,30 @@ export const EMAIL_PRESENCE_PROBES = [
   probeAdobe,
   probeFlickr,
   probeTwitter,
+] as const;
+
+/** Instagram / LinkedIn signup checks — residential proxy. */
+export const EMAIL_PRESENCE_PROXY_PROBES = [
   probeInstagram,
   probeLinkedIn,
 ] as const;
 
-export { EMAIL_PRESENCE_EXTRA_PROBES } from "@/lib/email-presence/probes-extra";
-export { EMAIL_PRESENCE_MAJOR_PROBES } from "@/lib/email-presence/probes-majors";
+/** @deprecated Prefer FREE + PROXY arrays; kept for callers expecting the full set. */
+export const EMAIL_PRESENCE_PROBES = [
+  ...EMAIL_PRESENCE_FREE_PROBES,
+  ...EMAIL_PRESENCE_PROXY_PROBES,
+] as const;
+
+export {
+  EMAIL_PRESENCE_EXTRA_PROBES,
+  EMAIL_PRESENCE_EXTRA_FREE_PROBES,
+  EMAIL_PRESENCE_EXTRA_PROXY_PROBES,
+} from "@/lib/email-presence/probes-extra";
+export {
+  EMAIL_PRESENCE_MAJOR_PROBES,
+  EMAIL_PRESENCE_MAJOR_FREE_PROBES,
+  EMAIL_PRESENCE_MAJOR_PROXY_PROBES,
+} from "@/lib/email-presence/probes-majors";
 export {
   probeDuolingo,
   probeSnapchat,

@@ -1,9 +1,19 @@
 import {
-  EMAIL_PRESENCE_EXTRA_PROBES,
-  EMAIL_PRESENCE_PROBES,
+  EMAIL_PRESENCE_FREE_PROBES,
+  EMAIL_PRESENCE_PROXY_PROBES,
 } from "@/lib/email-presence/probes";
-import { EMAIL_PRESENCE_MAJOR_PROBES } from "@/lib/email-presence/probes-majors";
-import { PHONE_PRESENCE_PROBES } from "@/lib/email-presence/phone-probes";
+import {
+  EMAIL_PRESENCE_EXTRA_FREE_PROBES,
+  EMAIL_PRESENCE_EXTRA_PROXY_PROBES,
+} from "@/lib/email-presence/probes-extra";
+import {
+  EMAIL_PRESENCE_MAJOR_FREE_PROBES,
+  EMAIL_PRESENCE_MAJOR_PROXY_PROBES,
+} from "@/lib/email-presence/probes-majors";
+import {
+  PHONE_PRESENCE_FREE_PROBES,
+  PHONE_PRESENCE_PROXY_PROBES,
+} from "@/lib/email-presence/phone-probes";
 import {
   CONTACT_PRESENCE_INVALID_MESSAGE,
   normalizeContactInput,
@@ -52,17 +62,39 @@ function toHit(
   };
 }
 
-async function runEmailProbes(email: string): Promise<{
+function emailProbesForMode(deep: boolean) {
+  const free = [
+    ...EMAIL_PRESENCE_FREE_PROBES,
+    ...EMAIL_PRESENCE_EXTRA_FREE_PROBES,
+    ...EMAIL_PRESENCE_MAJOR_FREE_PROBES,
+  ];
+
+  if (!deep) return free;
+
+  return [
+    ...free,
+    ...EMAIL_PRESENCE_PROXY_PROBES,
+    ...EMAIL_PRESENCE_EXTRA_PROXY_PROBES,
+    ...EMAIL_PRESENCE_MAJOR_PROXY_PROBES,
+  ];
+}
+
+function phoneProbesForMode(deep: boolean) {
+  if (!deep) return PHONE_PRESENCE_FREE_PROBES;
+
+  return [...PHONE_PRESENCE_FREE_PROBES, ...PHONE_PRESENCE_PROXY_PROBES];
+}
+
+async function runEmailProbes(
+  email: string,
+  deep: boolean,
+): Promise<{
   found: EmailPresenceHit[];
   checked: number;
   rateLimited: number;
   errors: number;
 }> {
-  const probes = [
-    ...EMAIL_PRESENCE_PROBES,
-    ...EMAIL_PRESENCE_EXTRA_PROBES,
-    ...EMAIL_PRESENCE_MAJOR_PROBES,
-  ];
+  const probes = emailProbesForMode(deep);
   const settled = await Promise.allSettled(probes.map((probe) => probe(email)));
 
   const found: EmailPresenceHit[] = [];
@@ -95,7 +127,7 @@ async function runEmailProbes(email: string): Promise<{
     found.push(toHit(row));
   }
 
-  // LinkedIn session / SERP / GitHub pivots (best-effort).
+  // LinkedIn session / SERP / GitHub pivots (best-effort, no residential proxy).
   try {
     const linkedIn = await resolveLinkedInFromIdentifier({
       query: email,
@@ -153,14 +185,17 @@ async function runEmailProbes(email: string): Promise<{
   return { found, checked, rateLimited, errors };
 }
 
-async function runPhoneProbes(phone: Extract<NormalizedContact, { kind: "phone" }>): Promise<{
+async function runPhoneProbes(
+  phone: Extract<NormalizedContact, { kind: "phone" }>,
+  deep: boolean,
+): Promise<{
   found: EmailPresenceHit[];
   checked: number;
   rateLimited: number;
   errors: number;
 }> {
   const settled = await Promise.allSettled(
-    PHONE_PRESENCE_PROBES.map((probe) => probe(phone)),
+    phoneProbesForMode(deep).map((probe) => probe(phone)),
   );
 
   const found: EmailPresenceHit[] = [];
@@ -193,7 +228,7 @@ async function runPhoneProbes(phone: Extract<NormalizedContact, { kind: "phone" 
     found.push(toHit(row));
   }
 
-  // LinkedIn phone resolve (SERP / session when available).
+  // LinkedIn phone resolve (SERP / session when available — no residential proxy).
   try {
     const linkedIn = await resolveLinkedInFromIdentifier({
       query: phone.e164,
@@ -239,11 +274,16 @@ function sortHits(found: EmailPresenceHit[]): void {
 /**
  * Contact Profiles: email or phone → registration presence, plus profile URL
  * when a platform still leaks a username/handle.
+ *
+ * @param deep When true, also runs residential-proxy probes (IG, Snap, TikTok, …).
+ *   Default false — no residential bandwidth.
  */
 export async function searchEmailPresence(input: {
   query: string;
+  deep?: boolean;
 }): Promise<EmailPresenceSearchResult> {
   const started = Date.now();
+  const deep = Boolean(input.deep);
   const contact = normalizeContactInput(input.query);
 
   if (!contact) {
@@ -253,8 +293,8 @@ export async function searchEmailPresence(input: {
   const kind: ContactPresenceKind = contact.kind;
   const run =
     contact.kind === "email"
-      ? await runEmailProbes(contact.email)
-      : await runPhoneProbes(contact);
+      ? await runEmailProbes(contact.email, deep)
+      : await runPhoneProbes(contact, deep);
 
   sortHits(run.found);
 
@@ -264,12 +304,15 @@ export async function searchEmailPresence(input: {
 
   const subject =
     contact.kind === "email" ? "email" : "phone number";
+  const deepNote = deep
+    ? " Deep search used residential proxy for social/adult platforms."
+    : " Standard search only — enable Deep search (1 credit) for Instagram, Snapchat, TikTok, Facebook, Discord, LinkedIn signup, and adult sites.";
   const warning =
     run.found.length > 0
       ? profileCount > 0
-        ? `${profileCount} hit(s) include a profile URL/username. Presence-only hits confirm an account without a public handle.`
-        : `Hits confirm registration for this ${subject}. Username/profile URLs appear only when a platform still leaks them.`
-      : "No registered accounts detected for this contact.";
+        ? `${profileCount} hit(s) include a profile URL/username. Presence-only hits confirm an account without a public handle.${deepNote}`
+        : `Hits confirm registration for this ${subject}. Username/profile URLs appear only when a platform still leaks them.${deepNote}`
+      : `No registered accounts detected for this contact.${deepNote}`;
 
   const source = {
     id: EMAIL_PRESENCE_SOURCE_ID,

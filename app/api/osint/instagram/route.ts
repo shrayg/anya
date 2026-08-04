@@ -17,7 +17,13 @@ const DEFAULT_MAX_USERS = 500;
 const ABSOLUTE_MAX_USERS = 500;
 
 export async function GET(req: NextRequest) {
-  const access = await requireOsintAccess(req, "instagram");
+  // Live Instagram graph/session burns residential proxy.
+  // Initial search: bill 1 credit (instagram-live).
+  // followUp=1: enrich / progressive load after a paid search (panel access only).
+  const followUp = req.nextUrl.searchParams.get("followUp") === "1";
+  const access = await requireOsintAccess(req, "instagram", {
+    forceModuleSlug: followUp ? "instagram" : "instagram-live",
+  });
 
   if (access instanceof NextResponse) return access;
 

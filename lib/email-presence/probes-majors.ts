@@ -713,11 +713,8 @@ export async function probeBadoo(
   }
 }
 
-export const EMAIL_PRESENCE_MAJOR_PROBES = [
-  probeXnxx,
-  probeXvideos,
-  probePornhub,
-  probeRedtube,
+/** Direct / no-proxy majors (dating stubs included — they don't hit residential). */
+export const EMAIL_PRESENCE_MAJOR_FREE_PROBES = [
   probeNike,
   probeProtonMail,
   probeEbay,
@@ -728,5 +725,19 @@ export const EMAIL_PRESENCE_MAJOR_PROBES = [
   probeTinder,
   probeHinge,
   probeBumble,
+] as const;
+
+/** Adult + Badoo signup checks — residential proxy. */
+export const EMAIL_PRESENCE_MAJOR_PROXY_PROBES = [
+  probeXnxx,
+  probeXvideos,
+  probePornhub,
+  probeRedtube,
   probeBadoo,
+] as const;
+
+/** @deprecated Prefer FREE + PROXY arrays. */
+export const EMAIL_PRESENCE_MAJOR_PROBES = [
+  ...EMAIL_PRESENCE_MAJOR_FREE_PROBES,
+  ...EMAIL_PRESENCE_MAJOR_PROXY_PROBES,
 ] as const;
