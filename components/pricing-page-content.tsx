@@ -455,35 +455,37 @@ export function PricingPageContent({
                       ))}
                     </ul>
 
-                    <SpecularButton
-                      accent={plan.highlighted}
-                      autoAnimate={false}
-                      className="pricing-card-cta mt-10 h-11 w-full shrink-0 text-sm font-semibold"
-                      disabled={busyId === plan.id}
-                      radius={999}
-                      type="button"
-                      onClick={() => {
-                        if (plan.customPricing) {
-                          setEnterpriseContactOpen(true);
+                    <div className="pricing-card-cta-wrap">
+                      <SpecularButton
+                        accent={plan.highlighted}
+                        autoAnimate={false}
+                        className="pricing-card-cta h-11 w-full shrink-0 text-sm font-semibold"
+                        disabled={busyId === plan.id}
+                        radius={999}
+                        type="button"
+                        onClick={() => {
+                          if (plan.customPricing) {
+                            setEnterpriseContactOpen(true);
 
-                          return;
-                        }
-                        requestCheckout(
-                          {
-                            type: "subscription",
-                            planId: plan.id,
-                            interval,
-                          },
-                          plan.id,
-                        );
-                      }}
-                    >
-                      {busyId === plan.id
-                        ? "Working…"
-                        : plan.customPricing
-                          ? "Contact us"
-                          : "Get Started"}
-                    </SpecularButton>
+                            return;
+                          }
+                          requestCheckout(
+                            {
+                              type: "subscription",
+                              planId: plan.id,
+                              interval,
+                            },
+                            plan.id,
+                          );
+                        }}
+                      >
+                        {busyId === plan.id
+                          ? "Working…"
+                          : plan.customPricing
+                            ? "Contact us"
+                            : "Get Started"}
+                      </SpecularButton>
+                    </div>
                   </article>
                 );
               })}
@@ -595,24 +597,26 @@ export function PricingPageContent({
                         </li>
                       </ul>
 
-                      <SpecularButton
-                        accent={pack.highlighted}
-                        autoAnimate={false}
-                        className="pricing-card-cta mt-10 h-11 w-full shrink-0 text-sm font-semibold"
-                        disabled={busyId === pack.id}
-                        radius={999}
-                        type="button"
-                        onClick={() =>
-                          requestCheckout(
-                            { type: "credits", packId: pack.id },
-                            pack.id,
-                          )
-                        }
-                      >
-                        {busyId === pack.id
-                          ? "Working…"
-                          : `Buy ${total} credits`}
-                      </SpecularButton>
+                      <div className="pricing-card-cta-wrap">
+                        <SpecularButton
+                          accent={pack.highlighted}
+                          autoAnimate={false}
+                          className="pricing-card-cta h-11 w-full shrink-0 text-sm font-semibold"
+                          disabled={busyId === pack.id}
+                          radius={999}
+                          type="button"
+                          onClick={() =>
+                            requestCheckout(
+                              { type: "credits", packId: pack.id },
+                              pack.id,
+                            )
+                          }
+                        >
+                          {busyId === pack.id
+                            ? "Working…"
+                            : `Buy ${total} credits`}
+                        </SpecularButton>
+                      </div>
                     </article>
                   );
                 })}
@@ -692,24 +696,26 @@ export function PricingPageContent({
                         ))}
                       </ul>
 
-                      <SpecularButton
-                        accent
-                        autoAnimate={false}
-                        className="pricing-card-cta mt-10 h-11 w-full shrink-0 text-sm font-semibold"
-                        disabled={busyId === "api_access"}
-                        radius={999}
-                        type="button"
-                        onClick={() =>
-                          requestCheckout(
-                            { type: "api_access", interval },
-                            "api_access",
-                          )
-                        }
-                      >
-                        {busyId === "api_access"
-                          ? "Working…"
-                          : "Get API Access"}
-                      </SpecularButton>
+                      <div className="pricing-card-cta-wrap">
+                        <SpecularButton
+                          accent
+                          autoAnimate={false}
+                          className="pricing-card-cta h-11 w-full shrink-0 text-sm font-semibold"
+                          disabled={busyId === "api_access"}
+                          radius={999}
+                          type="button"
+                          onClick={() =>
+                            requestCheckout(
+                              { type: "api_access", interval },
+                              "api_access",
+                            )
+                          }
+                        >
+                          {busyId === "api_access"
+                            ? "Working…"
+                            : "Get API Access"}
+                        </SpecularButton>
+                      </div>
                       <p className="mt-3 text-center text-xs text-zinc-500">
                         API keys are issued after purchase confirmation. Contact
                         support for volume pricing.
@@ -758,7 +764,7 @@ export function PricingPageContent({
               <SpecularButton
                 accent
                 autoAnimate={false}
-                className="h-11 w-full text-sm font-semibold"
+                className="pricing-card-cta h-11 w-full text-sm font-semibold"
                 disabled={busyId === pendingCheckout.id}
                 radius={999}
                 type="button"
@@ -776,7 +782,7 @@ export function PricingPageContent({
               </SpecularButton>
               <SpecularButton
                 autoAnimate={false}
-                className="h-11 w-full text-sm font-semibold"
+                className="pricing-card-cta h-11 w-full text-sm font-semibold"
                 disabled={busyId === pendingCheckout.id}
                 radius={999}
                 type="button"

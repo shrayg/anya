@@ -2483,9 +2483,23 @@
 }
 
 /* Clear air between ledger / feature text and purchase CTAs */
-.brutal-pricing-page .pricing-credit-card > .specular-button,
+.brutal-pricing-page .pricing-card-cta-wrap {
+  margin-top: auto;
+  padding-top: 2rem;
+  width: 100%;
+}
+
+.brutal-pricing-page .pricing-card-cta-wrap .pricing-card-cta,
 .brutal-pricing-page .pricing-credit-card .pricing-card-cta {
-  margin-top: 2.75rem !important;
+  display: flex;
+  width: 100%;
+  margin-top: 0 !important;
+}
+
+/* Pricing CTAs: glass look only — no Specular rim (idle/misaligned pill shine) */
+.brutal-pricing-page .pricing-card-cta .specular-button__fx,
+.brutal-pricing-page .pricing-card-cta.specular-button .specular-button__fx {
+  display: none !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas)
