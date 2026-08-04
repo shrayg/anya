@@ -12,6 +12,7 @@
 import {
   breachHubRowsToCredentials,
   fetchBreachHubAdditiveBreachSearch,
+  isBreachHubCoolingDown,
   isBreachHubEnabled,
 } from "@/lib/breachhub";
 import {
@@ -65,10 +66,11 @@ const COMBINED_BREACHHUB_TIMEOUT_MS = 48_000;
 const COMB_BUDGET_MS = 48_000;
 
 /**
- * When BreachHub returns fewer than this many rows, still ask CSINT once.
- * Above this, skip CSINT entirely (BH already covered the additive indexes).
+ * When BreachHub returns fewer than this many *actual rows*, still ask CSINT.
+ * Use real results.length (not advertised totals) so a thin BH page cannot
+ * skip the fallback. Above this, skip CSINT (BH already covered the indexes).
  */
-const BH_THIN_THRESHOLD = 5;
+const BH_THIN_THRESHOLD = 50;
 
 export type BreachesOsintResult = CombSearchResult & {
   godseyeReport?: GodsEyeResponse | null;
@@ -79,6 +81,8 @@ export type BreachesOsintResult = CombSearchResult & {
   breachHubCount: number;
   osintCatCount: number;
   godseyeSearchCount: number;
+  /** Present when BreachHub was skipped or aborted due to account rate limit. */
+  breachHubRateLimited?: boolean;
 };
 
 export type BreachesOsintProgressEvent =
@@ -200,6 +204,8 @@ async function fetchBreachHubSafe(
   kindHint: string,
 ): Promise<SanitizedBreachResponse | null> {
   if (!isBreachHubEnabled()) return null;
+  // Fail fast while account-blocked — never burn the remaining cooldown.
+  if (isBreachHubCoolingDown()) return null;
 
   try {
     return await fetchBreachHubAdditiveBreachSearch(
@@ -265,8 +271,9 @@ async function fetchBreachVipSafe(
 }
 
 /**
- * CSINT only when BreachHub is off, failed, empty, or thin — not every search.
- * Keeps the shared serial CSINT gate cool while preserving fallback coverage.
+ * CSINT only when BreachHub is off, cooling down, failed, empty, or thin —
+ * not every search. Keeps the shared serial CSINT gate cool while preserving
+ * fallback coverage when BH cannot deliver volume.
  */
 export function shouldRunCsintAfterBreachHub(
   breachHub: SanitizedBreachResponse | null,
@@ -275,9 +282,13 @@ export function shouldRunCsintAfterBreachHub(
 
   if (!isBreachHubPrimaryActive() || !isBreachHubEnabled()) return true;
 
-  const count = breachHub?.count ?? 0;
+  // BH account rate-limit → CSINT is the volume path until cooldown lifts.
+  if (isBreachHubCoolingDown()) return true;
 
-  return count < BH_THIN_THRESHOLD;
+  // Honest row count — never trust advertised found_total / index ads.
+  const rows = breachHub?.results?.length ?? 0;
+
+  return rows < BH_THIN_THRESHOLD;
 }
 
 function shouldUseDirectOsintCatParallelSafe(): boolean {
@@ -379,6 +390,7 @@ export async function runBreachesOsintSearch(
       breachHubCount: breachHub?.results?.length ?? 0,
       osintCatCount: osintCat?.results?.length ?? 0,
       godseyeSearchCount: godseyeSearch?.results?.length ?? 0,
+      breachHubRateLimited: isBreachHubCoolingDown(),
     };
   };
 
@@ -564,7 +576,16 @@ export async function runBreachesOsintSearch(
     !finalResult.osintCatCount &&
     !finalResult.godseyeSearchCount
   ) {
-    finalResult.message = "No results were found.";
+    finalResult.message = isBreachHubCoolingDown()
+      ? "BreachHub is rate-limited right now. Try again in a few minutes."
+      : "No results were found.";
+  } else if (
+    isBreachHubCoolingDown() &&
+    !finalResult.breachHubCount &&
+    finalResult.returned > 0
+  ) {
+    finalResult.message =
+      "BreachHub is rate-limited; showing Comb / CSINT / other sources only.";
   }
 
   onEvent?.({ type: "done", result: finalResult });

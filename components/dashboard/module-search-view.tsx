@@ -2314,7 +2314,15 @@ export function ModuleSearchView({
                   typeof event.error === "string"
                     ? event.error
                     : "Search failed.";
-                if (event.result) finalBreaches = event.result;
+                // Keep the best partial — never clobber real rows with softEmpty.
+                if (
+                  event.result &&
+                  !isBreachesEmpty(event.result) &&
+                  (event.result.credentials?.length ?? 0) >=
+                    (finalBreaches?.credentials?.length ?? 0)
+                ) {
+                  finalBreaches = event.result;
+                }
                 continue;
               }
 
@@ -2322,7 +2330,27 @@ export function ModuleSearchView({
                 (event.type === "partial" || event.type === "done") &&
                 event.result
               ) {
-                finalBreaches = event.result;
+                const incomingCount = event.result.credentials?.length ?? 0;
+                const currentCount = finalBreaches?.credentials?.length ?? 0;
+
+                // Never shrink an already-painted credential set (timeout /
+                // softEmpty frames used to freeze the UI at Comb-only counts).
+                if (!finalBreaches || incomingCount >= currentCount) {
+                  finalBreaches = event.result;
+                } else if (event.type === "done" && finalBreaches) {
+                  finalBreaches = {
+                    ...event.result,
+                    credentials: finalBreaches.credentials,
+                    returned: finalBreaches.credentials.length,
+                    totalMatches: finalBreaches.credentials.length,
+                    breachHubCount:
+                      event.result.breachHubCount ??
+                      finalBreaches.breachHubCount,
+                    csintCount:
+                      event.result.csintCount ?? finalBreaches.csintCount,
+                    message: event.result.message ?? finalBreaches.message,
+                  };
+                }
 
                 if (event.type === "partial" && isMountedRef.current) {
                   const moduleLabel =
@@ -2335,7 +2363,9 @@ export function ModuleSearchView({
                       ? `Breaches · ${moduleLabel} (${event.done}/${event.total})`
                       : `Breaches · ${moduleLabel}`;
 
-                  applyBreachesPayload(event.result, { progress });
+                  applyBreachesPayload(finalBreaches ?? event.result, {
+                    progress,
+                  });
                 }
               }
             }

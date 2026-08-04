@@ -64,6 +64,11 @@ const BREACHHUB_GET_CACHE_TTL_MS = 45_000;
 /** Seeknow can be slow; give it enough time to return large pages. */
 const SEEKNOW_TIMEOUT_MS = 14_000;
 const FLAKY_VENDOR_TIMEOUT_MS = 16_000;
+/** Account-wide BH rate-limit cooldown — stop fan-out instead of extending the block. */
+const BREACHHUB_DEFAULT_COOLDOWN_MS = 30 * 60 * 1000;
+const BREACHHUB_MAX_COOLDOWN_MS = 35 * 60 * 1000;
+
+let breachHubBlockedUntil = 0;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const IP_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
@@ -131,6 +136,73 @@ export function isBreachHubEnabled(): boolean {
   if (process.env.BREACHHUB_ENABLED === "false") return false;
 
   return Boolean(getBreachHubApiKey());
+}
+
+export function isBreachHubCoolingDown(): boolean {
+  return Date.now() < breachHubBlockedUntil;
+}
+
+export function breachHubCooldownRemainingMs(): number {
+  return Math.max(0, breachHubBlockedUntil - Date.now());
+}
+
+function parseBlockedSeconds(data: Record<string, unknown>): number | null {
+  for (const key of [
+    "blocked_for_seconds",
+    "blocked_seconds",
+    "retry_after",
+    "retryAfter",
+  ]) {
+    const raw = data[key];
+    const n =
+      typeof raw === "number"
+        ? raw
+        : typeof raw === "string"
+          ? Number(raw)
+          : NaN;
+
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+
+  return null;
+}
+
+function isBreachHubRateLimitPayload(
+  statusCode: number | undefined,
+  data: Record<string, unknown> | null | undefined,
+): boolean {
+  if (statusCode === 429) return true;
+  if (!data || typeof data !== "object") return false;
+
+  const msg = [
+    typeof data.error === "string" ? data.error : "",
+    typeof data.message === "string" ? data.message : "",
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    msg.includes("rate limit") ||
+    msg.includes("too many requests") ||
+    msg.includes("blocked_for") ||
+    Boolean(parseBlockedSeconds(data))
+  );
+}
+
+/** Record an account-wide BH rate limit so fan-out aborts instead of hammering. */
+export function noteBreachHubRateLimit(blockedSeconds?: number | null): void {
+  const fromPayload =
+    typeof blockedSeconds === "number" && Number.isFinite(blockedSeconds)
+      ? Math.ceil(blockedSeconds * 1000)
+      : null;
+  const waitMs = Math.min(
+    fromPayload && fromPayload > 0
+      ? fromPayload
+      : BREACHHUB_DEFAULT_COOLDOWN_MS,
+    BREACHHUB_MAX_COOLDOWN_MS,
+  );
+
+  breachHubBlockedUntil = Math.max(breachHubBlockedUntil, Date.now() + waitMs);
 }
 
 function sanitizeBreachHubError(message: string): string {
@@ -2416,6 +2488,11 @@ export async function breachHubGet(
             (typeof data.message === "string" && data.message) ||
             (typeof data.error === "string" && data.error) ||
             `HTTP ${res.status}`;
+
+          if (isBreachHubRateLimitPayload(res.status, data)) {
+            noteBreachHubRateLimit(parseBlockedSeconds(data));
+          }
+
           const errMsg = sanitizeBreachHubError(msg);
 
           logRequest(false, { statusCode: res.status, error: errMsg });
@@ -2427,6 +2504,11 @@ export async function breachHubGet(
             (typeof data.message === "string" && data.message) ||
             (typeof data.error === "string" && data.error) ||
             "Search failed";
+
+          if (isBreachHubRateLimitPayload(res.status, data)) {
+            noteBreachHubRateLimit(parseBlockedSeconds(data));
+          }
+
           const errMsg = sanitizeBreachHubError(msg);
 
           logRequest(false, { statusCode: res.status, error: errMsg });
@@ -2982,6 +3064,8 @@ async function fanOutEndpoints(
   options?: FanOutOptions,
 ): Promise<SanitizedBreachResponse | null> {
   if (!isBreachHubEnabled() || endpoints.length === 0) return null;
+  // Account-wide block — do not burn the remaining cooldown window.
+  if (isBreachHubCoolingDown()) return null;
 
   const trimmed = query.trim();
 
@@ -3013,6 +3097,12 @@ async function fanOutEndpoints(
   let next = 0;
 
   const runOne = async (endpoint: BreachHubEndpointDef) => {
+    if (isBreachHubCoolingDown()) {
+      stopQueue = true;
+
+      return;
+    }
+
     const remaining = budgetMs - (Date.now() - started);
 
     if (remaining < 1_500) {
@@ -3027,7 +3117,14 @@ async function fanOutEndpoints(
     );
     const value = await fetchEndpointSafe(endpoint, trimmed, kind, perCall);
 
-    if (value && value.count > 0) {
+    // First 429 trips the process cooldown — abandon the rest of the queue.
+    if (isBreachHubCoolingDown()) {
+      stopQueue = true;
+
+      return;
+    }
+
+    if (value && value.results.length > 0) {
       parts.push(value);
       totalRows += value.results.length;
       if (minResults > 0 && totalRows >= minResults) {
@@ -3038,7 +3135,11 @@ async function fanOutEndpoints(
 
   async function worker() {
     for (;;) {
-      if (stopQueue || Date.now() - started >= budgetMs) {
+      if (
+        stopQueue ||
+        isBreachHubCoolingDown() ||
+        Date.now() - started >= budgetMs
+      ) {
         stopQueue = true;
 
         return;

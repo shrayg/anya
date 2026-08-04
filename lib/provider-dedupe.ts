@@ -10,7 +10,7 @@
  *
  * Breaches (/api/osint/breaches): Comb + GodsEye + BreachVIP + BreachHub run
  * in parallel (streamed partials). CSINT runs after BreachHub only when BH is
- * empty/thin or BH is off — not always-additive parallel with BH.
+ * empty/thin/rate-limited or BH is off — not always-additive parallel with BH.
  *
  * Vendor map (primary → fallback):
  * | Vendor                      | Primary     | Fallback                         |
@@ -290,7 +290,7 @@ export function hasOsintCatDirect(): boolean {
 
 /**
  * True when BreachHub is the live primary — specialty routes and Breaches use
- * sequential BH→CSINT fallback (CSINT only after BH empty/thin / miss).
+ * sequential BH→CSINT fallback (CSINT only after BH empty/thin/rate-limit / miss).
  * Direct BreachVIP remains additive on Breaches (merge + dedupe).
  */
 export function isBreachHubPrimaryActive(): boolean {

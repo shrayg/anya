@@ -13,12 +13,16 @@ import {
 } from "@/lib/breaches-osint-search";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import {
-  OSINT_ROUTE_DEADLINE_MS,
+  OSINT_LONG_ROUTE_DEADLINE_MS,
+  OsintTimeoutError,
   osintFailureResponse,
   withDeadline,
 } from "@/lib/osint-search-guard";
 
 export const maxDuration = 120;
+
+/** BH (~48s) + optional CSINT (~28s) + Comb need headroom under CF ~100s. */
+const BREACHES_ROUTE_DEADLINE_MS = OSINT_LONG_ROUTE_DEADLINE_MS;
 
 function wantsStream(req: NextRequest): boolean {
   const explicit = req.nextUrl.searchParams.get("stream")?.trim();
@@ -68,6 +72,20 @@ function parseKindHint(raw: string | null): string | null {
     : null;
 }
 
+function hasUsefulBreaches(result: BreachesOsintResult | null | undefined) {
+  if (!result) return false;
+
+  return (
+    (result.credentials?.length ?? 0) > 0 ||
+    result.hasGodsEyeReport ||
+    result.hasBreachVipResults ||
+    (result.csintCount ?? 0) > 0 ||
+    (result.breachHubCount ?? 0) > 0 ||
+    (result.osintCatCount ?? 0) > 0 ||
+    (result.godseyeSearchCount ?? 0) > 0
+  );
+}
+
 export async function GET(req: NextRequest) {
   const access = await requireOsintAccess(req, "breaches");
 
@@ -111,7 +129,10 @@ export async function GET(req: NextRequest) {
   // Guests / teaser plans: full JSON so redactOsintTeaser stays consistent.
   if (!wantsStream(req) || access.isGuest || access.blurResults) {
     try {
-      const response = await withDeadline(runSearch(), OSINT_ROUTE_DEADLINE_MS);
+      const response = await withDeadline(
+        runSearch(),
+        BREACHES_ROUTE_DEADLINE_MS,
+      );
 
       return osintJson(access, response);
     } catch (err) {
@@ -133,11 +154,19 @@ export async function GET(req: NextRequest) {
     async start(controller) {
       await warmDataBlacklistCache();
 
+      const bestPartial: { current: BreachesOsintResult | null } = {
+        current: null,
+      };
+
       const send = (event: BreachesOsintProgressEvent) => {
         if (event.type === "partial" || event.type === "done") {
           const result = applyDataBlacklistToPayload(
             event.result,
           ) as BreachesOsintResult;
+
+          if (hasUsefulBreaches(result)) {
+            bestPartial.current = result;
+          }
 
           controller.enqueue(
             encoder.encode(`${JSON.stringify({ ...event, result })}\n`),
@@ -150,22 +179,50 @@ export async function GET(req: NextRequest) {
       };
 
       try {
-        await withDeadline(runSearch(send), OSINT_ROUTE_DEADLINE_MS);
+        await withDeadline(runSearch(send), BREACHES_ROUTE_DEADLINE_MS);
       } catch (err) {
-        const message =
-          err instanceof Error && err.message
-            ? err.message
-            : "Failed to search breach indexes";
+        const kept = bestPartial.current;
 
-        controller.enqueue(
-          encoder.encode(
-            `${JSON.stringify({
-              type: "error",
-              error: message,
-              result: empty,
-            })}\n`,
-          ),
-        );
+        // Prefer the best streamed partial over wiping the UI with softEmpty.
+        if (err instanceof OsintTimeoutError && kept) {
+          controller.enqueue(
+            encoder.encode(
+              `${JSON.stringify({
+                type: "done",
+                result: {
+                  ...kept,
+                  message:
+                    kept.message ||
+                    "Lookup timed out; showing results collected so far.",
+                },
+              })}\n`,
+            ),
+          );
+        } else if (kept && hasUsefulBreaches(kept)) {
+          controller.enqueue(
+            encoder.encode(
+              `${JSON.stringify({
+                type: "done",
+                result: kept,
+              })}\n`,
+            ),
+          );
+        } else {
+          const message =
+            err instanceof Error && err.message
+              ? err.message
+              : "Failed to search breach indexes";
+
+          controller.enqueue(
+            encoder.encode(
+              `${JSON.stringify({
+                type: "error",
+                error: message,
+                result: empty,
+              })}\n`,
+            ),
+          );
+        }
       } finally {
         controller.close();
       }
