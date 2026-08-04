@@ -3140,17 +3140,18 @@
 
   .anya-landing .starter-search-modes {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
   }
 
   .anya-landing .home-search-locked-trigger {
     width: 100%;
     min-width: 0;
-    padding: 0 0.38rem;
-    gap: 0.25rem;
+    padding: 0 0.5rem;
+    gap: 0.3rem;
   }
 
   .anya-landing .home-search-locked-trigger span {
-    font-size: 0.4rem;
+    font-size: 0.52rem;
   }
 
   .anya-landing .home-search-locked-popover {
@@ -3162,20 +3163,26 @@
   }
 
   .anya-landing .home-search-locked-cta {
-    min-height: 2.15rem;
+    min-height: 2.35rem;
     padding-inline: 1rem;
-    font-size: 0.56rem;
+    font-size: 0.62rem;
   }
 
   .anya-landing .starter-search-mode {
     min-width: 0;
-    padding: 0 0.16rem;
-    gap: 0;
-    font-size: 0.42rem;
+    height: 2.35rem;
+    padding: 0 0.4rem;
+    gap: 0.25rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.02em;
+    border-radius: 0.75rem !important;
+    border-left: 1px solid var(--anya-line);
   }
 
   .anya-landing .starter-search-mode svg {
-    display: none;
+    width: 0.7rem;
+    height: 0.7rem;
+    flex-shrink: 0;
   }
 
   .anya-landing .home-search-input {
@@ -3992,9 +3999,59 @@
     height: 1.05rem;
   }
 
+  /* Width/right are clamped in JS so the panel cannot overhang the left edge.
+     Soften density on phones without changing desktop dropdown chrome. */
   .home-discord-notify__panel,
   .home-discord-notify__panel--feed {
-    width: min(24rem, calc(100vw - 1.25rem));
+    width: min(24rem, calc(100vw - 1.75rem));
+    max-width: calc(100vw - 1.75rem);
+    max-height: min(32rem, calc(100dvh - 4.5rem));
+    padding: 0.95rem 1rem 1rem;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .home-discord-notify__panel-head {
+    margin-bottom: 0.7rem;
+    gap: 0.65rem;
+  }
+
+  .home-discord-notify__panel-heading {
+    gap: 0.55rem;
+  }
+
+  .home-discord-notify__panel-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.6rem;
+  }
+
+  .home-discord-notify__feed {
+    margin: 0 0 0.75rem;
+    max-height: min(18rem, 44dvh);
+    padding-right: 0.1rem;
+  }
+
+  .home-discord-notify__feed .site-updates-item {
+    padding: 0.65rem 0.7rem;
+  }
+
+  .home-discord-notify__discord {
+    padding-top: 0.75rem;
+  }
+
+  .home-discord-notify__discord-copy {
+    margin: 0 0 0.65rem;
+    padding-inline: 0.05rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .home-discord-notify__cta {
+    padding: 0.7rem 1rem;
+    min-height: 2.65rem;
   }
 }
 

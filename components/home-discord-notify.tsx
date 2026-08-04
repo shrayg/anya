@@ -36,6 +36,8 @@ function readUnread(): boolean {
 type PanelCoords = {
   top: number;
   right: number;
+  /** When set (mobile inset layout), overrides width so left/right gutters stay on-screen. */
+  width?: number;
 };
 
 export function HomeDiscordNotify() {
@@ -91,9 +93,19 @@ export function HomeDiscordNotify() {
     const bell = bellRef.current;
     if (!bell) return;
     const rect = bell.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const gutter = vw < 768 ? 14 : 12;
+    // Near-full-width panels must stay inside the viewport. Anchoring only to the
+    // bell's right edge clips the left side on mobile (hamburger sits to the right
+    // of the bell), which cut "Want" down to "Vant".
+    const maxWidth = vw < 768 ? Math.min(24 * 16, vw - gutter * 2) : Math.min(26 * 16, vw - gutter * 2);
+    const preferredRight = Math.max(gutter, vw - rect.right);
+    const maxRight = Math.max(gutter, vw - maxWidth - gutter);
+    const right = Math.min(preferredRight, maxRight);
     setPanelCoords({
-      top: rect.bottom + 8,
-      right: Math.max(12, window.innerWidth - rect.right),
+      top: Math.max(gutter, Math.min(rect.bottom + 8, window.innerHeight - gutter - 120)),
+      right,
+      width: maxWidth,
     });
   }, []);
 
@@ -143,6 +155,9 @@ export function HomeDiscordNotify() {
               style={{
                 top: panelCoords.top,
                 right: panelCoords.right,
+                ...(panelCoords.width != null
+                  ? { width: panelCoords.width }
+                  : null),
               }}
             >
               <div className="home-discord-notify__panel-head">
