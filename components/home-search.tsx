@@ -27,6 +27,7 @@ import {
   resolveStarterSearchRoute,
   type StarterSearchMode,
 } from "@/lib/starter-search";
+import { useTypingPlaceholder } from "@/lib/use-typing-placeholder";
 import {
   normalizeEmail,
   type CombSearchResult,
@@ -93,11 +94,23 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     useState<DiscordSearchResult | null>(null);
   const [combResult, setCombResult] = useState<CombSearchResult | null>(null);
   const [blurResults, setBlurResults] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
 
   const visibleLockedModules =
     lockedModules ?? (isMounted ? LOCKED_MODULES : []);
   const visibleLockedModuleCount = visibleLockedModules.length;
   const hasStableLockedModules = lockedModules != null || isMounted;
+
+  const activeStarterMode =
+    STARTER_SEARCH_MODES.find((mode) => mode.id === starterMode) ??
+    STARTER_SEARCH_MODES[0];
+
+  const typingPlaceholder = useTypingPlaceholder(
+    activeStarterMode.placeholder,
+    {
+      enabled: !query.trim() && !inputFocused,
+    },
+  );
 
   useEffect(() => {
     setIsMounted(true);
@@ -138,10 +151,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       })
       .catch(() => setAuth({ status: "guest" }));
   }, []);
-
-  const activeStarterMode =
-    STARTER_SEARCH_MODES.find((mode) => mode.id === starterMode) ??
-    STARTER_SEARCH_MODES[0];
 
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -336,11 +345,15 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         readOnly
         className="home-search-input"
         name="home-osint-query"
-        placeholder={activeStarterMode.placeholder}
+        placeholder={typingPlaceholder}
         type="text"
         value={query}
+        onBlur={() => setInputFocused(false)}
         onChange={(event) => setQuery(event.target.value)}
-        onFocus={unlockAutofillShield}
+        onFocus={(event) => {
+          setInputFocused(true);
+          unlockAutofillShield(event);
+        }}
       />
       <LiquidButton
         className="home-search-submit liquid-glass-button--accent"

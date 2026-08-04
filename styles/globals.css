@@ -101,17 +101,46 @@
   }
 }
 
-/* Sonner — match Anya dark chrome; pin stack to top-center */
-[data-sonner-toaster][data-theme="dark"] {
+/* Sonner — match Anya dark chrome; force top-center on all viewports */
+[data-sonner-toaster][data-theme="dark"],
+[data-sonner-toaster][data-sonner-theme="dark"] {
   --normal-bg: rgba(9, 10, 12, 0.94);
   --normal-border: rgba(255, 255, 255, 0.1);
   --normal-text: #f4f4f5;
   font-family: inherit;
 }
 
-/* Let Sonner's top-center placement stand; only keep width unconstrained. */
-[data-sonner-toaster].anya-sonner-toaster {
-  width: auto !important;
+/*
+ * Sonner centers with left:50% + translateX(-50%). Mobile styles and
+ * [data-lifted] set transform:none, which leaves the stack starting at
+ * mid-screen (looks right-biased). Pin top-center for our toaster always.
+ */
+[data-sonner-toaster].anya-sonner-toaster,
+[data-sonner-toaster][data-x-position="center"].anya-sonner-toaster {
+  top: max(1rem, env(safe-area-inset-top, 0px)) !important;
+  bottom: auto !important;
+  left: 50% !important;
+  right: auto !important;
+  width: min(22.5rem, calc(100vw - 2rem)) !important;
+  max-width: calc(100vw - 2rem) !important;
+  transform: translate3d(-50%, 0, 0) !important;
+  margin: 0 !important;
+}
+
+[data-sonner-toaster].anya-sonner-toaster [data-sonner-toast] {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+}
+
+@media (max-width: 600px) {
+  [data-sonner-toaster].anya-sonner-toaster,
+  [data-sonner-toaster][data-x-position="center"].anya-sonner-toaster {
+    left: 50% !important;
+    right: auto !important;
+    width: min(22.5rem, calc(100vw - 2rem)) !important;
+    transform: translate3d(-50%, 0, 0) !important;
+  }
 }
 
 [data-sonner-toast].anya-sonner-toast {
@@ -9387,6 +9416,9 @@
 }
 
 .home-search-locked-popover-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   padding: 1rem;
   overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -9439,11 +9471,16 @@
 }
 
 .home-search-locked-cta {
-  display: block;
-  margin-top: 0.15rem;
-  padding: 0.75rem 0.9rem;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  margin: 0.65rem auto 0;
+  padding: 0.55rem 1.15rem;
   border: 1px solid color-mix(in srgb, #c9a962 55%, rgba(255, 255, 255, 0.18));
-  border-radius: 0.7rem;
+  border-radius: 9999px;
   background:
     linear-gradient(
       180deg,
@@ -9455,12 +9492,13 @@
     inset 0 1px 0 color-mix(in srgb, #f0e0b8 28%, transparent),
     0 8px 22px -16px rgba(168, 137, 58, 0.45);
   color: #f3e6c4;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  line-height: 1.35;
+  line-height: 1.2;
   text-align: center;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,

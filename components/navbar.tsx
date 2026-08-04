@@ -23,13 +23,13 @@ import {
 import { Button } from "@heroui/button";
 import { Link } from "@heroui/link";
 import NextLink from "next/link";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { Lock, Sparkles, Unlock } from "lucide-react";
 
 import { HomeDiscordNotify } from "@/components/home-discord-notify";
-import { SpecularButton } from "@/components/ui/specular-button";
 import { siteLogoClassName, siteLogoSrc } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 import type { NavItem } from "@/config/site";
@@ -101,6 +101,35 @@ function CreditBalanceChip({
         </>
       ) : null}
     </NextLink>
+  );
+}
+
+function GuestAuthPair({
+  stacked = false,
+  onNavigate,
+}: {
+  stacked?: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div
+      className={clsx("nav-auth-pair", stacked && "nav-auth-pair--stacked")}
+    >
+      <NextLink
+        className="nav-auth-pair-login"
+        href="/auth?action=login"
+        onClick={onNavigate}
+      >
+        Login
+      </NextLink>
+      <NextLink
+        className="nav-auth-pair-start"
+        href="/auth?action=register"
+        onClick={onNavigate}
+      >
+        Get started
+      </NextLink>
+    </div>
   );
 }
 
@@ -185,21 +214,47 @@ function AccountMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [menuCoords, setMenuCoords] = useState<{
+    top: number;
+    left?: number;
+    right?: number;
+  } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const close = useCallback(() => {
     setOpen(false);
   }, []);
 
+  const syncMenuCoords = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    if (align === "left") {
+      setMenuCoords({
+        top: rect.bottom + 8,
+        left: Math.max(12, rect.left),
+      });
+      return;
+    }
+    setMenuCoords({
+      top: rect.bottom + 8,
+      right: Math.max(12, window.innerWidth - rect.right),
+    });
+  }, [align]);
+
   const openMenu = useCallback(() => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
+    syncMenuCoords();
     setVisible(true);
     requestAnimationFrame(() => setOpen(true));
-  }, []);
+  }, [syncMenuCoords]);
 
   const toggle = useCallback(() => {
     if (open) close();
@@ -207,10 +262,31 @@ function AccountMenu({
   }, [close, open, openMenu]);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!visible) {
+      setMenuCoords(null);
+      return;
+    }
+    syncMenuCoords();
+    window.addEventListener("resize", syncMenuCoords);
+    window.addEventListener("scroll", syncMenuCoords, true);
+    return () => {
+      window.removeEventListener("resize", syncMenuCoords);
+      window.removeEventListener("scroll", syncMenuCoords, true);
+    };
+  }, [syncMenuCoords, visible]);
+
+  useEffect(() => {
     if (!visible) return;
 
     const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) close();
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      close();
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") close();
@@ -243,9 +319,67 @@ function AccountMenu({
     "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-white/75 transition hover:bg-white/[0.08] hover:text-white";
   const initial = username.trim().charAt(0).toUpperCase() || "?";
 
+  const menu =
+    visible && mounted && menuCoords
+      ? createPortal(
+          <div
+            ref={menuRef}
+            className={clsx(
+              "nav-account-menu fixed z-[80] min-w-[12.5rem] overflow-hidden p-1.5 transition-[opacity,transform] duration-150 ease-out",
+              open
+                ? "translate-y-0 opacity-100"
+                : "pointer-events-none -translate-y-1 opacity-0",
+            )}
+            role="menu"
+            style={{
+              top: menuCoords.top,
+              left: menuCoords.left,
+              right: menuCoords.right,
+            }}
+          >
+            <NextLink
+              className={itemClass}
+              href="/account"
+              role="menuitem"
+              onClick={() => {
+                close();
+                onNavigate?.();
+              }}
+            >
+              Account Settings
+            </NextLink>
+            <NextLink
+              className={itemClass}
+              href="/support"
+              role="menuitem"
+              onClick={() => {
+                close();
+                onNavigate?.();
+              }}
+            >
+              Support
+            </NextLink>
+            <div className="my-1 h-px bg-white/[0.08]" />
+            <button
+              className={clsx(itemClass, "text-red-300/90 hover:text-red-200")}
+              role="menuitem"
+              type="button"
+              onClick={() => {
+                close();
+                onLogout();
+              }}
+            >
+              Logout
+            </button>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <div ref={rootRef} className="nav-account relative">
       <button
+        ref={triggerRef}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={`Account menu for ${username}`}
@@ -284,54 +418,7 @@ function AccountMenu({
           />
         </svg>
       </button>
-
-      {visible ? (
-        <div
-          className={clsx(
-            "nav-account-menu absolute top-[calc(100%+8px)] z-50 min-w-[12.5rem] overflow-hidden p-1.5 transition-[opacity,transform] duration-150 ease-out",
-            align === "right" ? "right-0" : "left-0",
-            open
-              ? "translate-y-0 opacity-100"
-              : "pointer-events-none -translate-y-1 opacity-0",
-          )}
-          role="menu"
-        >
-          <NextLink
-            className={itemClass}
-            href="/account"
-            role="menuitem"
-            onClick={() => {
-              close();
-              onNavigate?.();
-            }}
-          >
-            Account Settings
-          </NextLink>
-          <NextLink
-            className={itemClass}
-            href="/support"
-            role="menuitem"
-            onClick={() => {
-              close();
-              onNavigate?.();
-            }}
-          >
-            Support
-          </NextLink>
-          <div className="my-1 h-px bg-white/[0.08]" />
-          <button
-            className={clsx(itemClass, "text-red-300/90 hover:text-red-200")}
-            role="menuitem"
-            type="button"
-            onClick={() => {
-              close();
-              onLogout();
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      ) : null}
+      {menu}
     </div>
   );
 }
@@ -657,24 +744,7 @@ export const Navbar = () => {
                   locked
                   onLockedPress={handleLockedDashboard}
                 />
-                <Button
-                  as={NextLink}
-                  className="font-medium text-white/70"
-                  href="/auth?action=login"
-                  radius="full"
-                  variant="light"
-                >
-                  Login
-                </Button>
-                <SpecularButton
-                  accent
-                  className="font-semibold"
-                  href="/auth?action=register"
-                  radius={999}
-                  size="sm"
-                >
-                  Get started
-                </SpecularButton>
+                <GuestAuthPair />
               </>
             )}
             <HomeDiscordNotify />
@@ -760,19 +830,10 @@ export const Navbar = () => {
                       handleLockedDashboard();
                     }}
                   />
-                  <Button as={NextLink} href="/auth?action=login" radius="full" variant="light">
-                    Login
-                  </Button>
-                  <SpecularButton
-                    accent
-                    className="w-full font-semibold"
-                    href="/auth?action=register"
-                    radius={999}
-                    size="md"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Get started
-                  </SpecularButton>
+                  <GuestAuthPair
+                    stacked
+                    onNavigate={() => setMenuOpen(false)}
+                  />
                 </>
               )}
             </NavbarMenuItem>
