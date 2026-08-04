@@ -16,7 +16,13 @@ import {
 import {
   API_PRODUCT,
   CREDIT_PACKS,
+  CUSTOM_CREDIT_MAX,
+  CUSTOM_CREDIT_MIN,
+  CUSTOM_CREDIT_PACK_ID,
+  clampCustomCredits,
+  customCreditsPrice,
   getApiPrice,
+  getCreditPackBonus,
   getCreditPackTotal,
   getPlanDefinition,
   getPlanPrice,
@@ -261,6 +267,69 @@ export async function POST(request: NextRequest) {
 
     if (type === "credits") {
       const packId = typeof body.packId === "string" ? body.packId : undefined;
+      const rawCustom =
+        typeof body.creditsAmount === "number"
+          ? body.creditsAmount
+          : typeof body.creditsAmount === "string"
+            ? Number(body.creditsAmount)
+            : NaN;
+
+      if (packId === CUSTOM_CREDIT_PACK_ID || Number.isFinite(rawCustom)) {
+        if (!Number.isFinite(rawCustom)) {
+          return NextResponse.json(
+            { error: "Enter how many credits you want" },
+            { status: 400 },
+          );
+        }
+
+        const requested = Math.round(rawCustom);
+
+        if (
+          requested < CUSTOM_CREDIT_MIN ||
+          requested > CUSTOM_CREDIT_MAX
+        ) {
+          return NextResponse.json(
+            {
+              error: `Choose between ${CUSTOM_CREDIT_MIN} and ${CUSTOM_CREDIT_MAX} credits`,
+            },
+            { status: 400 },
+          );
+        }
+
+        const creditsAmount = clampCustomCredits(requested);
+        const price = customCreditsPrice(creditsAmount);
+
+        const payment = await recordPayment({
+          userId,
+          amount: price,
+          type: "balance_topup",
+          status: "pending",
+          description: `Custom credits: $${creditsAmount.toFixed(2)} credit (pending payment)`,
+        });
+
+        const meta: BillingMeta = {
+          paymentId: String(payment?.id ?? ""),
+          userId: String(userId),
+          type: "credits",
+          packId: CUSTOM_CREDIT_PACK_ID,
+          creditsAmount,
+          provider,
+        };
+
+        const result = await finalizeCheckout({
+          provider,
+          paymentId: payment?.id,
+          name: "Anya Custom credits",
+          description: `${creditsAmount} credits at $1.00 each`,
+          amountDollars: price,
+          meta,
+          baseUrl,
+          requestUrl: request.url,
+        });
+
+        return NextResponse.json(result);
+      }
+
       const pack = CREDIT_PACKS.find((entry) => entry.id === packId);
 
       if (!pack) {
@@ -271,6 +340,7 @@ export async function POST(request: NextRequest) {
       }
 
       const creditTotal = getCreditPackTotal(pack);
+      const bonus = getCreditPackBonus(pack);
 
       const payment = await recordPayment({
         userId,
@@ -285,6 +355,7 @@ export async function POST(request: NextRequest) {
         userId: String(userId),
         type: "credits",
         packId: pack.id,
+        creditsAmount: creditTotal,
         provider,
       };
 
@@ -292,7 +363,7 @@ export async function POST(request: NextRequest) {
         provider,
         paymentId: payment?.id,
         name: `Anya ${pack.name}`,
-        description: `$${creditTotal.toFixed(2)} investigation credit`,
+        description: `${creditTotal} credits (${pack.discountPercent}% bulk bonus${bonus > 0 ? `, +${bonus}` : ""})`,
         amountDollars: pack.price,
         meta,
         baseUrl,

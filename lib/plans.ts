@@ -215,48 +215,98 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
 export type CreditPack = {
   id: string;
   name: string;
+  /** Credits included before pack discount/bonus. */
   credits: number;
+  /** USD charged (list is $1/credit before discount). */
   price: number;
-  bonusCredits?: number;
+  /**
+   * Bulk discount vs $1/credit list rate (15–25%).
+   * Delivered as bonus credits: pay `price`, receive price + discount%.
+   */
+  discountPercent: number;
   description: string;
   highlighted?: boolean;
 };
 
-/** Credit packs top up User.balance (1 credit ≈ $1) for pay-per-use modules. */
+/** List rate for à-la-carte / custom top-ups. */
+export const CREDIT_UNIT_USD = 1;
+
+export const CUSTOM_CREDIT_MIN = 5;
+export const CUSTOM_CREDIT_MAX = 500;
+export const CUSTOM_CREDIT_PACK_ID = "credits_custom";
+
+/**
+ * Three bulk packs + custom ($1/credit) on the pricing page.
+ * Packs price at ~$1/credit face value, then add 15–25% bonus credits —
+ * bulk buyers get a better effective rate because unused balance is expected.
+ */
 export const CREDIT_PACKS: CreditPack[] = [
   {
-    id: "credits_10",
-    name: "Starter Pack",
-    credits: 10,
-    price: 10,
-    description: "10 credits — enough to try pay-per-use modules",
-  },
-  {
     id: "credits_25",
-    name: "Investigator Pack",
+    name: "Starter Pack",
     credits: 25,
     price: 25,
-    bonusCredits: 3,
-    description: "25 credits + 3 bonus — best for regular casework",
-    highlighted: true,
+    discountPercent: 15,
+    description: "15% bulk bonus — light pay-per-use top-ups",
   },
   {
     id: "credits_50",
-    name: "Ops Pack",
+    name: "Plus Pack",
     credits: 50,
     price: 50,
-    bonusCredits: 8,
-    description: "50 credits + 8 bonus — higher-volume investigations",
+    discountPercent: 20,
+    description: "20% bulk bonus — regular casework volume",
+    highlighted: true,
   },
   {
     id: "credits_100",
     name: "Agency Pack",
     credits: 100,
     price: 100,
-    bonusCredits: 20,
-    description: "100 credits + 20 bonus — teams and heavy usage",
+    discountPercent: 25,
+    description: "25% bulk bonus — teams and heavy usage",
   },
 ];
+
+/** Bonus credits from pack discount (rounded). */
+export function getCreditPackBonus(pack: CreditPack): number {
+  return Math.round((pack.credits * pack.discountPercent) / 100);
+}
+
+export function getCreditPackTotal(pack: CreditPack): number {
+  return pack.credits + getCreditPackBonus(pack);
+}
+
+/** Effective USD per credit after pack bonus. */
+export function getCreditPackUnitPrice(pack: CreditPack): number {
+  const total = getCreditPackTotal(pack);
+
+  return total > 0 ? pack.price / total : CREDIT_UNIT_USD;
+}
+
+export function clampCustomCredits(raw: number): number {
+  if (!Number.isFinite(raw)) return CUSTOM_CREDIT_MIN;
+
+  return Math.min(
+    CUSTOM_CREDIT_MAX,
+    Math.max(CUSTOM_CREDIT_MIN, Math.round(raw)),
+  );
+}
+
+export function customCreditsPrice(credits: number): number {
+  return clampCustomCredits(credits) * CREDIT_UNIT_USD;
+}
+
+/** Recover pack id from payment description prefixes (webhooks / confirm). */
+export const CREDIT_PACK_NAME_IDS: Record<string, string> = {
+  "Starter Pack": "credits_25",
+  "Plus Pack": "credits_50",
+  "Agency Pack": "credits_100",
+  "Custom credits": CUSTOM_CREDIT_PACK_ID,
+  // Legacy names still in pending rows
+  "Investigator Pack": "credits_25",
+  "Ops Pack": "credits_50",
+};
 
 export type ApiProduct = {
   id: "api_access";
@@ -650,10 +700,6 @@ export function getApiPrice(interval: BillingInterval = "monthly"): {
     value: API_PRODUCT.monthlyPrice,
     monthlyEquivalent: API_PRODUCT.monthlyPrice,
   };
-}
-
-export function getCreditPackTotal(pack: CreditPack): number {
-  return pack.credits + (pack.bonusCredits ?? 0);
 }
 
 export function hasWorkspaceDashboardAccess(

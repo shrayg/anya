@@ -5,6 +5,8 @@ export type BillingMeta = {
   planId?: string;
   interval?: string;
   packId?: string;
+  /** Custom top-up: exact credits credited at $1 each. */
+  creditsAmount?: number;
   /** Payment rail used for this checkout. */
   provider?: "square" | "oxapay";
 };

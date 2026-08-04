@@ -69,17 +69,20 @@ async function metaFromPaymentNote(
   };
 
   if (byOrder.type === "balance_topup") {
+    const { CREDIT_PACK_NAME_IDS, CUSTOM_CREDIT_PACK_ID, clampCustomCredits } =
+      await import("@/lib/plans");
     const packMatch = byOrder.description.match(
-      /^(Starter Pack|Investigator Pack|Ops Pack|Agency Pack)/,
+      /^(Starter Pack|Plus Pack|Agency Pack|Investigator Pack|Ops Pack|Custom credits)/,
     );
-    const packIdMap: Record<string, string> = {
-      "Starter Pack": "credits_10",
-      "Investigator Pack": "credits_25",
-      "Ops Pack": "credits_50",
-      "Agency Pack": "credits_100",
-    };
 
-    if (packMatch?.[1]) meta.packId = packIdMap[packMatch[1]];
+    if (packMatch?.[1]) meta.packId = CREDIT_PACK_NAME_IDS[packMatch[1]];
+
+    if (meta.packId === CUSTOM_CREDIT_PACK_ID) {
+      const amountMatch = byOrder.description.match(/\$([\d.]+)/);
+      if (amountMatch?.[1]) {
+        meta.creditsAmount = clampCustomCredits(Number(amountMatch[1]));
+      }
+    }
   }
 
   return meta;

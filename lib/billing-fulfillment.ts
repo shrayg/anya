@@ -3,6 +3,8 @@ import type { BillingMeta } from "@/lib/billing-meta";
 import {
   API_PRODUCT,
   CREDIT_PACKS,
+  CUSTOM_CREDIT_PACK_ID,
+  clampCustomCredits,
   getCreditPackTotal,
   normalizePlanId,
   planUpdatesFromId,
@@ -173,18 +175,32 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
 
   if (meta.type === "credits") {
     const pack = CREDIT_PACKS.find((entry) => entry.id === meta.packId);
+    const customAmount =
+      typeof meta.creditsAmount === "number" &&
+      Number.isFinite(meta.creditsAmount)
+        ? clampCustomCredits(meta.creditsAmount)
+        : null;
     const creditTotal = pack
       ? getCreditPackTotal(pack)
-      : existing
-        ? Number(
-            existing.description.match(/\$([\d.]+)/)?.[1] ?? existing.amount,
-          )
-        : amount;
+      : customAmount != null
+        ? customAmount
+        : meta.packId === CUSTOM_CREDIT_PACK_ID && existing
+          ? Number(
+              existing.description.match(
+                /(?:Custom credits|\$)[\s:]*([\d.]+)/i,
+              )?.[1] ?? existing.amount,
+            )
+          : existing
+            ? Number(
+                existing.description.match(/\$([\d.]+)/)?.[1] ??
+                  existing.amount,
+              )
+            : amount;
 
     const description = markPaidDescription(
       existing?.description,
       meta,
-      `Credit top-up $${creditTotal.toFixed(2)} — ${via}`,
+      `Credit top-up $${Number(creditTotal).toFixed(2)} — ${via}`,
     );
 
     await prisma.$transaction([
