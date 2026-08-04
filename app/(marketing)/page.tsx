@@ -27,7 +27,7 @@ const HOME_LOCKED_MODULES = getHubSections()
 export default function Home() {
   return (
     <>
-      <section className="relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-end gap-4 px-4 pb-[min(34svh,15rem)] pt-10 text-center md:gap-5">
+      <section className="home-hero relative z-20 flex min-h-[calc(100svh-5rem)] flex-col items-center justify-end gap-4 px-4 pb-[min(34svh,15rem)] pt-10 text-center md:gap-5">
         <Reveal
           className="mb-3 flex max-w-5xl flex-col items-center gap-4 overflow-visible md:mb-4 md:gap-5"
           mode="mount"

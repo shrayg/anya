@@ -14,7 +14,7 @@ import {
   Search,
   User,
 } from "lucide-react";
-import { useEffect, useState, type ElementType } from "react";
+import { useEffect, useRef, useState, type ElementType } from "react";
 
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
@@ -96,6 +96,8 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const [combResult, setCombResult] = useState<CombSearchResult | null>(null);
   const [blurResults, setBlurResults] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const scrolledForResultsRef = useRef(false);
 
   const visibleLockedModules =
     lockedModules ?? (isMounted ? LOCKED_MODULES : []);
@@ -109,6 +111,8 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     });
   // Upsell chip only for guests / plans without panel — not for Professional+
   const showPremiumLocked = !hasPanelAccess && auth.status !== "loading";
+  const hasResultsSurface =
+    Boolean(discordResult) || Boolean(combResult) || records.length > 0;
 
   const activeStarterMode =
     STARTER_SEARCH_MODES.find((mode) => mode.id === starterMode) ??
@@ -133,6 +137,34 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       });
     }
   }, []);
+
+  // When results first appear, scroll so the results block dominates the viewport.
+  useEffect(() => {
+    if (!hasResultsSurface) {
+      scrolledForResultsRef.current = false;
+
+      return;
+    }
+
+    if (scrolledForResultsRef.current) return;
+
+    scrolledForResultsRef.current = true;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    const scrollToResults = () => {
+      resultsRef.current?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    };
+
+    // Double rAF so results-first layout can settle before scrolling.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToResults);
+    });
+  }, [hasResultsSurface]);
 
   useEffect(() => {
     Promise.all([
@@ -383,7 +415,14 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   );
 
   return (
-    <div className="home-search" data-tour="home-search" id="search">
+    <div
+      className={clsx(
+        "home-search",
+        hasResultsSurface && "home-search--has-results",
+      )}
+      data-tour="home-search"
+      id="search"
+    >
       <LiquidGlassCard
         blurIntensity="lg"
         borderRadius="1.25rem"
@@ -475,6 +514,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
       {discordResult ? (
         <div
+          ref={resultsRef}
           className="home-search-results home-search-results--enter"
           data-tour="home-search-results"
         >
@@ -488,6 +528,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
       {combResult ? (
         <div
+          ref={resultsRef}
           className="home-search-results home-search-results--enter"
           data-tour="home-search-results"
         >
@@ -501,6 +542,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
       {records.length > 0 ? (
         <div
+          ref={resultsRef}
           className="home-search-results home-search-results--enter"
           data-tour="home-search-results"
         >

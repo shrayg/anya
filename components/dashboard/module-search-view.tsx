@@ -654,6 +654,45 @@ export function ModuleSearchView({
     structuredResult,
   ]);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  const scrolledForResultsRef = useRef(false);
+
+  const shouldScrollToResults =
+    hasResultsSurface &&
+    (moduleDef.slug !== "site-pentest" ||
+      structuredResult?.kind === "site-pentest");
+
+  // First paint of results (incl. streamed partials) → scroll results into view.
+  useEffect(() => {
+    if (!shouldScrollToResults) {
+      scrolledForResultsRef.current = false;
+
+      return;
+    }
+
+    if (scrolledForResultsRef.current) return;
+
+    scrolledForResultsRef.current = true;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    const scrollToResults = () => {
+      const el = rootRef.current?.querySelector<HTMLElement>(
+        '[data-tour="search-results"]',
+      );
+
+      el?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToResults);
+    });
+  }, [shouldScrollToResults]);
+
   const handleSelectExportIndex = (index: number) => {
     setSelectedExportIndex(index < 0 ? null : index);
   };
@@ -3629,11 +3668,13 @@ export function ModuleSearchView({
 
   return (
     <div
+      ref={rootRef}
       className={clsx(
         "module-search px-6 pb-8 md:px-8 md:pb-10",
         hasResultsSurface
-          ? "pt-14 md:pt-20"
+          ? "module-search--has-results pt-10 md:pt-12"
           : "module-search--idle pt-6 md:pt-8",
+        shouldScrollToResults && "module-search--results-immersive",
       )}
     >
       <div className="module-search-nav mb-6 flex items-center justify-end gap-4 md:mb-8">

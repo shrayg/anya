@@ -6915,6 +6915,27 @@
 .module-search [data-tour="search-results"] {
   width: 100%;
   max-width: none;
+  scroll-margin-top: 1rem;
+}
+
+/* Results-first: immersive block under a compact composer */
+.module-search--results-immersive .module-search-hero {
+  margin-bottom: 0.45rem;
+}
+
+.module-search--results-immersive .module-search-tagline,
+.module-search--results-immersive .module-search-hint {
+  display: none;
+}
+
+.module-search--results-immersive .module-search-composer {
+  margin-bottom: 0;
+}
+
+.module-search--results-immersive .module-search-results,
+.module-search--results-immersive [data-tour="search-results"] {
+  min-height: calc(100svh - 11rem);
+  padding-bottom: 2.5rem;
 }
 
 .module-search-section {
@@ -9430,6 +9451,27 @@
   max-width: none;
   overflow: visible;
   text-align: left;
+  scroll-margin-top: 5.5rem;
+}
+
+/* Results-first: once hits land, give the block a near-viewport presence */
+.home-search--has-results .home-search-results {
+  margin-top: 1.25rem;
+  min-height: min(72svh, 48rem);
+  padding-bottom: 2.5rem;
+}
+
+/* Homepage hero shifts from brand-centered to results-first via :has */
+.home-hero:has(.home-search--has-results) {
+  min-height: 0;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+  padding-bottom: 1.5rem;
+}
+
+.home-hero:has(.home-search--has-results) [data-splash-target] {
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
 }
 
 @keyframes home-search-results-enter {

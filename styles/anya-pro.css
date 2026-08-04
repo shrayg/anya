@@ -860,6 +860,23 @@ pre,
   align-self: center;
 }
 
+/* Results-first: compact composer, immersive results viewport */
+.module-search--results-immersive .module-search-hero {
+  margin-bottom: 0.45rem;
+}
+
+.module-search--results-immersive .module-search-tagline,
+.module-search--results-immersive .module-search-hint {
+  display: none;
+}
+
+.module-search--results-immersive .module-search-results,
+.module-search--results-immersive [data-tour="search-results"] {
+  min-height: calc(100svh - 11rem);
+  scroll-margin-top: 1rem;
+  padding-bottom: 2.5rem;
+}
+
 .module-search > .ui-panel,
 .module-search-panel {
   width: 100%;
