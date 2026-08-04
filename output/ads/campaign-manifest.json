@@ -1,0 +1,1563 @@
+[
+  {
+    "id": "KID-01",
+    "slug": "kids-who-is-texting",
+    "category": "kids",
+    "categoryLabel": "Protecting kids",
+    "categoryIndex": "01",
+    "campaignName": "Who is texting",
+    "audience": "Parents of teens who use messaging and gaming platforms",
+    "ageBand": "35–60",
+    "platformLane": "Paid-safe",
+    "accent": "#95c9ff",
+    "hook": "Who is texting your kid?",
+    "eyebrow": "ONE USERNAME CAN SAY MORE",
+    "moduleLabel": "USERNAME + DISCORD",
+    "inputKind": "username",
+    "inputLabel": "ONLINE USERNAME",
+    "inputValue": "northstar_01",
+    "stats": [
+      {
+        "label": "PUBLIC SURFACES",
+        "value": "4"
+      },
+      {
+        "label": "HANDLE VARIANTS",
+        "value": "3"
+      },
+      {
+        "label": "USERNAME SURFACES",
+        "value": "223+"
+      }
+    ],
+    "searchStatus": "SEARCH COMPLETE",
+    "resultTitle": "See where the username appears.",
+    "results": [
+      {
+        "title": "Discord",
+        "value": "@northstar_01",
+        "detail": "Public profile + account age",
+        "icon": "discord",
+        "tone": "violet",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Roblox",
+        "value": "northstar-01",
+        "detail": "Matching display name",
+        "icon": "roblox",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Instagram",
+        "value": "@northstar.archive",
+        "detail": "Public profile surface",
+        "icon": "instagram",
+        "tone": "rose",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Username history",
+        "value": "3 variants",
+        "detail": "Related public handles",
+        "icon": "link",
+        "tone": "ice",
+        "status": "CONTEXT FOUND"
+      }
+    ],
+    "payoff": "One username. A clearer picture.",
+    "cta": "Check the username",
+    "landing": "/#search — Username",
+    "caption": "An online contact usually leaves more than one public signal. Search the username with Anya and review what connects.",
+    "headline": "See what connects to the username",
+    "extraFormat": "square",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/kids/kids-who-is-texting-4x5.png",
+      "square": "output/ads/campaigns/kids/kids-who-is-texting-square.png"
+    }
+  },
+  {
+    "id": "KID-02",
+    "slug": "kids-game-lobby",
+    "category": "kids",
+    "categoryLabel": "Protecting kids",
+    "categoryIndex": "02",
+    "campaignName": "Game lobby",
+    "audience": "Parents of children and teens active in online games",
+    "ageBand": "30–50",
+    "platformLane": "Paid-safe",
+    "accent": "#95c9ff",
+    "hook": "Who's in their game lobby?",
+    "eyebrow": "CHECK THE GAMING USERNAME",
+    "moduleLabel": "GAMING IDENTITY",
+    "inputKind": "username",
+    "inputLabel": "GAMING USERNAME",
+    "inputValue": "ShadowBuilder17",
+    "stats": [
+      {
+        "label": "GAMING SURFACES",
+        "value": "3"
+      },
+      {
+        "label": "LINKED HANDLE",
+        "value": "1"
+      },
+      {
+        "label": "SOURCE GROUPS",
+        "value": "8"
+      }
+    ],
+    "searchStatus": "SIGNALS FOUND",
+    "resultTitle": "Follow the public gaming trail.",
+    "results": [
+      {
+        "title": "Roblox",
+        "value": "ShadowBuilder17",
+        "detail": "Public profile metadata",
+        "icon": "roblox",
+        "tone": "blue",
+        "status": "PROFILE FOUND"
+      },
+      {
+        "title": "Discord",
+        "value": "shadowbuilder",
+        "detail": "Related public handle",
+        "icon": "discord",
+        "tone": "violet",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Minecraft",
+        "value": "ShadowBuild17",
+        "detail": "Name-history surface",
+        "icon": "game",
+        "tone": "mint",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Handle sweep",
+        "value": "2 related names",
+        "detail": "Public account surfaces",
+        "icon": "scan",
+        "tone": "ice",
+        "status": "CONTEXT FOUND"
+      }
+    ],
+    "payoff": "The lobby name is a starting point.",
+    "cta": "Search the gaming name",
+    "landing": "/#search — Username",
+    "caption": "Start with the gaming name they already use. Anya checks relevant public account surfaces and brings the useful signals together.",
+    "headline": "Look beyond the game lobby",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/kids/kids-game-lobby-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "KID-03",
+    "slug": "kids-new-online-friend",
+    "category": "kids",
+    "categoryLabel": "Protecting kids",
+    "categoryIndex": "03",
+    "campaignName": "New online friend",
+    "audience": "Parents hearing about a new online friend",
+    "ageBand": "35–55",
+    "platformLane": "Paid-safe",
+    "accent": "#95c9ff",
+    "hook": "Who is the new friend?",
+    "eyebrow": "START WITH THE NAME THEY SHARED",
+    "moduleLabel": "PUBLIC ACCOUNT SEARCH",
+    "inputKind": "username",
+    "inputLabel": "ONLINE USERNAME",
+    "inputValue": "papercomet",
+    "stats": [
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "4"
+      },
+      {
+        "label": "HANDLE VARIANTS",
+        "value": "2"
+      },
+      {
+        "label": "PLATFORMS",
+        "value": "4"
+      }
+    ],
+    "searchStatus": "SEARCH COMPLETE",
+    "resultTitle": "Review the public account surfaces.",
+    "results": [
+      {
+        "title": "Discord",
+        "value": "@papercomet",
+        "detail": "Public profile surface",
+        "icon": "discord",
+        "tone": "violet",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Snapchat",
+        "value": "paper.comet",
+        "detail": "Related username surface",
+        "icon": "snapchat",
+        "tone": "amber",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Instagram",
+        "value": "@papercomet.jpg",
+        "detail": "Public profile surface",
+        "icon": "instagram",
+        "tone": "rose",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Roblox",
+        "value": "PaperComet",
+        "detail": "Matching display name",
+        "icon": "roblox",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      }
+    ],
+    "payoff": "See the public trail behind the name.",
+    "cta": "Check the username",
+    "landing": "/#search — Username",
+    "caption": "A new online friend has a username. Use that public starting point to understand where else the name appears.",
+    "headline": "See where the username appears",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/kids/kids-new-online-friend-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "KID-04",
+    "slug": "kids-group-chat",
+    "category": "kids",
+    "categoryLabel": "Protecting kids",
+    "categoryIndex": "04",
+    "campaignName": "Group chat number",
+    "audience": "Parents who notice a new number in a family or school group chat",
+    "ageBand": "40–60",
+    "platformLane": "Paid-safe",
+    "accent": "#95c9ff",
+    "hook": "Know who's in the group chat.",
+    "eyebrow": "A PHONE NUMBER IS ENOUGH TO START",
+    "moduleLabel": "PHONE + CONTACT PROFILES",
+    "inputKind": "phone",
+    "inputLabel": "PHONE NUMBER",
+    "inputValue": "+1 (410) 555-0182",
+    "stats": [
+      {
+        "label": "CONTACT SIGNALS",
+        "value": "3"
+      },
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "2"
+      },
+      {
+        "label": "EXPOSURE RECORDS",
+        "value": "1"
+      }
+    ],
+    "searchStatus": "SIGNALS FOUND",
+    "resultTitle": "Turn the number into context.",
+    "results": [
+      {
+        "title": "Phone identity",
+        "value": "M••••• R•••",
+        "detail": "Fictional contact enrichment",
+        "icon": "phone",
+        "tone": "ice",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Contact profiles",
+        "value": "2 public surfaces",
+        "detail": "Accounts associated with the number",
+        "icon": "users",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Username signal",
+        "value": "@marbletrail",
+        "detail": "Related public handle",
+        "icon": "at",
+        "tone": "violet",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Breach exposure",
+        "value": "1 record",
+        "detail": "Exposure context available",
+        "icon": "database",
+        "tone": "amber",
+        "status": "REVIEW SIGNAL",
+        "statusTone": "warn"
+      }
+    ],
+    "payoff": "A number can connect the trail.",
+    "cta": "Check the number",
+    "landing": "/#search — Phone",
+    "caption": "When a new number appears, start with what you know. Anya organizes public identity and exposure signals in one place.",
+    "headline": "See what connects to the number",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/kids/kids-group-chat-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "KID-05",
+    "slug": "kids-before-meeting",
+    "category": "kids",
+    "categoryLabel": "Protecting kids",
+    "categoryIndex": "05",
+    "campaignName": "Before meeting offline",
+    "audience": "Parents concerned about an online friendship becoming an in-person meeting",
+    "ageBand": "35–60",
+    "platformLane": "Organic-first",
+    "accent": "#95c9ff",
+    "hook": "Before online becomes in person.",
+    "eyebrow": "CHECK THE PUBLIC SIGNALS FIRST",
+    "moduleLabel": "IDENTITY CROSS-REFERENCE",
+    "inputKind": "username",
+    "inputLabel": "ONLINE USERNAME",
+    "inputValue": "morganvale_22",
+    "stats": [
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "3"
+      },
+      {
+        "label": "RELATED HANDLE",
+        "value": "1"
+      },
+      {
+        "label": "SOURCE TYPES",
+        "value": "4"
+      }
+    ],
+    "searchStatus": "SEARCH COMPLETE",
+    "resultTitle": "Review what the public trail shows.",
+    "results": [
+      {
+        "title": "Discord",
+        "value": "@morganvale_22",
+        "detail": "Public account metadata",
+        "icon": "discord",
+        "tone": "violet",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Instagram",
+        "value": "@morgan.vale",
+        "detail": "Related public profile",
+        "icon": "instagram",
+        "tone": "rose",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Handle history",
+        "value": "1 prior name",
+        "detail": "Related public username",
+        "icon": "link",
+        "tone": "ice",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Exposure check",
+        "value": "No live credential shown",
+        "detail": "Source context stays attached",
+        "icon": "shield",
+        "tone": "mint",
+        "status": "REVIEW COMPLETE"
+      }
+    ],
+    "payoff": "Public context before a real meeting.",
+    "cta": "Review the username",
+    "landing": "/#search — Username",
+    "caption": "Before an online connection becomes an in-person meeting, review the public identity signals tied to the username.",
+    "headline": "Check the public trail first",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/kids/kids-before-meeting-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "REL-01",
+    "slug": "cheating-dating-apps",
+    "category": "cheating",
+    "categoryLabel": "Relationship uncertainty",
+    "categoryIndex": "01",
+    "campaignName": "Dating app profiles",
+    "audience": "Adults questioning whether a partner or match maintains other dating identities",
+    "ageBand": "25–54",
+    "platformLane": "Paid-edgy",
+    "accent": "#f0a8c8",
+    "hook": "Are they on dating apps?",
+    "eyebrow": "START WITH AN EMAIL OR USERNAME",
+    "moduleLabel": "DATING + IDENTITY",
+    "inputKind": "email",
+    "inputLabel": "EMAIL ADDRESS",
+    "inputValue": "alex.river@example.com",
+    "stats": [
+      {
+        "label": "DATING SIGNALS",
+        "value": "2"
+      },
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "3"
+      },
+      {
+        "label": "HANDLE VARIANTS",
+        "value": "2"
+      }
+    ],
+    "searchStatus": "SIGNALS FOUND",
+    "resultTitle": "See where the identity appears.",
+    "results": [
+      {
+        "title": "Dating profile index",
+        "value": "2 public signals",
+        "detail": "Handle and profile references",
+        "icon": "heart",
+        "tone": "rose",
+        "status": "REVIEW SIGNAL",
+        "statusTone": "warn"
+      },
+      {
+        "title": "Contact profiles",
+        "value": "3 public surfaces",
+        "detail": "Accounts tied to the email",
+        "icon": "users",
+        "tone": "violet",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Username match",
+        "value": "@alexriver_co",
+        "detail": "Related public handle",
+        "icon": "at",
+        "tone": "ice",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Breach alias",
+        "value": "1 related alias",
+        "detail": "Exposure-source context",
+        "icon": "database",
+        "tone": "amber",
+        "status": "REVIEW SIGNAL",
+        "statusTone": "warn"
+      }
+    ],
+    "payoff": "Search the identity, not the story.",
+    "cta": "See what connects",
+    "landing": "/pricing — Dating Apps + Identity",
+    "caption": "When the story does not add up, start with a real signal. Anya brings public profiles, aliases, and exposure context into one reviewable workspace.",
+    "headline": "See where the identity appears",
+    "extraFormat": "square",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/cheating/cheating-dating-apps-4x5.png",
+      "square": "output/ads/campaigns/cheating/cheating-dating-apps-square.png"
+    }
+  },
+  {
+    "id": "REL-02",
+    "slug": "cheating-midnight-texts",
+    "category": "cheating",
+    "categoryLabel": "Relationship uncertainty",
+    "categoryIndex": "02",
+    "campaignName": "Late-night texts",
+    "audience": "Adults who recognize changes in texting patterns",
+    "ageBand": "35–60",
+    "platformLane": "Paid-edgy",
+    "accent": "#f0a8c8",
+    "hook": "Who keeps texting after midnight?",
+    "eyebrow": "ONE NUMBER CAN CONNECT THE TRAIL",
+    "moduleLabel": "PHONE IDENTITY",
+    "inputKind": "phone",
+    "inputLabel": "PHONE NUMBER",
+    "inputValue": "+1 (646) 555-0147",
+    "stats": [
+      {
+        "label": "IDENTITY SIGNALS",
+        "value": "3"
+      },
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "2"
+      },
+      {
+        "label": "RELATED ALIAS",
+        "value": "1"
+      }
+    ],
+    "searchStatus": "SEARCH COMPLETE",
+    "resultTitle": "Turn the number into context.",
+    "results": [
+      {
+        "title": "Phone identity",
+        "value": "A•••• R••••",
+        "detail": "Fictional contact signal",
+        "icon": "phone",
+        "tone": "ice",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Contact profiles",
+        "value": "2 public surfaces",
+        "detail": "Public account signals",
+        "icon": "users",
+        "tone": "violet",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Email association",
+        "value": "a••••@example.com",
+        "detail": "Masked fictional demo data",
+        "icon": "mail",
+        "tone": "blue",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Breach alias",
+        "value": "@afterhours_alex",
+        "detail": "Related exposure alias",
+        "icon": "database",
+        "tone": "amber",
+        "status": "REVIEW SIGNAL",
+        "statusTone": "warn"
+      }
+    ],
+    "payoff": "The number is the starting point.",
+    "cta": "Check the number",
+    "landing": "/#search — Phone",
+    "caption": "A phone number can connect to public identity, profile, and exposure signals. Review the trail without guessing.",
+    "headline": "See what connects to the number",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/cheating/cheating-midnight-texts-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "REL-03",
+    "slug": "cheating-two-names",
+    "category": "cheating",
+    "categoryLabel": "Relationship uncertainty",
+    "categoryIndex": "03",
+    "campaignName": "Two names",
+    "audience": "Adults who found a second phone number or conflicting identity details",
+    "ageBand": "30–60",
+    "platformLane": "Paid-edgy",
+    "accent": "#f0a8c8",
+    "hook": "One number. Two different names.",
+    "eyebrow": "CHECK THE IDENTITY SIGNALS",
+    "moduleLabel": "PHONE + ALIASES",
+    "inputKind": "phone",
+    "inputLabel": "PHONE NUMBER",
+    "inputValue": "+1 (212) 555-0194",
+    "stats": [
+      {
+        "label": "NAME SIGNALS",
+        "value": "2"
+      },
+      {
+        "label": "PUBLIC HANDLES",
+        "value": "3"
+      },
+      {
+        "label": "SOURCE TYPES",
+        "value": "4"
+      }
+    ],
+    "searchStatus": "REVIEW NEEDED",
+    "resultTitle": "Compare the connected identity signals.",
+    "results": [
+      {
+        "title": "Contact name",
+        "value": "Jordan M••••",
+        "detail": "Fictional public-source signal",
+        "icon": "user",
+        "tone": "ice",
+        "status": "NAME SIGNAL"
+      },
+      {
+        "title": "Related alias",
+        "value": "Alex M••••",
+        "detail": "Different source label",
+        "icon": "fingerprint",
+        "tone": "rose",
+        "status": "REVIEW SIGNAL",
+        "statusTone": "warn"
+      },
+      {
+        "title": "Public username",
+        "value": "@jordanafterdark",
+        "detail": "Related profile surface",
+        "icon": "at",
+        "tone": "violet",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Contact profiles",
+        "value": "3 surfaces",
+        "detail": "Public account context",
+        "icon": "users",
+        "tone": "blue",
+        "status": "CONTEXT FOUND"
+      }
+    ],
+    "payoff": "Compare the signals. Keep the source.",
+    "cta": "Review the number",
+    "landing": "/#search — Phone",
+    "caption": "Conflicting names are a reason to verify—not a conclusion. Anya keeps each public signal attached to its source.",
+    "headline": "Compare the identity signals",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/cheating/cheating-two-names-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "REL-04",
+    "slug": "cheating-coworker",
+    "category": "cheating",
+    "categoryLabel": "Relationship uncertainty",
+    "categoryIndex": "04",
+    "campaignName": "The coworker story",
+    "audience": "Adults suspicious of a newly prominent contact",
+    "ageBand": "30–55",
+    "platformLane": "Organic-first",
+    "accent": "#f0a8c8",
+    "hook": "Is that really a coworker?",
+    "eyebrow": "START WITH THE NUMBER OR USERNAME",
+    "moduleLabel": "IDENTITY CROSS-REFERENCE",
+    "inputKind": "phone",
+    "inputLabel": "PHONE NUMBER",
+    "inputValue": "+1 (312) 555-0168",
+    "stats": [
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "3"
+      },
+      {
+        "label": "IDENTITY SIGNAL",
+        "value": "1"
+      },
+      {
+        "label": "RELATED HANDLE",
+        "value": "1"
+      }
+    ],
+    "searchStatus": "SIGNALS FOUND",
+    "resultTitle": "See the public identity trail.",
+    "results": [
+      {
+        "title": "Phone identity",
+        "value": "Taylor C••••",
+        "detail": "Fictional contact signal",
+        "icon": "phone",
+        "tone": "ice",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Instagram",
+        "value": "@taylor.city",
+        "detail": "Related public profile",
+        "icon": "instagram",
+        "tone": "rose",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "GitHub",
+        "value": "taylor-city",
+        "detail": "Public account surface",
+        "icon": "github",
+        "tone": "slate",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Username history",
+        "value": "1 prior handle",
+        "detail": "Related public username",
+        "icon": "link",
+        "tone": "violet",
+        "status": "CONTEXT FOUND"
+      }
+    ],
+    "payoff": "Public signals, without the guesswork.",
+    "cta": "See what connects",
+    "landing": "/#search — Phone",
+    "caption": "When a new contact becomes part of the story, start with a real signal and review the public trail for yourself.",
+    "headline": "See the identity behind the number",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/cheating/cheating-coworker-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "REL-05",
+    "slug": "cheating-no-video",
+    "category": "cheating",
+    "categoryLabel": "Relationship uncertainty",
+    "categoryIndex": "05",
+    "campaignName": "No video chat",
+    "audience": "Adults in online or long-distance relationships",
+    "ageBand": "25–45",
+    "platformLane": "Paid-edgy",
+    "accent": "#f0a8c8",
+    "hook": "Why won't they video chat?",
+    "eyebrow": "CHECK WHETHER THE IDENTITY CONNECTS",
+    "moduleLabel": "USERNAME + PROFILES",
+    "inputKind": "username",
+    "inputLabel": "ONLINE USERNAME",
+    "inputValue": "coastal_james",
+    "stats": [
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "4"
+      },
+      {
+        "label": "HANDLE VARIANTS",
+        "value": "2"
+      },
+      {
+        "label": "IDENTITY SIGNALS",
+        "value": "3"
+      }
+    ],
+    "searchStatus": "SEARCH COMPLETE",
+    "resultTitle": "Check whether the public identity aligns.",
+    "results": [
+      {
+        "title": "Instagram",
+        "value": "@coastal.james",
+        "detail": "Public profile surface",
+        "icon": "instagram",
+        "tone": "rose",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Reddit / web",
+        "value": "coastal_james_7",
+        "detail": "Related public handle",
+        "icon": "globe",
+        "tone": "amber",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Contact profile",
+        "value": "j••••@example.com",
+        "detail": "Masked fictional signal",
+        "icon": "mail",
+        "tone": "blue",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Handle history",
+        "value": "2 related names",
+        "detail": "Public username context",
+        "icon": "link",
+        "tone": "violet",
+        "status": "CONTEXT FOUND"
+      }
+    ],
+    "payoff": "Check the identity before trusting it.",
+    "cta": "Search the username",
+    "landing": "/#search — Username",
+    "caption": "A username can appear across multiple public surfaces. Check whether the identity signals tell a consistent story.",
+    "headline": "See whether the identity connects",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/cheating/cheating-no-video-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "EXP-01",
+    "slug": "exposure-search-yourself",
+    "category": "exposure",
+    "categoryLabel": "Protecting your data",
+    "categoryIndex": "01",
+    "campaignName": "Search yourself",
+    "audience": "Privacy-conscious adults and professionals",
+    "ageBand": "30–65",
+    "platformLane": "Paid-safe",
+    "accent": "#8ee1bd",
+    "hook": "Search yourself before they do.",
+    "eyebrow": "SEE YOUR PUBLIC EXPOSURE",
+    "moduleLabel": "BREACHES + CONTACT PROFILES",
+    "inputKind": "email",
+    "inputLabel": "YOUR EMAIL ADDRESS",
+    "inputValue": "you@example.com",
+    "stats": [
+      {
+        "label": "BREACH RECORDS",
+        "value": "3"
+      },
+      {
+        "label": "CONTACT SIGNALS",
+        "value": "4"
+      },
+      {
+        "label": "INDEXED SURFACES",
+        "value": "6"
+      }
+    ],
+    "searchStatus": "EXPOSURE FOUND",
+    "resultTitle": "See what the public trail reveals.",
+    "results": [
+      {
+        "title": "Breach records",
+        "value": "3 records",
+        "detail": "Exposure-source context",
+        "icon": "database",
+        "tone": "amber",
+        "status": "REVIEW EXPOSURE",
+        "statusTone": "risk"
+      },
+      {
+        "title": "Contact profiles",
+        "value": "4 public surfaces",
+        "detail": "Accounts associated with the email",
+        "icon": "users",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Email analyzer",
+        "value": "Deliverable",
+        "detail": "Domain and account context",
+        "icon": "mail",
+        "tone": "mint",
+        "status": "ANALYSIS READY"
+      },
+      {
+        "title": "Index sweep",
+        "value": "2 indexed mentions",
+        "detail": "Strict public search operators",
+        "icon": "scan",
+        "tone": "ice",
+        "status": "PUBLIC SIGNAL"
+      }
+    ],
+    "payoff": "Know what's exposed. Take back context.",
+    "cta": "Search your email",
+    "landing": "/#search — Breaches",
+    "caption": "Use the email you already own. Anya brings breach, public profile, and indexed exposure signals into one reviewable search.",
+    "headline": "See what is exposed",
+    "extraFormat": "square",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/exposure/exposure-search-yourself-4x5.png",
+      "square": "output/ads/campaigns/exposure/exposure-search-yourself-square.png"
+    }
+  },
+  {
+    "id": "EXP-02",
+    "slug": "exposure-email-breach",
+    "category": "exposure",
+    "categoryLabel": "Protecting your data",
+    "categoryIndex": "02",
+    "campaignName": "Email breach",
+    "audience": "Adults who use one email across many services",
+    "ageBand": "30–65",
+    "platformLane": "Paid-safe",
+    "accent": "#8ee1bd",
+    "hook": "Was your email in a breach?",
+    "eyebrow": "ONE SEARCH ACROSS EXPOSURE SOURCES",
+    "moduleLabel": "BREACH SEARCH",
+    "inputKind": "email",
+    "inputLabel": "EMAIL ADDRESS",
+    "inputValue": "morgan@example.com",
+    "stats": [
+      {
+        "label": "BREACH RECORDS",
+        "value": "5"
+      },
+      {
+        "label": "SOURCE GROUPS",
+        "value": "3"
+      },
+      {
+        "label": "RELATED ALIASES",
+        "value": "2"
+      }
+    ],
+    "searchStatus": "RECORDS FOUND",
+    "resultTitle": "Review the exposure records and sources.",
+    "results": [
+      {
+        "title": "Credential record",
+        "value": "m••••@example.com",
+        "detail": "Password value kept hidden",
+        "icon": "key",
+        "tone": "amber",
+        "status": "EXPOSURE FOUND",
+        "statusTone": "risk"
+      },
+      {
+        "title": "Breach source",
+        "value": "Consumer service",
+        "detail": "Source label + indexed date",
+        "icon": "database",
+        "tone": "rose",
+        "status": "SOURCE ATTACHED",
+        "statusTone": "warn"
+      },
+      {
+        "title": "Related alias",
+        "value": "@morgan_north",
+        "detail": "Username in exposure record",
+        "icon": "at",
+        "tone": "violet",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Email analysis",
+        "value": "Domain active",
+        "detail": "Account and domain context",
+        "icon": "mail",
+        "tone": "mint",
+        "status": "ANALYSIS READY"
+      }
+    ],
+    "payoff": "See the record. Keep the source.",
+    "cta": "Check your email",
+    "landing": "/#search — Breaches",
+    "caption": "A breach result is useful when the source and context stay attached. Search your email and review the exposure record clearly.",
+    "headline": "Check your email exposure",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/exposure/exposure-email-breach-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "EXP-03",
+    "slug": "exposure-password-resets",
+    "category": "exposure",
+    "categoryLabel": "Protecting your data",
+    "categoryIndex": "03",
+    "campaignName": "Password reset alerts",
+    "audience": "Adults noticing unusual password reset or login emails",
+    "ageBand": "30–60",
+    "platformLane": "Paid-safe",
+    "accent": "#8ee1bd",
+    "hook": "Why are password resets starting?",
+    "eyebrow": "CHECK THE EMAIL'S EXPOSURE TRAIL",
+    "moduleLabel": "BREACHES + STEALER INTEL",
+    "inputKind": "email",
+    "inputLabel": "EMAIL ADDRESS",
+    "inputValue": "casey@example.com",
+    "stats": [
+      {
+        "label": "EXPOSURE RECORDS",
+        "value": "4"
+      },
+      {
+        "label": "CREDENTIAL SIGNAL",
+        "value": "1"
+      },
+      {
+        "label": "RELATED DOMAINS",
+        "value": "3"
+      }
+    ],
+    "searchStatus": "REVIEW NEEDED",
+    "resultTitle": "Find the exposure behind the alerts.",
+    "results": [
+      {
+        "title": "Credential exposure",
+        "value": "1 recent signal",
+        "detail": "Sensitive value stays hidden",
+        "icon": "lock",
+        "tone": "rose",
+        "status": "REVIEW EXPOSURE",
+        "statusTone": "risk"
+      },
+      {
+        "title": "Stealer index",
+        "value": "Source context",
+        "detail": "Professional module signal",
+        "icon": "fingerprint",
+        "tone": "amber",
+        "status": "REVIEW SIGNAL",
+        "statusTone": "warn"
+      },
+      {
+        "title": "Breach records",
+        "value": "4 records",
+        "detail": "Source labels attached",
+        "icon": "database",
+        "tone": "violet",
+        "status": "EXPOSURE FOUND",
+        "statusTone": "risk"
+      },
+      {
+        "title": "Email analysis",
+        "value": "Account active",
+        "detail": "Domain and deliverability context",
+        "icon": "mail",
+        "tone": "mint",
+        "status": "ANALYSIS READY"
+      }
+    ],
+    "payoff": "Find the exposure. Secure the account.",
+    "cta": "Check the email",
+    "landing": "/#search — Breaches",
+    "caption": "Unexpected reset alerts can be a reason to review your exposure. Search the email and see which records and sources connect.",
+    "headline": "Review the email's exposure trail",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/exposure/exposure-password-resets-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "EXP-04",
+    "slug": "exposure-old-password",
+    "category": "exposure",
+    "categoryLabel": "Protecting your data",
+    "categoryIndex": "04",
+    "campaignName": "Old password",
+    "audience": "Adults who have reused passwords over many years",
+    "ageBand": "35–65",
+    "platformLane": "Paid-safe",
+    "accent": "#8ee1bd",
+    "hook": "Your old password still matters.",
+    "eyebrow": "PAST EXPOSURE CAN CREATE NEW RISK",
+    "moduleLabel": "CREDENTIAL EXPOSURE",
+    "inputKind": "email",
+    "inputLabel": "EMAIL ADDRESS",
+    "inputValue": "robin@example.com",
+    "stats": [
+      {
+        "label": "HISTORIC RECORDS",
+        "value": "6"
+      },
+      {
+        "label": "PASSWORD SIGNALS",
+        "value": "2"
+      },
+      {
+        "label": "SOURCE YEARS",
+        "value": "4"
+      }
+    ],
+    "searchStatus": "EXPOSURE FOUND",
+    "resultTitle": "Review where old credentials appeared.",
+    "results": [
+      {
+        "title": "Historic credential",
+        "value": "Password hidden",
+        "detail": "Indexed exposure record",
+        "icon": "key",
+        "tone": "rose",
+        "status": "EXPOSURE FOUND",
+        "statusTone": "risk"
+      },
+      {
+        "title": "Breach source",
+        "value": "Retail account",
+        "detail": "Fictional source category",
+        "icon": "database",
+        "tone": "amber",
+        "status": "SOURCE ATTACHED",
+        "statusTone": "warn"
+      },
+      {
+        "title": "Related username",
+        "value": "@robin_west",
+        "detail": "Alias in exposure record",
+        "icon": "at",
+        "tone": "violet",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Current email",
+        "value": "Active domain",
+        "detail": "Account analysis signal",
+        "icon": "mail",
+        "tone": "mint",
+        "status": "ANALYSIS READY"
+      }
+    ],
+    "payoff": "Old exposure can follow a new login.",
+    "cta": "Review your exposure",
+    "landing": "/#search — Breaches",
+    "caption": "Old credential exposure does not always stay in the past. Review the records tied to your email and keep every source in context.",
+    "headline": "Find old credential exposure",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/exposure/exposure-old-password-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "EXP-05",
+    "slug": "exposure-stranger-view",
+    "category": "exposure",
+    "categoryLabel": "Protecting your data",
+    "categoryIndex": "05",
+    "campaignName": "What strangers see",
+    "audience": "Adults concerned about their visible digital footprint",
+    "ageBand": "30–60",
+    "platformLane": "Paid-safe",
+    "accent": "#8ee1bd",
+    "hook": "What can strangers find on you?",
+    "eyebrow": "SEE YOUR PUBLIC DIGITAL FOOTPRINT",
+    "moduleLabel": "USERNAME + EXPOSURE",
+    "inputKind": "username",
+    "inputLabel": "YOUR USERNAME",
+    "inputValue": "robinwest_86",
+    "stats": [
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "5"
+      },
+      {
+        "label": "HANDLE VARIANTS",
+        "value": "3"
+      },
+      {
+        "label": "EXPOSURE RECORDS",
+        "value": "2"
+      }
+    ],
+    "searchStatus": "SIGNALS FOUND",
+    "resultTitle": "See the footprint in one place.",
+    "results": [
+      {
+        "title": "Public profiles",
+        "value": "5 surfaces",
+        "detail": "Accounts using the handle",
+        "icon": "globe",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Username history",
+        "value": "3 variants",
+        "detail": "Related public handles",
+        "icon": "link",
+        "tone": "violet",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Breach exposure",
+        "value": "2 records",
+        "detail": "Exposure-source context",
+        "icon": "database",
+        "tone": "amber",
+        "status": "REVIEW EXPOSURE",
+        "statusTone": "risk"
+      },
+      {
+        "title": "Indexed mentions",
+        "value": "2 strict matches",
+        "detail": "Public search surfaces",
+        "icon": "scan",
+        "tone": "ice",
+        "status": "PUBLIC SIGNAL"
+      }
+    ],
+    "payoff": "See your footprint before sharing more.",
+    "cta": "Search yourself",
+    "landing": "/#search — Username",
+    "caption": "Search the username you use most. Anya shows the public account, alias, and exposure signals that connect to it.",
+    "headline": "See your public digital footprint",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/exposure/exposure-stranger-view-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "TRU-01",
+    "slug": "trust-babysitter",
+    "category": "trust",
+    "categoryLabel": "Who enters your life",
+    "categoryIndex": "01",
+    "campaignName": "Babysitter identity",
+    "audience": "Parents confirming the identity and contact information they were given",
+    "ageBand": "30–55",
+    "platformLane": "Paid-safe",
+    "accent": "#efc983",
+    "hook": "Before the babysitter arrives.",
+    "eyebrow": "CONFIRM THE PUBLIC IDENTITY",
+    "moduleLabel": "NAME + PUBLIC SOURCES",
+    "inputKind": "name",
+    "inputLabel": "NAME PROVIDED",
+    "inputValue": "Morgan Ellis",
+    "stats": [
+      {
+        "label": "IDENTITY SIGNALS",
+        "value": "3"
+      },
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "2"
+      },
+      {
+        "label": "DIRECTORIES",
+        "value": "4"
+      }
+    ],
+    "searchStatus": "SEARCH COMPLETE",
+    "resultTitle": "Confirm the public details you were given.",
+    "results": [
+      {
+        "title": "Public identity",
+        "value": "Morgan E••••",
+        "detail": "Fictional name-search signal",
+        "icon": "user",
+        "tone": "ice",
+        "status": "IDENTITY SIGNAL"
+      },
+      {
+        "title": "Contact match",
+        "value": "Phone ending ••82",
+        "detail": "Masked fictional contact data",
+        "icon": "phone",
+        "tone": "mint",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Public profiles",
+        "value": "2 surfaces",
+        "detail": "Accounts tied to the name",
+        "icon": "users",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Record directories",
+        "value": "4 sources checked",
+        "detail": "Directory access available",
+        "icon": "file",
+        "tone": "amber",
+        "status": "SOURCES CHECKED"
+      }
+    ],
+    "payoff": "Confirm the identity before the visit.",
+    "cta": "Review public signals",
+    "landing": "/pricing — Name Search",
+    "caption": "Confirm the name and contact details you were given before someone cares for your child. Public-source identity context only—not employment screening.",
+    "headline": "Confirm the public identity",
+    "extraFormat": "square",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/trust/trust-babysitter-4x5.png",
+      "square": "output/ads/campaigns/trust/trust-babysitter-square.png"
+    }
+  },
+  {
+    "id": "TRU-02",
+    "slug": "trust-coach-title",
+    "category": "trust",
+    "categoryLabel": "Who enters your life",
+    "categoryIndex": "02",
+    "campaignName": "Coach or volunteer",
+    "audience": "Parents and community members confirming a coach, volunteer, or youth leader's public identity",
+    "ageBand": "35–60",
+    "platformLane": "Paid-safe",
+    "accent": "#efc983",
+    "hook": "Titles aren't proof.",
+    "eyebrow": "CHECK THE PUBLIC IDENTITY",
+    "moduleLabel": "NAME SEARCH",
+    "inputKind": "name",
+    "inputLabel": "NAME PROVIDED",
+    "inputValue": "Daniel Mercer",
+    "stats": [
+      {
+        "label": "IDENTITY SIGNALS",
+        "value": "4"
+      },
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "3"
+      },
+      {
+        "label": "RECORD SOURCES",
+        "value": "5"
+      }
+    ],
+    "searchStatus": "SEARCH COMPLETE",
+    "resultTitle": "Review the public identity behind the title.",
+    "results": [
+      {
+        "title": "Public identity",
+        "value": "Daniel M•••••",
+        "detail": "Fictional identity signal",
+        "icon": "badge",
+        "tone": "ice",
+        "status": "IDENTITY SIGNAL"
+      },
+      {
+        "title": "Contact context",
+        "value": "2 public details",
+        "detail": "Masked contact enrichment",
+        "icon": "phone",
+        "tone": "mint",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Public profiles",
+        "value": "3 surfaces",
+        "detail": "Accounts tied to the name",
+        "icon": "users",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Record directories",
+        "value": "5 sources checked",
+        "detail": "Reviewable source list",
+        "icon": "file",
+        "tone": "amber",
+        "status": "SOURCES CHECKED"
+      }
+    ],
+    "payoff": "A title is not an identity check.",
+    "cta": "Check the public details",
+    "landing": "/pricing — Name Search",
+    "caption": "A title can create trust quickly. Confirm the public identity and contact details behind it before relying on the introduction.",
+    "headline": "Review the public identity",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/trust/trust-coach-title-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "TRU-03",
+    "slug": "trust-first-date",
+    "category": "trust",
+    "categoryLabel": "Who enters your life",
+    "categoryIndex": "03",
+    "campaignName": "First date",
+    "audience": "Adults planning a first in-person meeting with an online match",
+    "ageBand": "25–55",
+    "platformLane": "Paid-safe",
+    "accent": "#efc983",
+    "hook": "Before the first date.",
+    "eyebrow": "START WITH THE NUMBER OR USERNAME",
+    "moduleLabel": "PHONE + PUBLIC PROFILES",
+    "inputKind": "phone",
+    "inputLabel": "PHONE NUMBER",
+    "inputValue": "+1 (917) 555-0136",
+    "stats": [
+      {
+        "label": "IDENTITY SIGNALS",
+        "value": "3"
+      },
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "4"
+      },
+      {
+        "label": "RELATED HANDLE",
+        "value": "1"
+      }
+    ],
+    "searchStatus": "SIGNALS FOUND",
+    "resultTitle": "See whether the public details connect.",
+    "results": [
+      {
+        "title": "Phone identity",
+        "value": "Jamie R••••",
+        "detail": "Fictional contact signal",
+        "icon": "phone",
+        "tone": "ice",
+        "status": "IDENTITY SIGNAL"
+      },
+      {
+        "title": "Instagram",
+        "value": "@jamie.river",
+        "detail": "Related public profile",
+        "icon": "instagram",
+        "tone": "rose",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Dating profile index",
+        "value": "1 public reference",
+        "detail": "Handle and profile context",
+        "icon": "heart",
+        "tone": "violet",
+        "status": "REVIEW SIGNAL",
+        "statusTone": "warn"
+      },
+      {
+        "title": "Username history",
+        "value": "1 related handle",
+        "detail": "Public alias context",
+        "icon": "link",
+        "tone": "blue",
+        "status": "CONTEXT FOUND"
+      }
+    ],
+    "payoff": "Public context before meeting in person.",
+    "cta": "Check the number",
+    "landing": "/#search — Phone",
+    "caption": "Before meeting an online match in person, check whether the public identity signals tied to the number tell a consistent story.",
+    "headline": "Check the public details first",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/trust/trust-first-date-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "TRU-04",
+    "slug": "trust-marketplace-seller",
+    "category": "trust",
+    "categoryLabel": "Who enters your life",
+    "categoryIndex": "04",
+    "campaignName": "Marketplace meetup",
+    "audience": "Adults arranging an in-person marketplace purchase",
+    "ageBand": "30–60",
+    "platformLane": "Paid-safe",
+    "accent": "#efc983",
+    "hook": "Meeting a seller in person?",
+    "eyebrow": "CHECK THE NUMBER BEFORE THE MEETUP",
+    "moduleLabel": "PHONE + FRAUD FOOTPRINT",
+    "inputKind": "phone",
+    "inputLabel": "SELLER PHONE",
+    "inputValue": "+1 (305) 555-0175",
+    "stats": [
+      {
+        "label": "IDENTITY SIGNALS",
+        "value": "2"
+      },
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "3"
+      },
+      {
+        "label": "FRAUD SIGNALS",
+        "value": "1"
+      }
+    ],
+    "searchStatus": "REVIEW NEEDED",
+    "resultTitle": "Review the public signals before meeting.",
+    "results": [
+      {
+        "title": "Phone identity",
+        "value": "Chris L••••",
+        "detail": "Fictional contact signal",
+        "icon": "phone",
+        "tone": "ice",
+        "status": "IDENTITY SIGNAL"
+      },
+      {
+        "title": "Public profiles",
+        "value": "3 surfaces",
+        "detail": "Accounts tied to the number",
+        "icon": "users",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Fraud footprint",
+        "value": "1 review signal",
+        "detail": "Reputation-source context",
+        "icon": "alert",
+        "tone": "amber",
+        "status": "REVIEW SIGNAL",
+        "statusTone": "warn"
+      },
+      {
+        "title": "Breach exposure",
+        "value": "1 related record",
+        "detail": "Exposure context available",
+        "icon": "database",
+        "tone": "rose",
+        "status": "REVIEW EXPOSURE",
+        "statusTone": "risk"
+      }
+    ],
+    "payoff": "A safer meetup starts with context.",
+    "cta": "Check the seller's number",
+    "landing": "/#search — Phone",
+    "caption": "Before an in-person marketplace meetup, use the seller's number to review public identity, profile, and reputation signals.",
+    "headline": "Review the seller's public signals",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/trust/trust-marketplace-seller-4x5.png",
+      "square": null
+    }
+  },
+  {
+    "id": "TRU-05",
+    "slug": "trust-entering-home",
+    "category": "trust",
+    "categoryLabel": "Who enters your life",
+    "categoryIndex": "05",
+    "campaignName": "Entering your home",
+    "audience": "Homeowners confirming a new visitor or service contact",
+    "ageBand": "35–65",
+    "platformLane": "Paid-safe",
+    "accent": "#efc983",
+    "hook": "Before they enter your home.",
+    "eyebrow": "CONFIRM THE DETAILS YOU WERE GIVEN",
+    "moduleLabel": "NAME + PHONE",
+    "inputKind": "name",
+    "inputLabel": "NAME PROVIDED",
+    "inputValue": "Cameron Brooks",
+    "stats": [
+      {
+        "label": "IDENTITY SIGNALS",
+        "value": "3"
+      },
+      {
+        "label": "CONTACT DETAILS",
+        "value": "2"
+      },
+      {
+        "label": "PUBLIC PROFILES",
+        "value": "2"
+      }
+    ],
+    "searchStatus": "SEARCH COMPLETE",
+    "resultTitle": "Confirm the public details before the visit.",
+    "results": [
+      {
+        "title": "Public identity",
+        "value": "Cameron B•••••",
+        "detail": "Fictional name-search signal",
+        "icon": "user",
+        "tone": "ice",
+        "status": "IDENTITY SIGNAL"
+      },
+      {
+        "title": "Phone association",
+        "value": "Ending ••41",
+        "detail": "Masked fictional contact data",
+        "icon": "phone",
+        "tone": "mint",
+        "status": "CONTEXT FOUND"
+      },
+      {
+        "title": "Public profiles",
+        "value": "2 surfaces",
+        "detail": "Accounts tied to the name",
+        "icon": "users",
+        "tone": "blue",
+        "status": "PUBLIC SIGNAL"
+      },
+      {
+        "title": "Directory sources",
+        "value": "4 checked",
+        "detail": "Reviewable public-source list",
+        "icon": "home",
+        "tone": "amber",
+        "status": "SOURCES CHECKED"
+      }
+    ],
+    "payoff": "Confirm the identity before the door opens.",
+    "cta": "Review public details",
+    "landing": "/pricing — Name Search",
+    "caption": "Before a new person enters your home, confirm that the name, phone, and public profile details you were given connect.",
+    "headline": "Confirm the public identity first",
+    "assets": {
+      "primary4x5": "output/ads/campaigns/trust/trust-entering-home-4x5.png",
+      "square": null
+    }
+  }
+]

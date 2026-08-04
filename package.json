@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --fix",
+    "ads:manifest": "npx tsx scripts/export-ad-campaign-manifest.mts",
     "postinstall": "prisma generate",
     "health:providers": "npx tsx scripts/check-provider-health.mts",
     "cf:challenge-ttl": "npx tsx scripts/set-cloudflare-challenge-ttl.mts"

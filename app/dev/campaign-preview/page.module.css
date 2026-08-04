@@ -1,0 +1,735 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #050506;
+}
+
+.frame {
+  --ice: #c3d3e6;
+  --ice-bright: #e8f2ff;
+  --campaign-accent: #c3d3e6;
+  --paper: #f5f7fa;
+  --muted: #9298a2;
+  --hairline: rgba(255, 255, 255, 0.1);
+  position: relative;
+  isolation: isolate;
+  width: min(100vw, 1080px);
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  padding: 52px 58px 46px;
+  color: var(--paper);
+  background:
+    radial-gradient(
+      circle at 80% 17%,
+      rgba(195, 211, 230, 0.13),
+      transparent 27%
+    ),
+    linear-gradient(152deg, #090b0f 0%, #030405 58%, #080a0d 100%);
+  font-family: var(--font-anya-sans), Manrope, sans-serif;
+}
+
+.grid {
+  position: absolute;
+  z-index: -3;
+  inset: 0;
+  opacity: 0.31;
+  background-image: radial-gradient(
+    circle,
+    rgba(218, 230, 244, 0.32) 0 1px,
+    transparent 1.3px
+  );
+  background-size: 11px 11px;
+  mask-image:
+    radial-gradient(ellipse 68% 34% at 76% 18%, #000 0 32%, transparent 78%),
+    radial-gradient(ellipse 70% 46% at 34% 76%, #000 0 25%, transparent 78%);
+}
+
+.glowTop,
+.glowBottom {
+  position: absolute;
+  z-index: -2;
+  border: 1px solid rgba(195, 211, 230, 0.07);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.glowTop {
+  top: -360px;
+  right: -280px;
+  width: 760px;
+  height: 760px;
+  box-shadow:
+    0 0 0 90px rgba(195, 211, 230, 0.013),
+    0 0 0 180px rgba(195, 211, 230, 0.008);
+}
+
+.glowBottom {
+  bottom: -520px;
+  left: -240px;
+  width: 840px;
+  height: 840px;
+  box-shadow: 0 0 100px rgba(195, 211, 230, 0.07) inset;
+}
+
+.brandBar,
+.wordmarkWrap,
+.productChrome,
+.productIdentity,
+.demoFlag,
+.inputLabel,
+.searchBar,
+.signalRail,
+.completeStat,
+.resultsHead,
+.cardTop,
+.cardStatus,
+.connectionBand,
+.footer,
+.footer > div {
+  display: flex;
+  align-items: center;
+}
+
+.brandBar {
+  justify-content: space-between;
+}
+
+.wordmarkWrap {
+  gap: 12px;
+}
+
+.brandLogo {
+  display: block;
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  object-position: 50% 42%;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--campaign-accent) 42%, transparent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--campaign-accent) 7%, transparent),
+    0 0 25px color-mix(in srgb, var(--campaign-accent) 16%, transparent);
+}
+
+.wordmark {
+  font-family: var(--font-bruno-ace-sc), var(--font-anya-sans), sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+.brandMeta,
+.eyebrow,
+.productIdentity,
+.demoFlag,
+.inputLabel,
+.signalRail span,
+.resultsHead p,
+.resultsCount,
+.cardIndex,
+.cardStatus,
+.connectionBand span,
+.footer {
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+}
+
+.brandMeta {
+  color: rgba(195, 211, 230, 0.65);
+  font-size: 10px;
+}
+
+.heroCopy {
+  margin-top: 60px;
+  margin-left: 8px;
+}
+
+.eyebrow {
+  margin: 0 0 18px;
+  color: var(--campaign-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.heroCopy h1 {
+  margin: 0;
+  width: calc(100% / 0.91);
+  max-width: none;
+  font-size: 118px;
+  font-weight: 600;
+  line-height: 0.86;
+  letter-spacing: -0.069em;
+  transform: scaleX(0.91);
+  transform-origin: left top;
+}
+
+.heroCopy h1 span {
+  display: block;
+  margin-left: 82px;
+  color: var(--campaign-accent);
+  text-shadow: 0 0 38px
+    color-mix(in srgb, var(--campaign-accent) 18%, transparent);
+}
+
+.productShell {
+  position: relative;
+  margin-top: 32px;
+  margin-bottom: -53px;
+  padding: 16px 16px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(19, 23, 30, 0.96),
+    rgba(8, 10, 14, 0.98)
+  );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 40px 90px rgba(0, 0, 0, 0.54),
+    0 0 0 8px rgba(195, 211, 230, 0.018);
+  transform: scale(0.93);
+  transform-origin: top center;
+}
+
+.productShell::before {
+  position: absolute;
+  top: 0;
+  right: 14%;
+  left: 14%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--campaign-accent) 72%, transparent),
+    transparent
+  );
+  content: "";
+}
+
+.productChrome {
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 0 6px 12px;
+}
+
+.productIdentity,
+.demoFlag {
+  gap: 8px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.productIdentity {
+  color: rgba(232, 242, 255, 0.82);
+}
+
+.productDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--campaign-accent);
+  box-shadow: 0 0 11px
+    color-mix(in srgb, var(--campaign-accent) 70%, transparent);
+}
+
+.demoFlag {
+  color: rgba(195, 211, 230, 0.56);
+}
+
+.demoFlag svg {
+  width: 13px;
+  height: 13px;
+}
+
+.searchBlock {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  padding: 11px 12px 12px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.inputLabel {
+  justify-content: space-between;
+  padding: 0 4px 9px;
+  color: #737984;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.inputLabel span:first-child {
+  color: rgba(195, 211, 230, 0.8);
+}
+
+.searchBar {
+  min-height: 57px;
+  gap: 10px;
+  padding: 7px 8px 7px 17px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.3),
+    0 0 24px rgba(195, 211, 230, 0.035);
+}
+
+.searchBar > svg {
+  width: 19px;
+  height: 19px;
+  color: #969da7;
+}
+
+.searchBar .atSign {
+  width: 15px;
+  height: 15px;
+  margin-left: 4px;
+  color: var(--campaign-accent);
+}
+
+.query {
+  flex: 1;
+  color: #fafafa;
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+
+.searchAction {
+  display: inline-flex;
+  min-width: 130px;
+  min-height: 41px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid rgba(232, 242, 255, 0.28);
+  border-radius: 10px;
+  color: #050608;
+  background: linear-gradient(180deg, #eef6ff, #bacbdd);
+  box-shadow: 0 1px 0 #fff inset;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.searchAction svg {
+  width: 15px;
+  height: 15px;
+}
+
+.signalRail {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 1.15fr 1.35fr;
+  margin-top: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.signalRail > div {
+  position: relative;
+  min-height: 61px;
+  padding: 12px 15px;
+}
+
+.signalRail > div + div::before {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  content: "";
+}
+
+.signalRail span {
+  display: block;
+  color: #777d87;
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.signalRail strong {
+  display: block;
+  margin-top: 4px;
+  color: #f7f7f8;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 650;
+}
+
+.signalRail .completeStat {
+  justify-content: center;
+  gap: 8px;
+}
+
+.completeStat svg {
+  width: 17px;
+  height: 17px;
+  padding: 3px;
+  border-radius: 50%;
+  color: #06130c;
+  background: var(--campaign-accent);
+}
+
+.signalRail .completeStat span {
+  color: var(--campaign-accent);
+  font-size: 8px;
+}
+
+.resultsHead {
+  justify-content: space-between;
+  padding: 20px 5px 12px;
+}
+
+.resultsHead p {
+  margin: 0 0 5px;
+  color: rgba(195, 211, 230, 0.72);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.resultsHead h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.resultsCount {
+  padding: 7px 10px;
+  border: 1px solid rgba(195, 211, 230, 0.15);
+  border-radius: 999px;
+  color: rgba(232, 242, 255, 0.74);
+  background: rgba(195, 211, 230, 0.06);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.resultsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.resultCard {
+  position: relative;
+  min-width: 0;
+  min-height: 170px;
+  padding: 15px 16px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  border-radius: 13px;
+  overflow: hidden;
+  background: linear-gradient(
+    158deg,
+    rgba(28, 30, 36, 0.96),
+    rgba(11, 12, 15, 0.99)
+  );
+  box-shadow: 0 12px 27px rgba(0, 0, 0, 0.28);
+}
+
+.resultCard::after {
+  position: absolute;
+  right: -30px;
+  bottom: -36px;
+  width: 90px;
+  height: 90px;
+  border: 1px solid rgba(195, 211, 230, 0.06);
+  border-radius: 50%;
+  content: "";
+}
+
+.cardTop {
+  justify-content: space-between;
+}
+
+.platformIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.platformIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.violet {
+  color: #b7a9ff;
+  background: rgba(123, 104, 238, 0.12);
+}
+
+.blue {
+  color: #7bb7ff;
+  background: rgba(78, 143, 255, 0.12);
+}
+
+.rose {
+  color: #f19cbd;
+  background: rgba(234, 96, 154, 0.11);
+}
+
+.slate {
+  color: #d8dde5;
+  background: rgba(216, 221, 229, 0.08);
+}
+
+.ice {
+  color: #dcecff;
+  background: rgba(195, 211, 230, 0.1);
+}
+
+.mint {
+  color: #8ee1bd;
+  background: rgba(86, 211, 155, 0.11);
+}
+
+.amber {
+  color: #efc983;
+  background: rgba(239, 173, 75, 0.11);
+}
+
+.cardIndex {
+  color: #626873;
+  font-size: 8px;
+}
+
+.cardCopy {
+  display: grid;
+  gap: 4px;
+  margin-top: 15px;
+}
+
+.cardCopy > span {
+  color: #9aa0aa;
+  font-size: 11px;
+}
+
+.cardCopy strong {
+  overflow: hidden;
+  color: #f4f4f5;
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardCopy small {
+  color: #747a84;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.cardStatus {
+  position: absolute;
+  right: 16px;
+  bottom: 13px;
+  left: 16px;
+  gap: 6px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: #8eaf99;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.cardStatus span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #86efac;
+  box-shadow: 0 0 8px rgba(134, 239, 172, 0.58);
+}
+
+.statusRisk {
+  color: #e99ab9;
+}
+
+.statusRisk span {
+  background: #ef79a7;
+  box-shadow: 0 0 8px rgba(239, 121, 167, 0.58);
+}
+
+.statusWarn {
+  color: #e7bd75;
+}
+
+.statusWarn span {
+  background: #efbd67;
+  box-shadow: 0 0 8px rgba(239, 189, 103, 0.58);
+}
+
+.connectionBand {
+  position: relative;
+  min-height: 72px;
+  gap: 13px;
+  margin-top: 10px;
+  padding: 12px 17px;
+  border: 1px solid rgba(195, 211, 230, 0.13);
+  border-radius: 13px;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(195, 211, 230, 0.095),
+    rgba(195, 211, 230, 0.025)
+  );
+}
+
+.connectionIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(195, 211, 230, 0.18);
+  border-radius: 11px;
+  background: rgba(195, 211, 230, 0.08);
+}
+
+.connectionIcon svg {
+  width: 17px;
+  height: 17px;
+  color: var(--ice-bright);
+}
+
+.connectionBand > div {
+  display: grid;
+  gap: 4px;
+}
+
+.connectionBand span {
+  color: rgba(195, 211, 230, 0.62);
+  font-size: 7px;
+}
+
+.connectionBand strong {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.connectionFigure {
+  position: absolute;
+  right: 18px;
+  width: 42px;
+  height: 42px;
+  color: rgba(195, 211, 230, 0.15);
+}
+
+.footer {
+  justify-content: space-between;
+  margin-top: 27px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.footer p {
+  margin: 0;
+  color: rgba(232, 242, 255, 0.68);
+}
+
+.footer > div {
+  gap: 11px;
+  color: #f6f8fb;
+}
+
+.footer svg {
+  width: 15px;
+  height: 15px;
+  color: var(--campaign-accent);
+}
+
+.square {
+  aspect-ratio: 1;
+  padding: 42px 52px 38px;
+}
+
+.square .heroCopy {
+  margin-top: 34px;
+}
+
+.square .eyebrow {
+  margin-bottom: 13px;
+}
+
+.square .heroCopy h1 {
+  width: calc(100% / 0.91);
+  max-width: none;
+  font-size: 96px;
+}
+
+.square .heroCopy h1 span {
+  margin-left: 68px;
+}
+
+.square .productShell {
+  margin-top: 22px;
+  margin-bottom: -63px;
+  padding-bottom: 12px;
+  transform: scale(0.9);
+}
+
+.square .searchBar {
+  min-height: 51px;
+}
+
+.square .signalRail > div {
+  min-height: 54px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.square .resultsHead {
+  padding-top: 15px;
+  padding-bottom: 9px;
+}
+
+.square .resultCard {
+  min-height: 126px;
+  padding-top: 12px;
+  padding-bottom: 10px;
+}
+
+.square .platformIcon {
+  width: 32px;
+  height: 32px;
+}
+
+.square .platformIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.square .cardCopy {
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.square .cardStatus {
+  display: none;
+}
+
+.square .connectionBand {
+  min-height: 58px;
+  margin-top: 8px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.square .footer {
+  margin-top: 18px;
+}
+
+@media (max-aspect-ratio: 4 / 5) {
+  .frame {
+    width: auto;
+    height: 100vh;
+  }
+}

@@ -1,0 +1,543 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #050506;
+}
+
+.cover {
+  --ice: #c3d3e6;
+  --ice-bright: #e8f2ff;
+  position: relative;
+  isolation: isolate;
+  width: min(100vw, 1702px);
+  aspect-ratio: 851 / 315;
+  overflow: hidden;
+  padding: 42px 66px 40px;
+  color: #f5f7fa;
+  background:
+    radial-gradient(
+      circle at 74% 28%,
+      rgba(195, 211, 230, 0.14),
+      transparent 25%
+    ),
+    linear-gradient(152deg, #090b0f 0%, #030405 58%, #080a0d 100%);
+  font-family: var(--font-anya-sans), Manrope, sans-serif;
+}
+
+.grid {
+  position: absolute;
+  z-index: -3;
+  inset: 0;
+  opacity: 0.3;
+  background-image: radial-gradient(
+    circle,
+    rgba(218, 230, 244, 0.32) 0 1px,
+    transparent 1.3px
+  );
+  background-size: 11px 11px;
+  mask-image:
+    radial-gradient(ellipse 54% 74% at 83% 28%, #000 0 30%, transparent 78%),
+    radial-gradient(ellipse 48% 65% at 18% 82%, #000 0 24%, transparent 78%);
+}
+
+.orbit {
+  position: absolute;
+  z-index: -2;
+  top: -445px;
+  right: 270px;
+  width: 840px;
+  height: 840px;
+  border: 1px solid rgba(195, 211, 230, 0.075);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 100px rgba(195, 211, 230, 0.013),
+    0 0 0 205px rgba(195, 211, 230, 0.007);
+}
+
+.profileClearance {
+  position: absolute;
+  z-index: -1;
+  bottom: -150px;
+  left: 50%;
+  width: 350px;
+  height: 350px;
+  border: 1px solid rgba(195, 211, 230, 0.035);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.13);
+  transform: translateX(-50%);
+}
+
+.brandBar,
+.brand,
+.panelHeader,
+.panelIdentity,
+.demoFlag,
+.inputLabel,
+.searchBar,
+.proofRail,
+.complete,
+.resultsHeader,
+.signalGrid article,
+.contextBand,
+.searchModes {
+  display: flex;
+  align-items: center;
+}
+
+.brandBar {
+  justify-content: space-between;
+}
+
+.brand {
+  gap: 14px;
+}
+
+.logo {
+  display: block;
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  object-position: 50% 42%;
+  border: 1px solid rgba(232, 242, 255, 0.42);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4px rgba(195, 211, 230, 0.06),
+    0 0 28px rgba(195, 211, 230, 0.17);
+}
+
+.brand > span {
+  font-family: var(--font-bruno-ace-sc), var(--font-anya-sans), sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+}
+
+.systemLabel,
+.eyebrow,
+.searchModes,
+.panelHeader,
+.inputLabel,
+.proofRail span,
+.resultsHeader span,
+.contextBand {
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+}
+
+.systemLabel {
+  color: rgba(195, 211, 230, 0.58);
+  font-size: 10px;
+}
+
+.composition {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) 310px minmax(0, 1.05fr);
+  align-items: center;
+  gap: 0;
+  margin-top: 27px;
+}
+
+.message {
+  align-self: center;
+  padding-left: 5px;
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: var(--ice);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.message h1 {
+  margin: 0;
+  font-size: 67px;
+  font-weight: 600;
+  line-height: 0.93;
+  letter-spacing: -0.066em;
+}
+
+.message h1 span {
+  display: block;
+  margin-top: 2px;
+  margin-left: 50px;
+  color: var(--ice-bright);
+  text-shadow: 0 0 38px rgba(195, 211, 230, 0.16);
+}
+
+.subline {
+  margin: 18px 0 0 53px;
+  color: rgba(232, 242, 255, 0.66);
+  font-size: 18px;
+  letter-spacing: -0.018em;
+}
+
+.searchModes {
+  width: fit-content;
+  min-height: 40px;
+  gap: 11px;
+  margin: 23px 0 0 52px;
+  padding: 0 15px;
+  border: 1px solid rgba(195, 211, 230, 0.16);
+  border-radius: 999px;
+  color: rgba(232, 242, 255, 0.74);
+  background: rgba(195, 211, 230, 0.05);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.searchModes svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ice);
+}
+
+.searchModes i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(195, 211, 230, 0.38);
+}
+
+.productPanel {
+  position: relative;
+  grid-column: 3;
+  padding: 13px 14px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(19, 23, 30, 0.97),
+    rgba(8, 10, 14, 0.99)
+  );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 32px 70px rgba(0, 0, 0, 0.52),
+    0 0 0 7px rgba(195, 211, 230, 0.017);
+}
+
+.productPanel::before {
+  position: absolute;
+  top: 0;
+  right: 14%;
+  left: 14%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(232, 242, 255, 0.72),
+    transparent
+  );
+  content: "";
+}
+
+.panelHeader {
+  justify-content: space-between;
+  min-height: 26px;
+  padding: 0 4px 8px;
+  color: rgba(232, 242, 255, 0.78);
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.panelIdentity,
+.demoFlag {
+  gap: 7px;
+}
+
+.panelIdentity i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #86efac;
+  box-shadow: 0 0 10px rgba(134, 239, 172, 0.66);
+}
+
+.demoFlag {
+  color: rgba(195, 211, 230, 0.48);
+}
+
+.demoFlag svg {
+  width: 11px;
+  height: 11px;
+}
+
+.inputLabel {
+  justify-content: space-between;
+  padding: 0 4px 7px;
+  color: #6f7681;
+  font-size: 6px;
+  font-weight: 600;
+}
+
+.inputLabel span:first-child {
+  color: rgba(195, 211, 230, 0.72);
+}
+
+.searchBar {
+  min-height: 46px;
+  gap: 10px;
+  padding: 6px 7px 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.042);
+}
+
+.searchBar > svg {
+  width: 15px;
+  height: 15px;
+  color: var(--ice);
+}
+
+.searchBar > span {
+  flex: 1;
+  color: #f5f7fa;
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  font-size: 12px;
+}
+
+.searchBar strong {
+  display: inline-flex;
+  min-width: 94px;
+  min-height: 33px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(232, 242, 255, 0.28);
+  border-radius: 8px;
+  color: #050608;
+  background: linear-gradient(180deg, #eef6ff, #bacbdd);
+  font-size: 10px;
+}
+
+.searchBar strong svg {
+  width: 12px;
+  height: 12px;
+}
+
+.proofRail {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.35fr;
+  margin-top: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.023);
+}
+
+.proofRail > div {
+  position: relative;
+  min-height: 48px;
+  padding: 9px 12px;
+}
+
+.proofRail > div + div::before {
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.075);
+  content: "";
+}
+
+.proofRail span {
+  display: block;
+  color: #707782;
+  font-size: 5px;
+  font-weight: 600;
+}
+
+.proofRail strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.proofRail .complete {
+  justify-content: center;
+  gap: 7px;
+}
+
+.complete svg {
+  width: 15px;
+  height: 15px;
+  padding: 3px;
+  border-radius: 50%;
+  color: #06130c;
+  background: #86efac;
+}
+
+.proofRail .complete span {
+  color: #9dd0ad;
+  font-size: 6px;
+}
+
+.resultsHeader {
+  justify-content: space-between;
+  padding: 11px 4px 8px;
+}
+
+.resultsHeader > div {
+  display: grid;
+  gap: 3px;
+}
+
+.resultsHeader span {
+  color: rgba(195, 211, 230, 0.64);
+  font-size: 6px;
+  font-weight: 600;
+}
+
+.resultsHeader strong {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.resultsHeader > span {
+  padding: 5px 7px;
+  border: 1px solid rgba(195, 211, 230, 0.13);
+  border-radius: 999px;
+  background: rgba(195, 211, 230, 0.05);
+  font-size: 5px;
+}
+
+.signalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.signalGrid article {
+  min-width: 0;
+  min-height: 77px;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 10px;
+  background: linear-gradient(
+    158deg,
+    rgba(28, 30, 36, 0.94),
+    rgba(11, 12, 15, 0.98)
+  );
+}
+
+.signalIcon {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(195, 211, 230, 0.12);
+  border-radius: 8px;
+  color: var(--ice);
+  background: rgba(195, 211, 230, 0.075);
+}
+
+.signalIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.signalGrid article > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.signalGrid article div span,
+.signalGrid article small {
+  overflow: hidden;
+  color: #7e858f;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signalGrid article strong {
+  overflow: hidden;
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signalGrid article small {
+  font-size: 6px;
+}
+
+.contextBand {
+  min-height: 39px;
+  gap: 8px;
+  margin-top: 7px;
+  padding: 7px 11px;
+  border: 1px solid rgba(195, 211, 230, 0.12);
+  border-radius: 10px;
+  color: rgba(195, 211, 230, 0.58);
+  background: rgba(195, 211, 230, 0.055);
+  font-size: 6px;
+  font-weight: 600;
+}
+
+.contextBand > svg:first-child {
+  width: 13px;
+  height: 13px;
+  color: var(--ice);
+}
+
+.contextBand i {
+  width: 20px;
+  height: 1px;
+  background: rgba(195, 211, 230, 0.24);
+}
+
+.contextBand strong {
+  color: #f3f6fa;
+  font-family: var(--font-anya-sans), Manrope, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.contextBand > svg:last-child {
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  color: rgba(195, 211, 230, 0.18);
+}
+
+.upload {
+  height: min(100vh, 958px);
+  aspect-ratio: auto;
+}
+
+.upload .brandBar,
+.upload .composition {
+  transform: translateY(164px);
+}
+
+.upload .orbit {
+  top: -281px;
+}
+
+.upload .profileClearance {
+  bottom: 14px;
+}
+
+@media (max-aspect-ratio: 851 / 315) {
+  .cover:not(.upload) {
+    width: auto;
+    height: 100vh;
+  }
+
+  .upload {
+    width: 100vw;
+    height: 100vh;
+  }
+}
