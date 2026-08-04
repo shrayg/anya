@@ -905,13 +905,15 @@ pre,
 }
 
 /* Frameless homepage-like composer — no nested empty panel */
-.module-search-panel--composer {
+.module-search-panel--composer,
+.module-search-panel--composer.ui-panel {
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-radius: 0 !important;
+  isolation: auto;
 }
 
 .module-search-panel--composer::before,
@@ -1153,7 +1155,7 @@ pre,
   cursor: not-allowed;
 }
 
-/* Single homepage-like bar — no nested type pill */
+/* Single frameless bar — hairline only, no dark plate over the void */
 .module-search-field-bar {
   display: flex;
   align-items: center;
@@ -1161,9 +1163,9 @@ pre,
   min-height: 3.45rem;
   padding: 0.4rem 0.4rem 0.4rem 1rem;
   border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  box-shadow: none;
   transition:
     border-color 0.2s var(--anya-ease),
     box-shadow 0.2s var(--anya-ease);
@@ -1171,13 +1173,13 @@ pre,
 
 .module-search-field-bar:focus-within {
   border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--anya-blush) 12%, transparent);
+  box-shadow: 0 0 0 2px var(--module-search-focus-ring);
 }
 
 .module-search-field--extra .module-search-field-bar {
   min-height: 2.85rem;
   box-shadow: none;
-  background: rgba(0, 0, 0, 0.28);
+  background: transparent;
 }
 
 .module-search-field-bar--phone {
