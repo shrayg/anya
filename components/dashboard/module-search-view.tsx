@@ -36,7 +36,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { FolderPlus, Home } from "lucide-react";
+import { ArrowRight, FolderPlus, Home } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
   useSearchJobs,
@@ -52,6 +52,7 @@ import {
 
 import { apiFetch } from "@/lib/csrf-client";
 import { SearchBarTour } from "@/components/search-bar-tour";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { SpecularButton } from "@/components/ui/specular-button";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { CryptoWalletResults } from "@/components/dashboard/crypto-wallet-results";
@@ -3571,18 +3572,23 @@ export function ModuleSearchView({
                   />
                   <div className="module-search-form-actions">
                     <span aria-hidden className="module-search-form-actions-spacer" />
-                    <SpecularButton
-                      accent
-                      className="ui-btn ui-btn-primary module-search-submit shrink-0"
+                    <LiquidButton
+                      className="home-search-submit liquid-glass-button--accent module-search-submit shrink-0"
                       data-tour="search-submit"
                       disabled={
                         !query.trim() || isSearching || Boolean(moduleLocked)
                       }
-                      size="sm"
                       type="submit"
                     >
-                      {isSearching ? "Scanning…" : "Analyse"}
-                    </SpecularButton>
+                      {isSearching ? (
+                        "Scanning…"
+                      ) : (
+                        <>
+                          <span>Analyse</span>
+                          <ArrowRight className="size-4" />
+                        </>
+                      )}
+                    </LiquidButton>
                   </div>
                 </div>
               ) : (

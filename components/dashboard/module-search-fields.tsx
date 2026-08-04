@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { ArrowRight, Plus, X } from "lucide-react";
 
 import type { SearchModuleDef } from "@/lib/search-modules";
 import {
@@ -24,7 +24,7 @@ import {
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
 } from "@/lib/search-autofill-shield";
-import { SpecularButton } from "@/components/ui/specular-button";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 
 const MAX_FIELDS = 8;
 
@@ -142,6 +142,28 @@ export function ModuleSearchFields({
   };
 
   const visibleFields = singleInput ? fields.slice(0, 1) : fields;
+  const inlineSubmit = visibleFields.length === 1;
+  const showAddField = !singleInput;
+  const showActionsRow =
+    showAddField || Boolean(extraActions) || !inlineSubmit;
+
+  const submitButton = (
+    <LiquidButton
+      className="home-search-submit liquid-glass-button--accent module-search-submit shrink-0"
+      data-tour="search-submit"
+      disabled={!canSubmit || isSearching || disabled}
+      type="submit"
+    >
+      {isSearching ? (
+        "Scanning…"
+      ) : (
+        <>
+          <span>{submitLabel}</span>
+          <ArrowRight className="size-4" />
+        </>
+      )}
+    </LiquidButton>
+  );
 
   return (
     <div className="module-search-form">
@@ -150,6 +172,7 @@ export function ModuleSearchFields({
         {visibleFields.map((row, index) => {
           const showDial = showTypeChrome && row.type === "phone";
           const typeLabel = labelForFieldType(row.type, options);
+          const isLast = index === visibleFields.length - 1;
 
           return (
             <div
@@ -253,39 +276,33 @@ export function ModuleSearchFields({
                   <X className="size-4" />
                 </button>
               )}
+              {inlineSubmit && isLast ? submitButton : null}
             </div>
           );
         })}
       </div>
 
-      <div className="module-search-form-actions">
-        {singleInput ? (
-          <span aria-hidden className="module-search-form-actions-spacer" />
-        ) : (
-          <button
-            className="module-search-add-field"
-            disabled={disabled || fields.length >= MAX_FIELDS}
-            type="button"
-            onClick={addRow}
-          >
-            <Plus aria-hidden className="size-3.5" strokeWidth={2.25} />
-            Add field
-          </button>
-        )}
-        <div className="module-search-form-submit-group">
-          {extraActions}
-          <SpecularButton
-            accent
-            className="ui-btn ui-btn-primary module-search-submit shrink-0"
-            data-tour="search-submit"
-            disabled={!canSubmit || isSearching || disabled}
-            size="sm"
-            type="submit"
-          >
-            {isSearching ? "Scanning…" : submitLabel}
-          </SpecularButton>
+      {showActionsRow ? (
+        <div className="module-search-form-actions">
+          {showAddField ? (
+            <button
+              className="module-search-add-field"
+              disabled={disabled || fields.length >= MAX_FIELDS}
+              type="button"
+              onClick={addRow}
+            >
+              <Plus aria-hidden className="size-3.5" strokeWidth={2.25} />
+              Add field
+            </button>
+          ) : (
+            <span aria-hidden className="module-search-form-actions-spacer" />
+          )}
+          <div className="module-search-form-submit-group">
+            {extraActions}
+            {inlineSubmit ? null : submitButton}
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

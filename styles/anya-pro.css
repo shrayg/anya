@@ -799,7 +799,7 @@ pre,
   --module-search-focus-ring: color-mix(in srgb, var(--anya-blush) 18%, transparent);
 }
 
-/* Idle: fill the main pane and vertically center the search composition */
+/* Idle: top-left composer (not vertically centered) */
 .module-search--idle {
   box-sizing: border-box;
   display: flex;
@@ -820,10 +820,9 @@ pre,
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-start;
+  align-items: stretch;
   width: 100%;
-  /* Optical nudge: nav sits above, so slightly less bottom weight */
   padding-bottom: clamp(1.5rem, 6vh, 4.5rem);
 }
 
@@ -831,6 +830,13 @@ pre,
 .module-search--idle .module-search-panel {
   width: 100%;
   max-width: var(--module-search-shell);
+  margin-left: 0;
+  margin-right: auto;
+  align-self: flex-start;
+}
+
+.module-search--idle .module-search-hero {
+  text-align: left;
 }
 
 .module-search > .ui-panel,
@@ -840,34 +846,21 @@ pre,
   margin-left: auto;
   margin-right: auto;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   isolation: isolate;
-  border-radius: calc(var(--anya-radius-lg) + 0.1rem);
-  border: 1px solid
-    color-mix(in srgb, var(--anya-blush) 22%, rgba(255, 255, 255, 0.12));
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background:
     linear-gradient(
-      155deg,
-      color-mix(in srgb, var(--anya-blush) 11%, transparent) 0%,
-      transparent 38%
-    ),
-    linear-gradient(
-      195deg,
-      transparent 48%,
-      color-mix(in srgb, var(--anya-blush) 4%, transparent) 100%
-    ),
-    linear-gradient(
       180deg,
-      rgba(22, 25, 32, 0.78) 0%,
-      rgba(7, 8, 11, 0.9) 100%
+      rgba(18, 22, 30, 0.92) 0%,
+      rgba(10, 12, 16, 0.94) 100%
     );
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.08) inset,
-    0 0 0 1px rgba(0, 0, 0, 0.42) inset,
-    0 32px 64px -36px rgba(0, 0, 0, 0.9),
-    0 0 60px -30px color-mix(in srgb, var(--anya-blush) 22%, transparent);
-  backdrop-filter: blur(28px) saturate(1.2);
-  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 18px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(20px) saturate(1.1);
+  -webkit-backdrop-filter: blur(20px) saturate(1.1);
   transition:
     border-color 0.28s var(--anya-ease),
     box-shadow 0.28s var(--anya-ease);
@@ -881,29 +874,18 @@ pre,
   z-index: 1;
   background: linear-gradient(
     90deg,
-    transparent 2%,
-    color-mix(in srgb, var(--anya-blush) 55%, transparent) 28%,
-    color-mix(in srgb, var(--anya-blush) 78%, white) 50%,
-    color-mix(in srgb, var(--anya-blush) 55%, transparent) 72%,
-    transparent 98%
-  );
-  pointer-events: none;
-  opacity: 0.85;
-}
-
-.module-search-panel::after {
-  content: "";
-  position: absolute;
-  inset: auto 12% -40% 12%;
-  height: 55%;
-  z-index: 0;
-  background: radial-gradient(
-    ellipse at center,
-    color-mix(in srgb, var(--anya-blush) 10%, transparent) 0%,
-    transparent 70%
+    transparent 6%,
+    color-mix(in srgb, var(--anya-blush) 40%, transparent) 40%,
+    color-mix(in srgb, var(--anya-blush) 55%, white) 50%,
+    color-mix(in srgb, var(--anya-blush) 40%, transparent) 60%,
+    transparent 94%
   );
   pointer-events: none;
   opacity: 0.55;
+}
+
+.module-search-panel::after {
+  display: none;
 }
 
 .module-search .ui-panel-body,
@@ -1002,166 +984,159 @@ pre,
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  padding: 0.65rem;
-  border-radius: calc(var(--anya-radius-md) + 0.05rem);
-  border: 1px solid var(--module-search-well-border);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.04) 0%,
-      rgba(255, 255, 255, 0.012) 100%
-    ),
-    var(--module-search-well);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 14px 28px -22px rgba(0, 0, 0, 0.75);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
+/* Homepage-style composer row — one soft bar, not nested boxes */
 .module-search-field-row {
-  display: grid;
-  grid-template-columns: 9.75rem minmax(0, 1fr) 2.75rem;
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
-  align-items: stretch;
+  min-height: 3.35rem;
+  padding: 0.4rem 0.4rem 0.4rem 0.65rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+  transition:
+    border-color 0.2s var(--anya-ease),
+    box-shadow 0.2s var(--anya-ease);
+}
+
+.module-search-field-row:focus-within {
+  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--anya-blush) 12%, transparent);
 }
 
 .module-search-field-row--phone {
-  grid-template-columns: 9.75rem 7.35rem minmax(0, 1fr) 2.75rem;
+  flex-wrap: wrap;
 }
 
 .module-search-field-row--simple {
-  grid-template-columns: minmax(0, 1fr);
+  padding-left: 0.85rem;
 }
 
 .module-search-field-type,
 .module-search-field-dial {
-  width: 100%;
-  min-width: 0;
-  height: var(--module-search-control-h);
-  border-radius: var(--module-search-control-radius);
-  border: 1px solid
-    color-mix(in srgb, var(--anya-blush) 28%, rgba(255, 255, 255, 0.12));
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--anya-blush) 12%, rgba(0, 0, 0, 0.45)) 0%,
-      rgba(0, 0, 0, 0.42) 100%
-    );
-  color: color-mix(in srgb, var(--anya-blush) 78%, #fff);
+  width: auto;
+  min-width: 5.5rem;
+  max-width: 9rem;
+  height: 2.35rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(228, 228, 231, 0.88);
   font-weight: 600;
-  letter-spacing: -0.015em;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 8px 16px -14px rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.01em;
+  box-shadow: none;
   transition:
     border-color 0.18s var(--anya-ease),
     background 0.18s var(--anya-ease),
-    color 0.18s var(--anya-ease),
-    box-shadow 0.18s var(--anya-ease);
+    color 0.18s var(--anya-ease);
 }
 
 .module-search-field-type {
-  font-size: 0.8rem;
-  padding: 0 2rem 0 0.85rem;
-  background-position: right 0.7rem center;
+  font-size: 0.72rem;
+  padding: 0 1.65rem 0 0.8rem;
+  background-position: right 0.55rem center;
 }
 
 .module-search-field-type--hint {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0 0.85rem;
+  justify-content: center;
+  min-width: 0;
+  max-width: none;
+  padding: 0 0.75rem;
   cursor: default;
   user-select: none;
-  /* No chevron — not a select */
   appearance: none;
   background-image: none;
   pointer-events: none;
+  color: color-mix(in srgb, var(--anya-blush) 70%, #fff);
 }
 
 .module-search-field-dial {
-  font-size: 0.74rem;
-  padding: 0 1.75rem 0 0.6rem;
+  font-size: 0.7rem;
+  min-width: 6.5rem;
+  max-width: 8rem;
+  padding: 0 1.55rem 0 0.55rem;
   font-variant-numeric: tabular-nums;
-  background-position: right 0.55rem center;
+  background-position: right 0.45rem center;
 }
 
 .module-search-field-type:hover,
 .module-search-field-dial:hover {
-  border-color: color-mix(in srgb, var(--anya-blush) 42%, rgba(255, 255, 255, 0.16));
-  color: color-mix(in srgb, var(--anya-blush) 92%, #fff);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
 }
 
 .module-search-field-type--hint:hover {
-  /* Keep the static hint look — no interactive hover lift */
-  border-color: color-mix(in srgb, var(--anya-blush) 28%, rgba(255, 255, 255, 0.12));
-  color: color-mix(in srgb, var(--anya-blush) 78%, #fff);
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: color-mix(in srgb, var(--anya-blush) 70%, #fff);
 }
 
 .module-search-field-type:focus,
 .module-search-field-dial:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--anya-blush) 62%, transparent);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 0 0 3px var(--module-search-focus-ring);
+  border-color: color-mix(in srgb, var(--anya-blush) 50%, transparent);
+  box-shadow: 0 0 0 3px var(--module-search-focus-ring);
 }
 
 .module-search-field-input {
   width: 100%;
   min-width: 0;
-  min-height: var(--module-search-control-h);
-  height: var(--module-search-control-h);
-  padding: 0.7rem 1.05rem;
-  font-size: 0.9375rem;
+  flex: 1 1 auto;
+  min-height: 2.35rem;
+  height: auto;
+  padding: 0.55rem 0.35rem;
+  font-size: 0.95rem;
   letter-spacing: -0.015em;
-  border-radius: var(--module-search-control-radius);
-  border-color: rgba(255, 255, 255, 0.11);
-  background: rgba(0, 0, 0, 0.46);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 10px 20px -16px rgba(0, 0, 0, 0.85);
-  transition:
-    border-color 0.18s var(--anya-ease),
-    background 0.18s var(--anya-ease),
-    box-shadow 0.18s var(--anya-ease);
+  border: 0 !important;
+  border-radius: 0.5rem;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: color 0.18s var(--anya-ease);
 }
 
 .module-search-field-input::placeholder {
-  color: rgba(161, 161, 170, 0.72);
+  color: rgba(113, 113, 122, 0.95);
 }
 
-.module-search-field-input:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.52);
-}
-
+.module-search-field-input:hover,
 .module-search-field-input:focus,
 .module-search-field-input:focus-visible {
-  border-color: color-mix(in srgb, var(--anya-blush) 58%, transparent);
-  background: rgba(0, 0, 0, 0.56);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 0 0 3px var(--module-search-focus-ring);
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 .module-search-field-remove {
   display: inline-flex;
-  height: var(--module-search-control-h);
-  width: 2.75rem;
+  height: 2.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: var(--module-search-control-radius);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.22);
-  color: #8b8b96;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: rgba(161, 161, 170, 0.75);
   transition:
-    border-color 0.16s var(--anya-ease),
     color 0.16s var(--anya-ease),
     background 0.16s var(--anya-ease);
 }
 
 .module-search-field-remove:hover:not(:disabled) {
-  border-color: rgba(251, 113, 133, 0.42);
   color: #fda4af;
   background: rgba(251, 113, 133, 0.1);
 }
@@ -1188,11 +1163,10 @@ pre,
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.7rem 1rem;
-  margin-top: 0.95rem;
-  padding-top: 0.95rem;
-  border-top: 1px solid
-    color-mix(in srgb, var(--anya-blush) 10%, rgba(255, 255, 255, 0.07));
+  gap: 0.65rem 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .module-search-form-actions-spacer {
@@ -1203,11 +1177,11 @@ pre,
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  min-height: 2.4rem;
-  padding: 0.4rem 0.55rem;
-  margin-left: -0.2rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.55rem;
+  margin-left: -0.15rem;
   border: 0;
-  border-radius: var(--module-search-control-radius);
+  border-radius: 999px;
   background: transparent;
   color: #8f8f9a;
   font-size: 0.78rem;
@@ -1237,71 +1211,54 @@ pre,
   margin-left: auto;
 }
 
+/* Match homepage Search CTA */
 .module-search-form-submit-group .ui-btn-primary,
 .module-search-form-actions > .ui-btn-primary,
 .module-search-submit {
-  min-width: 8.75rem;
-  min-height: var(--module-search-control-h);
-  padding: 0.7rem 1.45rem;
-  border-radius: var(--module-search-control-radius);
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 72%, white);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--anya-blush) 98%, white) 0%,
-    var(--anya-blush) 52%,
-    color-mix(in srgb, var(--anya-blush) 88%, #9bb0c8) 100%
-  );
-  color: #0a0d12;
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.45) inset,
-    0 1px 0 rgba(0, 0, 0, 0.18),
-    0 14px 30px -12px color-mix(in srgb, var(--anya-blush) 70%, transparent);
+  min-width: 0;
+  min-height: 2.65rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: none;
+  filter: none;
+  transform: none;
   transition:
-    filter 0.18s var(--anya-ease),
-    box-shadow 0.18s var(--anya-ease),
-    transform 0.18s var(--anya-ease),
-    border-color 0.18s var(--anya-ease),
-    opacity 0.18s var(--anya-ease);
+    opacity 0.18s var(--anya-ease),
+    filter 0.18s var(--anya-ease);
 }
 
 .module-search-form-submit-group .ui-btn-primary:hover:not(:disabled),
 .module-search-form-actions > .ui-btn-primary:hover:not(:disabled),
 .module-search-submit:hover:not(:disabled) {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.5) inset,
-    0 1px 0 rgba(0, 0, 0, 0.16),
-    0 18px 34px -12px color-mix(in srgb, var(--anya-blush) 78%, transparent);
+  filter: brightness(1.05);
+  transform: none;
+  box-shadow: none;
 }
 
 .module-search-form-submit-group .ui-btn-primary:active:not(:disabled),
 .module-search-form-actions > .ui-btn-primary:active:not(:disabled),
 .module-search-submit:active:not(:disabled) {
-  transform: translateY(0);
+  transform: none;
   filter: brightness(0.98);
 }
 
-/* Keep brand tint when idle/disabled — never flatten to medium gray */
+/* Keep Specular CTA readable when disabled — match homepage */
 .module-search .ui-btn.module-search-submit:disabled,
 .module-search-form-submit-group .ui-btn-primary:disabled,
 .module-search-form-actions > .ui-btn-primary:disabled,
 .module-search-submit:disabled {
   filter: none;
-  opacity: 1 !important;
-  color: color-mix(in srgb, #0a0d12 72%, var(--anya-blush));
-  border-color: color-mix(in srgb, var(--anya-blush) 38%, rgba(255, 255, 255, 0.08));
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--anya-blush) 42%, rgba(20, 22, 28, 0.9)) 0%,
-    color-mix(in srgb, var(--anya-blush) 28%, rgba(12, 14, 18, 0.95)) 100%
-  );
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.08) inset,
-    0 8px 18px -14px color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  opacity: 0.72 !important;
+  color: #fff;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -1354,44 +1311,38 @@ pre,
   }
 
   .module-search-fields {
-    padding: 0.5rem;
+    padding: 0;
     gap: 0.5rem;
   }
 
   .module-search-field-row {
-    grid-template-columns: 1fr 2.75rem;
-    grid-template-areas:
-      "type remove"
-      "input input";
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem;
   }
 
   .module-search-field-row--phone {
-    grid-template-columns: 1fr 1fr 2.75rem;
-    grid-template-areas:
-      "type dial remove"
-      "input input input";
+    flex-wrap: wrap;
   }
 
   .module-search-field-row--simple {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "input";
+    flex-wrap: nowrap;
   }
 
-  .module-search-field-type {
-    grid-area: type;
-  }
-
+  .module-search-field-type,
   .module-search-field-dial {
-    grid-area: dial;
+    max-width: none;
   }
 
   .module-search-field-input {
-    grid-area: input;
+    flex: 1 1 100%;
+    order: 3;
+    padding-inline: 0.55rem;
   }
 
   .module-search-field-remove {
-    grid-area: remove;
-    justify-self: end;
+    margin-left: auto;
   }
 
   .module-search-form-actions {

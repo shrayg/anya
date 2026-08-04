@@ -41,6 +41,7 @@ import {
 import {
   checkDailySearchQuota,
   checkModuleAccess,
+  hasWorkspaceDashboardAccess,
   resolveUserPlan,
   shouldBlurResults,
   STARTER_MODULE_SLUGS,
@@ -100,6 +101,14 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     lockedModules ?? (isMounted ? LOCKED_MODULES : []);
   const visibleLockedModuleCount = visibleLockedModules.length;
   const hasStableLockedModules = lockedModules != null || isMounted;
+  const hasPanelAccess =
+    auth.status === "authenticated" &&
+    hasWorkspaceDashboardAccess({
+      ...auth.user,
+      canManageWorkspace: auth.canManageWorkspace,
+    });
+  // Upsell chip only for guests / plans without panel — not for Professional+
+  const showPremiumLocked = !hasPanelAccess && auth.status !== "loading";
 
   const activeStarterMode =
     STARTER_SEARCH_MODES.find((mode) => mode.id === starterMode) ??
@@ -389,40 +398,42 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           onSubmit={handleSearch}
         >
           <div className="home-search-module-row">
-            <div className="home-search-locked-module">
-              <button
-                aria-label={
-                  hasStableLockedModules
-                    ? `${visibleLockedModuleCount} premium modules locked`
-                    : "Premium modules locked"
-                }
-                className="home-search-locked-trigger"
-                type="button"
-              >
-                <LockKeyhole className="size-4" />
-                <strong>
-                  {hasStableLockedModules ? visibleLockedModuleCount : "—"}
-                </strong>
-                <span>Premium locked</span>
-              </button>
+            {showPremiumLocked ? (
+              <div className="home-search-locked-module">
+                <button
+                  aria-label={
+                    hasStableLockedModules
+                      ? `${visibleLockedModuleCount} premium modules locked`
+                      : "Premium modules locked"
+                  }
+                  className="home-search-locked-trigger"
+                  type="button"
+                >
+                  <LockKeyhole className="size-4" />
+                  <strong>
+                    {hasStableLockedModules ? visibleLockedModuleCount : "—"}
+                  </strong>
+                  <span>Premium locked</span>
+                </button>
 
-              <div className="home-search-locked-popover" role="tooltip">
-                <div className="home-search-locked-popover-card">
-                  <div className="home-search-locked-heading">
-                    <span>Premium module directory</span>
-                    <strong>{visibleLockedModuleCount} locked</strong>
+                <div className="home-search-locked-popover" role="tooltip">
+                  <div className="home-search-locked-popover-card">
+                    <div className="home-search-locked-heading">
+                      <span>Premium module directory</span>
+                      <strong>{visibleLockedModuleCount} locked</strong>
+                    </div>
+                    <ul className="home-search-locked-grid">
+                      {visibleLockedModules.map((module) => (
+                        <li key={module.slug}>{module.name}</li>
+                      ))}
+                    </ul>
+                    <Link className="home-search-locked-cta" href="/pricing">
+                      Buy Premium
+                    </Link>
                   </div>
-                  <ul className="home-search-locked-grid">
-                    {visibleLockedModules.map((module) => (
-                      <li key={module.slug}>{module.name}</li>
-                    ))}
-                  </ul>
-                  <Link className="home-search-locked-cta" href="/pricing">
-                    Buy Premium
-                  </Link>
                 </div>
               </div>
-            </div>
+            ) : null}
 
             <div
               aria-label="Search type"

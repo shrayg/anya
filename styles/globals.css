@@ -6721,9 +6721,10 @@
 .module-search-hero {
   position: relative;
   max-width: 56rem;
-  margin-left: auto;
+  margin-left: 0;
   margin-right: auto;
-  margin-bottom: 2.25rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
 }
 
 /* Idle composer fills the scrollport under the Home nav */
@@ -6747,8 +6748,8 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-start;
+  align-items: stretch;
   width: 100%;
   padding-bottom: clamp(1.5rem, 6vh, 4.5rem);
 }
@@ -6756,6 +6757,10 @@
 .module-search--idle .module-search-hero,
 .module-search--idle .module-search-panel {
   width: 100%;
+  max-width: 56rem;
+  margin-left: 0;
+  margin-right: auto;
+  align-self: flex-start;
 }
 
 /* Results sit outside the narrow search composer — full main-pane width */
