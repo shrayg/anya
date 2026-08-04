@@ -25,6 +25,7 @@ import {
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
 } from "@/lib/search-autofill-shield";
+import { DashSelectMenu } from "@/components/dashboard/dash-select-menu";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 
 const MAX_FIELDS = 8;
@@ -191,24 +192,21 @@ export function ModuleSearchFields({
                       >
                         Field type
                       </label>
-                      <select
-                        className="module-search-field-type-select"
+                      <DashSelectMenu
+                        aria-label="Field type"
+                        className="module-search-field-type-root"
                         disabled={disabled}
                         id={`field-type-${row.id}`}
+                        options={options.map((option) => ({
+                          value: option.id,
+                          label: option.label,
+                        }))}
+                        triggerClassName="module-search-field-type-select"
                         value={row.type}
-                        onChange={(event) =>
-                          onTypeChange(
-                            row,
-                            event.target.value as SearchFieldTypeId,
-                          )
+                        onValueChange={(next) =>
+                          onTypeChange(row, next as SearchFieldTypeId)
                         }
-                      >
-                        {options.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </>
                   ) : (
                     <span
@@ -245,24 +243,22 @@ export function ModuleSearchFields({
                     <label className="sr-only" htmlFor={`field-dial-${row.id}`}>
                       Country calling code
                     </label>
-                    <select
-                      className="module-search-field-dial"
+                    <DashSelectMenu
+                      aria-label="Country calling code"
+                      className="module-search-field-dial-root"
                       disabled={disabled}
                       id={`field-dial-${row.id}`}
+                      options={PHONE_DIAL_CODES.map((entry) => ({
+                        value: entry.code,
+                        label: entry.label,
+                      }))}
                       title="Country calling code"
+                      triggerClassName="module-search-field-dial"
                       value={row.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE}
-                      onChange={(event) =>
-                        updateRow(row.id, {
-                          phoneDialCode: event.target.value,
-                        })
+                      onValueChange={(next) =>
+                        updateRow(row.id, { phoneDialCode: next })
                       }
-                    >
-                      {PHONE_DIAL_CODES.map((entry) => (
-                        <option key={entry.code} value={entry.code}>
-                          {entry.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </>
                 ) : null}
 

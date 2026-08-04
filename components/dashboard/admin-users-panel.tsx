@@ -18,6 +18,7 @@ import {
   DashButton,
   DashInput,
   DashPanel,
+  DashSelect,
   StatCard,
 } from "@/components/dashboard/dashboard-ui";
 import { PlanPicker } from "@/components/dashboard/plan-picker";
@@ -387,8 +388,8 @@ export function AdminUsersPanel({
           )}
 
           <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row">
-            <select
-              className="h-7 rounded-md border border-white/10 bg-zinc-950/80 px-2 text-[11px] text-zinc-200 outline-none transition focus:border-violet-400/40"
+            <DashSelect
+              className="h-7 text-[11px]"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as StatusFilter)
@@ -399,7 +400,7 @@ export function AdminUsersPanel({
               <option value="frozen">Frozen</option>
               <option value="banned">Banned</option>
               <option value="investigate">Flagged / Investigate</option>
-            </select>
+            </DashSelect>
             <DashInput
               className="h-7 sm:w-48 text-[11px]"
               placeholder="Search username..."

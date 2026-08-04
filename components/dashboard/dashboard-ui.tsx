@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import clsx from "clsx";
 
 import { SpecularButton } from "@/components/ui/specular-button";
+import { DashSelectFromNativeProps } from "@/components/dashboard/dash-select-menu";
 
 export function PageHeader({
   title,
@@ -132,8 +133,8 @@ export function DashSelect({
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={clsx("dash-select", className)} {...props}>
+    <DashSelectFromNativeProps className={className} {...props}>
       {children}
-    </select>
+    </DashSelectFromNativeProps>
   );
 }

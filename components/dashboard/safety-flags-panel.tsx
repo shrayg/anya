@@ -15,6 +15,7 @@ import {
   DashButton,
   DashInput,
   DashPanel,
+  DashSelect,
   StatCard,
 } from "@/components/dashboard/dashboard-ui";
 import { formatDate, formatTime } from "@/lib/format-datetime";
@@ -275,12 +276,9 @@ export function SafetyFlagsPanel({
           )}
 
           <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row">
-            <select
+            <DashSelect
               className={clsx(
-                "rounded-md border border-white/10 bg-zinc-950/80 text-zinc-200 outline-none transition focus:border-amber-400/40",
-                embedded
-                  ? "h-7 px-2 text-[11px]"
-                  : "px-3 py-2 text-sm",
+                embedded ? "h-7 text-[11px]" : "text-sm",
               )}
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
@@ -290,7 +288,7 @@ export function SafetyFlagsPanel({
               <option value="reviewing">Reviewing only</option>
               {mode === "admin" && <option value="resolved">Resolved</option>}
               {mode === "admin" && <option value="all">All</option>}
-            </select>
+            </DashSelect>
             <DashButton
               className={clsx(
                 "inline-flex items-center justify-center gap-1.5",

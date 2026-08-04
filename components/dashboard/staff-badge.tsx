@@ -1,5 +1,6 @@
 import clsx from "clsx";
 
+import { DashSelect } from "@/components/dashboard/dashboard-ui";
 import {
   getStaffRoleMeta,
   type StaffRole,
@@ -47,8 +48,8 @@ export function StaffRolePicker({
   disabled?: boolean;
 }) {
   return (
-    <select
-      className="dash-select w-full min-w-[8.5rem] text-xs"
+    <DashSelect
+      className="w-full min-w-[8.5rem] text-xs"
       disabled={disabled}
       value={value ?? ""}
       onChange={(event) => {
@@ -63,6 +64,6 @@ export function StaffRolePicker({
           {role.label}
         </option>
       ))}
-    </select>
+    </DashSelect>
   );
 }
