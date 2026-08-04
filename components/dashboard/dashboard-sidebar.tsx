@@ -333,12 +333,16 @@ export function DashboardSidebar({ username }: { username: string }) {
   const unlimitedSearches = isUnlimitedSearchQuota(stats?.quota);
   const staffMeta = getStaffRoleMeta(profile.staffRole);
   const {
-    collapsed,
+    collapsed: railCollapsed,
     isResizing,
     toggleCollapsed,
     footerCollapsed,
     toggleFooterCollapsed,
+    closeMobile,
+    isMobileViewport,
   } = useDashboardSidebar();
+  /* Drawer always shows full labels; icon-rail collapse is desktop-only. */
+  const collapsed = isMobileViewport ? false : railCollapsed;
   const [moduleQuery, setModuleQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState<Record<string, boolean>>({});
   const [categoriesReady, setCategoriesReady] = useState(false);
@@ -349,6 +353,10 @@ export function DashboardSidebar({ username }: { username: string }) {
     setCategoryOpen(readCategoryOpenMap());
     setCategoriesReady(true);
   }, []);
+
+  useEffect(() => {
+    closeMobile();
+  }, [pathname, closeMobile]);
 
   useEffect(() => {
     if (!collapsed) {
@@ -471,6 +479,7 @@ export function DashboardSidebar({ username }: { username: string }) {
       className={clsx(collapsed && "dash-sidebar--collapsed")}
       data-collapsed={collapsed ? "true" : undefined}
       data-resizing={isResizing ? "true" : undefined}
+      id="dash-sidebar-nav"
     >
       <LiquidGlassCard
         blurIntensity="md"
@@ -508,13 +517,27 @@ export function DashboardSidebar({ username }: { username: string }) {
 
             <button
               aria-expanded={!collapsed}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={
+                isMobileViewport
+                  ? "Close navigation"
+                  : collapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+              }
               className="dash-sidebar-toggle"
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={
+                isMobileViewport
+                  ? "Close navigation"
+                  : collapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+              }
               type="button"
-              onClick={toggleCollapsed}
+              onClick={isMobileViewport ? closeMobile : toggleCollapsed}
             >
-              {collapsed ? (
+              {isMobileViewport ? (
+                <ChevronsLeft className="size-4" />
+              ) : collapsed ? (
                 <PanelLeftOpen className="size-4" />
               ) : (
                 <PanelLeftClose className="size-4" />

@@ -13,6 +13,8 @@ const RAIL_STORAGE_KEY = "anya-sidebar-collapsed";
 const FOOTER_STORAGE_KEY = "anya-sidebar-footer-collapsed";
 
 const SIDEBAR_RESIZE_MS = 450;
+/** Match Tailwind `md` — drawer only below this. */
+const MOBILE_DRAWER_MQ = "(max-width: 767px)";
 
 type DashboardSidebarContextValue = {
   collapsed: boolean;
@@ -20,6 +22,12 @@ type DashboardSidebarContextValue = {
   toggleCollapsed: () => void;
   footerCollapsed: boolean;
   toggleFooterCollapsed: () => void;
+  /** Phone drawer open (ignored on desktop). */
+  mobileOpen: boolean;
+  openMobile: () => void;
+  closeMobile: () => void;
+  toggleMobile: () => void;
+  isMobileViewport: boolean;
 };
 
 const DashboardSidebarContext =
@@ -34,6 +42,8 @@ export function DashboardSidebarProvider({
   const [footerCollapsed, setFooterCollapsed] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [ready, setReady] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   useEffect(() => {
     try {
@@ -48,6 +58,21 @@ export function DashboardSidebarProvider({
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+
+    const mq = window.matchMedia(MOBILE_DRAWER_MQ);
+    const sync = () => {
+      const mobile = mq.matches;
+      setIsMobileViewport(mobile);
+      if (!mobile) setMobileOpen(false);
+    };
+
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
     if (!isResizing) return;
 
     const timer = window.setTimeout(() => {
@@ -56,6 +81,23 @@ export function DashboardSidebarProvider({
 
     return () => window.clearTimeout(timer);
   }, [isResizing, collapsed]);
+
+  useEffect(() => {
+    if (!mobileOpen || !isMobileViewport) return;
+
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileOpen, isMobileViewport]);
 
   const toggleCollapsed = useCallback(() => {
     setIsResizing(true);
@@ -86,6 +128,13 @@ export function DashboardSidebarProvider({
     });
   }, []);
 
+  const openMobile = useCallback(() => setMobileOpen(true), []);
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+  const toggleMobile = useCallback(
+    () => setMobileOpen((current) => !current),
+    [],
+  );
+
   const value = useMemo(
     () => ({
       collapsed: ready ? collapsed : false,
@@ -93,14 +142,24 @@ export function DashboardSidebarProvider({
       toggleCollapsed,
       footerCollapsed: ready ? footerCollapsed : false,
       toggleFooterCollapsed,
+      mobileOpen,
+      openMobile,
+      closeMobile,
+      toggleMobile,
+      isMobileViewport,
     }),
     [
+      closeMobile,
       collapsed,
       footerCollapsed,
+      isMobileViewport,
       isResizing,
+      mobileOpen,
+      openMobile,
       ready,
       toggleCollapsed,
       toggleFooterCollapsed,
+      toggleMobile,
     ],
   );
 

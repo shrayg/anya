@@ -212,6 +212,138 @@
   will-change: margin-left;
 }
 
+/* Mobile nav chrome — hidden on desktop (md+) */
+.dash-mobile-nav-toggle,
+.dash-mobile-nav-backdrop {
+  display: none;
+}
+
+/* —— Dashboard phone drawer (≤767px; md+ unchanged) —— */
+@media (max-width: 767px) {
+  .dash-shell {
+    --dash-sidebar-width: min(19rem, calc(100vw - 2.75rem));
+  }
+
+  .dash-main {
+    margin-left: 0 !important;
+    padding-top: 3.25rem;
+  }
+
+  .dash-mobile-nav-toggle {
+    position: fixed;
+    top: max(0.65rem, env(safe-area-inset-top, 0px));
+    left: max(0.65rem, env(safe-area-inset-left, 0px));
+    z-index: 75;
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 0.85rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+      rgba(8, 10, 14, 0.88);
+    color: #f4f4f5;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.06) inset,
+      0 12px 28px -16px rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    cursor: pointer;
+    transition:
+      border-color 0.16s ease,
+      background 0.16s ease,
+      color 0.16s ease;
+  }
+
+  .dash-mobile-nav-toggle:hover,
+  .dash-mobile-nav-toggle:focus-visible {
+    border-color: color-mix(in srgb, var(--anya-blush, #c3d3e6) 45%, rgba(255, 255, 255, 0.18));
+    color: #fff;
+    outline: none;
+  }
+
+  .dash-shell--mobile-nav-open .dash-mobile-nav-toggle {
+    /* Keep toggle anchored; drawer close lives in the rail header */
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .dash-mobile-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 65;
+    display: block;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    cursor: pointer;
+  }
+
+  .dash-shell--mobile-nav-open .dash-mobile-nav-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .dash-sidebar {
+    z-index: 70;
+    width: var(--dash-sidebar-width) !important;
+    max-width: calc(100vw - 2.5rem);
+    transform: translate3d(-105%, 0, 0);
+    transition:
+      transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+      width var(--dash-sidebar-duration) var(--dash-sidebar-ease);
+    box-shadow: none;
+  }
+
+  .dash-shell--mobile-nav-open .dash-sidebar {
+    transform: translate3d(0, 0, 0);
+    box-shadow: 24px 0 48px -20px rgba(0, 0, 0, 0.65);
+  }
+
+  .module-search {
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+  }
+
+  .module-search--idle .module-search-composer {
+    align-items: flex-start;
+    min-height: 0;
+    padding-block: 0.75rem 1.25rem;
+  }
+
+  .module-search--idle .module-search-panel,
+  .module-search--idle .module-search-panel--composer {
+    width: 100%;
+    max-width: none;
+  }
+
+  .module-search-hero {
+    max-width: none;
+    padding-inline: 0.15rem;
+  }
+
+  .module-search-title {
+    font-size: clamp(1.45rem, 7vw, 1.85rem);
+  }
+
+  .anya-result-list--grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-jobs-notices {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    max-width: none;
+  }
+}
+
 .dash-sidebar {
   --sidebar-bg: hsl(var(--sidebar-background));
   --sidebar-fg: hsl(var(--sidebar-foreground));
@@ -9780,38 +9912,183 @@
   }
 
   .home-search-locked-popover {
-    left: -1rem;
-    width: min(100vw - 3rem, 24rem);
+    left: 50%;
+    right: auto;
+    width: min(100vw - 1.5rem, 24rem);
+    transform: translateX(-50%) translateY(0.25rem);
   }
 
-  .home-search-input-wrap {
-    gap: 0.45rem;
-    padding: 0.4rem 0.4rem 0.4rem 0.75rem;
+  .home-search-locked-module:hover .home-search-locked-popover,
+  .home-search-locked-module:focus-within .home-search-locked-popover {
+    transform: translateX(-50%) translateY(0);
   }
 
-  .home-search-input {
-    padding: 0.65rem 0.1rem;
-    font-size: 0.95rem;
+  .home-search-module-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
   }
 
-  .home-search-submit {
-    padding: 0.55rem 0.85rem;
-    font-size: 0.82rem;
+  .home-search-locked-module {
+    width: 100%;
   }
 
   .home-search-locked-trigger {
-    min-height: 2.15rem;
-    padding: 0.35rem 0.7rem;
-    font-size: 0.75rem;
+    width: 100%;
+    min-height: 2.65rem;
+    justify-content: center;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
   }
 
   .home-search-locked-cta {
-    font-size: 0.74rem;
+    width: 100%;
+    min-height: 2.65rem;
+    font-size: 0.8rem;
+  }
+
+  .starter-search-modes {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
   }
 
   .starter-search-mode {
-    padding: 0.4rem 0.7rem;
-    font-size: 0.78rem;
+    min-height: 2.65rem;
+    justify-content: center;
+    padding: 0.45rem 0.35rem;
+    font-size: 0.72rem;
+  }
+
+  .home-search-glass {
+    border-radius: 1.1rem !important;
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
+  }
+
+  .home-search-input-wrap {
+    position: relative;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    padding: 0.55rem;
+  }
+
+  .home-search-icon {
+    position: absolute;
+    top: 1.15rem;
+    left: 1.05rem;
+    pointer-events: none;
+  }
+
+  .home-search-input {
+    flex: 1 1 100%;
+    width: 100%;
+    padding: 0.85rem 0.75rem 0.85rem 2.35rem;
+    font-size: 1rem;
+  }
+
+  .home-search-submit {
+    flex: 1 1 100%;
+    width: 100%;
+    min-height: 2.85rem;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .home-search-results {
+    scroll-margin-top: 4.5rem;
+  }
+
+  .home-search--has-results .home-search-results {
+    min-height: 0;
+    padding-bottom: 1.5rem;
+  }
+
+  .home-hero:has(.home-search--has-results) {
+    padding-top: 0.75rem;
+    padding-bottom: 1rem;
+  }
+
+  .home-hero:has(.home-search--has-results) [data-splash-target] {
+    font-size: clamp(1.45rem, 8vw, 1.9rem);
+  }
+
+  .home-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .home-btn-primary,
+  .home-btn-ghost {
+    width: 100%;
+    min-height: 2.85rem;
+  }
+
+  .home-final-cta {
+    padding: 1.25rem 1rem;
+  }
+
+  .home-audience-card,
+  .home-trust article {
+    min-width: 0;
+  }
+}
+
+/* Phone-only marketing polish — never applies at md+ */
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  .anya-floating-nav-shell {
+    top: 0.55rem;
+    padding: 0 0.55rem;
+  }
+
+  .anya-floating-nav-island {
+    width: calc(100vw - 1.1rem);
+  }
+
+  .home-stats {
+    border-radius: 1rem;
+  }
+
+  .home-stat {
+    padding: 1.05rem 0.85rem;
+  }
+
+  .home-stat strong {
+    font-size: clamp(1.25rem, 6vw, 1.65rem);
+  }
+
+  .home-showcase-grid {
+    gap: 1.35rem;
+  }
+
+  .home-agent {
+    height: 22rem;
+    min-height: 22rem;
+    max-height: 22rem;
+  }
+
+  .mod-map-grid {
+    gap: 0.7rem;
+  }
+
+  .mod-map-node {
+    padding: 0.8rem 0.75rem;
+  }
+
+  .craft-display {
+    font-size: clamp(2rem, 10vw, 2.75rem);
+    line-height: 1.05;
+  }
+
+  .craft-lede {
+    font-size: 0.95rem;
   }
 }
 

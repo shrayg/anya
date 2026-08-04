@@ -14,7 +14,7 @@ export default function MarketingLayout({
       <SiteVisitBeacon />
       <Navbar />
       {/* Extra top pad so content clears the floating nav island */}
-      <main className="container mx-auto flex max-w-7xl flex-grow flex-col px-6 pt-20">
+      <main className="container mx-auto flex max-w-7xl flex-grow flex-col px-4 pt-[4.75rem] sm:px-6 sm:pt-20">
         {children}
       </main>
       <Footer />
