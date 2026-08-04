@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import { Code2, CreditCard, Mail, Sparkles } from "lucide-react";
+import { Code2, CreditCard, Mail, Minus, Plus, Sparkles } from "lucide-react";
 import NextLink from "next/link";
 import { SiTelegram } from "react-icons/si";
 
@@ -111,14 +111,46 @@ export function PricingPageContent({
   const [customCreditsInput, setCustomCreditsInput] = useState("50");
   const [enterpriseContactOpen, setEnterpriseContactOpen] = useState(false);
 
+  const customCreditsDraft = useMemo(() => {
+    if (!customCreditsInput) return null;
+    const parsed = Number(customCreditsInput);
+    if (!Number.isFinite(parsed)) return null;
+
+    return Math.min(CUSTOM_CREDIT_MAX, Math.max(0, Math.floor(parsed)));
+  }, [customCreditsInput]);
+
   const customCredits = useMemo(
-    () => clampCustomCredits(Number(customCreditsInput) || CUSTOM_CREDIT_MIN),
-    [customCreditsInput],
+    () =>
+      customCreditsDraft == null
+        ? CUSTOM_CREDIT_MIN
+        : clampCustomCredits(customCreditsDraft),
+    [customCreditsDraft],
   );
-  const customPrice = useMemo(
-    () => customCreditsPrice(customCredits),
-    [customCredits],
-  );
+
+  const customPrice = useMemo(() => {
+    // Live price tracks what they're typing; below-min snaps on blur.
+    if (customCreditsDraft == null) return 0;
+    if (customCreditsDraft < CUSTOM_CREDIT_MIN) {
+      return customCreditsDraft * CREDIT_UNIT_USD;
+    }
+
+    return customCreditsPrice(customCreditsDraft);
+  }, [customCreditsDraft]);
+
+  const customBelowMin =
+    customCreditsDraft != null && customCreditsDraft < CUSTOM_CREDIT_MIN;
+  const customAmountValid =
+    customCreditsDraft != null &&
+    customCreditsDraft >= CUSTOM_CREDIT_MIN &&
+    customCreditsDraft <= CUSTOM_CREDIT_MAX;
+
+  function setCustomCreditsDigits(raw: string) {
+    setCustomCreditsInput(raw.replace(/\D/g, "").slice(0, 3));
+  }
+
+  function commitCustomCredits() {
+    setCustomCreditsInput(String(customCredits));
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -537,8 +569,8 @@ export function PricingPageContent({
             <div className="pricing-credit-view mt-10">
               <div className="pricing-credit-hero mx-auto mb-7 max-w-xl text-center">
                 <p className="pricing-credit-intro text-sm text-zinc-400">
-                  Packs include a 15–25% bonus. Custom is ${CREDIT_UNIT_USD}/credit
-                  flat
+                  1 credit = ${CREDIT_UNIT_USD}. Packs include a 15–25% bonus;
+                  custom is exact ${CREDIT_UNIT_USD}/credit
                   {creditBalance != null ? (
                     <>
                       {" "}
@@ -620,56 +652,18 @@ export function PricingPageContent({
                 <article
                   className={clsx(
                     PAYMENT_CARD_BASE,
-                    "pricing-credit-card--compact border-white/14 bg-white/[0.035]",
+                    "pricing-credit-card--compact",
+                    PAYMENT_CARD_DEFAULT,
                   )}
                 >
                   <div className="pricing-credit-head">
                     <h3 className="text-lg font-semibold tracking-tight text-white">
                       Custom
                     </h3>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      ${CREDIT_UNIT_USD}/credit · no bonus
+                    <p className="mt-1 text-xs text-zinc-400">
+                      1 credit = ${CREDIT_UNIT_USD} · min {CUSTOM_CREDIT_MIN} ·
+                      no bonus
                     </p>
-                  </div>
-
-                  <div className="mt-5 flex items-center gap-2">
-                    <input
-                      aria-label="Credits"
-                      className="ui-input min-w-0 flex-1 tabular-nums"
-                      inputMode="numeric"
-                      max={CUSTOM_CREDIT_MAX}
-                      min={CUSTOM_CREDIT_MIN}
-                      name="custom-credits"
-                      type="number"
-                      value={customCreditsInput}
-                      onChange={(event) =>
-                        setCustomCreditsInput(event.target.value)
-                      }
-                      onBlur={() =>
-                        setCustomCreditsInput(String(customCredits))
-                      }
-                    />
-                    <span className="shrink-0 text-sm text-zinc-500">
-                      credits
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {[25, 50, 100, 250].map((preset) => (
-                      <button
-                        key={preset}
-                        className={clsx(
-                          "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition",
-                          customCredits === preset
-                            ? "border-white/25 bg-white/10 text-white"
-                            : "border-white/8 text-zinc-500 hover:border-white/16 hover:text-zinc-300",
-                        )}
-                        type="button"
-                        onClick={() => setCustomCreditsInput(String(preset))}
-                      >
-                        {preset}
-                      </button>
-                    ))}
                   </div>
 
                   <div className="pricing-credit-value mt-5">
@@ -680,11 +674,109 @@ export function PricingPageContent({
                         value={customPrice}
                       />
                     </div>
+
+                    <div className="pricing-credit-stepper mt-3">
+                      <button
+                        aria-label="Decrease credits"
+                        className="pricing-credit-stepper-btn"
+                        disabled={customCredits <= CUSTOM_CREDIT_MIN}
+                        type="button"
+                        onClick={() =>
+                          setCustomCreditsInput(
+                            String(clampCustomCredits(customCredits - 1)),
+                          )
+                        }
+                      >
+                        <Minus className="size-3.5" strokeWidth={2.25} />
+                      </button>
+                      <input
+                        aria-describedby="custom-credits-hint"
+                        aria-label="Credits"
+                        autoComplete="off"
+                        className="pricing-credit-stepper-input tabular-nums"
+                        inputMode="numeric"
+                        maxLength={3}
+                        name="custom-credits"
+                        pattern="[0-9]*"
+                        type="text"
+                        value={customCreditsInput}
+                        onBlur={commitCustomCredits}
+                        onChange={(event) =>
+                          setCustomCreditsDigits(event.target.value)
+                        }
+                        onKeyDown={(event) => {
+                          if (
+                            event.key.length === 1 &&
+                            !/[0-9]/.test(event.key) &&
+                            !event.ctrlKey &&
+                            !event.metaKey &&
+                            !event.altKey
+                          ) {
+                            event.preventDefault();
+                          }
+                        }}
+                      />
+                      <button
+                        aria-label="Increase credits"
+                        className="pricing-credit-stepper-btn"
+                        disabled={customCredits >= CUSTOM_CREDIT_MAX}
+                        type="button"
+                        onClick={() =>
+                          setCustomCreditsInput(
+                            String(clampCustomCredits(customCredits + 1)),
+                          )
+                        }
+                      >
+                        <Plus className="size-3.5" strokeWidth={2.25} />
+                      </button>
+                      <span className="pricing-credit-stepper-unit">
+                        credits
+                      </span>
+                    </div>
+
+                    <p
+                      className={clsx(
+                        "mt-2 text-[11px]",
+                        customBelowMin || customCreditsDraft == null
+                          ? "text-amber-300/90"
+                          : "text-zinc-500",
+                      )}
+                      id="custom-credits-hint"
+                    >
+                      {customBelowMin
+                        ? `Minimum is ${CUSTOM_CREDIT_MIN} credits — bumps to ${CUSTOM_CREDIT_MIN} when you leave.`
+                        : customCreditsDraft == null
+                          ? `Enter at least ${CUSTOM_CREDIT_MIN} credits ($${CUSTOM_CREDIT_MIN}).`
+                          : `Lowest you can buy is ${CUSTOM_CREDIT_MIN} credits ($${CUSTOM_CREDIT_MIN}).`}
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {[3, 25, 50, 100, 250].map((preset) => (
+                        <button
+                          key={preset}
+                          className={clsx(
+                            "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition",
+                            customCredits === preset && !customBelowMin
+                              ? "border-white/25 bg-white/10 text-white"
+                              : "border-white/8 text-zinc-500 hover:border-white/16 hover:text-zinc-300",
+                          )}
+                          type="button"
+                          onClick={() =>
+                            setCustomCreditsInput(String(preset))
+                          }
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <PricingCta
-                    disabled={busyId === CUSTOM_CREDIT_PACK_ID}
-                    onClick={() =>
+                    disabled={
+                      busyId === CUSTOM_CREDIT_PACK_ID || !customAmountValid
+                    }
+                    onClick={() => {
+                      commitCustomCredits();
                       requestCheckout(
                         {
                           type: "credits",
@@ -692,8 +784,8 @@ export function PricingPageContent({
                           creditsAmount: customCredits,
                         },
                         CUSTOM_CREDIT_PACK_ID,
-                      )
-                    }
+                      );
+                    }}
                   >
                     {busyId === CUSTOM_CREDIT_PACK_ID ? "Working…" : "Buy"}
                   </PricingCta>

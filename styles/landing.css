@@ -2446,6 +2446,99 @@
   padding-top: 1.25rem;
 }
 
+.pricing-credit-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+}
+
+.pricing-credit-stepper-btn {
+  display: inline-flex;
+  height: 1.85rem;
+  width: 1.85rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    ),
+    rgba(12, 16, 25, 0.45);
+  color: #e4e4e7;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.pricing-credit-stepper-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.04) 100%
+    ),
+    rgba(12, 16, 25, 0.4);
+}
+
+.pricing-credit-stepper-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pricing-credit-stepper-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  width: 3.35rem;
+  height: 1.85rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+  color: #fff;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.pricing-credit-stepper-input::-webkit-outer-spin-button,
+.pricing-credit-stepper-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pricing-credit-stepper-input:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pricing-credit-stepper-input:focus,
+.pricing-credit-stepper-input:focus-visible {
+  border-color: color-mix(in srgb, var(--anya-blush) 55%, transparent);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--anya-blush) 28%, transparent);
+}
+
+.pricing-credit-stepper-unit {
+  margin-left: 0.15rem;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+}
+
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-card {
   position: relative;
   min-height: auto;

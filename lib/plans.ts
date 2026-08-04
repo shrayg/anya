@@ -279,7 +279,7 @@ export type CreditPack = {
 /** List rate for à-la-carte / custom top-ups. */
 export const CREDIT_UNIT_USD = 1;
 
-export const CUSTOM_CREDIT_MIN = 5;
+export const CUSTOM_CREDIT_MIN = 3;
 export const CUSTOM_CREDIT_MAX = 500;
 export const CUSTOM_CREDIT_PACK_ID = "credits_custom";
 
