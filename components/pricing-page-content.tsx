@@ -15,7 +15,6 @@ import {
   type BillingStatusKind,
 } from "@/components/billing-status-banner";
 import AnimatedPrice from "@/components/animated-price";
-import { SpecularButton } from "@/components/ui/specular-button";
 import { siteConfig } from "@/config/site";
 import {
   ANNUAL_MONTHS_CHARGED,
@@ -53,6 +52,37 @@ type PendingCheckout = {
   body: Record<string, unknown>;
   id: string;
 };
+
+/** Plain glass pill CTA — no Specular WebGL (avoids idle/misaligned rim on pills). */
+function PricingCta({
+  children,
+  accent = false,
+  wrap = true,
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  accent?: boolean;
+  /** Card footer spacing wrapper (off for modals). */
+  wrap?: boolean;
+}) {
+  const button = (
+    <button
+      className={clsx(
+        "pricing-card-cta",
+        accent && "pricing-card-cta--accent",
+        className,
+      )}
+      type="button"
+      {...props}
+    >
+      {children}
+    </button>
+  );
+
+  if (!wrap) return button;
+
+  return <div className="pricing-card-cta-wrap">{button}</div>;
+}
 
 export function PricingPageContent({
   className,
@@ -455,37 +485,31 @@ export function PricingPageContent({
                       ))}
                     </ul>
 
-                    <div className="pricing-card-cta-wrap">
-                      <SpecularButton
-                        accent={plan.highlighted}
-                        autoAnimate={false}
-                        className="pricing-card-cta h-11 w-full shrink-0 text-sm font-semibold"
-                        disabled={busyId === plan.id}
-                        radius={999}
-                        type="button"
-                        onClick={() => {
-                          if (plan.customPricing) {
-                            setEnterpriseContactOpen(true);
+                    <PricingCta
+                      accent={plan.highlighted}
+                      disabled={busyId === plan.id}
+                      onClick={() => {
+                        if (plan.customPricing) {
+                          setEnterpriseContactOpen(true);
 
-                            return;
-                          }
-                          requestCheckout(
-                            {
-                              type: "subscription",
-                              planId: plan.id,
-                              interval,
-                            },
-                            plan.id,
-                          );
-                        }}
-                      >
-                        {busyId === plan.id
-                          ? "Working…"
-                          : plan.customPricing
-                            ? "Contact us"
-                            : "Get Started"}
-                      </SpecularButton>
-                    </div>
+                          return;
+                        }
+                        requestCheckout(
+                          {
+                            type: "subscription",
+                            planId: plan.id,
+                            interval,
+                          },
+                          plan.id,
+                        );
+                      }}
+                    >
+                      {busyId === plan.id
+                        ? "Working…"
+                        : plan.customPricing
+                          ? "Contact us"
+                          : "Get Started"}
+                    </PricingCta>
                   </article>
                 );
               })}
@@ -597,26 +621,20 @@ export function PricingPageContent({
                         </li>
                       </ul>
 
-                      <div className="pricing-card-cta-wrap">
-                        <SpecularButton
-                          accent={pack.highlighted}
-                          autoAnimate={false}
-                          className="pricing-card-cta h-11 w-full shrink-0 text-sm font-semibold"
-                          disabled={busyId === pack.id}
-                          radius={999}
-                          type="button"
-                          onClick={() =>
-                            requestCheckout(
-                              { type: "credits", packId: pack.id },
-                              pack.id,
-                            )
-                          }
-                        >
-                          {busyId === pack.id
-                            ? "Working…"
-                            : `Buy ${total} credits`}
-                        </SpecularButton>
-                      </div>
+                      <PricingCta
+                        accent={pack.highlighted}
+                        disabled={busyId === pack.id}
+                        onClick={() =>
+                          requestCheckout(
+                            { type: "credits", packId: pack.id },
+                            pack.id,
+                          )
+                        }
+                      >
+                        {busyId === pack.id
+                          ? "Working…"
+                          : `Buy ${total} credits`}
+                      </PricingCta>
                     </article>
                   );
                 })}
@@ -696,26 +714,20 @@ export function PricingPageContent({
                         ))}
                       </ul>
 
-                      <div className="pricing-card-cta-wrap">
-                        <SpecularButton
-                          accent
-                          autoAnimate={false}
-                          className="pricing-card-cta h-11 w-full shrink-0 text-sm font-semibold"
-                          disabled={busyId === "api_access"}
-                          radius={999}
-                          type="button"
-                          onClick={() =>
-                            requestCheckout(
-                              { type: "api_access", interval },
-                              "api_access",
-                            )
-                          }
-                        >
-                          {busyId === "api_access"
-                            ? "Working…"
-                            : "Get API Access"}
-                        </SpecularButton>
-                      </div>
+                      <PricingCta
+                        accent
+                        disabled={busyId === "api_access"}
+                        onClick={() =>
+                          requestCheckout(
+                            { type: "api_access", interval },
+                            "api_access",
+                          )
+                        }
+                      >
+                        {busyId === "api_access"
+                          ? "Working…"
+                          : "Get API Access"}
+                      </PricingCta>
                       <p className="mt-3 text-center text-xs text-zinc-500">
                         API keys are issued after purchase confirmation. Contact
                         support for volume pricing.
@@ -761,13 +773,10 @@ export function PricingPageContent({
               and unlock after network confirmation.
             </p>
             <div className="mt-5 grid gap-3">
-              <SpecularButton
+              <PricingCta
                 accent
-                autoAnimate={false}
-                className="pricing-card-cta h-11 w-full text-sm font-semibold"
+                wrap={false}
                 disabled={busyId === pendingCheckout.id}
-                radius={999}
-                type="button"
                 onClick={() =>
                   void runCheckout(
                     pendingCheckout.body,
@@ -779,13 +788,10 @@ export function PricingPageContent({
                 {busyId === pendingCheckout.id
                   ? "Working…"
                   : "Pay with card"}
-              </SpecularButton>
-              <SpecularButton
-                autoAnimate={false}
-                className="pricing-card-cta h-11 w-full text-sm font-semibold"
+              </PricingCta>
+              <PricingCta
+                wrap={false}
                 disabled={busyId === pendingCheckout.id}
-                radius={999}
-                type="button"
                 onClick={() =>
                   void runCheckout(
                     pendingCheckout.body,
@@ -797,7 +803,7 @@ export function PricingPageContent({
                 {busyId === pendingCheckout.id
                   ? "Working…"
                   : "Pay with crypto"}
-              </SpecularButton>
+              </PricingCta>
               <button
                 className="mt-1 text-sm text-zinc-500 hover:text-zinc-300"
                 type="button"
