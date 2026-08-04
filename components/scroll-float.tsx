@@ -46,37 +46,6 @@ function normalizeLines(
   return [];
 }
 
-/**
- * Animate per character, but wrap at word boundaries only.
- * Letter-level inline-blocks otherwise allow mid-word line breaks
- * (and NBSP between letters removed soft wrap opportunities at spaces).
- */
-function splitChars(text: string, keyPrefix: string) {
-  const tokens = text.split(/(\s+)/);
-  return tokens.flatMap((token, tokenIndex) => {
-    if (!token) return [];
-    if (/^\s+$/.test(token)) {
-      return [
-        <span className="scroll-float-gap" key={`${keyPrefix}-g${tokenIndex}`}>
-          {" "}
-        </span>,
-      ];
-    }
-    return [
-      <span className="scroll-float-word" key={`${keyPrefix}-w${tokenIndex}`}>
-        {token.split("").map((char, index) => (
-          <span
-            className="scroll-float-char"
-            key={`${keyPrefix}-${tokenIndex}-${index}`}
-          >
-            {char}
-          </span>
-        ))}
-      </span>,
-    ];
-  });
-}
-
 export default function ScrollFloat({
   children,
   lines,
@@ -87,7 +56,7 @@ export default function ScrollFloat({
   animationDuration = 0.55,
   ease = "power2.out",
   scrollStart = "top 88%",
-  stagger = 0.018,
+  stagger = 0.08,
 }: ScrollFloatProps) {
   const containerRef = useRef<HTMLElement | null>(null);
   const linesKey =
@@ -112,14 +81,16 @@ export default function ScrollFloat({
     const el = containerRef.current;
     if (!el || resolvedLines.length === 0) return;
 
-    const charElements = el.querySelectorAll<HTMLElement>(".scroll-float-char");
-    if (!charElements.length) return;
+    // Fade whole lines — never per-glyph inline-blocks. Splitting every letter
+    // into inline-block + a sub-1 line-height was clipping ascenders/descenders.
+    const lineElements = el.querySelectorAll<HTMLElement>(".scroll-float-line");
+    if (!lineElements.length) return;
 
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (reduceMotion) {
-      gsap.set(charElements, { opacity: 1, clearProps: "transform" });
+      gsap.set(lineElements, { opacity: 1 });
       return;
     }
 
@@ -132,10 +103,8 @@ export default function ScrollFloat({
         : window;
 
     const ctx = gsap.context(() => {
-      // Fade only — no yPercent / scale scrub. Scrubbed float-in clipped mid-word
-      // while the title was already on screen (overflow:hidden + yPercent:120).
       gsap.fromTo(
-        charElements,
+        lineElements,
         {
           willChange: "opacity",
           opacity: 0,
@@ -199,8 +168,6 @@ export default function ScrollFloat({
 
   if (resolvedLines.length === 0) return null;
 
-  const multi = resolvedLines.length > 1;
-
   return (
     <Tag
       ref={containerRef as never}
@@ -209,18 +176,14 @@ export default function ScrollFloat({
       <span
         className={`scroll-float-text${textClassName ? ` ${textClassName}` : ""}`}
       >
-        {resolvedLines.map((line, lineIndex) => {
-          const chars = splitChars(line.text, `l${lineIndex}`);
-          if (!multi && !line.accent) return chars;
-          return (
-            <span
-              className={`scroll-float-line${line.accent ? " scroll-float-line--accent" : ""}`}
-              key={`line-${lineIndex}`}
-            >
-              {chars}
-            </span>
-          );
-        })}
+        {resolvedLines.map((line, lineIndex) => (
+          <span
+            className={`scroll-float-line${line.accent ? " scroll-float-line--accent" : ""}`}
+            key={`line-${lineIndex}`}
+          >
+            {line.text}
+          </span>
+        ))}
       </span>
     </Tag>
   );

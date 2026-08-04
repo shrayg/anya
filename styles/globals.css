@@ -11415,8 +11415,10 @@ html[data-splash="active"] [data-splash-target] {
   color: var(--story-ink);
   font-size: clamp(2.55rem, 6.2vw, 5.25rem);
   font-weight: 580;
-  letter-spacing: -0.07em;
-  line-height: 0.92;
+  letter-spacing: -0.055em;
+  /* Was 0.92 — with display titles that clipped ascenders (esp. after char split). */
+  line-height: 1.08;
+  overflow: visible;
 }
 
 .anya-story__split-head h2 .scroll-float-line--accent,
@@ -11851,8 +11853,8 @@ html[data-splash="active"] [data-splash-target] {
   color: color-mix(in srgb, var(--anya-blush) 55%, #f5f5f7);
   font-size: clamp(2rem, 4.5vw, 3rem);
   font-weight: 600;
-  letter-spacing: -0.06em;
-  line-height: 1;
+  letter-spacing: -0.05em;
+  line-height: 1.08;
 }
 
 .anya-scale-strip span {
@@ -12095,9 +12097,10 @@ html[data-splash="active"] [data-splash-target] {
   font-family: inherit;
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 580;
-  letter-spacing: -0.055em;
-  line-height: 1;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
   color: var(--story-ink);
+  overflow: visible;
 }
 
 .anya-story--modules .mod-explorer-text {
