@@ -11,7 +11,7 @@
   justify-content: center;
   gap: 0.45rem;
   border: none;
-  margin: 0;
+  margin-inline: 0;
   font-family: inherit;
   font-weight: 600;
   letter-spacing: 0.01em;

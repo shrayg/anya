@@ -458,7 +458,7 @@ export function PricingPageContent({
                     <SpecularButton
                       accent={plan.highlighted}
                       autoAnimate={false}
-                      className="mt-10 h-11 w-full shrink-0 text-sm font-semibold"
+                      className="pricing-card-cta mt-10 h-11 w-full shrink-0 text-sm font-semibold"
                       disabled={busyId === plan.id}
                       radius={999}
                       type="button"
@@ -598,7 +598,7 @@ export function PricingPageContent({
                       <SpecularButton
                         accent={pack.highlighted}
                         autoAnimate={false}
-                        className="mt-10 h-11 w-full shrink-0 text-sm font-semibold"
+                        className="pricing-card-cta mt-10 h-11 w-full shrink-0 text-sm font-semibold"
                         disabled={busyId === pack.id}
                         radius={999}
                         type="button"
@@ -695,7 +695,7 @@ export function PricingPageContent({
                       <SpecularButton
                         accent
                         autoAnimate={false}
-                        className="mt-10 h-11 w-full shrink-0 text-sm font-semibold"
+                        className="pricing-card-cta mt-10 h-11 w-full shrink-0 text-sm font-semibold"
                         disabled={busyId === "api_access"}
                         radius={999}
                         type="button"

@@ -2482,6 +2482,12 @@
   margin-bottom: 0;
 }
 
+/* Clear air between ledger / feature text and purchase CTAs */
+.brutal-pricing-page .pricing-credit-card > .specular-button,
+.brutal-pricing-page .pricing-credit-card .pricing-card-cta {
+  margin-top: 2.75rem !important;
+}
+
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-credit-ledger
   > span,
