@@ -337,7 +337,7 @@ export async function runDiscordOsintSearch(
       }),
 
     // BreachHub specialty first (Seekria / Reconly / SeekNow / CordCat / …),
-    // then CSINT only when BH returned nothing — never CSINT ∥ BH.
+    // then CSINT osint + lookup on the shared CSINT queue (never burst ∥).
     (async () => {
       const { value: bh } = await withPrimaryFallback(
         () => fetchBreachHubDiscord(query),
@@ -364,6 +364,9 @@ export async function runDiscordOsintSearch(
       }
 
       emit("breachhub");
+
+      csintLookup = await fetchCsintDiscordLookup(query).catch(() => null);
+      emit("csint-lookup");
     })(),
 
     fetchBreachVipSanitized(query, "discordid")
@@ -371,13 +374,6 @@ export async function runDiscordOsintSearch(
       .then((value) => {
         breachVipLeaks = value;
         emit("breachvip");
-      }),
-
-    fetchCsintDiscordLookup(query)
-      .catch(() => null)
-      .then((value) => {
-        csintLookup = value;
-        emit("csint-lookup");
       }),
 
     fetchOathnetDiscordToRoblox(query)

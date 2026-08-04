@@ -579,11 +579,27 @@ export function scrubIntelRecord(
 }
 
 export function hasUsefulIntelFields(record: Record<string, unknown>): boolean {
+  // Provider rate-limit / abuse envelopes must never become result cards.
+  const limitBlob = [record.reason, record.message, record.error]
+    .map((v) => (typeof v === "string" ? v : ""))
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    limitBlob.includes("rate limit") ||
+    limitBlob.includes("temporarily blocked") ||
+    limitBlob.includes("abuse detected") ||
+    (record.data_found === false &&
+      (record.retry_after_seconds != null || record.retry_after != null))
+  ) {
+    return false;
+  }
+
   for (const [key, value] of Object.entries(record)) {
     if (DATABANK_KEYS.has(key)) continue;
     if (isErrorFieldKey(key)) continue;
     if (
-      /^(success|credits?|service|query|type|message|status|count|total)$/i.test(
+      /^(success|credits?|service|query|type|message|status|count|total|data_found|reason|retry_after(?:_seconds)?)$/i.test(
         key,
       )
     ) {

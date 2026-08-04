@@ -77,7 +77,9 @@ function sanitizeCsintError(message: string): string {
     (lower.includes("rate") &&
       (lower.includes("limit") || lower.includes("429"))) ||
     lower.includes("too many requests") ||
-    lower.includes("429")
+    lower.includes("429") ||
+    lower.includes("rate limit abuse") ||
+    lower.includes("temporarily blocked")
   ) {
     return "Too many searches right now. Wait a minute and try again.";
   }
@@ -112,25 +114,132 @@ export async function fetchCsintQuotaBlockedStub(
   return null;
 }
 
-/** csint.pro documents ~3 req/s — space POSTs so additive fan-out stays polite. */
-const CSINT_MIN_INTERVAL_MS = 350;
-let csintGate: Promise<void> = Promise.resolve();
+/**
+ * csint.pro documents max ~3 req/s and abuse-blocks keys/IPs for ~30 minutes.
+ * Serialize in-flight POSTs (one at a time) and pad ~2 req/s so Breaches
+ * additive fan-out and Discord lookups share one process-wide budget.
+ */
+const CSINT_MIN_INTERVAL_MS = 500;
+const CSINT_DEFAULT_COOLDOWN_MS = 30 * 60 * 1000;
+const CSINT_MAX_COOLDOWN_MS = 35 * 60 * 1000;
+let csintGate: Promise<unknown> = Promise.resolve();
 let csintNextAt = 0;
+let csintBlockedUntil = 0;
 
-async function acquireCsintSlot(): Promise<void> {
+function csintRateLimitMessage(): string {
+  return sanitizeCsintError("rate limit abuse temporarily blocked");
+}
+
+function readCsintRetryMs(data: Record<string, unknown>): number | null {
+  const raw =
+    data.retry_after_seconds ??
+    data.retry_after ??
+    data.retryAfterSeconds ??
+    data.retryAfter;
+
+  const n =
+    typeof raw === "number"
+      ? raw
+      : typeof raw === "string"
+        ? Number(raw)
+        : NaN;
+
+  if (!Number.isFinite(n) || n <= 0) return null;
+
+  return Math.min(Math.ceil(n * 1000), CSINT_MAX_COOLDOWN_MS);
+}
+
+/** True when CSINT returned an abuse / rate-limit envelope (even on HTTP 200). */
+export function isCsintRateLimitPayload(
+  data: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!data) return false;
+
+  const blob = [
+    data.reason,
+    data.message,
+    data.error,
+    data.details,
+    data.status,
+  ]
+    .map((v) => (typeof v === "string" ? v : ""))
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    blob.includes("rate limit") ||
+    blob.includes("rate_limit") ||
+    blob.includes("too many requests") ||
+    blob.includes("abuse") ||
+    blob.includes("temporarily blocked") ||
+    /\b429\b/.test(blob)
+  ) {
+    return true;
+  }
+
+  if (
+    data.data_found === false &&
+    readCsintRetryMs(data) != null &&
+    (typeof data.reason === "string" || typeof data.message === "string")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function noteCsintCooldown(data?: Record<string, unknown>, statusCode?: number) {
+  const fromBody = data ? readCsintRetryMs(data) : null;
+  const waitMs =
+    fromBody ??
+    (statusCode === 429 ? CSINT_DEFAULT_COOLDOWN_MS : null) ??
+    (data && isCsintRateLimitPayload(data) ? CSINT_DEFAULT_COOLDOWN_MS : null);
+
+  if (waitMs == null) return;
+
+  csintBlockedUntil = Math.max(csintBlockedUntil, Date.now() + waitMs);
+}
+
+export function isCsintCoolingDown(): boolean {
+  return Date.now() < csintBlockedUntil;
+}
+
+export function csintCooldownRemainingMs(): number {
+  return Math.max(0, csintBlockedUntil - Date.now());
+}
+
+async function withCsintSlot<T>(fn: () => Promise<T>): Promise<T> {
   const run = csintGate.then(async () => {
+    // Fail fast while abuse-blocked — never sleep out a 30-minute cooldown.
+    if (Date.now() < csintBlockedUntil) {
+      throw new Error(csintRateLimitMessage());
+    }
+
     const wait = Math.max(0, csintNextAt - Date.now());
 
     if (wait > 0) {
       await new Promise((resolve) => setTimeout(resolve, wait));
     }
 
-    csintNextAt = Date.now() + CSINT_MIN_INTERVAL_MS;
+    if (Date.now() < csintBlockedUntil) {
+      throw new Error(csintRateLimitMessage());
+    }
+
+    try {
+      return await fn();
+    } finally {
+      // Space the *next* start after this request finishes — not while in flight.
+      csintNextAt = Date.now() + CSINT_MIN_INTERVAL_MS;
+    }
   });
 
   // Keep the chain alive even if a waiter fails.
-  csintGate = run.catch(() => undefined);
-  await run;
+  csintGate = run.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  return run;
 }
 
 async function csintPost(
@@ -144,87 +253,105 @@ async function csintPost(
     throw new Error(publicServiceUnavailable());
   }
 
-  await acquireCsintSlot();
+  return withCsintSlot(async () => {
+    const started = Date.now();
+    let logged = false;
 
-  const started = Date.now();
-  let logged = false;
-
-  const logRequest = (
-    ok: boolean,
-    opts?: { statusCode?: number; error?: string },
-  ) => {
-    if (logged) return;
-    logged = true;
-    recordProviderRequest({
-      gateway: "csint",
-      path,
-      method: "POST",
-      ok,
-      latencyMs: Date.now() - started,
-      statusCode: opts?.statusCode,
-      error: opts?.error,
-    });
-  };
-
-  try {
-    const res = await fetchWithTimeout(`${CSINT_BASE}${path}`, {
-      method: "POST",
-      headers: {
-        "X-API-Key": apiKey,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(body),
-      cache: "no-store",
-      timeoutMs,
-    });
-
-    const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
-    const text = await readResponseText(res, remaining);
-    let data: Record<string, unknown> = {};
+    const logRequest = (
+      ok: boolean,
+      opts?: { statusCode?: number; error?: string },
+    ) => {
+      if (logged) return;
+      logged = true;
+      recordProviderRequest({
+        gateway: "csint",
+        path,
+        method: "POST",
+        ok,
+        latencyMs: Date.now() - started,
+        statusCode: opts?.statusCode,
+        error: opts?.error,
+      });
+    };
 
     try {
-      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-    } catch {
-      const errMsg = !res.ok
-        ? sanitizeCsintError(`HTTP ${res.status}`)
-        : publicSearchError("Invalid response from intelligence index.");
+      const res = await fetchWithTimeout(`${CSINT_BASE}${path}`, {
+        method: "POST",
+        headers: {
+          "X-API-Key": apiKey,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(body),
+        cache: "no-store",
+        timeoutMs,
+      });
 
-      logRequest(false, { statusCode: res.status, error: errMsg });
-      throw new Error(errMsg);
+      const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+      const text = await readResponseText(res, remaining);
+      let data: Record<string, unknown> = {};
+
+      try {
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      } catch {
+        const errMsg = !res.ok
+          ? sanitizeCsintError(`HTTP ${res.status}`)
+          : publicSearchError("Invalid response from intelligence index.");
+
+        if (res.status === 429) noteCsintCooldown(undefined, 429);
+        logRequest(false, { statusCode: res.status, error: errMsg });
+        throw new Error(errMsg);
+      }
+
+      if (isCsintRateLimitPayload(data) || res.status === 429) {
+        noteCsintCooldown(data, res.status);
+        const msg =
+          (typeof data.message === "string" && data.message) ||
+          (typeof data.reason === "string" && data.reason) ||
+          (typeof data.error === "string" && data.error) ||
+          `HTTP ${res.status}`;
+        const errMsg = sanitizeCsintError(msg);
+
+        logRequest(false, { statusCode: res.status, error: errMsg });
+        throw new Error(errMsg);
+      }
+
+      if (!res.ok) {
+        const msg =
+          (typeof data.message === "string" && data.message) ||
+          (typeof data.error === "string" && data.error) ||
+          `HTTP ${res.status}`;
+        const errMsg = sanitizeCsintError(msg);
+
+        logRequest(false, { statusCode: res.status, error: errMsg });
+        throw new Error(errMsg);
+      }
+
+      if (data.success === false) {
+        const msg =
+          (typeof data.message === "string" && data.message) ||
+          (typeof data.error === "string" && data.error) ||
+          publicSearchError();
+        const errMsg = sanitizeCsintError(msg);
+
+        if (isCsintRateLimitPayload(data) || /rate|429|blocked|abuse/i.test(msg)) {
+          noteCsintCooldown(data, res.status);
+        }
+
+        logRequest(false, { statusCode: res.status, error: errMsg });
+        throw new Error(errMsg);
+      }
+
+      logRequest(true, { statusCode: res.status });
+
+      return sanitizeCsintPayload(data);
+    } catch (err) {
+      logRequest(false, {
+        error: err instanceof Error ? err.message : "Request failed",
+      });
+      throw err;
     }
-
-    if (!res.ok) {
-      const msg =
-        (typeof data.message === "string" && data.message) ||
-        (typeof data.error === "string" && data.error) ||
-        `HTTP ${res.status}`;
-      const errMsg = sanitizeCsintError(msg);
-
-      logRequest(false, { statusCode: res.status, error: errMsg });
-      throw new Error(errMsg);
-    }
-
-    if (data.success === false) {
-      const msg =
-        (typeof data.message === "string" && data.message) ||
-        (typeof data.error === "string" && data.error) ||
-        publicSearchError();
-      const errMsg = sanitizeCsintError(msg);
-
-      logRequest(false, { statusCode: res.status, error: errMsg });
-      throw new Error(errMsg);
-    }
-
-    logRequest(true, { statusCode: res.status });
-
-    return sanitizeCsintPayload(data);
-  } catch (err) {
-    logRequest(false, {
-      error: err instanceof Error ? err.message : "Request failed",
-    });
-    throw err;
-  }
+  });
 }
 
 function truncateBanner(value: unknown): string | null {
@@ -433,6 +560,12 @@ const META_KEYS = new Set([
   "count",
   "total",
   "size",
+  "data_found",
+  "reason",
+  "retry_after",
+  "retry_after_seconds",
+  "retryAfter",
+  "retryAfterSeconds",
 ]);
 
 function pushBreachMapEntry(
@@ -544,6 +677,9 @@ function collectRows(node: unknown, out: Record<string, unknown>[]): void {
   if (typeof node !== "object") return;
 
   const record = node as Record<string, unknown>;
+
+  // Never promote rate-limit / abuse envelopes into breach cards.
+  if (isCsintRateLimitPayload(record)) return;
 
   // Nested source wrappers from unified search (snusbase/breachvip/etc.)
   if (record.data && typeof record.data === "object") {
@@ -792,7 +928,7 @@ export async function fetchCsintUniversalSearch(
   type: CsintSearchType = "auto",
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<SanitizedBreachResponse | null> {
-  if (!isCsintEnabled()) return null;
+  if (!isCsintEnabled() || isCsintCoolingDown()) return null;
 
   try {
     const payload = await csintPost(
@@ -884,9 +1020,13 @@ export function csintRowsToCredentials(results: unknown[]): CombCredential[] {
 export async function fetchCsintDiscordLookup(
   userId: string,
 ): Promise<Record<string, unknown> | null> {
-  if (!isCsintEnabled()) return null;
+  if (!isCsintEnabled() || isCsintCoolingDown()) return null;
   try {
-    return await csintPost("/discord/lookup", { user_id: userId });
+    const payload = await csintPost("/discord/lookup", { user_id: userId });
+
+    if (isCsintRateLimitPayload(payload)) return null;
+
+    return payload;
   } catch {
     return null;
   }
@@ -895,9 +1035,12 @@ export async function fetchCsintDiscordLookup(
 export async function fetchCsintDiscordOsint(
   userId: string,
 ): Promise<SanitizedBreachResponse | null> {
-  if (!isCsintEnabled()) return null;
+  if (!isCsintEnabled() || isCsintCoolingDown()) return null;
   try {
     const payload = await csintPost("/discord/osint", { user_id: userId });
+
+    if (isCsintRateLimitPayload(payload)) return null;
+
     const results: Record<string, unknown>[] = [];
 
     if (
@@ -1205,7 +1348,7 @@ export async function fetchCsintSnusbaseSearch(
   types: string[],
   wildcard = false,
 ): Promise<SanitizedBreachResponse | null> {
-  if (!isCsintEnabled()) return null;
+  if (!isCsintEnabled() || isCsintCoolingDown()) return null;
   const cleaned = term.trim();
 
   if (!cleaned || types.length === 0) return null;
@@ -1227,7 +1370,7 @@ export async function fetchCsintBreachBase(
   term: string,
   searchType?: string,
 ): Promise<SanitizedBreachResponse | null> {
-  if (!isCsintEnabled()) return null;
+  if (!isCsintEnabled() || isCsintCoolingDown()) return null;
   const cleaned = term.trim();
 
   if (!cleaned) return null;
@@ -1378,7 +1521,7 @@ function tryNormalizeRobloxAccount(
 export async function fetchCsintOathnetDiscordToRoblox(
   discordId: string,
 ): Promise<Record<string, unknown> | null> {
-  if (!isCsintEnabled()) return null;
+  if (!isCsintEnabled() || isCsintCoolingDown()) return null;
   const cleaned = discordId.trim();
 
   if (!cleaned) return null;
@@ -1692,7 +1835,7 @@ export async function fetchCsintAdditiveBreachSearch(
   type: CsintSearchType = "auto",
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<SanitizedBreachResponse | null> {
-  if (!isCsintEnabled()) return null;
+  if (!isCsintEnabled() || isCsintCoolingDown()) return null;
 
   const cleaned = query.trim();
 
@@ -1701,11 +1844,15 @@ export async function fetchCsintAdditiveBreachSearch(
   const resolvedType = type === "auto" ? detectCsintSearchType(cleaned) : type;
   const snusTypes = snusbaseTypesForCsint(resolvedType);
 
-  const [universal, breachBase, snusbase] = await Promise.all([
-    fetchCsintUniversalSearch(cleaned, resolvedType, timeoutMs),
-    fetchCsintBreachBase(cleaned, resolvedType),
-    fetchCsintSnusbaseSearch(cleaned, snusTypes),
-  ]);
+  // Sequential through the shared CSINT queue — Promise.all only raced the
+  // gate acquire and still overlapped in-flight work before serialization.
+  const universal = await fetchCsintUniversalSearch(
+    cleaned,
+    resolvedType,
+    timeoutMs,
+  );
+  const breachBase = await fetchCsintBreachBase(cleaned, resolvedType);
+  const snusbase = await fetchCsintSnusbaseSearch(cleaned, snusTypes);
 
   return mergeOptionalSanitized(universal, breachBase, snusbase);
 }
@@ -1719,7 +1866,7 @@ export async function fetchCsintAdditiveStealerSearch(
   type: CsintSearchType = "auto",
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<SanitizedBreachResponse | null> {
-  if (!isCsintEnabled()) return null;
+  if (!isCsintEnabled() || isCsintCoolingDown()) return null;
 
   const cleaned = query.trim();
 
@@ -1727,10 +1874,12 @@ export async function fetchCsintAdditiveStealerSearch(
 
   const resolvedType = type === "auto" ? detectCsintSearchType(cleaned) : type;
 
-  const [universal, breachBase] = await Promise.all([
-    fetchCsintUniversalSearch(cleaned, resolvedType, timeoutMs),
-    fetchCsintBreachBase(cleaned, resolvedType),
-  ]);
+  const universal = await fetchCsintUniversalSearch(
+    cleaned,
+    resolvedType,
+    timeoutMs,
+  );
+  const breachBase = await fetchCsintBreachBase(cleaned, resolvedType);
 
   return mergeOptionalSanitized(universal, breachBase);
 }
@@ -1768,6 +1917,14 @@ export async function fetchCsintIntelx(
     };
   }
 
+  if (isCsintCoolingDown()) {
+    return {
+      content: "",
+      error: csintRateLimitMessage(),
+      bucket: resolvedBucket,
+    };
+  }
+
   const apiKey = getCsintApiKey();
 
   if (!apiKey) {
@@ -1779,61 +1936,70 @@ export async function fetchCsintIntelx(
   }
 
   try {
-    const res = await fetchWithTimeout(`${CSINT_BASE}/intelx`, {
-      method: "POST",
-      headers: {
-        "X-API-Key": apiKey,
-        "Content-Type": "application/json",
-        Accept: "application/json, text/plain, */*",
-      },
-      body: JSON.stringify({
-        storageid: storageId.trim(),
-        bucket: resolvedBucket,
-      }),
-      cache: "no-store",
-      timeoutMs: 60_000,
-    });
+    return await withCsintSlot(async () => {
+      const res = await fetchWithTimeout(`${CSINT_BASE}/intelx`, {
+        method: "POST",
+        headers: {
+          "X-API-Key": apiKey,
+          "Content-Type": "application/json",
+          Accept: "application/json, text/plain, */*",
+        },
+        body: JSON.stringify({
+          storageid: storageId.trim(),
+          bucket: resolvedBucket,
+        }),
+        cache: "no-store",
+        timeoutMs: 60_000,
+      });
 
-    const contentType = res.headers.get("content-type") ?? "";
-    const text = await readResponseText(res, 60_000);
+      const contentType = res.headers.get("content-type") ?? "";
+      const text = await readResponseText(res, 60_000);
 
-    // Docs: success is raw text/plain; errors are JSON.
-    // Always strip csint.pro / "powered by csint tools" credits from dumps.
-    if (contentType.includes("text/plain") && res.ok && text.trim()) {
-      return { content: sanitizePublicContent(text), bucket: resolvedBucket };
-    }
-
-    let data: Record<string, unknown> = {};
-
-    try {
-      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-    } catch {
-      if (res.ok && text.trim()) {
+      // Docs: success is raw text/plain; errors are JSON.
+      // Always strip csint.pro / "powered by csint tools" credits from dumps.
+      if (contentType.includes("text/plain") && res.ok && text.trim()) {
         return { content: sanitizePublicContent(text), bucket: resolvedBucket };
       }
-    }
 
-    if (data.success === true && typeof data.content === "string") {
+      let data: Record<string, unknown> = {};
+
+      try {
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      } catch {
+        if (res.ok && text.trim()) {
+          return {
+            content: sanitizePublicContent(text),
+            bucket: resolvedBucket,
+          };
+        }
+      }
+
+      if (isCsintRateLimitPayload(data) || res.status === 429) {
+        noteCsintCooldown(data, res.status);
+      }
+
+      if (data.success === true && typeof data.content === "string") {
+        return {
+          content: sanitizePublicContent(data.content),
+          bucket: resolvedBucket,
+        };
+      }
+
+      // Prefer details (e.g. "HTTP 404") when present — clearer than the generic error title.
+      const msg =
+        (typeof data.details === "string" && data.details) ||
+        (typeof data.message === "string" && data.message) ||
+        (typeof data.error === "string" && data.error) ||
+        (res.status === 429
+          ? "Storage export rate limit reached. Try again later."
+          : `Storage export failed (HTTP ${res.status})`);
+
       return {
-        content: sanitizePublicContent(data.content),
+        content: "",
+        error: sanitizeCsintError(msg),
         bucket: resolvedBucket,
       };
-    }
-
-    // Prefer details (e.g. "HTTP 404") when present — clearer than the generic error title.
-    const msg =
-      (typeof data.details === "string" && data.details) ||
-      (typeof data.message === "string" && data.message) ||
-      (typeof data.error === "string" && data.error) ||
-      (res.status === 429
-        ? "Storage export rate limit reached. Try again later."
-        : `Storage export failed (HTTP ${res.status})`);
-
-    return {
-      content: "",
-      error: sanitizeCsintError(msg),
-      bucket: resolvedBucket,
-    };
+    });
   } catch (err) {
     return {
       content: "",
