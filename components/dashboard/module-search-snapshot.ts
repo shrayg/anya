@@ -85,6 +85,7 @@ export type ModuleSearchSnapshot = {
     archives: StealerArchiveEntry[];
     count?: number;
     fallbackRecords?: FormattedRecord[];
+    breachedData?: CombSearchResult | null;
   } | null;
   robloxResult: RobloxSearchResult | null;
   instagramResult: InstagramSearchPayload | null;

@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
     credentials: [] as unknown[],
     archives: [] as unknown[],
     sources: {} as Record<string, { ok: boolean; count: number }>,
+    breachedData: null,
   };
 
   if (!wantsStream(req)) {
@@ -69,7 +70,8 @@ export async function GET(req: NextRequest) {
       if (
         response.count === 0 &&
         response.credentials.length === 0 &&
-        response.archives.length === 0
+        response.archives.length === 0 &&
+        !(response.breachedData?.credentials?.length)
       ) {
         return NextResponse.json({
           ...response,

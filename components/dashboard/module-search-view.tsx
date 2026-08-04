@@ -388,6 +388,7 @@ export function ModuleSearchView({
     archives: StealerArchiveEntry[];
     count?: number;
     fallbackRecords?: ReturnType<typeof formatSearchRecords>;
+    breachedData?: CombSearchResult | null;
   } | null>(null);
   const [robloxResult, setRobloxResult] = useState<RobloxSearchResult | null>(
     null,
@@ -1969,6 +1970,7 @@ export function ModuleSearchView({
           results?: unknown[];
           credentials?: StealerCredentialRow[];
           archives?: StealerArchiveEntry[];
+          breachedData?: CombSearchResult | null;
           message?: string;
           error?: string;
         };
@@ -1986,10 +1988,17 @@ export function ModuleSearchView({
           const archives = Array.isArray(payload.archives)
             ? payload.archives
             : [];
+          const breachedData = payload.breachedData ?? null;
+          const breachCount = breachedData?.credentials?.length ?? 0;
           const count =
             typeof payload.count === "number"
               ? payload.count
-              : Math.max(credentials.length, results.length, archives.length);
+              : Math.max(
+                  credentials.length,
+                  results.length,
+                  archives.length,
+                  breachCount,
+                );
 
           if (isMountedRef.current) {
             if (opts?.progress) {
@@ -2001,6 +2010,7 @@ export function ModuleSearchView({
               credentials,
               archives,
               count,
+              breachedData,
               fallbackRecords:
                 results.length > 0 && credentials.length === 0
                   ? formatSearchRecords(results)
@@ -2124,11 +2134,14 @@ export function ModuleSearchView({
         const archives = Array.isArray(finalStealer.archives)
           ? finalStealer.archives
           : [];
+        const breachedData = finalStealer.breachedData ?? null;
+        const breachCount = breachedData?.credentials?.length ?? 0;
 
         if (
           results.length === 0 &&
           credentials.length === 0 &&
-          archives.length === 0
+          archives.length === 0 &&
+          breachCount === 0
         ) {
           commitEmpty(
             streamError ||
@@ -2143,7 +2156,12 @@ export function ModuleSearchView({
         const count =
           typeof finalStealer.count === "number"
             ? finalStealer.count
-            : Math.max(credentials.length, results.length, archives.length);
+            : Math.max(
+                credentials.length,
+                results.length,
+                archives.length,
+                breachCount,
+              );
 
         commitSuccess(
           {
@@ -2151,6 +2169,7 @@ export function ModuleSearchView({
               credentials,
               archives,
               count,
+              breachedData,
               fallbackRecords:
                 results.length > 0 && credentials.length === 0
                   ? formatSearchRecords(results)
@@ -4065,6 +4084,7 @@ export function ModuleSearchView({
             <StealerLogsSearchResults
               archives={stealerResult.archives}
               blurResults={blurResults}
+              breachedData={stealerResult.breachedData ?? null}
               credentials={stealerResult.credentials}
               fallbackRecords={stealerResult.fallbackRecords}
               totalCredentialCount={stealerResult.count}

@@ -317,6 +317,32 @@ export function applyDataBlacklistToPayload(
     out.archives = archives;
   }
 
+  // Nested Comb / breach subsection (stealer domain + domains module).
+  if (out.breachedData && typeof out.breachedData === "object") {
+    const nested = out.breachedData as Record<string, unknown>;
+
+    if (Array.isArray(nested.credentials) && nested.credentials.length > 0) {
+      const creds = filterBlacklistedCredentials(
+        nested.credentials as CredentialLike[],
+        set,
+      );
+
+      if (creds.length !== nested.credentials.length) {
+        out.breachedData = {
+          ...nested,
+          credentials: creds,
+          ...(typeof nested.totalMatches === "number"
+            ? { totalMatches: creds.length }
+            : {}),
+          ...(typeof nested.returned === "number"
+            ? { returned: creds.length }
+            : {}),
+        };
+        mutated = true;
+      }
+    }
+  }
+
   if (!mutated) return data;
 
   // Keep count fields honest when credentials/results shrank.

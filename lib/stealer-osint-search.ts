@@ -2,8 +2,9 @@
  * Stealer Logs OSINT fan-out — progressive multi-source assembly.
  *
  * Fans out to BreachHub stealer indexes, GodsEye/OsintCat, SeekNow, Wentyn,
- * DataVoid, OathNet, and Hudson Rock. Emits partial snapshots as each module
- * settles so the UI can paint early (same pattern as Discord ID).
+ * DataVoid, OathNet, and Hudson Rock. For domain queries, also pulls Comb
+ * breach credentials into a Breached Data subsection so domain searches are
+ * not empty when only breach indexes have hits.
  *
  * Server-only — do not import from client modules (e.g. search-modules.ts).
  */
@@ -13,6 +14,11 @@ import {
   fetchBreachHubStealerVictims,
   type StealerArchiveEntry,
 } from "@/lib/breachhub";
+import {
+  filterBlacklistedCredentials,
+  getCachedBlacklistSet,
+  warmDataBlacklistCache,
+} from "@/lib/data-blacklist";
 import {
   fetchDatavoidSanitized,
   isDatavoidEnabled,
@@ -29,6 +35,10 @@ import {
 } from "@/lib/oathnet";
 import { mergeSanitizedResponses } from "@/lib/osintcat";
 import { fetchCombinedStealerLogs } from "@/lib/osint-combined";
+import {
+  searchProxynovaCombForDomain,
+  type CombSearchResult,
+} from "@/lib/proxynova-comb";
 import {
   fetchSeekNowSanitized,
   isSeekNowEnabled,
@@ -51,6 +61,8 @@ export type StealerOsintResult = {
   credentials: StealerCredentialRow[];
   archives: StealerArchiveEntry[];
   sources: Record<string, { ok: boolean; count: number }>;
+  /** Comb / breach-index hits for domain queries (shown as Breached Data). */
+  breachedData?: CombSearchResult | null;
 };
 
 export type StealerOsintProgressEvent =
@@ -76,6 +88,7 @@ function emptyResult(query: string): StealerOsintResult {
     credentials: [],
     archives: [],
     sources: {},
+    breachedData: null,
   };
 }
 
@@ -108,11 +121,14 @@ export async function runStealerOsintSearch(
   let oathnetSubdomainResults: unknown[] = [];
   let hudsonResults: unknown[] = [];
   let victimArchives: StealerArchiveEntry[] = [];
+  let breachedData: CombSearchResult | null = null;
 
   const sources: Record<string, { ok: boolean; count: number }> = {};
 
-  const MODULE_TOTAL = 8;
+  const MODULE_TOTAL = isDomain ? 9 : 8;
   let doneCount = 0;
+
+  await warmDataBlacklistCache();
 
   const assemble = (): StealerOsintResult => {
     const merged = mergeSanitizedResponses(
@@ -145,6 +161,8 @@ export async function runStealerOsintSearch(
             query,
           );
 
+    const breachCount = breachedData?.credentials?.length ?? 0;
+
     return {
       query,
       count: Math.max(
@@ -152,11 +170,13 @@ export async function runStealerOsintSearch(
         results.length,
         mergedCredentials.length,
         archives.length,
+        breachCount,
       ),
       results,
       credentials: mergedCredentials,
       archives,
       sources: { ...sources },
+      breachedData,
     };
   };
 
@@ -394,6 +414,34 @@ export async function runStealerOsintSearch(
       emit("hudsonrock");
     })(),
   ];
+
+  if (isDomain) {
+    tasks.push(
+      searchProxynovaCombForDomain(query, {
+        limit: 250_000,
+        budgetMs: 48_000,
+      })
+        .then((comb) => {
+          const credentials = filterBlacklistedCredentials(
+            comb.credentials ?? [],
+            getCachedBlacklistSet(),
+          );
+          breachedData = {
+            ...comb,
+            credentials,
+            totalMatches: credentials.length,
+            returned: credentials.length,
+          };
+          markSource("comb-breach", credentials.length);
+          emit("comb-breach");
+        })
+        .catch(() => {
+          breachedData = null;
+          markSource("comb-breach", 0, false);
+          emit("comb-breach");
+        }),
+    );
+  }
 
   await Promise.all(tasks);
 

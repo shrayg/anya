@@ -25,6 +25,7 @@ import {
   isIpAddress,
   isIpFieldKey,
 } from "@/lib/ip-detect";
+import { normalizeDomain } from "@/lib/domain-search";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 
 function collectIpsFromResult(result: CombSearchResult): string[] {
@@ -64,8 +65,12 @@ export function BreachesSearchResults({
     () => normalizeEmail(result.query),
     [result.query],
   );
-  const queryLabel = queryEmail ? "Email" : "Username";
-  const queryValue = queryEmail ?? result.query.trim();
+  const queryDomain = useMemo(
+    () => normalizeDomain(result.query),
+    [result.query],
+  );
+  const queryLabel = queryEmail ? "Email" : queryDomain ? "Domain" : "Username";
+  const queryValue = queryEmail ?? queryDomain ?? result.query.trim();
 
   const resultsKey = useMemo(
     () =>

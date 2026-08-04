@@ -402,7 +402,7 @@ export function getModuleSearchFieldOptions(
   }
 
   if (slug === "breaches" || slug === "breachbase") {
-    return uniqueOptions([EMAIL, USERNAME]);
+    return uniqueOptions([EMAIL, DOMAIN, USERNAME]);
   }
 
   if (slug === "email-analyze" || slug === "email-presence") {

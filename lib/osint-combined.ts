@@ -71,6 +71,9 @@ async function fetchOptionalCsintUniversal(
 ): Promise<SanitizedBreachResponse | null> {
   if (!isCsintEnabled()) return null;
 
+  // CSINT has no domain type — skip rather than mis-search as username.
+  if (godseyeType === "domain") return null;
+
   if (godseyeType === "hash") {
     return fetchCsintHashLookup(query);
   }
@@ -95,6 +98,8 @@ async function fetchOptionalCsintStealer(
   godseyeType: GodsEyeSearchType | string,
 ): Promise<SanitizedBreachResponse | null> {
   if (!isCsintEnabled()) return null;
+  // CSINT has no domain type — skip rather than mis-search as username.
+  if (godseyeType === "domain") return null;
 
   return fetchCsintAdditiveStealerSearch(
     query,
@@ -244,7 +249,7 @@ async function fetchOptionalBreachHubUniversal(
     tasks.push(
       fetchBreachHubAdditiveBreachSearch(
         query,
-        mapGodsEyeTypeToBreachHub(godseyeType),
+        godseyeType === "auto" ? null : mapGodsEyeTypeToBreachHub(godseyeType),
         COMBINED_BREACHHUB_TIMEOUT_MS,
       ),
     );
@@ -282,9 +287,13 @@ async function fetchOptionalBreachHubStealer(
 ): Promise<SanitizedBreachResponse | null> {
   if (!isBreachHubEnabled()) return null;
 
+  // "auto" must not map to username — let BH detect domain/email/ip itself.
+  const kindHint =
+    godseyeType === "auto" ? null : mapGodsEyeTypeToBreachHub(godseyeType);
+
   return fetchBreachHubAdditiveStealerSearch(
     query,
-    mapGodsEyeTypeToBreachHub(godseyeType),
+    kindHint,
     COMBINED_BREACHHUB_TIMEOUT_MS,
   );
 }

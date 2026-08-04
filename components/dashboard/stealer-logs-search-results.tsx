@@ -1,6 +1,7 @@
 "use client";
 
 import type { StealerArchiveEntry, StealerFileNode } from "@/lib/breachhub";
+import type { CombSearchResult } from "@/lib/proxynova-comb";
 import type { StealerCredentialRow } from "@/lib/stealer-logs-view";
 import type { FormattedRecord } from "@/lib/search-utils";
 
@@ -20,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import { createPortal } from "react-dom";
 
 import { BlurredValue } from "@/components/dashboard/blurred-value";
+import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import {
   ResultCard,
   ResultCardList,
@@ -635,12 +637,14 @@ export function StealerLogsSearchResults({
   blurResults = false,
   totalCredentialCount,
   fallbackRecords,
+  breachedData = null,
 }: {
   credentials: StealerCredentialRow[];
   archives: StealerArchiveEntry[];
   blurResults?: boolean;
   totalCredentialCount?: number;
   fallbackRecords?: FormattedRecord[];
+  breachedData?: CombSearchResult | null;
 }) {
   const [pane, setPane] = useState<ResultsPane>(() =>
     archives.length > 0 && credentials.length === 0
@@ -749,17 +753,23 @@ export function StealerLogsSearchResults({
     }
   };
 
+  const breachHits = breachedData?.credentials?.length ?? 0;
+
   if (
     credentials.length === 0 &&
     archives.length === 0 &&
-    !(fallbackRecords && fallbackRecords.length > 0)
+    !(fallbackRecords && fallbackRecords.length > 0) &&
+    breachHits === 0
   ) {
     return (
       <SearchEmptyState detail="No stealer credentials or archives found." />
     );
   }
 
-  return (
+  const stealerBody =
+    credentials.length === 0 &&
+    archives.length === 0 &&
+    !(fallbackRecords && fallbackRecords.length > 0) ? null : (
     <div className="anya-stealer-results">
       <div className="anya-stealer-view-toggle" role="tablist">
         <button
@@ -1022,6 +1032,28 @@ export function StealerLogsSearchResults({
       ) : null}
 
       {blurResults ? <ResultsBlurNotice /> : null}
+    </div>
+  );
+
+  return (
+    <div className="space-y-8">
+      {stealerBody}
+      {breachHits > 0 && breachedData ? (
+        <section className="space-y-4 border-t border-white/6 pt-8">
+          <div>
+            <h3 className="font-[family-name:var(--font-bruno-ace-sc)] text-sm tracking-wide text-white">
+              Breached Data
+            </h3>
+            <p className="text-xs text-zinc-500">
+              COMB credential index hits for this domain
+            </p>
+          </div>
+          <BreachesSearchResults
+            blurResults={blurResults}
+            result={breachedData}
+          />
+        </section>
+      ) : null}
     </div>
   );
 }

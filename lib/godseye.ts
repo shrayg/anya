@@ -181,20 +181,24 @@ export function resolveGodsEyeSearchType(
 ): GodsEyeSearchType {
   const trimmed = query.trim();
 
-  if (scope && SLUG_TO_SEARCH_TYPE[scope]) {
-    return SLUG_TO_SEARCH_TYPE[scope];
-  }
+  // Scope/module maps of "auto" (e.g. stealer-logs) must still shape-detect
+  // the query — otherwise domains are searched as username via BH mapping.
+  const scoped =
+    scope && SLUG_TO_SEARCH_TYPE[scope] ? SLUG_TO_SEARCH_TYPE[scope] : null;
+  if (scoped && scoped !== "auto") return scoped;
 
-  if (moduleHint && MODULE_TO_SEARCH_TYPE[moduleHint]) {
-    return MODULE_TO_SEARCH_TYPE[moduleHint];
-  }
+  const hinted =
+    moduleHint && MODULE_TO_SEARCH_TYPE[moduleHint]
+      ? MODULE_TO_SEARCH_TYPE[moduleHint]
+      : null;
+  if (hinted && hinted !== "auto") return hinted;
 
   if (EMAIL_RE.test(trimmed)) return "email";
   if (IP_RE.test(trimmed)) return "ip";
   if (isDiscordSnowflake(trimmed)) return "discord";
   if (normalizeDomain(trimmed)) return "domain";
 
-  return "auto";
+  return scoped ?? hinted ?? "auto";
 }
 
 function authHeaders(apiKey: string): Record<string, string> {

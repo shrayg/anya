@@ -11,6 +11,7 @@
 
 import {
   breachHubRowsToCredentials,
+  detectBreachHubQueryKind,
   fetchBreachHubAdditiveBreachSearch,
   isBreachHubCoolingDown,
   isBreachHubEnabled,
@@ -32,6 +33,7 @@ import {
   getCachedBlacklistSet,
   warmDataBlacklistCache,
 } from "@/lib/data-blacklist";
+import { normalizeDomain } from "@/lib/domain-search";
 import {
   fetchGodsEyeEmailReport,
   fetchGodsEyeSearchResult,
@@ -52,6 +54,7 @@ import {
 import {
   mergeCombCredentialFields,
   normalizeEmail,
+  searchProxynovaCombForDomain,
   searchProxynovaCombForEmail,
   type CombCredential,
   type CombSearchResult,
@@ -223,6 +226,8 @@ async function fetchCsintSafe(
   kindHint: string,
 ): Promise<SanitizedBreachResponse | null> {
   if (!isCsintEnabled() || isCsintCoolingDown()) return null;
+  // CSINT has no domain type — never fall through to username for domains.
+  if (kindHint === "domain" || normalizeDomain(query)) return null;
 
   const csintType =
     kindHint === "email" ||
@@ -242,6 +247,22 @@ async function fetchCsintSafe(
   } catch {
     return null;
   }
+}
+
+/** Resolve breach kind, soft-correcting username→domain auto-detect fallout. */
+function resolveBreachKindHint(
+  query: string,
+  kindHint: string | null,
+): string {
+  if (kindHint && kindHint !== "auto") {
+    if (kindHint === "username" && normalizeDomain(query)) {
+      return "domain";
+    }
+
+    return kindHint;
+  }
+
+  return detectBreachHubQueryKind(query);
 }
 
 async function fetchBreachVipSafe(
@@ -346,7 +367,11 @@ export async function runBreachesOsintSearch(
   let breachVipReturned = 0;
 
   let doneCount = 0;
-  let moduleTotal = preferEmail ? 5 : 3;
+  // Email: comb + godseye-report + godseye-search + breachvip + breachhub (+ CSINT/OsintCat later).
+  // Domain: comb + godseye-search + breachvip + breachhub (CSINT skipped — no domain type).
+  // Other: godseye-search + breachvip + breachhub (+ CSINT later).
+  const initialDomain = resolveBreachKindHint(query, kindHint) === "domain";
+  let moduleTotal = preferEmail ? 5 : initialDomain ? 4 : 3;
 
   const assemble = (): BreachesOsintResult => {
     const mergedCredentials = [
@@ -508,12 +533,31 @@ export async function runBreachesOsintSearch(
 
     await Promise.all(peerTasks);
   } else {
-    const resolvedKind =
-      kindHint && kindHint !== "auto"
-        ? kindHint
-        : detectCsintSearchType(query);
+    const resolvedKind = resolveBreachKindHint(query, kindHint);
+    const isDomainKind = resolvedKind === "domain";
 
-    const peerTasks: Promise<void>[] = [
+    // CSINT has no domain type — never mis-search domains as username.
+    const peerTasks: Promise<void>[] = [];
+
+    if (isDomainKind) {
+      peerTasks.push(
+        searchProxynovaCombForDomain(query, {
+          start,
+          limit,
+          budgetMs: COMB_BUDGET_MS,
+        })
+          .then((comb) => {
+            combCredentials = comb.credentials ?? [];
+            emit("comb");
+          })
+          .catch(() => {
+            combCredentials = [];
+            emit("comb");
+          }),
+      );
+    }
+
+    peerTasks.push(
       fetchGodsEyeSearchSafe(query, resolvedKind)
         .then((search) => {
           godseyeSearch = search;
@@ -535,7 +579,7 @@ export async function runBreachesOsintSearch(
           breachVipReturned = 0;
           emit("breachvip");
         }),
-    ];
+    );
 
     const bhTask = fetchBreachHubSafe(query, resolvedKind)
       .then((bh) => {
@@ -549,7 +593,7 @@ export async function runBreachesOsintSearch(
 
     await bhTask;
 
-    if (shouldRunCsintAfterBreachHub(breachHub)) {
+    if (!isDomainKind && shouldRunCsintAfterBreachHub(breachHub)) {
       bumpTotal();
       await fetchCsintSafe(query, resolvedKind)
         .then((data) => {
