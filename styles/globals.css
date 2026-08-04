@@ -2262,6 +2262,8 @@
 
 .anya-breach-field {
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .anya-breach-field--span,
@@ -2305,13 +2307,16 @@
 
 .anya-breach-value-box {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.35rem;
   border-radius: 0.35rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.35);
   padding: 0.4rem 0.5rem;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .anya-breach-value-box--accent {
@@ -2322,13 +2327,17 @@
   margin: 0;
   flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.72rem;
   line-height: 1.4;
   color: #f4f4f5;
-  overflow-wrap: anywhere;
+  /* Horizontal text + ellipsis — never char-per-line from overflow-wrap:anywhere */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
   word-break: normal;
-  white-space: pre-wrap;
 }
 
 .anya-breach-value-box--human {
@@ -2342,6 +2351,21 @@
   color: #e4e4e7;
 }
 
+/* Block / long-token fields may wrap at word boundaries (not 1ch columns) */
+.anya-breach-field--block .anya-breach-value-box,
+.anya-breach-field--span .anya-breach-value-box {
+  align-items: flex-start;
+}
+
+.anya-breach-field--block .anya-breach-value-text,
+.anya-breach-field--span .anya-breach-value-text {
+  white-space: pre-wrap;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
 /* Readable leak/intel cards — sectioned hierarchy */
 .anya-result-card--readable .anya-breach-fields.anya-result-card-body {
   display: block;
@@ -2351,12 +2375,17 @@
 .anya-result-sections {
   display: grid;
   gap: 0.65rem;
+  width: 100%;
+  min-width: 0;
+  grid-column: 1 / -1;
 }
 
 .anya-result-section-fields {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.4rem 0.55rem;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (min-width: 480px) {
@@ -2448,7 +2477,7 @@
 
 .anya-breach-value-box .anya-result-copy {
   flex: 0 0 auto;
-  margin-top: 0.05rem;
+  flex-shrink: 0;
 }
 
 .anya-breach-field--sensitive .anya-breach-value-box {
@@ -2478,6 +2507,17 @@
 .anya-result-card .anya-breach-fields.anya-result-card-body {
   padding: 0;
   display: grid;
+}
+
+/* Readable cards must stay a vertical section stack — later grid rules
+   used to win on equal specificity and squeeze .anya-result-sections into
+   one of two columns (field values then wrapped char-by-char). */
+.anya-result-card--readable .anya-breach-fields.anya-result-card-body,
+.anya-result-list--grid
+  .anya-result-card--readable.anya-breach-card
+  .anya-result-card-body.anya-breach-fields {
+  display: block;
+  grid-template-columns: none;
 }
 
 /* Stealer Logs — credentials table + infected devices */
@@ -4065,6 +4105,12 @@
   .anya-result-card.anya-breach-card .anya-result-card-body.anya-breach-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .anya-result-card--readable.anya-breach-card
+    .anya-result-card-body.anya-breach-fields {
+    display: block;
+    grid-template-columns: none;
+  }
 }
 
 .anya-result-card--expanded .anya-result-card-body {
@@ -4087,6 +4133,14 @@
     .anya-result-card.anya-breach-card
     .anya-result-card-body.anya-breach-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Keep readable/sectioned cards single-column at the body level */
+  .anya-result-list--grid
+    .anya-result-card--readable.anya-breach-card
+    .anya-result-card-body.anya-breach-fields {
+    display: block;
+    grid-template-columns: none;
   }
 }
 
@@ -8984,9 +9038,12 @@
   font-size: 0.72rem;
   line-height: 1.4;
   color: #f4f4f5;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
   word-break: normal;
-  white-space: pre-wrap;
+  max-width: 100%;
 }
 
 .discord-leak-value--clamp {
@@ -8995,6 +9052,8 @@
   -webkit-line-clamp: 3;
   overflow: hidden;
   white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .discord-leak-value--accent {
