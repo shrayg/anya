@@ -2433,32 +2433,17 @@
   align-items: stretch;
 }
 
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-slider {
-  appearance: none;
-  height: 0.35rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  outline: none;
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-credit-card.pricing-credit-card--compact {
+  padding: 1.15rem 1.2rem 1.2rem !important;
+  min-height: 0;
 }
 
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 1rem;
-  height: 1rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 55%, white);
-  background: var(--anya-blush, #c3d3e6);
-  cursor: pointer;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.35);
-}
-
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-slider::-moz-range-thumb {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 55%, white);
-  background: var(--anya-blush, #c3d3e6);
-  cursor: pointer;
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-credit-card--compact
+  .pricing-card-cta-wrap {
+  margin-top: auto;
+  padding-top: 1.25rem;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-card {

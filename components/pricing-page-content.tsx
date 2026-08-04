@@ -31,7 +31,6 @@ import {
   getCompareAtPrice,
   getCreditPackBonus,
   getCreditPackTotal,
-  getCreditPackUnitPrice,
   getPlanLedgerRows,
   getPlanPrice,
   getPlanQuotaSummary,
@@ -536,25 +535,18 @@ export function PricingPageContent({
 
           {tab === "credits" && (
             <div className="pricing-credit-view mt-10">
-              <div className="pricing-credit-hero mx-auto mb-8 max-w-2xl text-center">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400">
-                  <Sparkles className="size-3.5 text-[var(--anya-blush)]" />
-                  ${CREDIT_UNIT_USD}/credit list · packs save 15–25%
-                </div>
-                <p className="pricing-credit-intro text-sm leading-relaxed text-zinc-400">
-                  Custom top-ups are exactly $1 per credit. Bulk packs add a
-                  15–25% bonus because most balances aren&apos;t spent to zero.
-                  Credits never expire and work on Professional+ pay-per-use
-                  modules
+              <div className="pricing-credit-hero mx-auto mb-7 max-w-xl text-center">
+                <p className="pricing-credit-intro text-sm text-zinc-400">
+                  Packs include a 15–25% bonus. Custom is ${CREDIT_UNIT_USD}/credit
+                  flat
                   {creditBalance != null ? (
                     <>
                       {" "}
-                      · your balance is{" "}
+                      · balance{" "}
                       <span className="font-medium text-white tabular-nums">
                         {creditBalance % 1 === 0
                           ? creditBalance.toFixed(0)
-                          : creditBalance.toFixed(2)}{" "}
-                        credits
+                          : creditBalance.toFixed(2)}
                       </span>
                     </>
                   ) : null}
@@ -562,214 +554,135 @@ export function PricingPageContent({
                 </p>
               </div>
 
-              <div className="pricing-credit-layout mx-auto grid max-w-6xl grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                <div className="pricing-credit-grid grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {CREDIT_PACKS.map((pack, index) => {
-                    const total = getCreditPackTotal(pack);
-                    const bonus = getCreditPackBonus(pack);
-                    const unit = getCreditPackUnitPrice(pack);
+              <div className="pricing-credit-layout mx-auto grid max-w-5xl grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {CREDIT_PACKS.map((pack) => {
+                  const total = getCreditPackTotal(pack);
+                  const bonus = getCreditPackBonus(pack);
 
-                    return (
-                      <article
-                        key={pack.id}
-                        className={clsx(
-                          PAYMENT_CARD_BASE,
-                          pack.highlighted
-                            ? PAYMENT_CARD_HIGHLIGHTED
-                            : PAYMENT_CARD_DEFAULT,
-                        )}
+                  return (
+                    <article
+                      key={pack.id}
+                      className={clsx(
+                        PAYMENT_CARD_BASE,
+                        "pricing-credit-card--compact",
+                        pack.highlighted
+                          ? PAYMENT_CARD_HIGHLIGHTED
+                          : PAYMENT_CARD_DEFAULT,
+                      )}
+                    >
+                      {pack.highlighted ? (
+                        <span className="absolute right-3 top-3 rounded-full bg-[var(--anya-blush)]/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0c1019]">
+                          Best value
+                        </span>
+                      ) : null}
+
+                      <div className="pricing-credit-head">
+                        <h3 className="text-lg font-semibold tracking-tight text-white">
+                          {pack.name.replace(/ Pack$/, "")}
+                        </h3>
+                        <p className="mt-1 text-xs text-emerald-400/90">
+                          +{bonus} bonus · {pack.discountPercent}% off
+                        </p>
+                      </div>
+
+                      <div className="pricing-credit-value mt-5">
+                        <div className="flex items-baseline gap-1">
+                          <AnimatedPrice
+                            className="text-3xl font-semibold tracking-tight text-white tabular-nums"
+                            duration={0.55}
+                            value={pack.price}
+                          />
+                        </div>
+                        <p className="mt-1 text-sm text-zinc-400">
+                          <span className="font-medium text-white tabular-nums">
+                            {total}
+                          </span>{" "}
+                          credits
+                        </p>
+                      </div>
+
+                      <PricingCta
+                        accent={pack.highlighted}
+                        disabled={busyId === pack.id}
+                        onClick={() =>
+                          requestCheckout(
+                            { type: "credits", packId: pack.id },
+                            pack.id,
+                          )
+                        }
                       >
-                        {pack.highlighted ? (
-                          <span className="absolute right-4 top-4 rounded-full bg-[var(--anya-blush)]/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0c1019]">
-                            Best value
-                          </span>
-                        ) : null}
-
-                        <div className="pricing-credit-head">
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
-                            <Sparkles className="size-3 text-[var(--anya-blush)]" />
-                            Pack {String(index + 1).padStart(2, "0")} ·{" "}
-                            {pack.discountPercent}% off
-                          </span>
-                          <h3 className="mt-3 text-xl font-semibold tracking-tight text-white">
-                            {pack.name}
-                          </h3>
-                          <p className="mt-1.5 text-sm leading-snug text-zinc-400">
-                            {pack.description}
-                          </p>
-                        </div>
-
-                        <div className="pricing-credit-value mt-6">
-                          <div className="flex items-baseline gap-1.5">
-                            <AnimatedPrice
-                              className="text-4xl font-semibold tracking-tight text-white tabular-nums"
-                              duration={0.65}
-                              value={pack.price}
-                            />
-                            <span className="text-sm text-zinc-500">USD</span>
-                          </div>
-                          <p className="mt-2 text-sm text-zinc-300">
-                            <span className="tabular-nums font-medium text-white">
-                              {total}
-                            </span>{" "}
-                            credits · ~${unit.toFixed(2)}/ea
-                          </p>
-                        </div>
-
-                        <ul className="pricing-credit-ledger mt-5 space-y-2 border-t border-white/8 pt-4 text-sm text-zinc-400">
-                          <li className="flex items-center justify-between gap-3">
-                            <span>List value</span>
-                            <strong className="font-medium text-white tabular-nums">
-                              ${pack.credits}
-                            </strong>
-                          </li>
-                          <li className="flex items-center justify-between gap-3">
-                            <span>Bulk bonus</span>
-                            <strong className="font-medium text-emerald-400/90 tabular-nums">
-                              +{bonus} ({pack.discountPercent}%)
-                            </strong>
-                          </li>
-                          <li className="flex items-center justify-between gap-3">
-                            <span>You receive</span>
-                            <strong className="font-medium text-[var(--anya-blush)] tabular-nums">
-                              {total} credits
-                            </strong>
-                          </li>
-                        </ul>
-
-                        <PricingCta
-                          accent={pack.highlighted}
-                          disabled={busyId === pack.id}
-                          onClick={() =>
-                            requestCheckout(
-                              { type: "credits", packId: pack.id },
-                              pack.id,
-                            )
-                          }
-                        >
-                          {busyId === pack.id
-                            ? "Working…"
-                            : `Buy ${total} credits`}
-                        </PricingCta>
-                      </article>
-                    );
-                  })}
-                </div>
+                        {busyId === pack.id ? "Working…" : "Buy"}
+                      </PricingCta>
+                    </article>
+                  );
+                })}
 
                 <article
                   className={clsx(
                     PAYMENT_CARD_BASE,
-                    "border-[var(--anya-blush)]/30 bg-gradient-to-b from-white/[0.05] to-white/[0.02]",
+                    "pricing-credit-card--compact border-white/14 bg-white/[0.035]",
                   )}
                 >
                   <div className="pricing-credit-head">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
-                      <Sparkles className="size-3 text-[var(--anya-blush)]" />
-                      Custom amount
-                    </span>
-                    <h3 className="mt-3 text-xl font-semibold tracking-tight text-white">
-                      Pick your credits
+                    <h3 className="text-lg font-semibold tracking-tight text-white">
+                      Custom
                     </h3>
-                    <p className="mt-1.5 text-sm leading-snug text-zinc-400">
-                      Exact ${CREDIT_UNIT_USD}.00 per credit — no bonus, no
-                      waste. Ideal when you know how much you need.
+                    <p className="mt-1 text-xs text-zinc-500">
+                      ${CREDIT_UNIT_USD}/credit · no bonus
                     </p>
                   </div>
 
-                  <div className="mt-6 space-y-4">
-                    <label className="block">
-                      <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
-                        Credits
-                      </span>
-                      <input
-                        className="ui-input w-full tabular-nums"
-                        inputMode="numeric"
-                        max={CUSTOM_CREDIT_MAX}
-                        min={CUSTOM_CREDIT_MIN}
-                        name="custom-credits"
-                        type="number"
-                        value={customCreditsInput}
-                        onChange={(event) =>
-                          setCustomCreditsInput(event.target.value)
-                        }
-                        onBlur={() =>
-                          setCustomCreditsInput(String(customCredits))
-                        }
-                      />
-                    </label>
-
+                  <div className="mt-5 flex items-center gap-2">
                     <input
-                      aria-label="Credit amount"
-                      className="pricing-credit-slider w-full"
+                      aria-label="Credits"
+                      className="ui-input min-w-0 flex-1 tabular-nums"
+                      inputMode="numeric"
                       max={CUSTOM_CREDIT_MAX}
                       min={CUSTOM_CREDIT_MIN}
-                      step={5}
-                      type="range"
-                      value={customCredits}
+                      name="custom-credits"
+                      type="number"
+                      value={customCreditsInput}
                       onChange={(event) =>
                         setCustomCreditsInput(event.target.value)
                       }
+                      onBlur={() =>
+                        setCustomCreditsInput(String(customCredits))
+                      }
                     />
-
-                    <div className="flex flex-wrap gap-2">
-                      {[25, 50, 75, 100, 150, 250].map((preset) => (
-                        <button
-                          key={preset}
-                          className={clsx(
-                            "rounded-full border px-3 py-1 text-xs font-medium transition",
-                            customCredits === preset
-                              ? "border-[var(--anya-blush)]/50 bg-[var(--anya-blush)]/15 text-white"
-                              : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:text-white",
-                          )}
-                          type="button"
-                          onClick={() => setCustomCreditsInput(String(preset))}
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                    </div>
+                    <span className="shrink-0 text-sm text-zinc-500">
+                      credits
+                    </span>
                   </div>
 
-                  <div className="pricing-credit-value mt-6">
-                    <div className="flex items-baseline gap-1.5">
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {[25, 50, 100, 250].map((preset) => (
+                      <button
+                        key={preset}
+                        className={clsx(
+                          "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition",
+                          customCredits === preset
+                            ? "border-white/25 bg-white/10 text-white"
+                            : "border-white/8 text-zinc-500 hover:border-white/16 hover:text-zinc-300",
+                        )}
+                        type="button"
+                        onClick={() => setCustomCreditsInput(String(preset))}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="pricing-credit-value mt-5">
+                    <div className="flex items-baseline gap-1">
                       <AnimatedPrice
-                        className="text-4xl font-semibold tracking-tight text-white tabular-nums"
-                        duration={0.45}
+                        className="text-3xl font-semibold tracking-tight text-white tabular-nums"
+                        duration={0.4}
                         value={customPrice}
                       />
-                      <span className="text-sm text-zinc-500">USD</span>
                     </div>
-                    <p className="mt-2 text-sm text-zinc-300">
-                      <span className="tabular-nums font-medium text-white">
-                        {customCredits}
-                      </span>{" "}
-                      credits · ${CREDIT_UNIT_USD}.00 each
-                    </p>
                   </div>
 
-                  <ul className="pricing-credit-ledger mt-5 space-y-2 border-t border-white/8 pt-4 text-sm text-zinc-400">
-                    <li className="flex items-center justify-between gap-3">
-                      <span>Rate</span>
-                      <strong className="font-medium text-white">
-                        ${CREDIT_UNIT_USD}.00 / credit
-                      </strong>
-                    </li>
-                    <li className="flex items-center justify-between gap-3">
-                      <span>Bulk bonus</span>
-                      <strong className="font-medium text-zinc-500">
-                        None — exact amount
-                      </strong>
-                    </li>
-                    <li className="flex items-center justify-between gap-3">
-                      <span>Range</span>
-                      <strong className="font-medium text-white tabular-nums">
-                        {CUSTOM_CREDIT_MIN}–{CUSTOM_CREDIT_MAX}
-                      </strong>
-                    </li>
-                  </ul>
-
                   <PricingCta
-                    accent
                     disabled={busyId === CUSTOM_CREDIT_PACK_ID}
                     onClick={() =>
                       requestCheckout(
@@ -782,9 +695,7 @@ export function PricingPageContent({
                       )
                     }
                   >
-                    {busyId === CUSTOM_CREDIT_PACK_ID
-                      ? "Working…"
-                      : `Buy ${customCredits} credits`}
+                    {busyId === CUSTOM_CREDIT_PACK_ID ? "Working…" : "Buy"}
                   </PricingCta>
                 </article>
               </div>
