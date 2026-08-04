@@ -34,8 +34,9 @@ const PLAN_RANK: Record<PlanId, number> = {
   enterprise: 4,
 };
 
-/** Annual billing = 10× monthly (2 months free). */
-export const ANNUAL_MONTHS_CHARGED = 10;
+/** Annual billing = 9× monthly (3 months free). Checkout (Square/OxaPay) uses this. */
+export const ANNUAL_MONTHS_CHARGED = 9;
+export const ANNUAL_MONTHS_FREE = 12 - ANNUAL_MONTHS_CHARGED;
 
 export const FREE_MODULE_SLUGS = new Set([
   "breaches",
@@ -674,7 +675,7 @@ export function getAppLandingPath(
 }
 
 export function annualSavingsLabel(monthlyPrice: number): string {
-  const saved = monthlyPrice * 2;
+  const saved = monthlyPrice * ANNUAL_MONTHS_FREE;
 
   return `Save $${saved.toFixed(2)}/yr`;
 }

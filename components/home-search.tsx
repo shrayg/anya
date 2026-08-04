@@ -343,7 +343,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         onFocus={unlockAutofillShield}
       />
       <LiquidButton
-        className="home-search-submit"
+        className="home-search-submit liquid-glass-button--accent"
         data-tour="home-search-submit"
         disabled={!query.trim() || isSearching || auth.status === "loading"}
         type="submit"
@@ -405,8 +405,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
                     ))}
                   </ul>
                   <Link className="home-search-locked-cta" href="/pricing">
-                    Purchase Access to Premium Modules and unlock the full Panel
-                    Suite
+                    Buy Premium
                   </Link>
                 </div>
               </div>

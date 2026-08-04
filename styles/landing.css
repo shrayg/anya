@@ -429,8 +429,6 @@
   align-items: center;
   justify-content: center;
   gap: 0.7rem;
-  background: var(--anya-pink);
-  color: var(--anya-black);
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.62rem;
   font-weight: 600;
@@ -438,18 +436,54 @@
   text-transform: uppercase;
   transition:
     background 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    opacity 160ms ease;
 }
 
-.anya-landing .home-search-submit:hover:not(:disabled) {
+.anya-landing .home-search-submit:not(.specular-button) {
+  background: var(--anya-pink);
+  color: var(--anya-black);
+}
+
+.anya-landing .home-search-submit:not(.specular-button):hover:not(:disabled) {
   background: var(--anya-white);
 }
 
-.anya-landing .home-search-submit:disabled {
+.anya-landing .home-search-submit.specular-button {
+  background: color-mix(
+    in srgb,
+    #d8e4f2 22%,
+    rgba(12, 16, 25, 0.42)
+  ) !important;
+  color: #ffffff !important;
+}
+
+.anya-landing .home-search-submit.specular-button:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    #d8e4f2 28%,
+    rgba(12, 16, 25, 0.36)
+  ) !important;
+  color: #ffffff !important;
+}
+
+.anya-landing .home-search-submit:disabled:not(.specular-button) {
   border-left: 1px solid rgba(195, 211, 230, 0.24);
   background: rgba(195, 211, 230, 0.1);
   color: #a65f82;
   cursor: not-allowed;
+}
+
+.anya-landing .home-search-submit.specular-button:disabled {
+  border-left: 0;
+  background: color-mix(
+    in srgb,
+    #d8e4f2 14%,
+    rgba(12, 16, 25, 0.48)
+  ) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .anya-landing .home-search-module-row {
@@ -587,13 +621,22 @@
   min-height: 2.65rem;
   margin-top: 0.15rem;
   padding: 0.7rem 0.9rem;
-  border: 1px solid rgba(195, 211, 230, 0.72);
-  background: var(--anya-pink);
-  color: var(--anya-black);
+  border: 1px solid color-mix(in srgb, #c9a962 58%, rgba(255, 255, 255, 0.16));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #d4b978 16%, transparent) 0%,
+      color-mix(in srgb, #a8893a 7%, transparent) 100%
+    ),
+    rgba(14, 12, 10, 0.78);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #f0e0b8 26%, transparent),
+    0 8px 22px -16px rgba(168, 137, 58, 0.4);
+  color: #f3e6c4;
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   line-height: 1.35;
   text-align: center;
   text-transform: uppercase;
@@ -601,8 +644,16 @@
 }
 
 .anya-landing .home-search-locked-cta:hover {
-  filter: brightness(1.06);
-  color: var(--anya-black);
+  filter: none;
+  border-color: color-mix(in srgb, #e0c57a 72%, rgba(255, 255, 255, 0.2));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #e0c57a 22%, transparent) 0%,
+      color-mix(in srgb, #c9a962 11%, transparent) 100%
+    ),
+    rgba(18, 15, 11, 0.82);
+  color: #fff6de;
 }
 
 .anya-landing .starter-search-modes {
@@ -2365,13 +2416,15 @@
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-grid {
   gap: 1rem !important;
-  padding: 0;
+  padding: 0.35rem 0 0;
+  overflow: visible;
   background: transparent;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-card {
   position: relative;
   min-height: auto;
+  overflow: visible !important;
   border-radius: 1.15rem !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
@@ -2463,8 +2516,10 @@
 .brutal-pricing-page .liquid-glass-button__glass,
 .brutal-pricing-page .pricing-option-card button,
 .brutal-pricing-page .pricing-api-card button,
-.brutal-pricing-page .pricing-credit-card button {
+.brutal-pricing-page .pricing-credit-card button,
+.brutal-pricing-page .specular-button {
   border-radius: 9999px !important;
+  --sb-radius: 9999px;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .ui-btn,

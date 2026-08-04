@@ -267,8 +267,14 @@ function useSpecularFx(
       lineC.set(p.lineColor);
       baseC.set(p.baseColor);
       program.uniforms.uAngle.value = angle;
+      // Prefer live CSS border-radius so pill (9999px) buttons match the rim.
+      const computedR = Number.parseFloat(
+        getComputedStyle(btn!).borderTopLeftRadius,
+      );
+      const rimR =
+        Number.isFinite(computedR) && computedR > 0 ? computedR : p.radius;
       program.uniforms.uRadius.value =
-        Math.min(p.radius, Math.min(sizeRef.w, sizeRef.h) / 2) * dpr;
+        Math.min(rimR, Math.min(sizeRef.w, sizeRef.h) / 2) * dpr;
       program.uniforms.uLineColor.value = [lineC.r, lineC.g, lineC.b];
       program.uniforms.uBaseColor.value = [baseC.r, baseC.g, baseC.b];
       program.uniforms.uIntensity.value = p.intensity * bright;

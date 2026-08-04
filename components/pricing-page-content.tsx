@@ -19,6 +19,7 @@ import { SpecularButton } from "@/components/ui/specular-button";
 import { siteConfig } from "@/config/site";
 import {
   ANNUAL_MONTHS_CHARGED,
+  ANNUAL_MONTHS_FREE,
   API_PRODUCT,
   CREDIT_PACKS,
   getApiPrice,
@@ -33,7 +34,7 @@ import {
 import { toast } from "@/lib/toast";
 
 const PAYMENT_CARD_BASE =
-  "pricing-credit-card group relative flex h-full flex-col overflow-hidden border p-6";
+  "pricing-credit-card group relative flex h-full flex-col border p-6";
 const PAYMENT_CARD_DEFAULT =
   "border-white/10 bg-white/[0.03] hover:border-white/20";
 const PAYMENT_CARD_HIGHLIGHTED =
@@ -302,7 +303,7 @@ export function PricingPageContent({
           >
             Annual
             <span className="pricing-interval-saving ml-1.5 text-[10px] font-semibold text-emerald-400">
-              2 months free
+              {ANNUAL_MONTHS_FREE} months free
             </span>
           </button>
         </div>
@@ -335,9 +336,10 @@ export function PricingPageContent({
       <AnimatePresence initial={false} mode="wait">
         <motion.div
           key={tab}
-          animate={{ clipPath: "inset(0 0 0 0)", opacity: 1, y: 0 }}
-          exit={{ clipPath: "inset(0 0 0 100%)", opacity: 0, y: -8 }}
-          initial={{ clipPath: "inset(0 100% 0 0)", opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pricing-tab-panel overflow-visible pt-1"
+          exit={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: 10 }}
           transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
         >
           {tab === "subscriptions" && (
@@ -455,8 +457,10 @@ export function PricingPageContent({
 
                     <SpecularButton
                       accent={plan.highlighted}
-                      className="mt-6 h-11 w-full text-sm font-semibold"
+                      autoAnimate={false}
+                      className="mt-10 h-11 w-full shrink-0 text-sm font-semibold"
                       disabled={busyId === plan.id}
+                      radius={999}
                       type="button"
                       onClick={() => {
                         if (plan.customPricing) {
@@ -593,8 +597,10 @@ export function PricingPageContent({
 
                       <SpecularButton
                         accent={pack.highlighted}
-                        className="mt-6 h-11 w-full text-sm font-semibold"
+                        autoAnimate={false}
+                        className="mt-10 h-11 w-full shrink-0 text-sm font-semibold"
                         disabled={busyId === pack.id}
+                        radius={999}
                         type="button"
                         onClick={() =>
                           requestCheckout(
@@ -688,8 +694,10 @@ export function PricingPageContent({
 
                       <SpecularButton
                         accent
-                        className="mt-6 h-11 w-full text-sm font-semibold"
+                        autoAnimate={false}
+                        className="mt-10 h-11 w-full shrink-0 text-sm font-semibold"
                         disabled={busyId === "api_access"}
+                        radius={999}
                         type="button"
                         onClick={() =>
                           requestCheckout(
@@ -716,9 +724,9 @@ export function PricingPageContent({
       </AnimatePresence>
 
       <p className="mt-10 text-center text-xs text-zinc-500">
-        Annual plans are billed as {ANNUAL_MONTHS_CHARGED} months upfront (2
-        months free). Pay with card (Square) or crypto (OxaPay). Need help
-        choosing?{" "}
+        Annual plans are billed as {ANNUAL_MONTHS_CHARGED} months upfront (
+        {ANNUAL_MONTHS_FREE} months free). Pay with card (Square) or crypto
+        (OxaPay). Need help choosing?{" "}
         <NextLink
           className="text-[var(--anya-blush)] hover:underline"
           href="/support"
@@ -749,8 +757,10 @@ export function PricingPageContent({
             <div className="mt-5 grid gap-3">
               <SpecularButton
                 accent
+                autoAnimate={false}
                 className="h-11 w-full text-sm font-semibold"
                 disabled={busyId === pendingCheckout.id}
+                radius={999}
                 type="button"
                 onClick={() =>
                   void runCheckout(
@@ -765,8 +775,10 @@ export function PricingPageContent({
                   : "Pay with card"}
               </SpecularButton>
               <SpecularButton
+                autoAnimate={false}
                 className="h-11 w-full text-sm font-semibold"
                 disabled={busyId === pendingCheckout.id}
+                radius={999}
                 type="button"
                 onClick={() =>
                   void runCheckout(

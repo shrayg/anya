@@ -26,11 +26,6 @@ export default function PricingPage() {
               Plans & pricing
             </p>
             <h1 className="craft-display text-4xl md:text-6xl">Pricing</h1>
-            <p className="craft-lede">
-              Subscriptions for investigators, credit packs at about $1 per
-              credit, and API access for automation — billed monthly or annually
-              via Square.
-            </p>
           </header>
         </Reveal>
 
