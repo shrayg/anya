@@ -277,10 +277,10 @@ export function PricingPageContent({
       </div>
 
       {(tab === "subscriptions" || tab === "api") && (
-        <div className="pricing-interval-strip mx-auto mt-4 flex w-fit rounded-2xl border border-white/10 bg-white/[0.04] p-1 backdrop-blur-xl">
+        <div className="pricing-interval-strip mx-auto mt-3 flex w-fit rounded-2xl border border-white/10 bg-white/[0.04] p-0.5 backdrop-blur-xl">
           <button
             className={clsx(
-              "pricing-interval-option rounded-xl px-5 py-2 text-sm font-medium transition",
+              "pricing-interval-option rounded-xl px-3 py-1.5 text-xs font-medium transition",
               interval === "monthly"
                 ? "bg-[var(--anya-blush)]/85 text-[#0c1019] shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
@@ -292,7 +292,7 @@ export function PricingPageContent({
           </button>
           <button
             className={clsx(
-              "pricing-interval-option rounded-xl px-5 py-2 text-sm font-medium transition",
+              "pricing-interval-option rounded-xl px-3 py-1.5 text-xs font-medium transition",
               interval === "annual"
                 ? "bg-[var(--anya-blush)]/85 text-[#0c1019] shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
@@ -301,7 +301,7 @@ export function PricingPageContent({
             onClick={() => setInterval("annual")}
           >
             Annual
-            <span className="pricing-interval-saving ml-2 text-xs font-semibold text-emerald-400">
+            <span className="pricing-interval-saving ml-1.5 text-[10px] font-semibold text-emerald-400">
               2 months free
             </span>
           </button>
