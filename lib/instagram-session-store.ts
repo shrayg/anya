@@ -23,6 +23,20 @@ export function resolveInstagramSecretsPath(): string {
   );
 }
 
+/** JSON pool of extra Instagram sessions (gitignored / outside checkout on VPS). */
+export function resolveInstagramAccountsPath(): string {
+  return (
+    process.env.ANYA_INSTAGRAM_ACCOUNTS_PATH?.trim() ||
+    (process.env.ANYA_INSTAGRAM_SECRETS_PATH?.trim()
+      ? process.env.ANYA_INSTAGRAM_SECRETS_PATH.replace(
+          /instagram\.env$/i,
+          "instagram-accounts.json",
+        )
+      : "") ||
+    `${process.cwd()}/.instagram-accounts.json`
+  );
+}
+
 function sanitizeValue(raw: string): string {
   let value = raw.trim();
 
@@ -145,6 +159,32 @@ export function writeInstagramSessionFiles(input: InstagramSessionInput): {
     localPath,
     keysWritten: Object.keys(updates),
   };
+}
+
+export type InstagramAccountFileEntry = {
+  label: string;
+  sessionId: string;
+  csrfToken?: string;
+  dsUserId?: string;
+  mid?: string;
+  igDid?: string;
+  datr?: string;
+  proxyUrl?: string;
+};
+
+/** Persist the rotating Instagram account pool (JSON file, not committed). */
+export function writeInstagramAccountsFile(
+  accounts: InstagramAccountFileEntry[],
+): { path: string; count: number } {
+  const path = resolveInstagramAccountsPath();
+
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(accounts, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+
+  return { path, count: accounts.length };
 }
 
 export function readInstagramSessionStatus(): {

@@ -195,6 +195,12 @@ if [[ -f "${SECRETS_DIR}/instagram.env" ]]; then
   echo "==> Restoring Instagram session from ${SECRETS_DIR}/instagram.env"
   merge_env_file "${SECRETS_DIR}/instagram.env" .env.local
 fi
+
+if [[ -f "${SECRETS_DIR}/instagram-accounts.json" ]]; then
+  echo "==> Restoring Instagram account pool from ${SECRETS_DIR}/instagram-accounts.json"
+  cp -f "${SECRETS_DIR}/instagram-accounts.json" .instagram-accounts.json
+  chmod 600 .instagram-accounts.json || true
+fi
 if [[ -f "${SECRETS_DIR}/app.env" ]]; then
   echo "==> Restoring app secrets from ${SECRETS_DIR}/app.env"
   merge_env_file "${SECRETS_DIR}/app.env" .env.local

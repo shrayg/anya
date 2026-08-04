@@ -94,7 +94,7 @@ export async function GET() {
       accounts: getPoolSnapshot(),
     },
     // Never return cookie or password values.
-    help: "POST cookies (sessionid/...) OR { action:'relogin' } OR { username, password, totpSecret? }. Stored in /var/www/anya-secrets/instagram.env.",
+    help: "POST cookies (sessionid/...) OR { action:'relogin' } OR { username, password, totpSecret? }. Pool file: .instagram-accounts.json / ANYA_INSTAGRAM_ACCOUNTS_PATH.",
   });
 }
 

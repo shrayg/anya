@@ -1,4 +1,7 @@
+import { existsSync, readFileSync } from "node:fs";
 import "server-only";
+
+import { resolveInstagramAccountsPath } from "@/lib/instagram-session-store";
 
 /**
  * Instagram account pool + residential-proxy plumbing.
@@ -57,21 +60,12 @@ function primaryAccount(): InstagramAccount {
   };
 }
 
-function parseExtraAccounts(): InstagramAccount[] {
-  const raw = process.env.INSTAGRAM_ACCOUNTS?.trim();
-
-  if (!raw) return [];
-
-  let parsed: unknown;
-
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return [];
-  }
+function normalizeAccountEntries(
+  parsed: unknown,
+  fallbackProxy?: string,
+): InstagramAccount[] {
   if (!Array.isArray(parsed)) return [];
 
-  const fallbackProxy = process.env.INSTAGRAM_PROXY_URL?.trim() || undefined;
   const accounts: InstagramAccount[] = [];
 
   parsed.forEach((rawEntry, index) => {
@@ -105,6 +99,44 @@ function parseExtraAccounts(): InstagramAccount[] {
   });
 
   return accounts;
+}
+
+function parseExtraAccounts(): InstagramAccount[] {
+  const fallbackProxy = process.env.INSTAGRAM_PROXY_URL?.trim() || undefined;
+  const byLabel = new Map<string, InstagramAccount>();
+
+  const merge = (list: InstagramAccount[]) => {
+    for (const account of list) {
+      byLabel.set(account.label, account);
+    }
+  };
+
+  const raw = process.env.INSTAGRAM_ACCOUNTS?.trim();
+
+  if (raw) {
+    try {
+      merge(normalizeAccountEntries(JSON.parse(raw), fallbackProxy));
+    } catch {
+      /* ignore invalid JSON */
+    }
+  }
+
+  try {
+    const path = resolveInstagramAccountsPath();
+
+    if (existsSync(path)) {
+      merge(
+        normalizeAccountEntries(
+          JSON.parse(readFileSync(path, "utf8")),
+          fallbackProxy,
+        ),
+      );
+    }
+  } catch {
+    /* ignore missing / invalid file */
+  }
+
+  return [...byLabel.values()];
 }
 
 /** All configured accounts (primary first). Rebuilt on each call so auto-login updates are picked up. */

@@ -1,3 +1,4 @@
+import { TOTP } from "otpauth";
 import { createCipheriv, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -231,7 +232,6 @@ async function fetchLoginEncryptionParams(
 }
 
 function generateTotp(secret: string): string {
-  const { TOTP } = require("otpauth") as typeof import("otpauth");
   const totp = new TOTP({
     secret: secret.replace(/\s+/g, ""),
     digits: 6,
@@ -304,12 +304,15 @@ export function writeInstagramCredentials(input: {
 }
 
 /**
- * Full Instagram web login. Persists cookies into durable secrets + .env.local.
+ * Full Instagram web login.
+ * Pass `{ persist: false }` when importing a pool so primary session is not overwritten.
  */
 export async function loginInstagramWeb(
   credentials?: InstagramCredentials,
+  options?: { persist?: boolean },
 ): Promise<InstagramLoginResult> {
   const creds = credentials ?? loadInstagramCredentials();
+  const persist = options?.persist !== false;
 
   if (!creds) {
     throw new Error(
@@ -319,8 +322,11 @@ export async function loginInstagramWeb(
 
   // Route the login through a residential proxy when configured — datacenter
   // IPs almost always trigger a checkpoint on password login.
+  // Explicit empty string disables proxy (import --direct).
   const proxyUrl =
-    creds.proxyUrl || process.env.INSTAGRAM_PROXY_URL?.trim() || "";
+    creds.proxyUrl === ""
+      ? ""
+      : creds.proxyUrl || process.env.INSTAGRAM_PROXY_URL?.trim() || "";
   const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
   const jar: Record<string, string> = {};
@@ -458,7 +464,9 @@ export async function loginInstagramWeb(
     );
   }
 
-  writeInstagramSessionFiles(cookies);
+  if (persist) {
+    writeInstagramSessionFiles(cookies);
+  }
 
   return {
     cookies,
@@ -466,6 +474,8 @@ export async function loginInstagramWeb(
     username: creds.username,
     checkpoint: false,
     twoFactor: false,
-    message: "Logged in and session cookies refreshed.",
+    message: persist
+      ? "Logged in and session cookies refreshed."
+      : "Logged in (cookies not persisted to primary session).",
   };
 }
