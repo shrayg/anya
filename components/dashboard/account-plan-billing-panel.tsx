@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@heroui/button";
 import { CreditCard, RefreshCw, RotateCcw, XCircle } from "lucide-react";
 
 import { apiFetch } from "@/lib/csrf-client";
@@ -12,6 +11,7 @@ import {
   type UserStats,
 } from "@/lib/account-plan";
 import { AccountBillingNote } from "@/components/dashboard/account-stat-rail";
+import { SpecularButton } from "@/components/ui/specular-button";
 
 type CheckoutProvider = "square" | "oxapay";
 
@@ -152,33 +152,37 @@ export function AccountPlanBillingPanel({
       {error ? <p className="mt-3 text-xs text-rose-300">{error}</p> : null}
 
       <div className="account-billing-actions">
-        <Button
-          className="h-10 border border-pink-300/35 bg-pink-500 text-sm font-semibold text-white shadow-lg shadow-pink-500/20"
-          isDisabled={Boolean(busy)}
-          isLoading={busy === "renew-square" || busy === "renew-oxapay"}
-          startContent={<RefreshCw className="size-3.5" />}
-          onPress={() => setShowRenewPicker(true)}
+        <SpecularButton
+          accent
+          className="h-10 text-sm font-semibold"
+          disabled={Boolean(busy)}
+          size="sm"
+          type="button"
+          onClick={() => setShowRenewPicker(true)}
         >
-          Renew plan
-        </Button>
+          <RefreshCw className="size-3.5" />
+          {busy === "renew-square" || busy === "renew-oxapay"
+            ? "Working…"
+            : "Renew plan"}
+        </SpecularButton>
 
         {cancelAtPeriodEnd ? (
-          <Button
-            className="h-10 border border-white/15 bg-white/10 text-sm font-semibold text-white"
-            isDisabled={Boolean(busy)}
-            isLoading={busy === "resume"}
-            startContent={<RotateCcw className="size-3.5" />}
-            onPress={() => void runAction("resume")}
+          <SpecularButton
+            className="h-10 text-sm font-semibold"
+            disabled={Boolean(busy)}
+            size="sm"
+            type="button"
+            onClick={() => void runAction("resume")}
           >
-            Undo cancel
-          </Button>
+            <RotateCcw className="size-3.5" />
+            {busy === "resume" ? "Working…" : "Undo cancel"}
+          </SpecularButton>
         ) : (
-          <Button
-            className="h-10 border border-rose-400/30 bg-rose-500/10 text-sm font-semibold text-rose-100"
-            isDisabled={Boolean(busy) || !isPaid}
-            isLoading={busy === "cancel"}
-            startContent={<XCircle className="size-3.5" />}
-            onPress={() => {
+          <button
+            className="dash-btn dash-btn-danger h-10 text-sm font-semibold"
+            disabled={Boolean(busy) || !isPaid}
+            type="button"
+            onClick={() => {
               if (
                 window.confirm(
                   "Cancel at period end? You keep access until the current period ends, then drop to Free. Crypto never auto-renews anyway.",
@@ -188,8 +192,9 @@ export function AccountPlanBillingPanel({
               }
             }}
           >
-            Cancel plan
-          </Button>
+            <XCircle className="size-3.5" />
+            {busy === "cancel" ? "Working…" : "Cancel plan"}
+          </button>
         )}
 
         <a className="account-btn-ghost" href="/pricing">
@@ -216,30 +221,31 @@ export function AccountPlanBillingPanel({
               is a one-time payment — you will need to renew again next period.
             </p>
             <div className="mt-5 grid gap-3">
-              <Button
-                className="h-11 w-full border border-pink-300/40 bg-pink-500 text-sm font-semibold text-white"
-                isDisabled={Boolean(busy)}
-                isLoading={busy === "renew-square"}
-                startContent={<CreditCard className="size-4" />}
-                onPress={() => void renew("square")}
+              <SpecularButton
+                accent
+                className="h-11 w-full text-sm font-semibold"
+                disabled={Boolean(busy)}
+                type="button"
+                onClick={() => void renew("square")}
               >
-                Renew with card
-              </Button>
-              <Button
-                className="h-11 w-full border border-white/15 bg-white/10 text-sm font-semibold text-white"
-                isDisabled={Boolean(busy)}
-                isLoading={busy === "renew-oxapay"}
-                onPress={() => void renew("oxapay")}
+                <CreditCard className="size-4" />
+                {busy === "renew-square" ? "Working…" : "Renew with card"}
+              </SpecularButton>
+              <SpecularButton
+                className="h-11 w-full text-sm font-semibold"
+                disabled={Boolean(busy)}
+                type="button"
+                onClick={() => void renew("oxapay")}
               >
-                Renew with crypto
-              </Button>
-              <Button
-                className="h-10 w-full text-sm text-zinc-400"
-                variant="light"
-                onPress={() => setShowRenewPicker(false)}
+                {busy === "renew-oxapay" ? "Working…" : "Renew with crypto"}
+              </SpecularButton>
+              <button
+                className="h-10 w-full text-sm text-zinc-400 hover:text-zinc-200"
+                type="button"
+                onClick={() => setShowRenewPicker(false)}
               >
                 Close
-              </Button>
+              </button>
             </div>
           </div>
         </div>

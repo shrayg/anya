@@ -24,6 +24,7 @@ import {
   SEARCH_AUTOFILL_SHIELD,
   unlockAutofillShield,
 } from "@/lib/search-autofill-shield";
+import { SpecularButton } from "@/components/ui/specular-button";
 
 const MAX_FIELDS = 8;
 
@@ -273,14 +274,16 @@ export function ModuleSearchFields({
         )}
         <div className="module-search-form-submit-group">
           {extraActions}
-          <button
+          <SpecularButton
+            accent
             className="ui-btn ui-btn-primary module-search-submit shrink-0"
             data-tour="search-submit"
             disabled={!canSubmit || isSearching || disabled}
+            size="sm"
             type="submit"
           >
             {isSearching ? "Scanning…" : submitLabel}
-          </button>
+          </SpecularButton>
         </div>
       </div>
     </div>

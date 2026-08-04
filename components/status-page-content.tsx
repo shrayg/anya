@@ -12,6 +12,7 @@ import { Activity, RefreshCw } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
 import { Reveal } from "@/components/craft/reveal";
+import { SpecularButton } from "@/components/ui/specular-button";
 
 type StatusHistorySeries = {
   segments: PublicStatusLevel[];
@@ -242,9 +243,10 @@ export function StatusPageContent() {
               </div>
             </div>
 
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:opacity-50"
+            <SpecularButton
+              className="gap-2 px-3 py-2 text-sm"
               disabled={loading || refreshing}
+              size="sm"
               type="button"
               onClick={() => void load(true)}
             >
@@ -255,7 +257,7 @@ export function StatusPageContent() {
                 )}
               />
               Refresh
-            </button>
+            </SpecularButton>
           </div>
 
           {data ? (

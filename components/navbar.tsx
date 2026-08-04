@@ -66,6 +66,8 @@ function CreditBalanceChip({
   searchTitle?: string;
   className?: string;
 }) {
+  const unlimitedSearches = searchQuota === "∞";
+
   return (
     <NextLink
       className={clsx("nav-credits-chip", className)}
@@ -86,9 +88,15 @@ function CreditBalanceChip({
           <span aria-hidden className="nav-credits-chip-sep">
             ·
           </span>
-          <span className="nav-credits-chip-searches tabular-nums">
-            {searchQuota}
-          </span>
+          {unlimitedSearches ? (
+            <span className="nav-credits-chip-infinity" aria-label="Unlimited">
+              ∞
+            </span>
+          ) : (
+            <span className="nav-credits-chip-searches tabular-nums">
+              {searchQuota}
+            </span>
+          )}
           <span className="nav-credits-chip-searches-unit">searches</span>
         </>
       ) : null}

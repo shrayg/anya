@@ -5,6 +5,7 @@ import { Headphones, LifeBuoy, Mail } from "lucide-react";
 import { SiTelegram } from "react-icons/si";
 
 import { Reveal } from "@/components/craft/reveal";
+import { SpecularButton } from "@/components/ui/specular-button";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -58,13 +59,7 @@ export default function SupportPage() {
               delay={0.06 + index * 0.05}
               mode="mount"
             >
-              <a
-                className="support-channel group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-pink-300/35 hover:bg-pink-500/[0.07]"
-                href={channel.href}
-                {...(channel.external
-                  ? { rel: "noreferrer", target: "_blank" }
-                  : {})}
-              >
+              <div className="support-channel group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-pink-300/35 hover:bg-pink-500/[0.07]">
                 <div className="mb-4 flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] transition group-hover:border-pink-300/30 group-hover:bg-pink-500/15">
                   <Icon className="size-4 text-zinc-300 group-hover:text-pink-200" />
                 </div>
@@ -74,10 +69,17 @@ export default function SupportPage() {
                 <p className="mt-2 flex-1 text-sm leading-6 text-zinc-500">
                   {channel.body}
                 </p>
-                <span className="mt-4 text-sm font-medium text-pink-300 group-hover:text-pink-200">
+                <SpecularButton
+                  className="mt-4 self-start text-sm font-medium"
+                  href={channel.href}
+                  size="sm"
+                  {...(channel.external
+                    ? { rel: "noreferrer", target: "_blank" }
+                    : {})}
+                >
                   {channel.cta}
-                </span>
-              </a>
+                </SpecularButton>
+              </div>
             </Reveal>
           );
         })}

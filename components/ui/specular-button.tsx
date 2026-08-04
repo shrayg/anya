@@ -42,6 +42,8 @@ export type SpecularButtonProps = Omit<
   accent?: boolean;
   /** Render as Next.js Link when set (marketing CTAs). */
   href?: string;
+  target?: string;
+  rel?: string;
 };
 
 interface ShaderProps {
@@ -206,36 +208,44 @@ function useSpecularFx(
 
     let pointerAngle: number | null = null;
     let proximityT = 0;
-    const onPointerMove = (e: PointerEvent) => {
-      const rect = btn.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const dx = Math.max(rect.left - e.clientX, 0, e.clientX - rect.right);
-      const dy = Math.max(rect.top - e.clientY, 0, e.clientY - rect.bottom);
-      const dist = Math.hypot(dx, dy);
-      if (dist === 0) {
-        const nx = (e.clientX - cx) / (rect.width / 2 || 1);
-        const ny = (cy - e.clientY) / (rect.height / 2 || 1);
-        pointerAngle =
-          Math.atan2(2 / rect.height, -2 / rect.width) + nx * 0.3 + ny * 0.15;
-      } else {
-        pointerAngle = Math.atan2(cy - e.clientY, e.clientX - cx);
-      }
-      const t = Math.max(0, 1 - dist / Math.max(propsRef.current.proximity, 1));
-      proximityT = t * t * (3 - 2 * t);
-    };
-    window.addEventListener("pointermove", onPointerMove);
-
     let angle = 2.4;
     let idleAngle = 2.4;
     let bright = 0;
     let last = performance.now();
     let raf = 0;
+    let looping = false;
+    let inView = true;
+    let pageVisible = document.visibilityState === "visible";
+
+    /** Keep animating until shine has fully faded when idle. */
+    const BRIGHT_EPS = 0.002;
 
     const lineC = new Color();
     const baseC = new Color();
 
-    const update = (now: number) => {
+    const shouldRun = () => {
+      if (!pageVisible || !inView) return false;
+      const p = propsRef.current;
+      // autoAnimate: continuous rim while visible
+      if (p.autoAnimate) return true;
+      // proximity / residual fade-out only
+      return proximityT > BRIGHT_EPS || bright > BRIGHT_EPS;
+    };
+
+    const stopLoop = () => {
+      if (!looping) return;
+      looping = false;
+      cancelAnimationFrame(raf);
+      raf = 0;
+    };
+
+    // function declaration so ensureLoop / observers can call before this block ends
+    function update(now: number) {
+      if (!shouldRun()) {
+        looping = false;
+        raf = 0;
+        return;
+      }
       raf = requestAnimationFrame(update);
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
@@ -266,12 +276,62 @@ function useSpecularFx(
       program.uniforms.uShineFade.value = (p.shineFade * Math.PI) / 180;
       program.uniforms.uThickness.value = p.thickness * dpr;
       renderer.render({ scene: mesh });
+    }
+
+    const ensureLoop = () => {
+      if (looping || !shouldRun()) return;
+      looping = true;
+      last = performance.now();
+      raf = requestAnimationFrame(update);
     };
-    raf = requestAnimationFrame(update);
+
+    const onPointerMove = (e: PointerEvent) => {
+      const rect = btn.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = Math.max(rect.left - e.clientX, 0, e.clientX - rect.right);
+      const dy = Math.max(rect.top - e.clientY, 0, e.clientY - rect.bottom);
+      const dist = Math.hypot(dx, dy);
+      if (dist === 0) {
+        const nx = (e.clientX - cx) / (rect.width / 2 || 1);
+        const ny = (cy - e.clientY) / (rect.height / 2 || 1);
+        pointerAngle =
+          Math.atan2(2 / rect.height, -2 / rect.width) + nx * 0.3 + ny * 0.15;
+      } else {
+        pointerAngle = Math.atan2(cy - e.clientY, e.clientX - cx);
+      }
+      const t = Math.max(0, 1 - dist / Math.max(propsRef.current.proximity, 1));
+      proximityT = t * t * (3 - 2 * t);
+      // Wake idle (non-autoAnimate) instances when pointer enters proximity
+      if (proximityT > BRIGHT_EPS) ensureLoop();
+    };
+    window.addEventListener("pointermove", onPointerMove);
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        inView = entries.some((entry) => entry.isIntersecting);
+        if (inView) ensureLoop();
+        else stopLoop();
+      },
+      // Start slightly before fully on-screen so shine is ready
+      { root: null, rootMargin: "48px", threshold: 0 },
+    );
+    io.observe(btn);
+
+    const onVisibilityChange = () => {
+      pageVisible = document.visibilityState === "visible";
+      if (pageVisible) ensureLoop();
+      else stopLoop();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    ensureLoop();
 
     return () => {
-      cancelAnimationFrame(raf);
+      stopLoop();
       ro.disconnect();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pointermove", onPointerMove);
       if (gl.canvas.parentNode === fx) fx.removeChild(gl.canvas);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
@@ -307,6 +367,8 @@ export const SpecularButton = forwardRef<
     className = "",
     type = "button",
     href,
+    target,
+    rel,
     style,
     ...rest
   },
@@ -365,8 +427,10 @@ export const SpecularButton = forwardRef<
         aria-disabled={disabled || undefined}
         className={classes}
         href={href}
+        rel={rel}
         style={cssVars}
         tabIndex={disabled ? -1 : undefined}
+        target={target}
         onClick={
           disabled
             ? (e) => {

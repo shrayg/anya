@@ -38,6 +38,7 @@ import {
   formatCredits,
   formatSearchQuotaLabel,
   getPlanDisplayLabel,
+  isUnlimitedSearchQuota,
   searchQuotaTitle,
 } from "@/lib/account-plan";
 import { useUserStats } from "@/lib/use-user-stats";
@@ -329,6 +330,7 @@ export function DashboardSidebar({ username }: { username: string }) {
   const balance = profile.balance ?? 0;
   const { stats } = useUserStats(true);
   const searchQuotaLabel = formatSearchQuotaLabel(stats);
+  const unlimitedSearches = isUnlimitedSearchQuota(stats?.quota);
   const staffMeta = getStaffRoleMeta(profile.staffRole);
   const {
     collapsed,
@@ -788,9 +790,23 @@ export function DashboardSidebar({ username }: { username: string }) {
                           href={accountHref}
                           title={searchQuotaTitle(stats)}
                         >
-                          <span className="tabular-nums font-medium text-sky-100/85">
-                            {searchQuotaLabel}
-                          </span>
+                          {unlimitedSearches ? (
+                            <>
+                              <span
+                                aria-label="Unlimited"
+                                className="nav-credits-chip-infinity"
+                              >
+                                ∞
+                              </span>
+                              <span className="font-medium text-sky-100/85">
+                                searches
+                              </span>
+                            </>
+                          ) : (
+                            <span className="tabular-nums font-medium text-sky-100/85">
+                              {searchQuotaLabel}
+                            </span>
+                          )}
                         </Link>
                       </>
                     ) : null}

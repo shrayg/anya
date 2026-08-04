@@ -4,6 +4,8 @@ import type { LucideIcon } from "lucide-react";
 
 import clsx from "clsx";
 
+import { SpecularButton } from "@/components/ui/specular-button";
+
 export function PageHeader({
   title,
   subtitle,
@@ -85,12 +87,26 @@ export function DashButton({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";
 }) {
+  const classes = clsx("dash-btn", `dash-btn-${variant}`, className);
+
+  // Primary / secondary labeled CTAs get Specular rim; ghost/danger stay plain
+  // (cancel rows, dense chrome — avoid excess WebGL contexts).
+  if (variant === "primary" || variant === "secondary") {
+    return (
+      <SpecularButton
+        accent={variant === "primary"}
+        className={classes}
+        size="sm"
+        type={type}
+        {...props}
+      >
+        {children}
+      </SpecularButton>
+    );
+  }
+
   return (
-    <button
-      className={clsx("dash-btn", `dash-btn-${variant}`, className)}
-      type={type}
-      {...props}
-    >
+    <button className={classes} type={type} {...props}>
       {children}
     </button>
   );

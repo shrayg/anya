@@ -45,6 +45,7 @@ export default function Home() {
         </Reveal>
       </section>
 
+      <HomeStatsStrip moduleCount={CATALOG_MODULE_COUNT} />
       <IntelligenceModulesSection
         catalogLanes={CATALOG_LANES}
         moduleCount={CATALOG_MODULE_COUNT}
@@ -53,7 +54,6 @@ export default function Home() {
       <HomeShowcase />
       <HomeHowItWorks moduleCount={CATALOG_MODULE_COUNT} />
       <HomeAudiences />
-      <HomeStatsStrip moduleCount={CATALOG_MODULE_COUNT} />
       <HomeTrust />
       <HomeFinalCta />
     </>

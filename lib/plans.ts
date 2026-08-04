@@ -508,6 +508,59 @@ export function planUpdatesFromId(plan: PlanId) {
   };
 }
 
+/** Label/value rows for pricing cards (mirrors credit-pack ledger). */
+export function getPlanLedgerRows(
+  plan: PlanDefinition,
+): { label: string; value: string; accent?: boolean }[] {
+  const searches =
+    plan.dailySearchLimit === Infinity
+      ? "Unlimited"
+      : String(plan.dailySearchLimit);
+
+  switch (plan.id) {
+    case "starter":
+      return [
+        { label: "Daily searches", value: searches },
+        { label: "Dashboard", value: "No" },
+        { label: "Lookups", value: "Core identity" },
+        { label: "Pro modules", value: "—" },
+      ];
+    case "professional":
+      return [
+        { label: "Daily searches", value: searches },
+        { label: "Dashboard", value: "Full" },
+        { label: "Modules", value: "Professional" },
+        { label: "IntelX included", value: "5 / day" },
+        { label: "AI access", value: "Restricted" },
+      ];
+    case "ultimate":
+      return [
+        { label: "Daily searches", value: searches, accent: true },
+        { label: "Dashboard", value: "Full" },
+        { label: "AI access", value: "Full" },
+        { label: "Modules", value: "All included", accent: true },
+      ];
+    case "enterprise":
+      return [
+        { label: "Daily searches", value: searches, accent: true },
+        { label: "Support", value: "Dedicated SLA" },
+        { label: "Seats", value: "Team onboarding" },
+        { label: "Modules", value: "All included", accent: true },
+      ];
+    default:
+      return plan.features.map((feature) => ({
+        label: feature,
+        value: "Included",
+      }));
+  }
+}
+
+export function getPlanQuotaSummary(plan: PlanDefinition): string {
+  if (plan.dailySearchLimit === Infinity) return "Unlimited searches";
+
+  return `${plan.dailySearchLimit} searches / day`;
+}
+
 export function getPlanPrice(
   plan: PlanDefinition,
   interval: BillingInterval = "monthly",

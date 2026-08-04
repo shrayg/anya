@@ -180,6 +180,18 @@ pre,
   text-overflow: ellipsis;
 }
 
+/* ∞ must not inherit tabular-nums / negative tracking — those squash the glyph */
+.nav-credits-chip-infinity {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: normal;
+  font-variant-numeric: normal;
+  color: rgba(186, 230, 253, 0.88);
+  flex-shrink: 0;
+  overflow: visible;
+}
+
 .nav-credits-chip-searches-unit {
   font-size: 0.6875rem;
   font-weight: 500;
@@ -194,6 +206,8 @@ pre,
 
 .nav-credits-chip:hover .nav-credits-chip-searches,
 .nav-credits-chip:focus-visible .nav-credits-chip-searches,
+.nav-credits-chip:hover .nav-credits-chip-infinity,
+.nav-credits-chip:focus-visible .nav-credits-chip-infinity,
 .nav-credits-chip:hover .nav-credits-chip-searches-unit,
 .nav-credits-chip:focus-visible .nav-credits-chip-searches-unit {
   color: rgba(224, 242, 254, 0.98);

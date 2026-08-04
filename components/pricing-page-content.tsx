@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@heroui/button";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle, Code2, CreditCard, Mail, Sparkles } from "lucide-react";
+import { Code2, CreditCard, Mail, Sparkles } from "lucide-react";
 import NextLink from "next/link";
 import { SiTelegram } from "react-icons/si";
 
@@ -16,21 +15,29 @@ import {
   type BillingStatusKind,
 } from "@/components/billing-status-banner";
 import AnimatedPrice from "@/components/animated-price";
-import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { SpecularButton } from "@/components/ui/specular-button";
 import { siteConfig } from "@/config/site";
 import {
   ANNUAL_MONTHS_CHARGED,
   API_PRODUCT,
   CREDIT_PACKS,
-  annualSavingsLabel,
   getApiPrice,
   getCompareAtPrice,
   getCreditPackTotal,
+  getPlanLedgerRows,
   getPlanPrice,
+  getPlanQuotaSummary,
   getPricingPlans,
   type BillingInterval,
 } from "@/lib/plans";
 import { toast } from "@/lib/toast";
+
+const PAYMENT_CARD_BASE =
+  "pricing-credit-card group relative flex h-full flex-col overflow-hidden border p-6";
+const PAYMENT_CARD_DEFAULT =
+  "border-white/10 bg-white/[0.03] hover:border-white/20";
+const PAYMENT_CARD_HIGHLIGHTED =
+  "border-[var(--anya-blush)]/45 bg-gradient-to-b from-[color-mix(in_srgb,var(--anya-blush)_14%,transparent)] to-white/[0.03] shadow-[0_0_0_1px_color-mix(in_srgb,var(--anya-blush)_20%,transparent),0_24px_48px_-28px_rgba(0,0,0,0.75)]";
 
 type PricingTab = "subscriptions" | "credits" | "api";
 
@@ -334,134 +341,146 @@ export function PricingPageContent({
           transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
         >
           {tab === "subscriptions" && (
-            <div className="pricing-option-grid mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {plans.map((plan) => {
+            <div className="pricing-credit-grid mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {plans.map((plan, index) => {
                 const price = getPlanPrice(plan, interval);
                 const compareAt = getCompareAtPrice(plan, interval);
-                const savings =
-                  interval === "annual" && plan.monthlyPrice
-                    ? annualSavingsLabel(plan.monthlyPrice)
-                    : null;
+                const heroPrice =
+                  interval === "annual" && price.monthlyEquivalent != null
+                    ? price.monthlyEquivalent
+                    : price.value;
+                const heroCompareAt =
+                  compareAt != null && interval === "annual"
+                    ? Number((compareAt / 12).toFixed(2))
+                    : compareAt;
+                const quotaSummary = getPlanQuotaSummary(plan);
+                const ledgerRows = getPlanLedgerRows(plan);
+                const unlimited = plan.dailySearchLimit === Infinity;
 
                 return (
-                  <div
+                  <article
                     key={plan.id}
                     className={clsx(
-                      "pricing-plan-shell relative h-full",
-                      plan.highlighted && "is-highlighted",
+                      PAYMENT_CARD_BASE,
+                      plan.highlighted
+                        ? PAYMENT_CARD_HIGHLIGHTED
+                        : PAYMENT_CARD_DEFAULT,
                     )}
                   >
-                    <article
-                      className={clsx(
-                        "pricing-option-card relative flex h-full flex-col rounded-2xl border bg-white/[0.04] p-5 backdrop-blur-md transition hover:bg-white/[0.07]",
-                        plan.highlighted
-                          ? "border-[var(--anya-blush)]/40"
-                          : "border-white/10",
-                      )}
-                    >
-                      {plan.highlighted ? (
-                        <span className="pricing-popular-badge pointer-events-none absolute left-1/2 top-0 z-20 whitespace-nowrap rounded-full border border-[var(--anya-blush)]/45 bg-[#0a0a0b]/90 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white backdrop-blur-md">
-                          Most Popular
-                        </span>
-                      ) : null}
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-white">
+                    {plan.highlighted ? (
+                      <span className="absolute right-4 top-4 rounded-full bg-[var(--anya-blush)]/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0c1019]">
+                        Popular
+                      </span>
+                    ) : null}
+
+                    <div className="pricing-credit-head">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                        <Sparkles className="size-3 text-[var(--anya-blush)]" />
+                        Plan {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <h3 className="text-xl font-semibold tracking-tight text-white">
                           {plan.name}
                         </h3>
-                        {plan.saleBadge && compareAt != null && (
+                        {plan.saleBadge && heroCompareAt != null ? (
                           <span className="rounded-md border border-emerald-400/40 bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
                             {plan.saleBadge}
                           </span>
-                        )}
+                        ) : null}
                       </div>
-                      <p className="mt-1 min-h-[2.5rem] text-xs leading-5 text-zinc-400">
+                      <p className="mt-1.5 text-sm leading-snug text-zinc-400">
                         {plan.description}
                       </p>
+                    </div>
 
-                      <div className="mt-4 min-h-[3.25rem]">
-                        {price.value === null ? (
-                          <button
-                            className="text-left text-3xl font-bold text-white transition hover:text-[var(--anya-blush)]"
-                            type="button"
-                            onClick={() => setEnterpriseContactOpen(true)}
+                    <div className="pricing-credit-value mt-6">
+                      {heroPrice === null ? (
+                        <button
+                          className="text-left text-4xl font-semibold tracking-tight text-white transition hover:text-[var(--anya-blush)]"
+                          type="button"
+                          onClick={() => setEnterpriseContactOpen(true)}
+                        >
+                          Custom
+                        </button>
+                      ) : (
+                        <div className="flex items-baseline gap-1.5">
+                          {heroCompareAt != null ? (
+                            <AnimatedPrice
+                              className="text-lg tabular-nums text-zinc-500 line-through"
+                              duration={0.65}
+                              value={heroCompareAt}
+                            />
+                          ) : null}
+                          <AnimatedPrice
+                            className="text-4xl font-semibold tracking-tight text-white tabular-nums"
+                            duration={0.65}
+                            value={heroPrice}
+                          />
+                          <span className="text-sm text-zinc-500">/mo</span>
+                        </div>
+                      )}
+                      <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-300">
+                        <Sparkles className="size-3.5 shrink-0 text-[var(--anya-blush)]" />
+                        <span
+                          className={clsx(
+                            "font-medium",
+                            unlimited ? "text-emerald-400/90" : "text-white",
+                          )}
+                        >
+                          {quotaSummary}
+                        </span>
+                      </p>
+                    </div>
+
+                    <ul className="pricing-credit-ledger mt-5 flex min-h-0 flex-1 flex-col space-y-2 border-t border-white/8 pt-4 text-sm text-zinc-400">
+                      {ledgerRows.map((row) => (
+                        <li
+                          key={row.label}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <span>{row.label}</span>
+                          <strong
+                            className={clsx(
+                              "shrink-0 font-medium tabular-nums",
+                              row.accent
+                                ? "text-[var(--anya-blush)]"
+                                : "text-white",
+                            )}
                           >
-                            Custom
-                          </button>
-                        ) : (
-                          <div>
-                            <div className="flex items-baseline gap-2">
-                              {compareAt != null && (
-                                <AnimatedPrice
-                                  className="text-lg tabular-nums text-zinc-500 line-through"
-                                  duration={0.72}
-                                  value={compareAt}
-                                />
-                              )}
-                              <AnimatedPrice
-                                className="text-3xl font-bold tabular-nums text-white"
-                                duration={0.72}
-                                value={price.value}
-                              />
-                              <span className="text-sm text-zinc-400">
-                                /{interval === "annual" ? "yr" : "mo"}
-                              </span>
-                            </div>
-                            {interval === "annual" &&
-                              price.monthlyEquivalent != null && (
-                                <p className="mt-1 text-xs text-zinc-500">
-                                  ~${price.monthlyEquivalent.toFixed(2)}/mo ·
-                                  billed annually
-                                  {savings ? ` · ${savings}` : ""}
-                                </p>
-                              )}
-                          </div>
-                        )}
-                      </div>
+                            {row.value}
+                          </strong>
+                        </li>
+                      ))}
+                    </ul>
 
-                      <ul className="mt-5 flex min-h-0 flex-1 flex-col space-y-2">
-                        {plan.features.map((feature) => (
-                          <li key={feature} className="flex items-start gap-2">
-                            <CheckCircle className="mt-0.5 size-3.5 shrink-0 text-[var(--anya-blush)]" />
-                            <span className="text-xs leading-4 text-zinc-300">
-                              {feature}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                    <SpecularButton
+                      accent={plan.highlighted}
+                      className="mt-6 h-11 w-full text-sm font-semibold"
+                      disabled={busyId === plan.id}
+                      type="button"
+                      onClick={() => {
+                        if (plan.customPricing) {
+                          setEnterpriseContactOpen(true);
 
-                      <div className="mt-auto pt-5">
-                      <LiquidButton
-                        className={clsx(
-                          "h-10 w-full text-sm font-semibold",
-                          plan.highlighted && "liquid-glass-button--accent",
-                        )}
-                        disabled={busyId === plan.id}
-                        type="button"
-                        onClick={() => {
-                          if (plan.customPricing) {
-                            setEnterpriseContactOpen(true);
-
-                            return;
-                          }
-                          requestCheckout(
-                            {
-                              type: "subscription",
-                              planId: plan.id,
-                              interval,
-                            },
-                            plan.id,
-                          );
-                        }}
-                      >
-                        {busyId === plan.id
-                          ? "Working…"
-                          : plan.customPricing
-                            ? "Contact us"
-                            : "Get Started"}
-                      </LiquidButton>
-                      </div>
-                    </article>
-                  </div>
+                          return;
+                        }
+                        requestCheckout(
+                          {
+                            type: "subscription",
+                            planId: plan.id,
+                            interval,
+                          },
+                          plan.id,
+                        );
+                      }}
+                    >
+                      {busyId === plan.id
+                        ? "Working…"
+                        : plan.customPricing
+                          ? "Contact us"
+                          : "Get Started"}
+                    </SpecularButton>
+                  </article>
                 );
               })}
             </div>
@@ -503,10 +522,10 @@ export function PricingPageContent({
                     <article
                       key={pack.id}
                       className={clsx(
-                        "pricing-credit-card group relative flex h-full flex-col overflow-hidden border p-6",
+                        PAYMENT_CARD_BASE,
                         pack.highlighted
-                          ? "border-[var(--anya-blush)]/45 bg-gradient-to-b from-[color-mix(in_srgb,var(--anya-blush)_14%,transparent)] to-white/[0.03] shadow-[0_0_0_1px_color-mix(in_srgb,var(--anya-blush)_20%,transparent),0_24px_48px_-28px_rgba(0,0,0,0.75)]"
-                          : "border-white/10 bg-white/[0.03] hover:border-white/20",
+                          ? PAYMENT_CARD_HIGHLIGHTED
+                          : PAYMENT_CARD_DEFAULT,
                       )}
                     >
                       {pack.highlighted ? (
@@ -572,25 +591,22 @@ export function PricingPageContent({
                         </li>
                       </ul>
 
-                      <Button
-                        className={clsx(
-                          "mt-6 h-11 w-full text-sm font-semibold",
-                          pack.highlighted
-                            ? "bg-[var(--anya-blush)] text-[#0c1019] hover:bg-[var(--anya-blush-hover)]"
-                            : "border border-white/15 bg-white/10 text-white hover:bg-white/15",
-                        )}
-                        isDisabled={busyId === pack.id}
-                        isLoading={busyId === pack.id}
-                        radius="lg"
-                        onPress={() =>
+                      <SpecularButton
+                        accent={pack.highlighted}
+                        className="mt-6 h-11 w-full text-sm font-semibold"
+                        disabled={busyId === pack.id}
+                        type="button"
+                        onClick={() =>
                           requestCheckout(
                             { type: "credits", packId: pack.id },
                             pack.id,
                           )
                         }
                       >
-                        Buy {total} credits
-                      </Button>
+                        {busyId === pack.id
+                          ? "Working…"
+                          : `Buy ${total} credits`}
+                      </SpecularButton>
                     </article>
                   );
                 })}
@@ -599,73 +615,99 @@ export function PricingPageContent({
           )}
 
           {tab === "api" && (
-            <div className="mt-8">
+            <div className="pricing-credit-view mt-10">
               {(() => {
                 const price = getApiPrice(interval);
+                const heroPrice =
+                  interval === "annual"
+                    ? price.monthlyEquivalent
+                    : price.value;
+                const apiLedger = [
+                  { label: "REST OSINT modules", value: "Included" },
+                  { label: "API key auth", value: "Included" },
+                  { label: "Rate limits", value: "Higher" },
+                  { label: "Usage analytics", value: "Included" },
+                  { label: "Support", value: "Email" },
+                ];
 
                 return (
-                  <article className="pricing-api-card mx-auto max-w-2xl rounded-2xl border border-[var(--anya-blush)]/30 bg-gradient-to-br from-[color-mix(in_srgb,var(--anya-blush)_12%,transparent)] via-white/[0.04] to-transparent p-8 backdrop-blur-md">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl border border-[var(--anya-blush)]/30 bg-[var(--anya-blush)]/20 p-3">
-                        <Code2 className="size-6 text-[color-mix(in_srgb,var(--anya-blush)_70%,white)]" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-white">
+                  <div className="pricing-credit-grid mx-auto grid max-w-md grid-cols-1">
+                    <article
+                      className={clsx(
+                        PAYMENT_CARD_BASE,
+                        PAYMENT_CARD_HIGHLIGHTED,
+                      )}
+                    >
+                      <span className="absolute right-4 top-4 rounded-full bg-[var(--anya-blush)]/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0c1019]">
+                        API
+                      </span>
+
+                      <div className="pricing-credit-head">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                          <Code2 className="size-3 text-[var(--anya-blush)]" />
+                          Product 01
+                        </span>
+                        <h3 className="mt-3 text-xl font-semibold tracking-tight text-white">
                           {API_PRODUCT.name}
                         </h3>
-                        <p className="text-sm text-zinc-400">
+                        <p className="mt-1.5 text-sm leading-snug text-zinc-400">
                           {API_PRODUCT.description}
                         </p>
                       </div>
-                    </div>
 
-                    <div className="mt-6 flex items-baseline gap-2">
-                      <AnimatedPrice
-                        className="text-4xl font-bold text-white tabular-nums"
-                        duration={0.72}
-                        value={price.value}
-                      />
-                      <span className="text-sm text-zinc-400">
-                        /{interval === "annual" ? "yr" : "mo"}
-                      </span>
-                    </div>
-                    {interval === "annual" && (
-                      <p className="mt-1 text-xs text-zinc-500">
-                        ~${price.monthlyEquivalent.toFixed(2)}/mo ·{" "}
-                        {ANNUAL_MONTHS_CHARGED} months billed ·{" "}
-                        {annualSavingsLabel(API_PRODUCT.monthlyPrice)}
-                      </p>
-                    )}
-
-                    <ul className="mt-6 space-y-2">
-                      {API_PRODUCT.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2">
-                          <CheckCircle className="mt-0.5 size-4 shrink-0 text-[var(--anya-blush)]" />
-                          <span className="text-sm text-zinc-300">
-                            {feature}
+                      <div className="pricing-credit-value mt-6">
+                        <div className="flex items-baseline gap-1.5">
+                          <AnimatedPrice
+                            className="text-4xl font-semibold tracking-tight text-white tabular-nums"
+                            duration={0.65}
+                            value={heroPrice}
+                          />
+                          <span className="text-sm text-zinc-500">/mo</span>
+                        </div>
+                        <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-300">
+                          <Sparkles className="size-3.5 shrink-0 text-[var(--anya-blush)]" />
+                          <span className="font-medium text-white">
+                            Programmatic intelligence access
                           </span>
-                        </li>
-                      ))}
-                    </ul>
+                        </p>
+                      </div>
 
-                    <Button
-                      className="mt-8 h-11 w-full border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-[#0c1019]"
-                      isDisabled={busyId === "api_access"}
-                      isLoading={busyId === "api_access"}
-                      onPress={() =>
-                        requestCheckout(
-                          { type: "api_access", interval },
-                          "api_access",
-                        )
-                      }
-                    >
-                      Get API Access
-                    </Button>
-                    <p className="mt-3 text-center text-xs text-zinc-500">
-                      API keys are issued after purchase confirmation. Contact
-                      support for volume pricing.
-                    </p>
-                  </article>
+                      <ul className="pricing-credit-ledger mt-5 space-y-2 border-t border-white/8 pt-4 text-sm text-zinc-400">
+                        {apiLedger.map((row) => (
+                          <li
+                            key={row.label}
+                            className="flex items-center justify-between gap-3"
+                          >
+                            <span>{row.label}</span>
+                            <strong className="shrink-0 font-medium text-white">
+                              {row.value}
+                            </strong>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <SpecularButton
+                        accent
+                        className="mt-6 h-11 w-full text-sm font-semibold"
+                        disabled={busyId === "api_access"}
+                        type="button"
+                        onClick={() =>
+                          requestCheckout(
+                            { type: "api_access", interval },
+                            "api_access",
+                          )
+                        }
+                      >
+                        {busyId === "api_access"
+                          ? "Working…"
+                          : "Get API Access"}
+                      </SpecularButton>
+                      <p className="mt-3 text-center text-xs text-zinc-500">
+                        API keys are issued after purchase confirmation. Contact
+                        support for volume pricing.
+                      </p>
+                    </article>
+                  </div>
                 );
               })()}
             </div>
@@ -705,11 +747,12 @@ export function PricingPageContent({
               and unlock after network confirmation.
             </p>
             <div className="mt-5 grid gap-3">
-              <Button
-                className="h-11 w-full border border-[var(--anya-blush)]/40 bg-[var(--anya-blush)] text-sm font-semibold text-[#0c1019]"
-                isDisabled={busyId === pendingCheckout.id}
-                isLoading={busyId === pendingCheckout.id}
-                onPress={() =>
+              <SpecularButton
+                accent
+                className="h-11 w-full text-sm font-semibold"
+                disabled={busyId === pendingCheckout.id}
+                type="button"
+                onClick={() =>
                   void runCheckout(
                     pendingCheckout.body,
                     pendingCheckout.id,
@@ -717,13 +760,15 @@ export function PricingPageContent({
                   )
                 }
               >
-                Pay with card
-              </Button>
-              <Button
-                className="h-11 w-full border border-white/15 bg-white/10 text-sm font-semibold text-white"
-                isDisabled={busyId === pendingCheckout.id}
-                isLoading={busyId === pendingCheckout.id}
-                onPress={() =>
+                {busyId === pendingCheckout.id
+                  ? "Working…"
+                  : "Pay with card"}
+              </SpecularButton>
+              <SpecularButton
+                className="h-11 w-full text-sm font-semibold"
+                disabled={busyId === pendingCheckout.id}
+                type="button"
+                onClick={() =>
                   void runCheckout(
                     pendingCheckout.body,
                     pendingCheckout.id,
@@ -731,8 +776,10 @@ export function PricingPageContent({
                   )
                 }
               >
-                Pay with crypto
-              </Button>
+                {busyId === pendingCheckout.id
+                  ? "Working…"
+                  : "Pay with crypto"}
+              </SpecularButton>
               <button
                 className="mt-1 text-sm text-zinc-500 hover:text-zinc-300"
                 type="button"

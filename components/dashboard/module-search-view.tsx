@@ -52,6 +52,7 @@ import {
 
 import { apiFetch } from "@/lib/csrf-client";
 import { SearchBarTour } from "@/components/search-bar-tour";
+import { SpecularButton } from "@/components/ui/specular-button";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { CryptoWalletResults } from "@/components/dashboard/crypto-wallet-results";
 import { CryptoFullSuiteResults } from "@/components/dashboard/crypto-full-suite-results";
@@ -3570,16 +3571,18 @@ export function ModuleSearchView({
                   />
                   <div className="module-search-form-actions">
                     <span aria-hidden className="module-search-form-actions-spacer" />
-                    <button
+                    <SpecularButton
+                      accent
                       className="ui-btn ui-btn-primary module-search-submit shrink-0"
                       data-tour="search-submit"
                       disabled={
                         !query.trim() || isSearching || Boolean(moduleLocked)
                       }
+                      size="sm"
                       type="submit"
                     >
                       {isSearching ? "Scanning…" : "Analyse"}
-                    </button>
+                    </SpecularButton>
                   </div>
                 </div>
               ) : (
@@ -3675,15 +3678,17 @@ export function ModuleSearchView({
                   value={saveCaseId}
                   onChange={setSaveCaseId}
                 />
-                <button
+                <SpecularButton
+                  accent
                   className="ui-btn ui-btn-primary"
                   disabled={!saveCaseId || savingToCase || !rawResult}
+                  size="sm"
                   type="button"
                   onClick={handleSaveToCase}
                 >
                   <FolderPlus className="size-3.5" />
                   {savingToCase ? "Saving…" : "File intel"}
-                </button>
+                </SpecularButton>
               </div>
             </div>
           )}
@@ -3742,15 +3747,17 @@ export function ModuleSearchView({
                 value={saveCaseId}
                 onChange={setSaveCaseId}
               />
-              <button
+              <SpecularButton
+                accent
                 className="ui-btn ui-btn-primary"
                 disabled={!saveCaseId || savingToCase}
+                size="sm"
                 type="button"
                 onClick={handleSaveToCase}
               >
                 <FolderPlus className="size-3.5" />
                 {savingToCase ? "Saving…" : "File intel"}
-              </button>
+              </SpecularButton>
             </div>
           </div>
           {saveMessage && (

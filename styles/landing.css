@@ -2311,39 +2311,15 @@
   border-right: 0;
 }
 
+/* Legacy option-card hooks kept for API/other surfaces; subscription plans
+   reuse .pricing-credit-* chrome (full mirror of credit packs). */
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-grid {
   gap: 1rem !important;
-  /* Room for Most Popular badge above every card row */
-  padding: 1.5rem 0 0 !important;
+  padding: 0 !important;
   overflow: visible;
   border: 0;
   background: transparent;
   align-items: stretch;
-}
-
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-grid > div,
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-plan-shell {
-  display: flex !important;
-  height: 100% !important;
-  min-height: 100%;
-  padding-top: 0 !important;
-  overflow: visible;
-  background: transparent;
-  box-shadow: none;
-  flex-direction: column;
-}
-
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-popular-badge {
-  top: 0 !important;
-  left: 50% !important;
-  border-radius: 9999px !important;
-  /* Sit on the top border without shifting the card */
-  transform: translate(-50%, calc(-100% + 1px)) !important;
-}
-
-:is(.anya-landing, .brutal-page, .marketing-canvas)
-  .pricing-plan-shell.is-highlighted {
-  padding-top: 0 !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card {
@@ -2361,18 +2337,6 @@
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 18px 40px -24px rgba(0, 0, 0, 0.75) !important;
   backdrop-filter: blur(16px) saturate(1.2) !important;
-}
-
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card .liquid-glass-button,
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card > button,
-:is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card > div:last-child {
-  margin-top: auto !important;
-}
-
-:is(.anya-landing, .brutal-page, .marketing-canvas)
-  .pricing-plan-shell.is-highlighted
-  .pricing-option-card {
-  border-color: color-mix(in srgb, var(--anya-blush) 45%, transparent) !important;
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-option-card:hover {
