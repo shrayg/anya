@@ -88,7 +88,7 @@ function SignalRouter({ moduleCount }: { moduleCount: number }) {
         {ENTRY_POINTS.map(({ label, example, icon: Icon }, index) => (
           <motion.div
             key={label}
-            animate={inView ? { opacity: 1, x: 0 } : { opacity: 0.45, x: -8 }}
+            animate={inView ? { opacity: 1 } : { opacity: 0.45 }}
             className="anya-signal-router__input"
             transition={{
               delay: reduceMotion ? 0 : index * 0.07,
@@ -111,7 +111,7 @@ function SignalRouter({ moduleCount }: { moduleCount: number }) {
 
       <motion.div
         animate={
-          inView ? { opacity: 1, scale: 1 } : { opacity: 0.45, scale: 0.97 }
+          inView ? { opacity: 1 } : { opacity: 0.45 }
         }
         className="anya-signal-router__core"
         transition={{

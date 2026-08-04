@@ -24,8 +24,8 @@ type ScrollFloatProps = {
   textClassName?: string;
   animationDuration?: number;
   ease?: string;
+  /** When the block enters the viewport (GSAP start). */
   scrollStart?: string;
-  scrollEnd?: string;
   stagger?: number;
 };
 
@@ -77,16 +77,6 @@ function splitChars(text: string, keyPrefix: string) {
   });
 }
 
-function visibleCharState() {
-  return {
-    opacity: 1,
-    yPercent: 0,
-    scaleY: 1,
-    scaleX: 1,
-    transformOrigin: "50% 0%",
-  };
-}
-
 export default function ScrollFloat({
   children,
   lines,
@@ -94,15 +84,10 @@ export default function ScrollFloat({
   scrollContainerRef,
   containerClassName = "",
   textClassName = "",
-  animationDuration = 1,
-  // Linear scrub maps 1:1 to scroll — back.inOut hides the float mid-range.
-  ease = "none",
-  // Play while the title enters the viewport (not mostly off-screen).
-  // React Bits' center/bottom+=50% → bottom/bottom-=40% finishes before you see it
-  // on a tall landing page under a full-viewport hero.
-  scrollStart = "top 92%",
-  scrollEnd = "top 42%",
-  stagger = 0.03,
+  animationDuration = 0.55,
+  ease = "power2.out",
+  scrollStart = "top 88%",
+  stagger = 0.018,
 }: ScrollFloatProps) {
   const containerRef = useRef<HTMLElement | null>(null);
   const linesKey =
@@ -134,7 +119,7 @@ export default function ScrollFloat({
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (reduceMotion) {
-      gsap.set(charElements, visibleCharState());
+      gsap.set(charElements, { opacity: 1, clearProps: "transform" });
       return;
     }
 
@@ -147,31 +132,26 @@ export default function ScrollFloat({
         : window;
 
     const ctx = gsap.context(() => {
+      // Fade only — no yPercent / scale scrub. Scrubbed float-in clipped mid-word
+      // while the title was already on screen (overflow:hidden + yPercent:120).
       gsap.fromTo(
         charElements,
         {
-          willChange: "opacity, transform",
+          willChange: "opacity",
           opacity: 0,
-          yPercent: 120,
-          scaleY: 2.3,
-          scaleX: 0.7,
-          transformOrigin: "50% 0%",
         },
         {
           duration: animationDuration,
           ease,
           opacity: 1,
-          yPercent: 0,
-          scaleY: 1,
-          scaleX: 1,
           stagger,
           immediateRender: true,
           scrollTrigger: {
             trigger: el,
             scroller,
             start: scrollStart,
-            end: scrollEnd,
-            scrub: true,
+            once: true,
+            toggleActions: "play none none none",
             invalidateOnRefresh: true,
           },
         },
@@ -182,11 +162,9 @@ export default function ScrollFloat({
       ScrollTrigger.refresh();
     };
 
-    // Framer Reveal / splash / fonts shift layout after first paint.
     const raf = window.requestAnimationFrame(refresh);
     const tQuick = window.setTimeout(refresh, 120);
     const tAfterReveal = window.setTimeout(refresh, 750);
-    const tLate = window.setTimeout(refresh, 1600);
     void document.fonts?.ready?.then(refresh);
 
     const onSplashGone = () => {
@@ -204,7 +182,6 @@ export default function ScrollFloat({
       window.cancelAnimationFrame(raf);
       window.clearTimeout(tQuick);
       window.clearTimeout(tAfterReveal);
-      window.clearTimeout(tLate);
       splashObserver.disconnect();
       window.removeEventListener("load", refresh);
       window.removeEventListener("resize", refresh);
@@ -215,7 +192,6 @@ export default function ScrollFloat({
     animationDuration,
     ease,
     scrollStart,
-    scrollEnd,
     stagger,
     linesKey,
     resolvedLines.length,

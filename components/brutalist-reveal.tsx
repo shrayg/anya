@@ -31,25 +31,22 @@ export function BrutalistReveal({
       element.animate(
         [
           {
-            clipPath: "inset(0 100% 0 0)",
-            opacity: 0.2,
-            transform: "translateY(18px)",
+            opacity: 0,
           },
           {
-            clipPath: "inset(0 0 0 0)",
             opacity: 1,
-            transform: "translateY(0)",
           },
         ],
         {
           delay,
-          duration: 720,
-          easing: "steps(8, end)",
+          duration: 550,
+          easing: "ease-out",
+          fill: "forwards",
         },
       );
       cleanupTimer = window.setTimeout(
         () => element.classList.remove("is-rendering"),
-        delay + 760,
+        delay + 600,
       );
     };
 

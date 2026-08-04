@@ -9,6 +9,7 @@ import { hasLeftHomeThisSession } from "@/components/craft/marketing-nav-beacon"
 type RevealProps = Omit<HTMLMotionProps<"div">, "children"> & {
   children?: ReactNode;
   delay?: number;
+  /** Kept for call-site compatibility; motion is fade-only (no slide). */
   y?: number;
   /**
    * `inView` — animate when scrolled into view (Status / Support / Pricing).
@@ -25,11 +26,13 @@ export function Reveal({
   children,
   className,
   delay = 0,
-  y = 18,
+  y: _y = 0,
   mode = "inView",
   enabled = true,
   ...props
 }: RevealProps) {
+  void _y;
+
   if (!enabled) {
     return <div className={clsx(className)}>{children}</div>;
   }
@@ -43,9 +46,9 @@ export function Reveal({
   if (mode === "mount") {
     return (
       <motion.div
-        animate={{ opacity: 1, y: 0 }}
+        animate={{ opacity: 1 }}
         className={clsx("overflow-visible", className)}
-        initial={{ opacity: 0, y }}
+        initial={{ opacity: 0 }}
         style={{ overflow: "visible" }}
         transition={transition}
         {...props}
@@ -58,11 +61,11 @@ export function Reveal({
   return (
     <motion.div
       className={clsx("overflow-visible", className)}
-      initial={{ opacity: 0, y }}
+      initial={{ opacity: 0 }}
       style={{ overflow: "visible" }}
       transition={transition}
       viewport={{ once: true, margin: "-8% 0px" }}
-      whileInView={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1 }}
       {...props}
     >
       {children}
@@ -79,13 +82,14 @@ export function HomeReturnReveal({
   children,
   className,
   delay = 0,
-  y = 18,
+  y: _y = 0,
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
   y?: number;
 }) {
+  void _y;
   // pending → decide before paint; skip = first landing; run = return visit
   const [phase, setPhase] = useState<"pending" | "skip" | "run">("pending");
 
@@ -99,9 +103,9 @@ export function HomeReturnReveal({
 
   return (
     <motion.div
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1 }}
       className={clsx(className)}
-      initial={{ opacity: 0, y }}
+      initial={{ opacity: 0 }}
       transition={{ duration: 0.55, ease: EASE, delay }}
     >
       {children}

@@ -50,8 +50,6 @@ export default function Home() {
         moduleCount={CATALOG_MODULE_COUNT}
       />
 
-      {/* No Framer transform wrappers around Scroll Float sections —
-          parent translateY breaks ScrollTrigger scrub ranges. */}
       <HomeShowcase />
       <HomeHowItWorks moduleCount={CATALOG_MODULE_COUNT} />
       <HomeAudiences />

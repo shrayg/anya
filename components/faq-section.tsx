@@ -56,10 +56,10 @@ export const FAQSection = () => {
             <motion.div
               key={faq.question}
               className="landing-faq-item"
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0 }}
               transition={{ duration: 0.5, delay: index * 0.035 }}
               viewport={{ once: true, margin: "-8%" }}
-              whileInView={{ opacity: 1, y: 0 }}
+              whileInView={{ opacity: 1 }}
             >
               <button
                 aria-controls={answerId}

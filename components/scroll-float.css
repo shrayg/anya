@@ -1,5 +1,5 @@
 .scroll-float {
-  overflow: hidden;
+  overflow: visible;
   margin: 0;
   overflow-wrap: normal;
   word-break: normal;
@@ -43,7 +43,7 @@
 
 .scroll-float-char {
   display: inline-block;
-  /* Start hidden so the float-in is obvious; GSAP overrides once armed. */
+  /* Start hidden; GSAP fades in once when the title enters view. */
   opacity: 0;
 }
 
