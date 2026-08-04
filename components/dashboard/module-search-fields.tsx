@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Plus, X } from "lucide-react";
+import clsx from "clsx";
 
 import type { SearchModuleDef } from "@/lib/search-modules";
 import {
@@ -100,7 +101,6 @@ export function ModuleSearchFields({
   const onValueChange = (row: ModuleSearchFieldRow, value: string) => {
     const trimmed = value.trim();
 
-    // Cleared input unlocks a manual type pick so the next value can auto-detect.
     if (!trimmed) {
       const emptyType = needsManualPicker
         ? row.type
@@ -114,7 +114,6 @@ export function ModuleSearchFields({
       return;
     }
 
-    // Manual picker: respect an explicit pick until the value is cleared.
     if (
       needsManualPicker &&
       (row.typeManual || !shouldAutoDetectFieldType(row.type, availableIds))
@@ -142,10 +141,8 @@ export function ModuleSearchFields({
   };
 
   const visibleFields = singleInput ? fields.slice(0, 1) : fields;
-  const inlineSubmit = visibleFields.length === 1;
-  const showAddField = !singleInput;
-  const showActionsRow =
-    showAddField || Boolean(extraActions) || !inlineSubmit;
+  const multiField = visibleFields.length > 1;
+  const inlineSubmit = !multiField;
 
   const submitButton = (
     <LiquidButton
@@ -159,150 +156,179 @@ export function ModuleSearchFields({
       ) : (
         <>
           <span>{submitLabel}</span>
-          <ArrowRight className="size-4" />
+          <ArrowRight className="size-4" aria-hidden />
         </>
       )}
     </LiquidButton>
   );
 
   return (
-    <div className="module-search-form">
+    <div className="module-search-form module-search-form--composer">
       <AutofillDecoyFields />
+
       <div className="module-search-fields">
         {visibleFields.map((row, index) => {
           const showDial = showTypeChrome && row.type === "phone";
           const typeLabel = labelForFieldType(row.type, options);
-          const isLast = index === visibleFields.length - 1;
+          const isPrimary = index === 0;
 
           return (
             <div
               key={row.id}
-              className={
-                !showTypeChrome
-                  ? "module-search-field-row module-search-field-row--simple"
-                  : showDial
-                    ? "module-search-field-row module-search-field-row--phone"
-                    : "module-search-field-row"
-              }
+              className={clsx(
+                "module-search-field",
+                isPrimary && "module-search-field--primary",
+                !isPrimary && "module-search-field--extra",
+              )}
             >
               {showTypeChrome ? (
-                needsManualPicker ? (
+                <div className="module-search-field-labelrow">
+                  {needsManualPicker ? (
+                    <>
+                      <label
+                        className="sr-only"
+                        htmlFor={`field-type-${row.id}`}
+                      >
+                        Field type
+                      </label>
+                      <select
+                        className="module-search-field-type-select"
+                        disabled={disabled}
+                        id={`field-type-${row.id}`}
+                        value={row.type}
+                        onChange={(event) =>
+                          onTypeChange(
+                            row,
+                            event.target.value as SearchFieldTypeId,
+                          )
+                        }
+                      >
+                        {options.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <span
+                      aria-live="polite"
+                      className="module-search-field-label"
+                      title={`Detected as ${typeLabel}`}
+                    >
+                      {typeLabel}
+                    </span>
+                  )}
+
+                  {!singleInput && visibleFields.length > 1 ? (
+                    <button
+                      aria-label="Remove field"
+                      className="module-search-field-remove-text"
+                      disabled={disabled}
+                      type="button"
+                      onClick={() => removeRow(row.id)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div
+                className={clsx(
+                  "module-search-field-bar",
+                  showDial && "module-search-field-bar--phone",
+                )}
+              >
+                {showDial ? (
                   <>
-                    <label className="sr-only" htmlFor={`field-type-${row.id}`}>
-                      Field type
+                    <label className="sr-only" htmlFor={`field-dial-${row.id}`}>
+                      Country calling code
                     </label>
                     <select
-                      className="module-search-field-type dash-select"
+                      className="module-search-field-dial"
                       disabled={disabled}
-                      id={`field-type-${row.id}`}
-                      value={row.type}
+                      id={`field-dial-${row.id}`}
+                      title="Country calling code"
+                      value={row.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE}
                       onChange={(event) =>
-                        onTypeChange(
-                          row,
-                          event.target.value as SearchFieldTypeId,
-                        )
+                        updateRow(row.id, {
+                          phoneDialCode: event.target.value,
+                        })
                       }
                     >
-                      {options.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
+                      {PHONE_DIAL_CODES.map((entry) => (
+                        <option key={entry.code} value={entry.code}>
+                          {entry.label}
                         </option>
                       ))}
                     </select>
                   </>
-                ) : (
-                  <span
-                    aria-live="polite"
-                    className="module-search-field-type module-search-field-type--hint"
-                    title={`Detected as ${typeLabel}`}
-                  >
-                    {typeLabel}
-                  </span>
-                )
-              ) : null}
+                ) : null}
 
-              {showDial ? (
-                <>
-                  <label className="sr-only" htmlFor={`field-dial-${row.id}`}>
-                    Country calling code
-                  </label>
-                  <select
-                    className="module-search-field-dial dash-select"
-                    disabled={disabled}
-                    id={`field-dial-${row.id}`}
-                    title="Country calling code"
-                    value={row.phoneDialCode ?? DEFAULT_PHONE_DIAL_CODE}
-                    onChange={(event) =>
-                      updateRow(row.id, { phoneDialCode: event.target.value })
-                    }
-                  >
-                    {PHONE_DIAL_CODES.map((entry) => (
-                      <option key={entry.code} value={entry.code}>
-                        {entry.label}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              ) : null}
+                <input
+                  {...SEARCH_AUTOFILL_SHIELD}
+                  autoFocus={index === 0}
+                  readOnly
+                  className="module-search-field-input font-mono"
+                  data-tour={index === 0 ? "search-input" : undefined}
+                  disabled={disabled}
+                  name={`osint-field-${row.id}`}
+                  placeholder={
+                    hideTypePicker
+                      ? moduleDef.hint
+                      : showDial
+                        ? "National number (no country code)"
+                        : placeholderForFieldType(row.type, options)
+                  }
+                  type="text"
+                  value={row.value}
+                  onChange={(event) => onValueChange(row, event.target.value)}
+                  onFocus={unlockAutofillShield}
+                />
 
-              <input
-                {...SEARCH_AUTOFILL_SHIELD}
-                autoFocus={index === 0}
-                readOnly
-                className="ui-input module-search-field-input font-mono"
-                data-tour={index === 0 ? "search-input" : undefined}
-                disabled={disabled}
-                name={`osint-field-${row.id}`}
-                placeholder={
-                  hideTypePicker
-                    ? moduleDef.hint
-                    : showDial
-                      ? "National number (no country code)"
-                      : placeholderForFieldType(row.type, options)
-                }
-                type="text"
-                value={row.value}
-                onChange={(event) => onValueChange(row, event.target.value)}
-                onFocus={unlockAutofillShield}
-              />
-              {singleInput ? null : (
-                <button
-                  aria-label="Remove field"
-                  className="module-search-field-remove"
-                  disabled={disabled || fields.length <= 1}
-                  type="button"
-                  onClick={() => removeRow(row.id)}
-                >
-                  <X className="size-4" />
-                </button>
-              )}
-              {inlineSubmit && isLast ? submitButton : null}
+                {!singleInput && visibleFields.length === 1 ? (
+                  <button
+                    aria-label="Clear field"
+                    className="module-search-field-clear"
+                    disabled={disabled || !row.value}
+                    type="button"
+                    onClick={() => onValueChange(row, "")}
+                  >
+                    <X className="size-3.5" strokeWidth={2} />
+                  </button>
+                ) : null}
+
+                {inlineSubmit && isPrimary ? submitButton : null}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {showActionsRow ? (
-        <div className="module-search-form-actions">
-          {showAddField ? (
-            <button
-              className="module-search-add-field"
-              disabled={disabled || fields.length >= MAX_FIELDS}
-              type="button"
-              onClick={addRow}
-            >
-              <Plus aria-hidden className="size-3.5" strokeWidth={2.25} />
-              Add field
-            </button>
-          ) : (
-            <span aria-hidden className="module-search-form-actions-spacer" />
-          )}
-          <div className="module-search-form-submit-group">
-            {extraActions}
-            {inlineSubmit ? null : submitButton}
-          </div>
+      <div className="module-search-form-footer">
+        {!singleInput ? (
+          <button
+            className="module-search-add-field"
+            disabled={disabled || fields.length >= MAX_FIELDS}
+            type="button"
+            onClick={addRow}
+          >
+            <Plus aria-hidden className="size-3.5" strokeWidth={2.25} />
+            Add another field
+            <span className="module-search-add-field-count">
+              {fields.length}/{MAX_FIELDS}
+            </span>
+          </button>
+        ) : (
+          <span aria-hidden className="module-search-form-footer-spacer" />
+        )}
+
+        <div className="module-search-form-footer-actions">
+          {extraActions}
+          {!inlineSubmit ? submitButton : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

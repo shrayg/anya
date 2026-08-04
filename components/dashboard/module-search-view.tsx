@@ -3499,156 +3499,161 @@ export function ModuleSearchView({
           )}
         </header>
 
-        <section className="ui-panel module-search-panel">
-          <div className="ui-panel-body">
-            {moduleDef.tools &&
-            moduleDef.tools.length > 0 &&
-            !hideToolChips ? (
-              <div
-                aria-label="Module tools"
-                className="module-search-tools"
-                role="toolbar"
-              >
-                {moduleDef.tools.map((tool) => {
-                  const active = tool.id === selectedToolId;
+        <div className="module-search-composer">
+          <section className="ui-panel module-search-panel module-search-panel--composer">
+            <div className="ui-panel-body">
+              {moduleDef.tools &&
+              moduleDef.tools.length > 0 &&
+              !hideToolChips ? (
+                <div
+                  aria-label="Module tools"
+                  className="module-search-tools"
+                  role="toolbar"
+                >
+                  {moduleDef.tools.map((tool) => {
+                    const active = tool.id === selectedToolId;
 
-                  return (
-                    <button
-                      key={tool.id}
-                      aria-pressed={active}
-                      className={
-                        active
-                          ? "module-search-tool module-search-tool--active"
-                          : "module-search-tool"
-                      }
-                      type="button"
-                      onClick={() => {
-                        toolLockedRef.current = true;
-                        setSelectedToolId(tool.id);
-                      }}
-                    >
-                      {tool.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-            {isCryptoIntel && cryptoDetection?.chainLabel ? (
-              <p className="mb-3 text-xs text-zinc-400">
-                Detected:{" "}
-                <span className="font-medium text-zinc-200">
-                  {cryptoDetection.chainLabel}
-                </span>
-                {cryptoDetection.kind === "tx" ? " · transaction" : " · wallet"}
-                {!toolLockedRef.current ? (
-                  <span className="text-zinc-500">
-                    {" "}
-                    · routing to{" "}
-                    {cryptoDetection.suggestedToolId === "full"
-                      ? "Full intel"
-                      : cryptoDetection.suggestedToolId}
-                  </span>
-                ) : null}
-              </p>
-            ) : null}
-            <form
-              autoComplete="off"
-              className="relative"
-              onSubmit={handleSearch}
-            >
-              {isSummary ? (
-                <div className="module-search-summary-form space-y-4">
-                  <AutofillDecoyFields />
-                  <textarea
-                    {...TEXTAREA_AUTOFILL_SHIELD}
-                    readOnly
-                    className="ui-input w-full resize-y font-mono"
-                    data-tour="search-input"
-                    name="osint-summary-query"
-                    placeholder="Paste intel, JSON, logs, or case notes…"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    onFocus={unlockAutofillShield}
-                  />
-                  <div className="module-search-form-actions">
-                    <span aria-hidden className="module-search-form-actions-spacer" />
-                    <LiquidButton
-                      className="home-search-submit liquid-glass-button--accent module-search-submit shrink-0"
-                      data-tour="search-submit"
-                      disabled={
-                        !query.trim() || isSearching || Boolean(moduleLocked)
-                      }
-                      type="submit"
-                    >
-                      {isSearching ? (
-                        "Scanning…"
-                      ) : (
-                        <>
-                          <span>Analyse</span>
-                          <ArrowRight className="size-4" />
-                        </>
-                      )}
-                    </LiquidButton>
-                  </div>
-                </div>
-              ) : (
-                <ModuleSearchFields
-                  canSubmit={
-                    composedFields.hasInput &&
-                    !isSearching &&
-                    !moduleLocked
-                  }
-                  disabled={Boolean(moduleLocked)}
-                  extraActions={
-                    isPublicRecords ? (
+                    return (
                       <button
-                        className="ui-btn shrink-0 sm:min-w-[6.5rem]"
-                        disabled={Boolean(moduleLocked)}
-                        type="button"
-                        onClick={() =>
-                          setShowPublicRecordsOptions((open) => !open)
+                        key={tool.id}
+                        aria-pressed={active}
+                        className={
+                          active
+                            ? "module-search-tool module-search-tool--active"
+                            : "module-search-tool"
                         }
+                        type="button"
+                        onClick={() => {
+                          toolLockedRef.current = true;
+                          setSelectedToolId(tool.id);
+                        }}
                       >
-                        Options
-                        <span className="ml-1 text-[10px] text-zinc-500">
-                          ({publicRecordsSources.length})
-                        </span>
+                        {tool.label}
                       </button>
-                    ) : null
-                  }
-                  fields={searchFields}
-                  isSearching={isSearching}
-                  moduleDef={moduleDef}
-                  submitLabel={
-                    isAi
-                      ? "Analyse"
-                      : moduleDef.slug === "intelx"
-                        ? "Open"
-                        : isPublicRecords
-                          ? "Search"
-                          : "Run"
-                  }
-                  onChange={setSearchFields}
+                    );
+                  })}
+                </div>
+              ) : null}
+              {isCryptoIntel && cryptoDetection?.chainLabel ? (
+                <p className="mb-3 text-xs text-zinc-400">
+                  Detected:{" "}
+                  <span className="font-medium text-zinc-200">
+                    {cryptoDetection.chainLabel}
+                  </span>
+                  {cryptoDetection.kind === "tx" ? " · transaction" : " · wallet"}
+                  {!toolLockedRef.current ? (
+                    <span className="text-zinc-500">
+                      {" "}
+                      · routing to{" "}
+                      {cryptoDetection.suggestedToolId === "full"
+                        ? "Full intel"
+                        : cryptoDetection.suggestedToolId}
+                    </span>
+                  ) : null}
+                </p>
+              ) : null}
+              <form
+                autoComplete="off"
+                className="relative"
+                onSubmit={handleSearch}
+              >
+                {isSummary ? (
+                  <div className="module-search-summary-form space-y-4">
+                    <AutofillDecoyFields />
+                    <textarea
+                      {...TEXTAREA_AUTOFILL_SHIELD}
+                      readOnly
+                      className="ui-input w-full resize-y font-mono"
+                      data-tour="search-input"
+                      name="osint-summary-query"
+                      placeholder="Paste intel, JSON, logs, or case notes…"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      onFocus={unlockAutofillShield}
+                    />
+                    <div className="module-search-form-actions">
+                      <span
+                        aria-hidden
+                        className="module-search-form-actions-spacer"
+                      />
+                      <LiquidButton
+                        className="home-search-submit liquid-glass-button--accent module-search-submit shrink-0"
+                        data-tour="search-submit"
+                        disabled={
+                          !query.trim() || isSearching || Boolean(moduleLocked)
+                        }
+                        type="submit"
+                      >
+                        {isSearching ? (
+                          "Scanning…"
+                        ) : (
+                          <>
+                            <span>Analyse</span>
+                            <ArrowRight className="size-4" />
+                          </>
+                        )}
+                      </LiquidButton>
+                    </div>
+                  </div>
+                ) : (
+                  <ModuleSearchFields
+                    canSubmit={
+                      composedFields.hasInput &&
+                      !isSearching &&
+                      !moduleLocked
+                    }
+                    disabled={Boolean(moduleLocked)}
+                    extraActions={
+                      isPublicRecords ? (
+                        <button
+                          className="ui-btn shrink-0 sm:min-w-[6.5rem]"
+                          disabled={Boolean(moduleLocked)}
+                          type="button"
+                          onClick={() =>
+                            setShowPublicRecordsOptions((open) => !open)
+                          }
+                        >
+                          Options
+                          <span className="ml-1 text-[10px] text-zinc-500">
+                            ({publicRecordsSources.length})
+                          </span>
+                        </button>
+                      ) : null
+                    }
+                    fields={searchFields}
+                    isSearching={isSearching}
+                    moduleDef={moduleDef}
+                    submitLabel={
+                      isAi
+                        ? "Analyse"
+                        : moduleDef.slug === "intelx"
+                          ? "Open"
+                          : isPublicRecords
+                            ? "Search"
+                            : "Run"
+                    }
+                    onChange={setSearchFields}
+                  />
+                )}
+              </form>
+
+              {isPublicRecords ? (
+                <PublicRecordsOptionsPanel
+                  open={showPublicRecordsOptions}
+                  selected={publicRecordsSources}
+                  onChange={setPublicRecordsSources}
+                  onClose={() => setShowPublicRecordsOptions(false)}
                 />
+              ) : null}
+
+              {error && (
+                <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-sm text-red-200">
+                  {error}
+                </p>
               )}
-            </form>
-
-            {isPublicRecords ? (
-              <PublicRecordsOptionsPanel
-                open={showPublicRecordsOptions}
-                selected={publicRecordsSources}
-                onChange={setPublicRecordsSources}
-                onClose={() => setShowPublicRecordsOptions(false)}
-              />
-            ) : null}
-
-            {error && (
-              <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-sm text-red-200">
-                {error}
-              </p>
-            )}
-          </div>
-        </section>
+            </div>
+          </section>
+        </div>
       </div>
 
       {!isSearching && emptyResult && moduleDef.slug !== "site-pentest" ? (
