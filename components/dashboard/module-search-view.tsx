@@ -2134,6 +2134,227 @@ export function ModuleSearchView({
       return;
     }
 
+    // Breaches hub: stream NDJSON partials so credentials paint as providers finish.
+    if (activeType === "breaches") {
+      try {
+        const breachKind = fieldTypeToBreachKindHint(composed.primaryType);
+        const typeParam = breachKind
+          ? `&type=${encodeURIComponent(breachKind)}`
+          : "";
+        const searchUrl = `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}&scope=${encodeURIComponent(moduleDef.slug)}&moduleSlug=${encodeURIComponent(moduleDef.slug)}${typeParam}&stream=1`;
+        const searchResponse = await fetch(searchUrl, {
+          signal,
+          headers: { Accept: "application/x-ndjson" },
+        });
+
+        if (signal.aborted) return;
+
+        if (!searchResponse.ok) {
+          const responseText = await searchResponse.text();
+          let data: Record<string, unknown> = {};
+
+          try {
+            data = responseText
+              ? (JSON.parse(responseText) as Record<string, unknown>)
+              : {};
+          } catch {
+            /* ignore */
+          }
+
+          commitFail(
+            sanitizePublicText(
+              typeof data.error === "string"
+                ? data.error
+                : `Search failed (HTTP ${searchResponse.status}). Try again.`,
+            ),
+          );
+
+          return;
+        }
+
+        type BreachesStreamPayload = CombSearchResult & {
+          error?: string;
+          message?: string;
+          hasGodsEyeReport?: boolean;
+          godseyeReport?: Record<string, unknown> | null;
+          hasBreachVipResults?: boolean;
+          breachVipCount?: number;
+          csintCount?: number;
+          breachHubCount?: number;
+          osintCatCount?: number;
+          godseyeSearchCount?: number;
+        };
+
+        let finalBreaches: BreachesStreamPayload | null = null;
+        let streamError: string | null = null;
+
+        const isBreachesEmpty = (payload: BreachesStreamPayload) =>
+          payload.returned === 0 &&
+          !payload.hasGodsEyeReport &&
+          !payload.hasBreachVipResults &&
+          !(payload.csintCount && payload.csintCount > 0) &&
+          !(payload.breachHubCount && payload.breachHubCount > 0) &&
+          !(payload.osintCatCount && payload.osintCatCount > 0) &&
+          !(payload.godseyeSearchCount && payload.godseyeSearchCount > 0);
+
+        const applyBreachesPayload = (
+          payload: BreachesStreamPayload,
+          opts?: { progress?: string },
+        ) => {
+          if (!isMountedRef.current) return;
+
+          if (opts?.progress) {
+            setJobProgress(jobId, opts.progress);
+          }
+
+          setEmptyResult("");
+          setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+          setCombResult(payload);
+          setResultCount(
+            typeof payload.returned === "number"
+              ? payload.returned
+              : payload.credentials?.length ?? 0,
+          );
+          setRawResult(JSON.stringify(payload, null, 2));
+        };
+
+        const contentType = searchResponse.headers.get("content-type") ?? "";
+
+        if (contentType.includes("ndjson") && searchResponse.body) {
+          const reader = searchResponse.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          if (isMountedRef.current) {
+            setJobProgress(jobId, "Breaches · starting");
+            setEmptyResult("");
+            setLastSearchLabel(`${moduleDef.name} · ${trimmed}`);
+            setCombResult({
+              source: "Breached Data",
+              query: searchQuery,
+              totalMatches: 0,
+              returned: 0,
+              start: 0,
+              credentials: [],
+            });
+          }
+
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+            if (signal.aborted) return;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+
+              if (!trimmedLine) continue;
+
+              let event: {
+                type?: string;
+                module?: string;
+                done?: number;
+                total?: number;
+                error?: string;
+                result?: BreachesStreamPayload;
+              };
+
+              try {
+                event = JSON.parse(trimmedLine) as typeof event;
+              } catch {
+                continue;
+              }
+
+              if (event.type === "error") {
+                streamError =
+                  typeof event.error === "string"
+                    ? event.error
+                    : "Search failed.";
+                if (event.result) finalBreaches = event.result;
+                continue;
+              }
+
+              if (
+                (event.type === "partial" || event.type === "done") &&
+                event.result
+              ) {
+                finalBreaches = event.result;
+
+                if (event.type === "partial" && isMountedRef.current) {
+                  const moduleLabel =
+                    typeof event.module === "string" && event.module
+                      ? event.module
+                      : "module";
+                  const progress =
+                    typeof event.done === "number" &&
+                    typeof event.total === "number"
+                      ? `Breaches · ${moduleLabel} (${event.done}/${event.total})`
+                      : `Breaches · ${moduleLabel}`;
+
+                  applyBreachesPayload(event.result, { progress });
+                }
+              }
+            }
+          }
+        } else {
+          const responseText = await searchResponse.text();
+
+          try {
+            finalBreaches = JSON.parse(responseText) as BreachesStreamPayload;
+          } catch {
+            commitFail("Search returned an unexpected response. Try again.");
+
+            return;
+          }
+        }
+
+        if (signal.aborted) return;
+
+        if (streamError && !finalBreaches) {
+          commitFail(sanitizePublicText(streamError));
+
+          return;
+        }
+
+        if (!finalBreaches || isBreachesEmpty(finalBreaches)) {
+          commitEmpty(
+            streamError ||
+              finalBreaches?.message ||
+              finalBreaches?.error ||
+              "No results were found.",
+          );
+
+          return;
+        }
+
+        commitSuccess(
+          {
+            combResult: finalBreaches,
+            resultCount:
+              typeof finalBreaches.returned === "number"
+                ? finalBreaches.returned
+                : finalBreaches.credentials?.length ?? 0,
+            rawResult: JSON.stringify(finalBreaches, null, 2),
+          },
+          JSON.stringify(finalBreaches),
+        );
+      } catch (err) {
+        if (signal.aborted) return;
+        commitFail(
+          err instanceof Error && err.message
+            ? sanitizePublicText(err.message)
+            : "Search failed.",
+        );
+      }
+
+      return;
+    }
+
     try {
       const scopeParam = `&scope=${encodeURIComponent(moduleDef.slug)}`;
       const moduleParam = `&moduleSlug=${encodeURIComponent(moduleDef.slug)}`;
@@ -2164,18 +2385,12 @@ export function ModuleSearchView({
         (selectedToolId === "reconly-fivem" || moduleDef.slug === "fivem")
           ? "&mode=fivem"
           : "";
-      // Breaches: auto-detected field type drives provider kind (email/username/phone/…).
-      const breachKind = fieldTypeToBreachKindHint(composed.primaryType);
-      const breachesTypeParam =
-        activeType === "breaches" && breachKind
-          ? `&type=${encodeURIComponent(breachKind)}`
-          : "";
       // Twitter uses dedicated OsintCat twitter-osint (+ BreachHub fallback).
       // Snusbase / IntelVault / etc. use top-level /api/<vendor> paths.
       const searchUrl =
         moduleDef.slug === "twitter"
           ? `/api/osintcat/twitter-osint?query=${encodeURIComponent(searchQuery)}${moduleParam}`
-          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}${reconlyModeParam}${breachesTypeParam}`;
+          : `${resolveSearchApiPath(activeType)}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${instagramParam}${pentestParam}${publicRecordsParam}${indexSweepKindParam}${reconlyModeParam}`;
       const searchResponse = await fetch(searchUrl, { signal });
       const responseText = await searchResponse.text();
       let data: Record<string, unknown> = {};
@@ -2275,49 +2490,6 @@ export function ModuleSearchView({
           },
           serialized,
         );
-
-        return;
-      }
-
-      if (activeType === "breaches") {
-        const breachData = data as CombSearchResult & {
-          error?: string;
-          message?: string;
-          hasGodsEyeReport?: boolean;
-          godseyeReport?: Record<string, unknown> | null;
-          hasBreachVipResults?: boolean;
-          breachVipCount?: number;
-          csintCount?: number;
-          breachHubCount?: number;
-          osintCatCount?: number;
-          godseyeSearchCount?: number;
-        };
-
-        if (
-          breachData.returned === 0 &&
-          !breachData.hasGodsEyeReport &&
-          !breachData.hasBreachVipResults &&
-          !(breachData.csintCount && breachData.csintCount > 0) &&
-          !(breachData.breachHubCount && breachData.breachHubCount > 0) &&
-          !(breachData.osintCatCount && breachData.osintCatCount > 0) &&
-          !(breachData.godseyeSearchCount && breachData.godseyeSearchCount > 0)
-        ) {
-          markNoResults(breachData.message);
-
-          return;
-        }
-
-        commitSuccess({
-
-
-          combResult: breachData,
-
-
-          rawResult: JSON.stringify(breachData, null, 2),
-
-
-        }, serialized);
-
 
         return;
       }

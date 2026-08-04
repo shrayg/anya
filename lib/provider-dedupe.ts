@@ -8,8 +8,9 @@
  *    CSINT.pro (or the direct client: OsintCat / Breach.vip / CordCat).
  * 4. Sequential primary → fallback only — never fire both at once.
  *
- * Exception — /api/osint/breaches: Comb + GodsEye + BreachHub + CSINT +
- * direct BreachVIP run additively in parallel; credentials are merge-deduped.
+ * Breaches (/api/osint/breaches): Comb + GodsEye + BreachVIP + BreachHub run
+ * in parallel (streamed partials). CSINT runs after BreachHub only when BH is
+ * empty/thin or BH is off — not always-additive parallel with BH.
  *
  * Vendor map (primary → fallback):
  * | Vendor                      | Primary     | Fallback                         |
@@ -288,17 +289,18 @@ export function hasOsintCatDirect(): boolean {
 }
 
 /**
- * True when BreachHub is the live primary — specialty routes still use
- * sequential BH→CSINT fallback. Breaches searches are an exception: CSINT +
- * direct BreachVIP run additively in parallel with BH (see /api/osint/breaches).
+ * True when BreachHub is the live primary — specialty routes and Breaches use
+ * sequential BH→CSINT fallback (CSINT only after BH empty/thin / miss).
+ * Direct BreachVIP remains additive on Breaches (merge + dedupe).
  */
 export function isBreachHubPrimaryActive(): boolean {
   return isBreachHubKeyConfigured();
 }
 
 /**
- * Specialty modules (Shodan / Melissa / IntelX / …) still defer CSINT until
- * after BH miss. Breaches route ignores this and always fans out CSINT.
+ * Defer CSINT until after BreachHub settles (specialty + Breaches additive).
+ * When BH is primary and CSINT is configured, callers should not fire CSINT
+ * in parallel with BH.
  */
 export function shouldDeferCsintAdditive(): boolean {
   return isBreachHubPrimaryActive() && isCsintEnabled();
