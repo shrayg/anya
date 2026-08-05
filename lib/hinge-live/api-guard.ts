@@ -16,7 +16,7 @@ export function hingeLiveDisabledResponse(): NextResponse | null {
 
     if (hasCreds && needsProxy) {
       error =
-        "Hinge Live requires a residential proxy. Set OSINT_RESIDENTIAL_PROXY_URL or INSTAGRAM_PROXY_URL.";
+        "Hinge Live is not configured. Set OSINT_RESIDENTIAL_PROXY_URL or INSTAGRAM_PROXY_URL.";
     } else if (hasCreds) {
       error = "Hinge Live is disabled.";
     }

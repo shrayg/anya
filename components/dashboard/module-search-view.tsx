@@ -367,18 +367,18 @@ export function ModuleSearchView({
     if (!proxySlug) return null;
 
     if (proxySlug === "email-presence-deep") {
-      return `Deep search costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit (residential proxy for Instagram, Snapchat, TikTok, Facebook, Discord, LinkedIn signup, adult sites).`;
+      return `Deep search costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit (Instagram, Snapchat, TikTok, Facebook, Discord, LinkedIn signup, adult sites).`;
     }
 
     if (proxySlug === "instagram-live") {
-      return `Instagram Live costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search (residential proxy). Instagram ID / DataVoid tools stay on plan quota.`;
+      return `Instagram Live costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search. Instagram ID / DataVoid tools stay on plan quota.`;
     }
 
     if (proxySlug === "hinge-live") {
-      return `Hinge Live costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search (residential proxy).`;
+      return `Hinge Live costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search.`;
     }
 
-    return `This search costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit (residential proxy).`;
+    return `This search costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit.`;
   }, [
     contactProfilesDeep,
     moduleDef.slug,
@@ -3913,9 +3913,8 @@ export function ModuleSearchView({
                     </span>
                     <span className="mt-0.5 block text-xs text-zinc-500">
                       Adds Instagram, Snapchat, TikTok, Facebook, Discord,
-                      LinkedIn signup, and adult platforms via residential
-                      proxy. Off by default — standard presence stays on plan
-                      quota.
+                      LinkedIn signup, and adult platforms. Off by default —
+                      standard presence stays on plan quota.
                     </span>
                   </span>
                 </label>

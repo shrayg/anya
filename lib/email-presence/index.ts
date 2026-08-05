@@ -305,7 +305,7 @@ export async function searchEmailPresence(input: {
   const subject =
     contact.kind === "email" ? "email" : "phone number";
   const deepNote = deep
-    ? " Deep search used residential proxy for social/adult platforms."
+    ? " Deep search included social/adult platforms."
     : " Standard search only — enable Deep search (1 credit) for Instagram, Snapchat, TikTok, Facebook, Discord, LinkedIn signup, and adult sites.";
   const warning =
     run.found.length > 0

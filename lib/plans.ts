@@ -123,13 +123,13 @@ export const HOME_PREMIUM_MODULE_OPTIONS = [
     id: "instagram-live",
     label: "Instagram Live",
     billingSlug: "instagram-live",
-    hint: "1 credit · residential proxy",
+    hint: "1 credit",
   },
   {
     id: "hinge-live",
     label: "Hinge Live",
     billingSlug: "hinge-live",
-    hint: "1 credit · residential proxy",
+    hint: "1 credit",
   },
 ] as const;
 
@@ -602,12 +602,12 @@ function checkResidentialProxyAccess(
           ? "Hinge Live"
           : moduleSlug === "tinder-live"
             ? "Tinder Live"
-            : "Residential proxy search";
+            : "This search";
 
   if (balance < RESIDENTIAL_PROXY_CREDIT_COST) {
     return {
       allowed: false,
-      reason: `${label} costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search (residential proxy). Top up on the Pricing page.`,
+      reason: `${label} costs ${RESIDENTIAL_PROXY_CREDIT_COST} credit per search. Top up on the Pricing page.`,
       requiresBalance: true,
       balanceCost: RESIDENTIAL_PROXY_CREDIT_COST,
     };
@@ -659,7 +659,7 @@ export function checkModuleAccess(
     return {
       allowed: false,
       reason:
-        "Residential proxy tools require Professional or higher (and 1 credit per search).",
+        "These tools require Professional or higher (and 1 credit per search).",
       requiresBalance: true,
       balanceCost: RESIDENTIAL_PROXY_CREDIT_COST,
     };

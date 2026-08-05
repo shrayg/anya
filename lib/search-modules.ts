@@ -750,7 +750,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "email-presence",
         "email-presence",
         "Email or phone number",
-        "Standard presence check across commerce/media sites (included). Toggle Deep search (+1 credit) for Instagram, Snapchat, TikTok, Facebook, Discord, LinkedIn signup, and adult platforms via residential proxy.",
+        "Standard presence check across commerce/media sites (included). Toggle Deep search (+1 credit) for Instagram, Snapchat, TikTok, Facebook, Discord, LinkedIn signup, and adult platforms.",
       ),
       mod(
         "Identity",
@@ -1838,7 +1838,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "instagram",
         "instagram",
         "Instagram user or profile link",
-        "Instagram OSINT (live session) costs 1 credit per search — residential proxy. Instagram ID and DataVoid tools use plan quota only.",
+        "Instagram OSINT (live session) costs 1 credit per search. Instagram ID and DataVoid tools use plan quota only.",
         undefined,
         undefined,
         {
@@ -2093,13 +2093,13 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "hinge-live",
         "hinge-live",
         "40.7128,-74.0060 ageMin=22 ageMax=35 distanceMi=25 gender=1 q=alex",
-        "Live Hinge recommendations via operator session (1 credit per search — residential proxy). Set location/prefs, hydrate profiles, optional local keyword filter.",
+        "Live Hinge recommendations via operator session (1 credit per search). Set location/prefs, hydrate profiles, optional local keyword filter.",
         undefined,
         undefined,
         {
           lawfulUseNotice: true,
           lawfulUseCopy:
-            "Hinge Live uses a company-operated Hinge session and costs 1 credit per search (residential proxy). It returns a personalized recommendation feed sample, not a full area database. Authorized investigative use only. Do not scrape, harass, or store profiles beyond case need. Hinge ToS and local law still apply.",
+            "Hinge Live uses a company-operated Hinge session and costs 1 credit per search. It returns a personalized recommendation feed sample, not a full area database. Authorized investigative use only. Do not scrape, harass, or store profiles beyond case need. Hinge ToS and local law still apply.",
         },
       ),
       mod(

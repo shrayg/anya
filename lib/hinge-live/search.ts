@@ -586,9 +586,6 @@ export async function runHingeLiveSearch(
     subjectCount: subjectIds.length,
     profiles,
     warning,
-    sources: [
-      "Hinge Live (operator session)",
-      "residential proxy",
-    ],
+    sources: ["Hinge Live (operator session)"],
   };
 }

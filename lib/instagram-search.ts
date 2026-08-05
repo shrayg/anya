@@ -327,7 +327,7 @@ async function parseJsonResponse(
 
     if (isInstagramChallengeText(text)) {
       throw new Error(
-        "Instagram flagged this session (challenge_required). It needs re-verification or a residential proxy.",
+        "Instagram flagged this session (challenge_required). It needs re-verification or a different network egress path.",
       );
     }
 
