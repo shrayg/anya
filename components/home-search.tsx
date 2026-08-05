@@ -7,11 +7,13 @@ import clsx from "clsx";
 import {
   ArrowRight,
   AtSign,
+  ChevronDown,
   Database,
   Hash,
   LockKeyhole,
   Phone,
   Search,
+  Sparkles,
   User,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
@@ -116,6 +118,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const [blurResults, setBlurResults] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [premiumModule, setPremiumModule] = useState<string | null>(null);
+  const [premiumMenuOpen, setPremiumMenuOpen] = useState(false);
   const [vaultId, setVaultId] = useState<string | null>(null);
   const [claimToken, setClaimToken] = useState<string | null>(null);
   const [unlockMeta, setUnlockMeta] = useState<{
@@ -137,6 +140,14 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   } | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const scrolledForResultsRef = useRef(false);
+  const premiumControlRef = useRef<HTMLDivElement>(null);
+
+  const activePremiumOption = useMemo(
+    () =>
+      HOME_PREMIUM_MODULE_OPTIONS.find((opt) => opt.id === premiumModule) ??
+      null,
+    [premiumModule],
+  );
 
   const visibleLockedModules =
     lockedModules ?? (isMounted ? LOCKED_MODULES : []);
@@ -272,6 +283,31 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!premiumMenuOpen) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (
+        premiumControlRef.current &&
+        !premiumControlRef.current.contains(event.target as Node)
+      ) {
+        setPremiumMenuOpen(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPremiumMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [premiumMenuOpen]);
 
   // Resume vault after auth / checkout return.
   useEffect(() => {
@@ -684,6 +720,133 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           unlockAutofillShield(event);
         }}
       />
+      <div
+        ref={premiumControlRef}
+        className={clsx(
+          "home-search-premium-control",
+          premiumMenuOpen && "home-search-premium-control--open",
+          Boolean(premiumModule) && "home-search-premium-control--active",
+        )}
+      >
+        <button
+          aria-expanded={premiumMenuOpen}
+          aria-haspopup="menu"
+          aria-label={
+            showPremiumLocked
+              ? hasStableLockedModules
+                ? `${visibleLockedModuleCount} premium modules locked`
+                : "Premium modules locked"
+              : premiumModule
+                ? `Premium module: ${activePremiumOption?.label ?? "active"}`
+                : "Activate premium modules"
+          }
+          className={clsx(
+            "home-search-premium-trigger",
+            showPremiumLocked && "home-search-premium-trigger--locked",
+            Boolean(premiumModule) && "home-search-premium-trigger--active",
+          )}
+          type="button"
+          onClick={() => setPremiumMenuOpen((open) => !open)}
+        >
+          {showPremiumLocked ? (
+            <LockKeyhole className="size-4 shrink-0" />
+          ) : (
+            <Sparkles className="size-4 shrink-0" />
+          )}
+          <span className="home-search-premium-trigger-label">
+            {showPremiumLocked
+              ? "Premium"
+              : activePremiumOption?.label ?? "Premium"}
+          </span>
+          {showPremiumLocked && hasStableLockedModules ? (
+            <strong className="home-search-premium-trigger-count">
+              {visibleLockedModuleCount}
+            </strong>
+          ) : null}
+          <ChevronDown
+            className={clsx(
+              "home-search-premium-chevron size-3.5 shrink-0",
+              premiumMenuOpen && "home-search-premium-chevron--open",
+            )}
+          />
+        </button>
+
+        {premiumMenuOpen ? (
+          <div
+            className={clsx(
+              "home-search-premium-menu",
+              showPremiumLocked && "home-search-premium-menu--locked",
+            )}
+            role={showPremiumLocked ? "dialog" : "menu"}
+          >
+            {showPremiumLocked ? (
+              <div className="home-search-locked-popover-card">
+                <div className="home-search-locked-heading">
+                  <span>Premium module directory</span>
+                  <strong>{visibleLockedModuleCount} locked</strong>
+                </div>
+                <ul className="home-search-locked-grid">
+                  {visibleLockedModules.map((module) => (
+                    <li key={module.slug}>{module.name}</li>
+                  ))}
+                </ul>
+                <Link
+                  className="home-search-locked-cta"
+                  href="/pricing"
+                  onClick={() => setPremiumMenuOpen(false)}
+                >
+                  Buy Premium
+                </Link>
+              </div>
+            ) : (
+              <div className="home-search-premium-menu-card">
+                <p className="home-search-premium-menu-heading">
+                  Activate premium modules
+                </p>
+                <button
+                  aria-pressed={!premiumModule}
+                  className={clsx(
+                    "home-search-premium-option",
+                    !premiumModule && "home-search-premium-option--active",
+                  )}
+                  role="menuitemradio"
+                  type="button"
+                  onClick={() => {
+                    setPremiumModule(null);
+                    setError("");
+                    setPremiumMenuOpen(false);
+                  }}
+                >
+                  <span>Included</span>
+                  <small>Email · Phone · Username · Discord · Breaches</small>
+                </button>
+                {HOME_PREMIUM_MODULE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    aria-pressed={premiumModule === opt.id}
+                    className={clsx(
+                      "home-search-premium-option",
+                      premiumModule === opt.id &&
+                        "home-search-premium-option--active",
+                    )}
+                    role="menuitemradio"
+                    title={opt.hint}
+                    type="button"
+                    onClick={() => {
+                      setPremiumModule(opt.id);
+                      setError("");
+                      setPremiumMenuOpen(false);
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    <small>{opt.hint}</small>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
       <LiquidButton
         className="home-search-submit liquid-glass-button--accent"
         data-tour="home-search-submit"
@@ -727,43 +890,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           onSubmit={handleSearch}
         >
           <div className="home-search-module-row">
-            {showPremiumLocked ? (
-              <div className="home-search-locked-module">
-                <button
-                  aria-label={
-                    hasStableLockedModules
-                      ? `${visibleLockedModuleCount} premium modules locked`
-                      : "Premium modules locked"
-                  }
-                  className="home-search-locked-trigger"
-                  type="button"
-                >
-                  <LockKeyhole className="size-4" />
-                  <strong>
-                    {hasStableLockedModules ? visibleLockedModuleCount : "—"}
-                  </strong>
-                  <span>Premium locked</span>
-                </button>
-
-                <div className="home-search-locked-popover" role="tooltip">
-                  <div className="home-search-locked-popover-card">
-                    <div className="home-search-locked-heading">
-                      <span>Premium module directory</span>
-                      <strong>{visibleLockedModuleCount} locked</strong>
-                    </div>
-                    <ul className="home-search-locked-grid">
-                      {visibleLockedModules.map((module) => (
-                        <li key={module.slug}>{module.name}</li>
-                      ))}
-                    </ul>
-                    <Link className="home-search-locked-cta" href="/pricing">
-                      Buy Premium
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
             <div
               aria-label="Search type"
               className="starter-search-modes"
@@ -799,48 +925,9 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             </div>
           </div>
 
-          <div
-            aria-label="Premium credit modules"
-            className="starter-search-modes home-search-premium-modes"
-            role="toolbar"
-          >
-            <button
-              aria-pressed={!premiumModule}
-              className={clsx(
-                "starter-search-mode",
-                !premiumModule && "starter-search-mode--active",
-              )}
-              type="button"
-              onClick={() => setPremiumModule(null)}
-            >
-              Included
-            </button>
-            {HOME_PREMIUM_MODULE_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                aria-pressed={premiumModule === opt.id}
-                className={clsx(
-                  "starter-search-mode",
-                  premiumModule === opt.id && "starter-search-mode--active",
-                )}
-                title={opt.hint}
-                type="button"
-                onClick={() => {
-                  setPremiumModule(opt.id);
-                  setError("");
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
           {premiumModule ? (
             <p className="home-search-premium-hint">
-              {
-                HOME_PREMIUM_MODULE_OPTIONS.find((o) => o.id === premiumModule)
-                  ?.hint
-              }
+              {activePremiumOption?.hint}
               {auth.status === "guest"
                 ? " · Sign in required before Search."
                 : null}
