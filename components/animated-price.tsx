@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 
 interface AnimatedPriceProps {
@@ -32,12 +32,21 @@ export function AnimatedNumber({
   decimals?: number;
   className?: string;
 }) {
+  const mounted = useRef(false);
   const motionValue = useMotionValue(value);
   const formatted = useTransform(motionValue, (latest) =>
     latest.toFixed(decimals),
   );
 
   useEffect(() => {
+    // First paint shows the final value — only tween on later changes.
+    if (!mounted.current) {
+      mounted.current = true;
+      motionValue.set(value);
+
+      return;
+    }
+
     const controls = animate(motionValue, value, {
       duration,
       ease: [0.25, 0.1, 0.25, 1],

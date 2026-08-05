@@ -384,8 +384,15 @@ export function PricingPageContent({
         ))}
       </div>
 
-      {(tab === "subscriptions" || tab === "api") && (
-        <div className="pricing-interval-strip mx-auto mt-3 flex w-fit rounded-2xl border border-white/10 bg-white/[0.04] p-0.5 backdrop-blur-xl">
+      <div
+        aria-hidden={!(tab === "subscriptions" || tab === "api")}
+        className={clsx(
+          "pricing-interval-strip mx-auto mt-3 flex w-fit rounded-2xl border border-white/10 bg-white/[0.04] p-0.5 backdrop-blur-xl transition-opacity duration-200",
+          tab === "subscriptions" || tab === "api"
+            ? "opacity-100"
+            : "pointer-events-none opacity-0",
+        )}
+      >
           <button
             className={clsx(
               "pricing-interval-option rounded-xl px-3 py-1.5 text-xs font-medium transition",
@@ -393,6 +400,7 @@ export function PricingPageContent({
                 ? "bg-[var(--anya-blush)]/85 text-[#0c1019] shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
             )}
+            disabled={!(tab === "subscriptions" || tab === "api")}
             type="button"
             onClick={() => setInterval("monthly")}
           >
@@ -405,6 +413,7 @@ export function PricingPageContent({
                 ? "bg-[var(--anya-blush)]/85 text-[#0c1019] shadow-lg shadow-[color-mix(in_srgb,var(--anya-blush)_28%,transparent)]"
                 : "text-zinc-400 hover:text-white",
             )}
+            disabled={!(tab === "subscriptions" || tab === "api")}
             type="button"
             onClick={() => setInterval("annual")}
           >
@@ -413,8 +422,7 @@ export function PricingPageContent({
               {ANNUAL_MONTHS_FREE} months free
             </span>
           </button>
-        </div>
-      )}
+      </div>
 
       {billingStatus ? (
         <BillingStatusBanner
@@ -440,15 +448,22 @@ export function PricingPageContent({
         </p>
       ) : null}
 
-      <AnimatePresence initial={false} mode="wait">
-        <motion.div
-          key={tab}
-          animate={{ opacity: 1, y: 0 }}
-          className="pricing-tab-panel overflow-visible pt-1"
-          exit={{ opacity: 0, y: -8 }}
-          initial={{ opacity: 0, y: 10 }}
-          transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-        >
+      <div className="pricing-tab-stage relative mt-1">
+        <AnimatePresence initial={false} mode="sync">
+          <motion.div
+            key={tab}
+            animate={{ opacity: 1 }}
+            className="pricing-tab-panel w-full overflow-visible"
+            exit={{
+              opacity: 0,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+            }}
+            initial={{ opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
           {tab === "subscriptions" && (
             <div className="pricing-credit-grid mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {plans.map((plan, index) => {
@@ -541,7 +556,7 @@ export function PricingPageContent({
                       </p>
                     </div>
 
-                    <ul className="pricing-credit-ledger mt-5 flex min-h-0 flex-1 flex-col space-y-2 border-t border-white/8 pt-4 text-sm text-zinc-400">
+                    <ul className="pricing-credit-ledger mt-5 flex min-h-[9.5rem] flex-1 flex-col space-y-2 border-t border-white/8 pt-4 text-sm text-zinc-400">
                       {ledgerRows.map((row) => (
                         <li
                           key={row.label}
@@ -983,7 +998,8 @@ export function PricingPageContent({
             </div>
           )}
         </motion.div>
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
 
       <p className="mt-10 text-center text-xs text-zinc-500">
         Annual plans are billed as {ANNUAL_MONTHS_CHARGED} months upfront (

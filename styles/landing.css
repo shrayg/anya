@@ -2435,7 +2435,7 @@
 
 @media (min-width: 1280px) {
   :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-layout {
-    align-items: center;
+    align-items: stretch;
     gap: 0.7rem !important;
   }
 }
@@ -2448,20 +2448,15 @@
 
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-credit-card--compact.pricing-credit-card--featured {
-  padding: 1.45rem 1.35rem 1.4rem !important;
+  padding: 1.55rem 1.4rem 1.5rem !important;
   z-index: 2;
 }
 
 @media (min-width: 1280px) {
   :is(.anya-landing, .brutal-page, .marketing-canvas)
     .pricing-credit-card--compact.pricing-credit-card--featured {
-    transform: scale(1.08);
-    transform-origin: center center;
-  }
-
-  :is(.anya-landing, .brutal-page, .marketing-canvas)
-    .pricing-credit-card--compact.pricing-credit-card--featured:hover {
-    transform: scale(1.1) translateY(-2px);
+    margin-block: -0.35rem;
+    padding: 1.7rem 1.45rem 1.6rem !important;
   }
 }
 
