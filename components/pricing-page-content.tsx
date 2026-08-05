@@ -14,7 +14,7 @@ import {
   billingStatusFromQuery,
   type BillingStatusKind,
 } from "@/components/billing-status-banner";
-import AnimatedPrice from "@/components/animated-price";
+import AnimatedPrice, { AnimatedNumber } from "@/components/animated-price";
 import { siteConfig } from "@/config/site";
 import {
   ANNUAL_MONTHS_CHARGED,
@@ -212,6 +212,20 @@ export function PricingPageContent({
           description: "Your plan or credits are active.",
         });
 
+        const returnTo = new URLSearchParams(window.location.search).get(
+          "returnTo",
+        );
+        if (
+          returnTo &&
+          (returnTo.startsWith("/#search") ||
+            returnTo === "/#search" ||
+            returnTo === "/")
+        ) {
+          window.setTimeout(() => {
+            window.location.assign(returnTo);
+          }, 600);
+        }
+
         return true;
       }
 
@@ -238,6 +252,20 @@ export function PricingPageContent({
       toast.success("Payment confirmed", {
         description: "Your plan or credits are active.",
       });
+
+      const returnTo = new URLSearchParams(window.location.search).get(
+        "returnTo",
+      );
+      if (
+        returnTo &&
+        (returnTo.startsWith("/#search") ||
+          returnTo === "/#search" ||
+          returnTo === "/")
+      ) {
+        window.setTimeout(() => {
+          window.location.assign(returnTo);
+        }, 600);
+      }
     }
 
     if (kind !== "pending") return;
@@ -618,18 +646,22 @@ export function PricingPageContent({
                       </div>
 
                       <div className="pricing-credit-value mt-5">
-                        <div className="flex items-baseline gap-1">
-                          <AnimatedPrice
+                        <div className="flex items-baseline gap-1.5">
+                          <AnimatedNumber
                             className="text-3xl font-semibold tracking-tight text-white tabular-nums"
+                            duration={0.55}
+                            value={total}
+                          />
+                          <span className="text-sm font-medium text-zinc-400">
+                            credits
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-zinc-400">
+                          <AnimatedPrice
+                            className="font-medium text-white tabular-nums"
                             duration={0.55}
                             value={pack.price}
                           />
-                        </div>
-                        <p className="mt-1 text-sm text-zinc-400">
-                          <span className="font-medium text-white tabular-nums">
-                            {total}
-                          </span>{" "}
-                          credits
                         </p>
                       </div>
 
@@ -667,13 +699,23 @@ export function PricingPageContent({
                   </div>
 
                   <div className="pricing-credit-value mt-5">
-                    <div className="flex items-baseline gap-1">
-                      <AnimatedPrice
+                    <div className="flex items-baseline gap-1.5">
+                      <AnimatedNumber
                         className="text-3xl font-semibold tracking-tight text-white tabular-nums"
-                        duration={0.4}
+                        duration={0.35}
+                        value={customCreditsDraft ?? 0}
+                      />
+                      <span className="text-sm font-medium text-zinc-400">
+                        credits
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-zinc-400">
+                      <AnimatedPrice
+                        className="font-medium text-white tabular-nums"
+                        duration={0.35}
                         value={customPrice}
                       />
-                    </div>
+                    </p>
 
                     <div className="pricing-credit-stepper mt-3">
                       <button
@@ -729,9 +771,6 @@ export function PricingPageContent({
                       >
                         <Plus className="size-3.5" strokeWidth={2.25} />
                       </button>
-                      <span className="pricing-credit-stepper-unit">
-                        credits
-                      </span>
                     </div>
 
                     <p
