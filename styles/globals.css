@@ -9735,7 +9735,21 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.45rem;
+}
+
+/* Credit-module chips — keep clear of the search input top hairline */
+.home-search-premium-modes {
+  margin-top: 0.15rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.15rem;
+}
+
+.home-search-premium-hint {
+  margin: -0.35rem 0 0.85rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #a1a1aa;
 }
 
 .home-search-locked-module {
@@ -9952,6 +9966,18 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.4rem;
+  }
+
+  .home-search-premium-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .home-search-premium-modes .starter-search-mode {
+    flex: 1 1 auto;
+    min-width: calc(50% - 0.2rem);
   }
 
   .starter-search-mode {

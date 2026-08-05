@@ -801,7 +801,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
           <div
             aria-label="Premium credit modules"
-            className="starter-search-modes mt-2"
+            className="starter-search-modes home-search-premium-modes"
             role="toolbar"
           >
             <button
@@ -836,7 +836,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           </div>
 
           {premiumModule ? (
-            <p className="mt-2 text-xs text-zinc-400">
+            <p className="home-search-premium-hint">
               {
                 HOME_PREMIUM_MODULE_OPTIONS.find((o) => o.id === premiumModule)
                   ?.hint
