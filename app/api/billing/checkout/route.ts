@@ -30,6 +30,7 @@ import {
   type BillingInterval,
   type PlanId,
 } from "@/lib/plans";
+import { sanitizeReturnTo } from "@/lib/search-resume";
 import { recordPayment } from "@/lib/payments";
 import {
   dollarsToCents,
@@ -201,6 +202,16 @@ export async function POST(request: NextRequest) {
 
   const type = body.type;
   const baseUrl = getAppBaseUrl(request.url);
+  const returnTo =
+    sanitizeReturnTo(
+      typeof body.returnTo === "string" ? body.returnTo : undefined,
+    ) ?? undefined;
+  const vaultId =
+    typeof body.vaultId === "string" && body.vaultId.trim()
+      ? body.vaultId.trim().slice(0, 64)
+      : undefined;
+  const intent =
+    typeof body.intent === "string" ? body.intent.slice(0, 40) : undefined;
 
   try {
     if (type === "subscription") {
@@ -246,6 +257,9 @@ export async function POST(request: NextRequest) {
         planId,
         interval,
         provider,
+        returnTo,
+        vaultId,
+        intent,
       };
 
       const result = await finalizeCheckout({
@@ -314,6 +328,9 @@ export async function POST(request: NextRequest) {
           packId: CUSTOM_CREDIT_PACK_ID,
           creditsAmount,
           provider,
+          returnTo,
+          vaultId,
+          intent,
         };
 
         const result = await finalizeCheckout({
@@ -357,6 +374,9 @@ export async function POST(request: NextRequest) {
         packId: pack.id,
         creditsAmount: creditTotal,
         provider,
+        returnTo,
+        vaultId,
+        intent,
       };
 
       const result = await finalizeCheckout({

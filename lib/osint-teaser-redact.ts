@@ -89,3 +89,82 @@ export function redactOsintTeaser(
 ): unknown {
   return redactNode(data);
 }
+
+/**
+ * Soft-lock Class I/P fan-out subsections inside starter searches (Discord, etc.).
+ * Keeps profile / count chrome; masks nested specialty payloads.
+ */
+export function redactPremiumFanoutSections(data: unknown): unknown {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return redactOsintTeaser(data);
+  }
+
+  const row = data as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...row };
+  const premiumKeys = [
+    "robloxLink",
+    "roblox",
+    "fivem",
+    "leaks",
+    "dsa",
+    "enrichment",
+    "guilds",
+    "connections",
+    "contacts",
+    "usernameHistory",
+    "archives",
+    "godseyeReport",
+    "stealer",
+    "stealerLogs",
+  ];
+
+  for (const key of premiumKeys) {
+    if (!(key in out) || out[key] == null) continue;
+
+    const value = out[key];
+
+    if (key === "leaks" && value && typeof value === "object") {
+      const leaks = value as Record<string, unknown>;
+      out[key] = {
+        ...leaks,
+        results: Array.isArray(leaks.results)
+          ? redactOsintTeaser(leaks.results.slice(0, OSINT_TEASER_ROW_LIMIT))
+          : [],
+        teaser: true,
+        premiumLocked: true,
+      };
+      continue;
+    }
+
+    if (key === "fivem" && value && typeof value === "object") {
+      const fivem = value as Record<string, unknown>;
+      out[key] = {
+        count: typeof fivem.count === "number" ? fivem.count : 0,
+        accounts: [],
+        bans: [],
+        teaser: true,
+        premiumLocked: true,
+      };
+      continue;
+    }
+
+    if (key === "robloxLink" && value && typeof value === "object") {
+      out[key] = {
+        teaser: true,
+        premiumLocked: true,
+        available: true,
+      };
+      continue;
+    }
+
+    out[key] = {
+      teaser: true,
+      premiumLocked: true,
+      available: true,
+    };
+  }
+
+  out.premiumSectionsLocked = true;
+
+  return out;
+}

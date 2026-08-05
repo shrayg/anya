@@ -14,11 +14,17 @@ import {
   Search,
   User,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ElementType } from "react";
+import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
 import { DiscordSearchResults } from "@/components/dashboard/discord-search-results";
 import { SearchResultCards } from "@/components/dashboard/search-result-cards";
+import { HingeLiveResults } from "@/components/dashboard/hinge-live-results";
+import {
+  InstagramSearchResults,
+  type InstagramSearchPayload,
+} from "@/components/dashboard/instagram-search-results";
+import { StealerLogsSearchResults } from "@/components/dashboard/stealer-logs-search-results";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { LiquidGlassCard } from "@/components/ui/liquid-glass";
 import { getHubSections } from "@/lib/search-modules";
@@ -42,15 +48,28 @@ import {
   checkDailySearchQuota,
   checkModuleAccess,
   hasWorkspaceDashboardAccess,
+  HOME_PREMIUM_MODULE_OPTIONS,
+  PAY_PER_USE_COST,
+  RESIDENTIAL_PROXY_CREDIT_COST,
   resolveUserPlan,
   shouldBlurResults,
   STARTER_MODULE_SLUGS,
 } from "@/lib/plans";
 import {
+  clearSearchResume,
+  readSearchResume,
+  saveSearchResume,
+} from "@/lib/search-resume";
+import { apiFetch } from "@/lib/csrf-client";
+import {
   formatSearchRecords,
   formatStructuredSearchData,
   type FormattedRecord,
 } from "@/lib/search-utils";
+import { extractStealerCredentialRows } from "@/lib/stealer-logs-view";
+import type { HingeLiveSearchResult } from "@/lib/hinge-live/types";
+import type { StealerArchiveEntry } from "@/lib/breachhub";
+import type { StealerCredentialRow } from "@/lib/stealer-logs-view";
 
 type AuthState =
   | { status: "loading" }
@@ -96,6 +115,26 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const [combResult, setCombResult] = useState<CombSearchResult | null>(null);
   const [blurResults, setBlurResults] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [premiumModule, setPremiumModule] = useState<string | null>(null);
+  const [vaultId, setVaultId] = useState<string | null>(null);
+  const [claimToken, setClaimToken] = useState<string | null>(null);
+  const [unlockMeta, setUnlockMeta] = useState<{
+    reasons?: string[];
+    creditCost?: number;
+    planRequired?: string | null;
+    allowCreditUnlock?: boolean;
+    resultCount?: number;
+  } | null>(null);
+  const [instagramResult, setInstagramResult] =
+    useState<InstagramSearchPayload | null>(null);
+  const [hingeResult, setHingeResult] = useState<HingeLiveSearchResult | null>(
+    null,
+  );
+  const [stealerResult, setStealerResult] = useState<{
+    credentials: StealerCredentialRow[];
+    archives: StealerArchiveEntry[];
+    count: number;
+  } | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const scrolledForResultsRef = useRef(false);
 
@@ -112,7 +151,112 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   // Upsell chip only for guests / plans without panel — not for Professional+
   const showPremiumLocked = !hasPanelAccess && auth.status !== "loading";
   const hasResultsSurface =
-    Boolean(discordResult) || Boolean(combResult) || records.length > 0;
+    Boolean(discordResult) ||
+    Boolean(combResult) ||
+    Boolean(instagramResult) ||
+    Boolean(hingeResult) ||
+    Boolean(stealerResult) ||
+    records.length > 0;
+
+  const balance =
+    auth.status === "authenticated" ? (auth.user.balance ?? 0) : 0;
+
+  const premiumCostLabel = useMemo(() => {
+    if (!premiumModule) return null;
+    if (premiumModule === "stealer-logs") return `${PAY_PER_USE_COST} credits`;
+    return `${RESIDENTIAL_PROXY_CREDIT_COST} credit`;
+  }, [premiumModule]);
+
+  const clearResults = () => {
+    setRecords([]);
+    setDiscordResult(null);
+    setCombResult(null);
+    setInstagramResult(null);
+    setHingeResult(null);
+    setStealerResult(null);
+    setResultCount(0);
+    setVaultId(null);
+    setClaimToken(null);
+    setUnlockMeta(null);
+  };
+
+  const captureVaultFromData = (
+    data: Record<string, unknown>,
+    opts: { mode: string; query: string; moduleSlug: string },
+  ) => {
+    if (typeof data.vaultId === "string" && typeof data.claimToken === "string") {
+      setVaultId(data.vaultId);
+      setClaimToken(data.claimToken);
+      setUnlockMeta(
+        data.unlock && typeof data.unlock === "object"
+          ? (data.unlock as {
+              reasons?: string[];
+              creditCost?: number;
+              planRequired?: string | null;
+              allowCreditUnlock?: boolean;
+              resultCount?: number;
+            })
+          : null,
+      );
+      saveSearchResume({
+        vaultId: data.vaultId,
+        claimToken: data.claimToken,
+        mode: opts.mode,
+        query: opts.query,
+        premiumModule,
+        blurReason: auth.status === "guest" ? "guest" : "free",
+        moduleSlug: opts.moduleSlug,
+      });
+    }
+  };
+
+  const applyUnlockedPayload = (payload: unknown) => {
+    clearSearchResume();
+    setBlurResults(false);
+    setVaultId(null);
+    setClaimToken(null);
+    setUnlockMeta(null);
+
+    if (!payload || typeof payload !== "object") return;
+
+    const data = payload as Record<string, unknown>;
+
+    if (data.profile && typeof data.profile === "object") {
+      setDiscordResult(data as unknown as DiscordSearchResult);
+      setCombResult(null);
+      setRecords([]);
+      setInstagramResult(null);
+      setHingeResult(null);
+      setStealerResult(null);
+
+      return;
+    }
+
+    if (Array.isArray(data.credentials)) {
+      const credentials = data.credentials as CombSearchResult["credentials"];
+      setCombResult({
+        ...(data as unknown as CombSearchResult),
+        credentials,
+        returned: credentials.length,
+        totalMatches: credentials.length,
+      });
+      setResultCount(credentials.length);
+      setDiscordResult(null);
+      setRecords([]);
+
+      return;
+    }
+
+    if (Array.isArray(data.results)) {
+      const formatted = formatSearchRecords(data.results as unknown[]);
+      setRecords(formatted);
+      setResultCount(
+        typeof data.count === "number" ? data.count : formatted.length,
+      );
+      setDiscordResult(null);
+      setCombResult(null);
+    }
+  };
 
   const activeStarterMode =
     STARTER_SEARCH_MODES.find((mode) => mode.id === starterMode) ??
@@ -128,6 +272,62 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Resume vault after auth / checkout return.
+  useEffect(() => {
+    if (auth.status === "loading") return;
+
+    const resume = readSearchResume();
+
+    if (!resume) return;
+
+    if (resume.query) setQuery(resume.query);
+    if (resume.mode) {
+      const mode = STARTER_SEARCH_MODES.find((m) => m.id === resume.mode);
+      if (mode) setStarterMode(mode.id);
+    }
+    if (resume.premiumModule) setPremiumModule(resume.premiumModule);
+
+    setVaultId(resume.vaultId);
+    setClaimToken(resume.claimToken);
+
+    if (auth.status !== "authenticated") return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await apiFetch("/api/search/vault/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            vaultId: resume.vaultId,
+            claimToken: resume.claimToken,
+            preferCreditUnlock: false,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (cancelled) return;
+
+        if (res.ok && data.payload) {
+          applyUnlockedPayload(data.payload);
+
+          return;
+        }
+
+        // Keep teaser chrome; user can unlock manually (credits/plan).
+        setBlurResults(true);
+      } catch {
+        if (!cancelled) setBlurResults(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resume once auth settles
+  }, [auth.status]);
 
   useEffect(() => {
     if (window.location.hash === "#search") {
@@ -207,11 +407,94 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     const searchQuery = route.searchQuery ?? trimmed;
 
     setError("");
-    setRecords([]);
-    setDiscordResult(null);
-    setCombResult(null);
-    setResultCount(0);
+    clearResults();
     setBlurResults(false);
+
+    // Class C premium module from homepage.
+    if (premiumModule) {
+      if (auth.status !== "authenticated") {
+        setError("Sign in to run premium credit modules.");
+
+        return;
+      }
+
+      const userPlan = resolveUserPlan(auth.user);
+      const accessCheck = checkModuleAccess(userPlan, premiumModule, {
+        balance: auth.user.balance ?? 0,
+        intelxUsedToday: auth.intelxUsedToday,
+      });
+
+      if (!accessCheck.allowed) {
+        setError(
+          accessCheck.reason ??
+            "This premium module needs credits or a higher plan.",
+        );
+
+        return;
+      }
+
+      setIsSearching(true);
+
+      try {
+        const apiPath =
+          premiumModule === "instagram-live"
+            ? `/api/osint/instagram?query=${encodeURIComponent(trimmed)}&moduleSlug=instagram-live&maxUsers=100&includeActivity=0&enrichBios=0`
+            : premiumModule === "hinge-live"
+              ? `/api/osint/hinge-live?query=${encodeURIComponent(trimmed)}&moduleSlug=hinge-live`
+              : `/api/osint/stealer?query=${encodeURIComponent(trimmed)}&moduleSlug=stealer-logs`;
+
+        const response = await fetch(apiPath, { credentials: "include" });
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(sanitizePublicText(data.error || "Premium search failed."));
+
+          return;
+        }
+
+        if (premiumModule === "instagram-live") {
+          setInstagramResult(data as InstagramSearchPayload);
+        } else if (premiumModule === "hinge-live") {
+          setHingeResult(data as HingeLiveSearchResult);
+        } else {
+          const credentials = extractStealerCredentialRows(
+            Array.isArray(data.credentials)
+              ? data.credentials
+              : Array.isArray(data.results)
+                ? data.results
+                : [],
+          );
+          setStealerResult({
+            credentials,
+            archives: Array.isArray(data.archives) ? data.archives : [],
+            count:
+              typeof data.count === "number"
+                ? data.count
+                : credentials.length,
+          });
+        }
+
+        // Charge via stats when balanceCost applies.
+        if (accessCheck.requiresBalance && accessCheck.balanceCost) {
+          void apiFetch("/api/user/stats", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: trimmed,
+              type: premiumModule,
+              moduleSlug: premiumModule,
+              resultData: JSON.stringify({ ok: true }),
+            }),
+          }).catch(() => null);
+        }
+      } catch {
+        setError("Could not complete the premium search.");
+      } finally {
+        setIsSearching(false);
+      }
+
+      return;
+    }
 
     if (auth.status === "authenticated") {
       const userPlan = resolveUserPlan(auth.user);
@@ -272,14 +555,19 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         return;
       }
 
-      if (data?.blurResults) {
-        setBlurResults(true);
+      if (data?.blurResults || data?.premiumSectionsLocked) {
+        if (data.blurResults) setBlurResults(true);
+        captureVaultFromData(data as Record<string, unknown>, {
+          mode: starterMode,
+          query: searchQuery,
+          moduleSlug: route.moduleSlug,
+        });
       }
 
       if (route.apiType === "discord") {
         const discordData = data as DiscordSearchResult & { error?: string };
 
-        if (!discordData.profile) {
+        if (!discordData.profile && !data?.teaser) {
           setError(discordData.error || "Could not load Discord profile.");
 
           return;
@@ -406,7 +694,9 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           "Running…"
         ) : (
           <>
-            <span>Search</span>
+            <span>
+              {premiumCostLabel ? `Search · ${premiumCostLabel}` : "Search"}
+            </span>
             <ArrowRight className="size-5" />
           </>
         )}
@@ -486,15 +776,18 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
                 return (
                   <button
                     key={mode.id}
-                    aria-selected={starterMode === mode.id}
+                    aria-selected={starterMode === mode.id && !premiumModule}
                     className={clsx(
                       "starter-search-mode",
-                      starterMode === mode.id && "starter-search-mode--active",
+                      starterMode === mode.id &&
+                        !premiumModule &&
+                        "starter-search-mode--active",
                     )}
                     role="tab"
                     type="button"
                     onClick={() => {
                       setStarterMode(mode.id);
+                      setPremiumModule(null);
                       setError("");
                     }}
                   >
@@ -505,6 +798,54 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
               })}
             </div>
           </div>
+
+          <div
+            aria-label="Premium credit modules"
+            className="starter-search-modes mt-2"
+            role="toolbar"
+          >
+            <button
+              aria-pressed={!premiumModule}
+              className={clsx(
+                "starter-search-mode",
+                !premiumModule && "starter-search-mode--active",
+              )}
+              type="button"
+              onClick={() => setPremiumModule(null)}
+            >
+              Included
+            </button>
+            {HOME_PREMIUM_MODULE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                aria-pressed={premiumModule === opt.id}
+                className={clsx(
+                  "starter-search-mode",
+                  premiumModule === opt.id && "starter-search-mode--active",
+                )}
+                title={opt.hint}
+                type="button"
+                onClick={() => {
+                  setPremiumModule(opt.id);
+                  setError("");
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {premiumModule ? (
+            <p className="mt-2 text-xs text-zinc-400">
+              {
+                HOME_PREMIUM_MODULE_OPTIONS.find((o) => o.id === premiumModule)
+                  ?.hint
+              }
+              {auth.status === "guest"
+                ? " · Sign in required before Search."
+                : null}
+            </p>
+          ) : null}
 
           {searchBar}
         </form>
@@ -519,9 +860,14 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           data-tour="home-search-results"
         >
           <DiscordSearchResults
+            balance={balance}
             blurNoticeIsGuest={auth.status === "guest"}
             blurResults={blurResults}
+            claimToken={claimToken}
             result={discordResult}
+            unlock={unlockMeta}
+            vaultId={vaultId}
+            onUnlocked={applyUnlockedPayload}
           />
         </div>
       ) : null}
@@ -533,9 +879,45 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           data-tour="home-search-results"
         >
           <BreachesSearchResults
+            balance={balance}
             blurNoticeIsGuest={auth.status === "guest"}
             blurResults={blurResults}
+            claimToken={claimToken}
             result={combResult}
+            unlock={unlockMeta}
+            vaultId={vaultId}
+            onUnlocked={applyUnlockedPayload}
+          />
+        </div>
+      ) : null}
+
+      {instagramResult ? (
+        <div
+          ref={resultsRef}
+          className="home-search-results home-search-results--enter"
+        >
+          <InstagramSearchResults result={instagramResult} />
+        </div>
+      ) : null}
+
+      {hingeResult ? (
+        <div
+          ref={resultsRef}
+          className="home-search-results home-search-results--enter"
+        >
+          <HingeLiveResults data={hingeResult} />
+        </div>
+      ) : null}
+
+      {stealerResult ? (
+        <div
+          ref={resultsRef}
+          className="home-search-results home-search-results--enter"
+        >
+          <StealerLogsSearchResults
+            archives={stealerResult.archives}
+            credentials={stealerResult.credentials}
+            totalCredentialCount={stealerResult.count}
           />
         </div>
       ) : null}
@@ -547,14 +929,19 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           data-tour="home-search-results"
         >
           <SearchResultCards
+            balance={balance}
             blurNoticeIsGuest={auth.status === "guest"}
             blurResults={blurResults}
+            claimToken={claimToken}
             defaultExpanded="first"
             dense
             moduleSlug="breaches"
             pageSize={10}
             records={records}
             totalCount={resultCount}
+            unlock={unlockMeta}
+            vaultId={vaultId}
+            onUnlocked={applyUnlockedPayload}
           />
         </div>
       ) : null}

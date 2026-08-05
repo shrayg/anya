@@ -49,12 +49,28 @@ export function BreachesSearchResults({
   blurNoticeIsGuest = false,
   selectedExportIndex = null,
   onSelectExportIndex,
+  vaultId,
+  claimToken,
+  unlock,
+  balance = 0,
+  onUnlocked,
 }: {
   result: CombSearchResult;
   blurResults?: boolean;
   blurNoticeIsGuest?: boolean;
   selectedExportIndex?: number | null;
   onSelectExportIndex?: (index: number) => void;
+  vaultId?: string | null;
+  claimToken?: string | null;
+  unlock?: {
+    reasons?: string[];
+    creditCost?: number;
+    planRequired?: string | null;
+    allowCreditUnlock?: boolean;
+    resultCount?: number;
+  } | null;
+  balance?: number;
+  onUnlocked?: (payload: unknown) => void;
 }) {
   const selectable = Boolean(onSelectExportIndex);
   const [page, setPage] = useState(1);
@@ -278,7 +294,16 @@ export function BreachesSearchResults({
         </div>
       </div>
 
-      {blurResults ? <ResultsBlurNotice isGuest={blurNoticeIsGuest} /> : null}
+      {blurResults ? (
+        <ResultsBlurNotice
+          balance={balance}
+          claimToken={claimToken}
+          isGuest={blurNoticeIsGuest}
+          unlock={unlock}
+          vaultId={vaultId}
+          onUnlocked={onUnlocked}
+        />
+      ) : null}
     </div>
   );
 }

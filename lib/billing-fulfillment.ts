@@ -170,7 +170,13 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
       providerRef: paymentReferenceId ?? checkoutSessionId,
     });
 
-    return { ok: true as const, type: "subscription" as const, planId };
+    return {
+      ok: true as const,
+      type: "subscription" as const,
+      planId,
+      returnTo: meta.returnTo,
+      vaultId: meta.vaultId,
+    };
   }
 
   if (meta.type === "credits") {
@@ -248,6 +254,8 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
       ok: true as const,
       type: "credits" as const,
       credits: creditTotal,
+      returnTo: meta.returnTo,
+      vaultId: meta.vaultId,
     };
   }
 

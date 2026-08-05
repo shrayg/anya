@@ -1,0 +1,314 @@
+.profileResultGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.75fr);
+  gap: 9px;
+}
+
+.primaryProfile,
+.signalStack article {
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  border-radius: 13px;
+  overflow: hidden;
+  background: linear-gradient(
+    158deg,
+    rgba(28, 30, 36, 0.96),
+    rgba(11, 12, 15, 0.99)
+  );
+  box-shadow: 0 12px 27px rgba(0, 0, 0, 0.28);
+}
+
+.primaryProfile {
+  display: grid;
+  grid-template-columns: 226px minmax(0, 1fr);
+  min-height: 336px;
+  padding: 13px;
+}
+
+.portraitWrap {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(240, 168, 200, 0.2);
+  border-radius: 11px;
+  background: #12151a;
+}
+
+.portraitWrap::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 54%, rgba(5, 6, 8, 0.72));
+  content: "";
+  pointer-events: none;
+}
+
+.portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 38%;
+}
+
+.matchBadge {
+  position: absolute;
+  z-index: 1;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(240, 168, 200, 0.22);
+  border-radius: 8px;
+  color: #f5c4d8;
+  background: rgba(13, 10, 14, 0.74);
+  backdrop-filter: blur(8px);
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.matchBadge svg {
+  width: 12px;
+  height: 12px;
+  padding: 2px;
+  border-radius: 50%;
+  color: #160912;
+  background: #f0a8c8;
+}
+
+.profileCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 14px 8px 9px 17px;
+}
+
+.profileLabel,
+.profileStatus,
+.profileTags span {
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.profileLabel {
+  color: rgba(240, 168, 200, 0.74);
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.profileCopy h3 {
+  margin: 11px 0 0;
+  font-size: 28px;
+  font-weight: 620;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.profileCopy p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 9px 0 0;
+  color: #e9e9ec;
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  font-size: 13px;
+}
+
+.profileCopy p span {
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f0a8c8;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.profileCopy > small {
+  margin-top: 6px;
+  color: #777e88;
+  font-size: 9px;
+}
+
+.profileTags {
+  display: grid;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.profileTags span {
+  width: fit-content;
+  padding: 6px 8px;
+  border: 1px solid rgba(240, 168, 200, 0.15);
+  border-radius: 7px;
+  color: #bca1ad;
+  background: rgba(240, 168, 200, 0.055);
+  font-size: 6px;
+  font-weight: 600;
+}
+
+.profileStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  color: #e5a2bf;
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.profileStatus span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ef79a7;
+  box-shadow: 0 0 8px rgba(239, 121, 167, 0.58);
+}
+
+.signalStack {
+  display: grid;
+  gap: 8px;
+}
+
+.signalStack article {
+  display: flex;
+  min-width: 0;
+  min-height: 106px;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+}
+
+.sideIcon {
+  display: grid;
+  width: 37px;
+  height: 37px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.sideIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.instagram {
+  color: #f19cbd;
+  background: rgba(234, 96, 154, 0.11);
+}
+
+.dating {
+  color: #f0a8c8;
+  background: rgba(240, 168, 200, 0.1);
+}
+
+.phone {
+  color: #8ee1bd;
+  background: rgba(86, 211, 155, 0.11);
+}
+
+.signalStack article > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.signalStack article div span,
+.signalStack article small {
+  overflow: hidden;
+  color: #858b94;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signalStack article strong {
+  overflow: hidden;
+  color: #f2f2f4;
+  font-family: var(--font-anya-mono), "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signalStack article small {
+  color: #666d77;
+  font-size: 7px;
+}
+
+.squareFormat .profileResultGrid {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.8fr);
+}
+
+.squareFormat .primaryProfile {
+  grid-template-columns: 166px minmax(0, 1fr);
+  min-height: 224px;
+  padding: 9px;
+}
+
+.squareFormat .profileCopy {
+  padding: 9px 5px 6px 12px;
+}
+
+.squareFormat .profileCopy h3 {
+  margin-top: 7px;
+  font-size: 22px;
+}
+
+.squareFormat .profileCopy p {
+  margin-top: 6px;
+  font-size: 10px;
+}
+
+.squareFormat .profileCopy > small,
+.squareFormat .profileTags,
+.squareFormat .profileStatus {
+  display: none;
+}
+
+.squareFormat .signalStack {
+  gap: 6px;
+}
+
+.squareFormat .signalStack article {
+  min-height: 70px;
+  gap: 8px;
+  padding: 8px;
+}
+
+.squareFormat .sideIcon {
+  width: 30px;
+  height: 30px;
+}
+
+.squareFormat .sideIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.squareFormat .signalStack article div span {
+  font-size: 7px;
+}
+
+.squareFormat .signalStack article strong {
+  font-size: 8px;
+}
+
+.squareFormat .signalStack article small {
+  display: none;
+}
+
+.squareFormat .matchBadge {
+  right: 7px;
+  bottom: 7px;
+  left: 7px;
+  min-height: 23px;
+  font-size: 6px;
+}

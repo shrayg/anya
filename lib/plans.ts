@@ -80,9 +80,58 @@ export const RESIDENTIAL_PROXY_MODULE_SLUGS = new Set([
   "email-presence-deep",
   "instagram-live",
   "hinge-live",
+  "tinder-live",
 ]);
 /** Credits charged per residential-proxy search (1 credit ≈ $1). */
 export const RESIDENTIAL_PROXY_CREDIT_COST = 1;
+
+/**
+ * Spend credits to unlock a teaser-vaulted search (guest/free/starter soft-lock).
+ * Does not unlock Class P seat modules (AI / public records).
+ */
+export const SEARCH_UNLOCK_MODULE_SLUG = "search-unlock";
+export const SEARCH_UNLOCK_CREDIT_COST = 1;
+
+/** Module access classes for paygate / homepage unlock UX. */
+export type ModuleAccessClass = "S" | "I" | "C" | "P";
+
+/** Class S — starter / homepage open set. */
+export const MODULE_CLASS_S = new Set([
+  ...STARTER_MODULE_SLUGS,
+  "email-analyze",
+]);
+
+/** Class C — real $/query burn (proxy, stealer PPU, intelx quota billing aliases). */
+export const MODULE_CLASS_C = new Set([
+  ...RESIDENTIAL_PROXY_MODULE_SLUGS,
+  "stealer-logs",
+  "intelx",
+]);
+
+/**
+ * Homepage Class C premium picker (credit-costing tools runnable from home).
+ * Cost is resolved via checkModuleAccess / RESIDENTIAL_PROXY / PAY_PER_USE.
+ */
+export const HOME_PREMIUM_MODULE_OPTIONS = [
+  {
+    id: "stealer-logs",
+    label: "Stealer Logs",
+    billingSlug: "stealer-logs",
+    hint: "0.25 credits on Professional · included on Ultimate+",
+  },
+  {
+    id: "instagram-live",
+    label: "Instagram Live",
+    billingSlug: "instagram-live",
+    hint: "1 credit · residential proxy",
+  },
+  {
+    id: "hinge-live",
+    label: "Hinge Live",
+    billingSlug: "hinge-live",
+    hint: "1 credit · residential proxy",
+  },
+] as const;
 
 /**
  * Billing slug for authorize/stats when a search burns residential proxy.
@@ -95,7 +144,9 @@ export function resolveResidentialProxyBillingSlug(input: {
 }): string | null {
   const { moduleSlug, selectedToolId, contactProfilesDeep } = input;
 
-  if (moduleSlug === "hinge-live") return "hinge-live";
+  if (moduleSlug === "hinge-live" || moduleSlug === "tinder-live") {
+    return moduleSlug;
+  }
 
   if (moduleSlug === "instagram") {
     if (!selectedToolId || selectedToolId === "instagram-live") {
@@ -162,6 +213,69 @@ export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
   "international-records-directory",
   "portal-backlog",
 ]);
+
+/** Class P — plan seat premium (credits alone cannot unlock). */
+export const MODULE_CLASS_P = new Set([
+  ...AI_MODULE_SLUGS,
+  ...PUBLIC_RECORDS_MODULE_SLUGS,
+  "crypto-intel",
+  "crypto-wallet",
+  "crypto-address",
+  "crypto-tx",
+  "crypto-risk",
+  "crypto-flow",
+  "passport",
+  "notalivex-country",
+  "notalivex-platform",
+  "notalivex-renaper",
+  "google-docs",
+  "ganknow",
+  "fivem",
+  "seekria-fivem",
+  "name-search",
+]);
+
+export function getModuleAccessClass(moduleSlug: string): ModuleAccessClass {
+  if (MODULE_CLASS_S.has(moduleSlug)) return "S";
+  if (MODULE_CLASS_C.has(moduleSlug)) return "C";
+  if (MODULE_CLASS_P.has(moduleSlug)) return "P";
+
+  return "I";
+}
+
+/** Minimum paid plan that sees Class S results clear (not teaser). */
+export function planClearsStarterTeaser(plan: PlanId): boolean {
+  return plan !== "free";
+}
+
+/** Professional+ panel sees Class I clear without credit unlock. */
+export function planClearsIncludedModules(plan: PlanId): boolean {
+  return (
+    plan === "professional" ||
+    plan === "ultimate" ||
+    plan === "enterprise"
+  );
+}
+
+export function planMeetsModuleClass(
+  plan: PlanId,
+  accessClass: ModuleAccessClass,
+): boolean {
+  if (accessClass === "S") return planClearsStarterTeaser(plan);
+  if (accessClass === "I") return planClearsIncludedModules(plan);
+  if (accessClass === "P") return planClearsIncludedModules(plan);
+
+  // Class C still needs credits/quota — plan only opens Professional+ panel.
+  return planClearsIncludedModules(plan);
+}
+
+/** Whether credits can unlock a vaulted teaser for this module class. */
+export function creditsCanUnlockModuleClass(
+  accessClass: ModuleAccessClass,
+): boolean {
+  // Class P seat modules require a plan — credits alone are not enough.
+  return accessClass === "S" || accessClass === "I";
+}
 
 export type PlanDefinition = {
   id: PlanId;
@@ -284,8 +398,8 @@ export const CUSTOM_CREDIT_MAX = 500;
 export const CUSTOM_CREDIT_PACK_ID = "credits_custom";
 
 /**
- * Three bulk packs + custom ($1/credit) on the pricing page.
- * Packs price at ~$1/credit face value, then add 15–25% bonus credits —
+ * Four bulk packs + custom ($1/credit) on the pricing page.
+ * Packs price at ~$1/credit face value, then add 15–30% bonus credits —
  * bulk buyers get a better effective rate because unused balance is expected.
  */
 export const CREDIT_PACKS: CreditPack[] = [
@@ -304,7 +418,6 @@ export const CREDIT_PACKS: CreditPack[] = [
     price: 50,
     discountPercent: 20,
     description: "20% bulk bonus — regular casework volume",
-    highlighted: true,
   },
   {
     id: "credits_100",
@@ -313,6 +426,14 @@ export const CREDIT_PACKS: CreditPack[] = [
     price: 100,
     discountPercent: 25,
     description: "25% bulk bonus — teams and heavy usage",
+  },
+  {
+    id: "credits_200",
+    name: "Scale Pack",
+    credits: 200,
+    price: 200,
+    discountPercent: 30,
+    description: "30% bulk bonus — high-volume ops",
   },
 ];
 
@@ -350,6 +471,7 @@ export const CREDIT_PACK_NAME_IDS: Record<string, string> = {
   "Starter Pack": "credits_25",
   "Plus Pack": "credits_50",
   "Agency Pack": "credits_100",
+  "Scale Pack": "credits_200",
   "Custom credits": CUSTOM_CREDIT_PACK_ID,
   // Legacy names still in pending rows
   "Investigator Pack": "credits_25",
@@ -478,7 +600,9 @@ function checkResidentialProxyAccess(
         ? "Instagram Live"
         : moduleSlug === "hinge-live"
           ? "Hinge Live"
-          : "Residential proxy search";
+          : moduleSlug === "tinder-live"
+            ? "Tinder Live"
+            : "Residential proxy search";
 
   if (balance < RESIDENTIAL_PROXY_CREDIT_COST) {
     return {
@@ -506,6 +630,30 @@ export function checkModuleAccess(
 
   // Residential proxy billing applies to all paid panel plans (incl. Ultimate).
   const proxyGate = checkResidentialProxyAccess(moduleSlug, balance);
+
+  if (moduleSlug === SEARCH_UNLOCK_MODULE_SLUG) {
+    if (plan === "free" || plan === "starter" || planClearsIncludedModules(plan)) {
+      if (balance < SEARCH_UNLOCK_CREDIT_COST) {
+        return {
+          allowed: false,
+          reason: `Unlocking this search costs ${SEARCH_UNLOCK_CREDIT_COST} credit. Top up on the Pricing page.`,
+          requiresBalance: true,
+          balanceCost: SEARCH_UNLOCK_CREDIT_COST,
+        };
+      }
+
+      return {
+        allowed: true,
+        requiresBalance: true,
+        balanceCost: SEARCH_UNLOCK_CREDIT_COST,
+      };
+    }
+
+    return {
+      allowed: false,
+      reason: "Sign in to unlock this search.",
+    };
+  }
 
   if (proxyGate && (plan === "free" || plan === "starter")) {
     return {

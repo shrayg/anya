@@ -134,7 +134,11 @@ export async function GET(req: NextRequest) {
         BREACHES_ROUTE_DEADLINE_MS,
       );
 
-      return osintJson(access, response);
+      return osintJson(access, response, undefined, {
+        moduleSlug: "breaches",
+        query,
+        req,
+      });
     } catch (err) {
       if (
         err instanceof Error &&

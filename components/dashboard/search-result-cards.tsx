@@ -214,6 +214,11 @@ export function SearchResultCards({
   defaultExpanded = "all",
   dense = true,
   pageSize = RESULTS_PAGE_SIZE,
+  vaultId,
+  claimToken,
+  unlock,
+  balance = 0,
+  onUnlocked,
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
@@ -234,6 +239,17 @@ export function SearchResultCards({
   dense?: boolean;
   /** Results per page (default 10). Display-only — does not cap the API. */
   pageSize?: number;
+  vaultId?: string | null;
+  claimToken?: string | null;
+  unlock?: {
+    reasons?: string[];
+    creditCost?: number;
+    planRequired?: string | null;
+    allowCreditUnlock?: boolean;
+    resultCount?: number;
+  } | null;
+  balance?: number;
+  onUnlocked?: (payload: unknown) => void;
 }) {
   const safePageSize = Math.max(1, pageSize);
   const [expanded, setExpanded] = useState<Set<number>>(() =>
@@ -456,7 +472,16 @@ export function SearchResultCards({
         onPrev={() => goToPage(Math.max(1, page - 1))}
       />
 
-      {blurResults ? <ResultsBlurNotice isGuest={blurNoticeIsGuest} /> : null}
+      {blurResults ? (
+        <ResultsBlurNotice
+          balance={balance}
+          claimToken={claimToken}
+          isGuest={blurNoticeIsGuest}
+          unlock={unlock}
+          vaultId={vaultId}
+          onUnlocked={onUnlocked}
+        />
+      ) : null}
     </div>
   );
 }

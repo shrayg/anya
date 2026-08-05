@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { fulfillBillingPayment } from "@/lib/billing-fulfillment";
+import { sanitizeReturnTo } from "@/lib/search-resume";
 import {
   decodeBillingMeta,
   getAppBaseUrl,
@@ -136,6 +137,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(
         `${baseUrl}/account?billing=success`,
       );
+    }
+
+    const returnTo =
+      "returnTo" in result
+        ? sanitizeReturnTo(
+            typeof result.returnTo === "string" ? result.returnTo : null,
+          )
+        : null;
+
+    if (returnTo) {
+      const sep = returnTo.includes("?") ? "&" : "?";
+      const withBilling =
+        returnTo.includes("billing=")
+          ? returnTo
+          : `${returnTo}${sep}billing=success`;
+
+      return NextResponse.redirect(`${baseUrl}${withBilling}`);
     }
 
     return NextResponse.redirect(`${baseUrl}/pricing?billing=success`);

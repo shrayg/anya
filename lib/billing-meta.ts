@@ -9,6 +9,11 @@ export type BillingMeta = {
   creditsAmount?: number;
   /** Payment rail used for this checkout. */
   provider?: "square" | "oxapay";
+  /** Safe relative path after payment (e.g. /#search). */
+  returnTo?: string;
+  /** Teaser vault to claim after credits/plan purchase. */
+  vaultId?: string;
+  intent?: "unlock_search" | "module_run" | string;
 };
 
 export type BillingProvider = "square" | "oxapay";

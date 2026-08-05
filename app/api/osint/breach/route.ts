@@ -34,7 +34,16 @@ export async function GET(req: NextRequest) {
 
   const query = req.nextUrl.searchParams.get("query")?.trim();
   const scope = req.nextUrl.searchParams.get("scope");
-  const moduleSlug = req.nextUrl.searchParams.get("moduleSlug")?.trim();
+  const moduleSlug =
+    req.nextUrl.searchParams.get("moduleSlug")?.trim() ||
+    scope ||
+    "stealer-logs";
+
+  const vaultOpts = {
+    moduleSlug,
+    query: query ?? "",
+    req,
+  };
 
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
@@ -81,13 +90,18 @@ export async function GET(req: NextRequest) {
       );
 
       if (data.count === 0) {
-        return osintJson(access, {
-          ...data,
-          message: "No results were found.",
-        });
+        return osintJson(
+          access,
+          {
+            ...data,
+            message: "No results were found.",
+          },
+          undefined,
+          vaultOpts,
+        );
       }
 
-      return osintJson(access, data);
+      return osintJson(access, data, undefined, vaultOpts);
     } catch (err) {
       return osintFailureResponse(err, { softEmpty });
     }
@@ -125,24 +139,34 @@ export async function GET(req: NextRequest) {
           );
 
     if (data.count === 0 && mergedCredentials.length === 0 && archives.length === 0) {
-      return osintJson(access, {
-        ...data,
-        credentials: [],
-        archives: [],
-        message: "No results were found.",
-      });
+      return osintJson(
+        access,
+        {
+          ...data,
+          credentials: [],
+          archives: [],
+          message: "No results were found.",
+        },
+        undefined,
+        vaultOpts,
+      );
     }
 
-    return osintJson(access, {
-      ...data,
-      count: Math.max(
-        typeof data.count === "number" ? data.count : 0,
-        results.length,
-        mergedCredentials.length,
-      ),
-      credentials: mergedCredentials,
-      archives,
-    });
+    return osintJson(
+      access,
+      {
+        ...data,
+        count: Math.max(
+          typeof data.count === "number" ? data.count : 0,
+          results.length,
+          mergedCredentials.length,
+        ),
+        credentials: mergedCredentials,
+        archives,
+      },
+      undefined,
+      vaultOpts,
+    );
   } catch (err) {
     return osintFailureResponse(err, { softEmpty });
   }

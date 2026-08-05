@@ -584,6 +584,11 @@ export function DiscordSearchResults({
   blurNoticeIsGuest = false,
   loadingMore = false,
   progressLabel = "",
+  vaultId,
+  claimToken,
+  unlock,
+  balance = 0,
+  onUnlocked,
 }: {
   result: DiscordSearchResult;
   blurResults?: boolean;
@@ -591,6 +596,17 @@ export function DiscordSearchResults({
   /** True while more Discord fan-out modules are still settling. */
   loadingMore?: boolean;
   progressLabel?: string;
+  vaultId?: string | null;
+  claimToken?: string | null;
+  unlock?: {
+    reasons?: string[];
+    creditCost?: number;
+    planRequired?: string | null;
+    allowCreditUnlock?: boolean;
+    resultCount?: number;
+  } | null;
+  balance?: number;
+  onUnlocked?: (payload: unknown) => void;
 }) {
   const {
     profile,
@@ -1099,7 +1115,16 @@ export function DiscordSearchResults({
         </div>
       </div>
 
-      {blurResults ? <ResultsBlurNotice isGuest={blurNoticeIsGuest} /> : null}
+      {blurResults || vaultId ? (
+        <ResultsBlurNotice
+          balance={balance}
+          claimToken={claimToken}
+          isGuest={blurNoticeIsGuest}
+          unlock={unlock}
+          vaultId={vaultId}
+          onUnlocked={onUnlocked}
+        />
+      ) : null}
     </div>
   );
 }

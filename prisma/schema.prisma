@@ -204,6 +204,30 @@ model SearchHistory {
   safetyFlags SafetyFlag[]
 }
 
+/// Short-lived full OSINT payloads for teaser/paygate unlock (inspect-safe).
+model SearchResultVault {
+  id               String    @id
+  claimTokenHash   String
+  moduleSlug       String
+  queryHash        String    @default("")
+  queryPreview     String    @default("")
+  payload          String
+  metaJson         String    @default("{}")
+  userId           Int?
+  ipHash           String?
+  unlockMode       String    @default("teaser")
+  planRequired     String?
+  creditCost       Float     @default(1)
+  allowCreditUnlock Boolean  @default(true)
+  expiresAt        DateTime
+  claimedAt        DateTime?
+  claimedByUserId  Int?
+  createdAt        DateTime  @default(now())
+
+  @@index([expiresAt])
+  @@index([claimTokenHash])
+}
+
 model Case {
   id          Int          @id @default(autoincrement())
   title       String

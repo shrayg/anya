@@ -94,17 +94,22 @@ export async function GET(req: NextRequest) {
       throw new Error(publicSearchError("No results from intelligence indexes."));
     }
 
-    return osintJson(access, {
-      email,
-      source: "email-analyze",
-      sources: {
-        brief: hasBrief ? brief : null,
-        contactProfiles: hasPresence ? contactProfiles : null,
-        indexSweep: hasSweep ? indexSweep : null,
-        seekriaEmailOsint: hasSeekria ? seekriaEmailOsint : null,
-        seeknowEmailCheck: hasSeeknow ? seeknowEmailCheck : null,
+    return osintJson(
+      access,
+      {
+        email,
+        source: "email-analyze",
+        sources: {
+          brief: hasBrief ? brief : null,
+          contactProfiles: hasPresence ? contactProfiles : null,
+          indexSweep: hasSweep ? indexSweep : null,
+          seekriaEmailOsint: hasSeekria ? seekriaEmailOsint : null,
+          seeknowEmailCheck: hasSeeknow ? seeknowEmailCheck : null,
+        },
       },
-    });
+      undefined,
+      { moduleSlug: "email-analyze", query: email, req },
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : publicSearchError();
 

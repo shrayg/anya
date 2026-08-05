@@ -302,6 +302,16 @@ function AuthForm() {
         canManageWorkspace: meData.canManageWorkspace,
       });
 
+      const nextRaw = searchParams.get("next");
+      const nextPath =
+        nextRaw &&
+        (nextRaw.startsWith("/#search") ||
+          nextRaw === "/#search" ||
+          nextRaw === "/" ||
+          nextRaw.startsWith("/pricing"))
+          ? nextRaw
+          : null;
+
       const plan = searchParams.get("plan");
       const interval = searchParams.get("interval") ?? "monthly";
       const method = searchParams.get("method");
@@ -328,7 +338,7 @@ function AuthForm() {
         return;
       }
 
-      window.location.assign(landingPath);
+      window.location.assign(nextPath || landingPath);
     } catch {
       setError(
         "Could not reach the server. Check your connection and try again.",

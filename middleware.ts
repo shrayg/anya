@@ -10,6 +10,37 @@ import {
   isCsrfExemptPath,
   isMutatingMethod,
 } from "@/lib/csrf";
+import { MODULE_CLASS_S, STARTER_MODULE_SLUGS } from "@/lib/plans";
+
+/** Guest-safe OSINT segments (path after /api/osint/). */
+const GUEST_OSINT_PATH_SEGMENTS = new Set([
+  "breaches",
+  "breach",
+  "discord",
+  "email-analyze",
+]);
+
+function isGuestAllowedOsintRequest(request: NextRequest): boolean {
+  if (request.method !== "GET") return false;
+
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/api/osint/")) return false;
+
+  const segment = pathname.slice("/api/osint/".length).split("/")[0] ?? "";
+  if (!GUEST_OSINT_PATH_SEGMENTS.has(segment)) return false;
+
+  const moduleSlug =
+    request.nextUrl.searchParams.get("moduleSlug")?.trim() ||
+    request.nextUrl.searchParams.get("scope")?.trim() ||
+    "";
+
+  // Explicit non-starter billing slug → require session.
+  if (moduleSlug && !MODULE_CLASS_S.has(moduleSlug) && !STARTER_MODULE_SLUGS.has(moduleSlug)) {
+    return false;
+  }
+
+  return true;
+}
 
 function getJwtKey() {
   const secret = process.env.JWT_SECRET?.trim();
@@ -66,6 +97,7 @@ export async function middleware(request: NextRequest) {
   const isDashboard = pathname.startsWith("/dashboard");
   const isAccountPage = pathname === "/account" || pathname.startsWith("/account/");
   const needsSession = isDashboard || isOsintApi || isAccountPage;
+  const guestOsintOk = isOsintApi && isGuestAllowedOsintRequest(request);
 
   // --- CSRF for state-changing /api/* (except signed webhooks / cron) ---
   if (isApi && isMutatingMethod(method) && !isCsrfExemptPath(pathname)) {
@@ -96,6 +128,10 @@ export async function middleware(request: NextRequest) {
 
     if (!token || !key) {
       if (isOsintApi) {
+        if (guestOsintOk) {
+          return passthrough;
+        }
+
         return stripFingerprintHeaders(
           NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
         );
@@ -115,6 +151,10 @@ export async function middleware(request: NextRequest) {
       return passthrough;
     } catch {
       if (isOsintApi) {
+        if (guestOsintOk) {
+          return passthrough;
+        }
+
         return stripFingerprintHeaders(
           NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
         );

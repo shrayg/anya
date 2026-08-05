@@ -68,7 +68,11 @@ export async function GET(req: NextRequest) {
         OSINT_ROUTE_DEADLINE_MS,
       );
 
-      return osintJson(access, response);
+      return osintJson(access, response, undefined, {
+        moduleSlug: "discord-id",
+        query,
+        req,
+      });
     } catch (err) {
       return osintFailureResponse(err, {
         softEmpty,
@@ -84,7 +88,11 @@ export async function GET(req: NextRequest) {
         OSINT_ROUTE_DEADLINE_MS,
       );
 
-      return osintJson(access, response);
+      return osintJson(access, response, undefined, {
+        moduleSlug: "discord-id",
+        query,
+        req,
+      });
     } catch (err) {
       return osintFailureResponse(err, {
         softEmpty,

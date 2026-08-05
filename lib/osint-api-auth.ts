@@ -6,14 +6,21 @@ import {
   warmDataBlacklistCache,
 } from "@/lib/data-blacklist";
 import { authorizeSearch } from "@/lib/plan-access";
-import { redactOsintTeaser } from "@/lib/osint-teaser-redact";
+import { redactOsintTeaser, redactPremiumFanoutSections } from "@/lib/osint-teaser-redact";
 import {
+  planClearsIncludedModules,
   shouldBlurResults,
   STARTER_MODULE_SLUGS,
+  type PlanId,
 } from "@/lib/plans";
 import { getPlatformSearchConfig } from "@/lib/platform-search";
 import { maybeAutoFlagRiskySearch } from "@/lib/safety-flag-server";
 import { assessSearchQueryForSafety } from "@/lib/safety-search-flags";
+import {
+  createSearchResultVault,
+  hashClientIp,
+  purgeExpiredSearchVaults,
+} from "@/lib/search-result-vault";
 import { consumeRateLimit } from "@/lib/simple-rate-limit";
 
 /** Homepage starter modules + email-analyze companion panel. */
@@ -29,6 +36,9 @@ export type OsintAccessOk = {
   userId: number | null;
   blurResults: boolean;
   isGuest: boolean;
+  plan?: import("@/lib/plans").PlanId;
+  /** Starter (and below panel): soft-teaser Class I/P fan-out subsections. */
+  softLockPremium?: boolean;
 };
 
 function clientIp(req: NextRequest): string {
@@ -346,7 +356,7 @@ export async function requireOsintAccess(
 
     await warmDataBlacklistCache();
 
-    return { userId: null, blurResults: true, isGuest: true };
+    return { userId: null, blurResults: true, isGuest: true, softLockPremium: true };
   }
 
   const access = await authorizeSearch({
@@ -363,6 +373,8 @@ export async function requireOsintAccess(
 
   const userId = session.userId as number;
   const query = req.nextUrl.searchParams.get("query")?.trim();
+  const plan: PlanId =
+    "plan" in access && access.plan ? access.plan : "free";
 
   // Silent safety flag — never block the OSINT response.
   if (query && assessSearchQueryForSafety(query).flagged) {
@@ -378,11 +390,19 @@ export async function requireOsintAccess(
 
   const blurResults =
     Boolean("blurResults" in access && access.blurResults) ||
-    ("plan" in access && shouldBlurResults(access.plan));
+    shouldBlurResults(plan);
+
+  const softLockPremium = !planClearsIncludedModules(plan);
 
   await warmDataBlacklistCache();
 
-  return { userId, blurResults, isGuest: false };
+  return {
+    userId,
+    blurResults,
+    isGuest: false,
+    plan,
+    softLockPremium,
+  };
 }
 
 /** JSON response that strips blacklisted values, then redacts teaser plans. */
@@ -390,29 +410,82 @@ export async function osintJson(
   access: OsintAccessOk,
   data: unknown,
   init?: ResponseInit,
+  options?: {
+    moduleSlug?: string;
+    query?: string;
+    req?: NextRequest;
+  },
 ): Promise<NextResponse> {
   await warmDataBlacklistCache();
   const filtered = applyDataBlacklistToPayload(data);
 
-  if (!access.blurResults) {
+  const needsVault =
+    access.blurResults || Boolean(access.softLockPremium);
+
+  if (!needsVault) {
     return NextResponse.json(filtered, init);
   }
 
-  const redacted = redactOsintTeaser(filtered, { isGuest: access.isGuest });
+  const moduleSlug = options?.moduleSlug?.trim() || "breaches";
+  const query = options?.query?.trim() || "";
+  let vaultId: string | undefined;
+  let claimToken: string | undefined;
+  let unlock: Record<string, unknown> | undefined;
+  let expiresAt: string | undefined;
+
+  try {
+    void purgeExpiredSearchVaults(20);
+    const ip = options?.req ? clientIp(options.req) : "unknown";
+    const vault = await createSearchResultVault({
+      moduleSlug,
+      query,
+      payload: filtered,
+      userId: access.userId,
+      ipHash: hashClientIp(ip),
+      unlockMode: access.blurResults ? "teaser" : "premium_section",
+    });
+    vaultId = vault.vaultId;
+    claimToken = vault.claimToken;
+    unlock = vault.unlock as unknown as Record<string, unknown>;
+    expiresAt = vault.expiresAt;
+  } catch (error) {
+    console.error("search vault create failed:", error);
+  }
+
+  const redacted = access.blurResults
+    ? redactOsintTeaser(filtered, { isGuest: access.isGuest })
+    : redactPremiumFanoutSections(filtered);
+
+  const vaultFields = vaultId
+    ? {
+        vaultId,
+        claimToken,
+        unlock,
+        vaultExpiresAt: expiresAt,
+      }
+    : {};
 
   if (redacted && typeof redacted === "object" && !Array.isArray(redacted)) {
     return NextResponse.json(
       {
         ...(redacted as Record<string, unknown>),
-        blurResults: true,
-        teaser: true,
+        blurResults: Boolean(access.blurResults),
+        teaser: Boolean(access.blurResults),
+        premiumSectionsLocked: Boolean(access.softLockPremium),
+        ...vaultFields,
       },
       init,
     );
   }
 
   return NextResponse.json(
-    { data: redacted, blurResults: true, teaser: true },
+    {
+      data: redacted,
+      blurResults: Boolean(access.blurResults),
+      teaser: Boolean(access.blurResults),
+      premiumSectionsLocked: Boolean(access.softLockPremium),
+      ...vaultFields,
+    },
     init,
   );
 }

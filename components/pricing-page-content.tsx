@@ -597,7 +597,7 @@ export function PricingPageContent({
             <div className="pricing-credit-view mt-10">
               <div className="pricing-credit-hero mx-auto mb-7 max-w-xl text-center">
                 <p className="pricing-credit-intro text-sm text-zinc-400">
-                  1 credit = ${CREDIT_UNIT_USD}. Packs include a 15–25% bonus;
+                  1 credit = ${CREDIT_UNIT_USD}. Packs include a 15–30% bonus;
                   custom is exact ${CREDIT_UNIT_USD}/credit
                   {creditBalance != null ? (
                     <>
@@ -614,8 +614,8 @@ export function PricingPageContent({
                 </p>
               </div>
 
-              <div className="pricing-credit-layout mx-auto grid max-w-5xl grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {CREDIT_PACKS.map((pack) => {
+              <div className="pricing-credit-layout mx-auto grid max-w-6xl grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                {CREDIT_PACKS.slice(0, 2).map((pack) => {
                   const total = getCreditPackTotal(pack);
                   const bonus = getCreditPackBonus(pack);
 
@@ -625,17 +625,9 @@ export function PricingPageContent({
                       className={clsx(
                         PAYMENT_CARD_BASE,
                         "pricing-credit-card--compact",
-                        pack.highlighted
-                          ? PAYMENT_CARD_HIGHLIGHTED
-                          : PAYMENT_CARD_DEFAULT,
+                        PAYMENT_CARD_DEFAULT,
                       )}
                     >
-                      {pack.highlighted ? (
-                        <span className="absolute right-3 top-3 rounded-full bg-[var(--anya-blush)]/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0c1019]">
-                          Best value
-                        </span>
-                      ) : null}
-
                       <div className="pricing-credit-head">
                         <h3 className="text-lg font-semibold tracking-tight text-white">
                           {pack.name.replace(/ Pack$/, "")}
@@ -666,7 +658,6 @@ export function PricingPageContent({
                       </div>
 
                       <PricingCta
-                        accent={pack.highlighted}
                         disabled={busyId === pack.id}
                         onClick={() =>
                           requestCheckout(
@@ -684,15 +675,19 @@ export function PricingPageContent({
                 <article
                   className={clsx(
                     PAYMENT_CARD_BASE,
-                    "pricing-credit-card--compact",
-                    PAYMENT_CARD_DEFAULT,
+                    "pricing-credit-card--compact pricing-credit-card--featured sm:col-span-2 xl:col-span-1",
+                    PAYMENT_CARD_HIGHLIGHTED,
                   )}
                 >
+                  <span className="absolute right-3 top-3 rounded-full bg-[var(--anya-blush)]/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0c1019]">
+                    Pick amount
+                  </span>
+
                   <div className="pricing-credit-head">
-                    <h3 className="text-lg font-semibold tracking-tight text-white">
+                    <h3 className="text-xl font-semibold tracking-tight text-white">
                       Custom
                     </h3>
-                    <p className="mt-1 text-xs text-zinc-400">
+                    <p className="mt-1 text-xs text-zinc-300">
                       1 credit = ${CREDIT_UNIT_USD} · min {CUSTOM_CREDIT_MIN} ·
                       no bonus
                     </p>
@@ -701,7 +696,7 @@ export function PricingPageContent({
                   <div className="pricing-credit-value mt-5">
                     <div className="flex items-baseline gap-1.5">
                       <AnimatedNumber
-                        className="text-3xl font-semibold tracking-tight text-white tabular-nums"
+                        className="text-4xl font-semibold tracking-tight text-white tabular-nums"
                         duration={0.35}
                         value={customCreditsDraft ?? 0}
                       />
@@ -811,6 +806,7 @@ export function PricingPageContent({
                   </div>
 
                   <PricingCta
+                    accent
                     disabled={
                       busyId === CUSTOM_CREDIT_PACK_ID || !customAmountValid
                     }
@@ -829,6 +825,63 @@ export function PricingPageContent({
                     {busyId === CUSTOM_CREDIT_PACK_ID ? "Working…" : "Buy"}
                   </PricingCta>
                 </article>
+
+                {CREDIT_PACKS.slice(2).map((pack) => {
+                  const total = getCreditPackTotal(pack);
+                  const bonus = getCreditPackBonus(pack);
+
+                  return (
+                    <article
+                      key={pack.id}
+                      className={clsx(
+                        PAYMENT_CARD_BASE,
+                        "pricing-credit-card--compact",
+                        PAYMENT_CARD_DEFAULT,
+                      )}
+                    >
+                      <div className="pricing-credit-head">
+                        <h3 className="text-lg font-semibold tracking-tight text-white">
+                          {pack.name.replace(/ Pack$/, "")}
+                        </h3>
+                        <p className="mt-1 text-xs text-emerald-400/90">
+                          +{bonus} bonus · {pack.discountPercent}% off
+                        </p>
+                      </div>
+
+                      <div className="pricing-credit-value mt-5">
+                        <div className="flex items-baseline gap-1.5">
+                          <AnimatedNumber
+                            className="text-3xl font-semibold tracking-tight text-white tabular-nums"
+                            duration={0.55}
+                            value={total}
+                          />
+                          <span className="text-sm font-medium text-zinc-400">
+                            credits
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-zinc-400">
+                          <AnimatedPrice
+                            className="font-medium text-white tabular-nums"
+                            duration={0.55}
+                            value={pack.price}
+                          />
+                        </p>
+                      </div>
+
+                      <PricingCta
+                        disabled={busyId === pack.id}
+                        onClick={() =>
+                          requestCheckout(
+                            { type: "credits", packId: pack.id },
+                            pack.id,
+                          )
+                        }
+                      >
+                        {busyId === pack.id ? "Working…" : "Buy"}
+                      </PricingCta>
+                    </article>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -2433,10 +2433,36 @@
   align-items: stretch;
 }
 
+@media (min-width: 1280px) {
+  :is(.anya-landing, .brutal-page, .marketing-canvas) .pricing-credit-layout {
+    align-items: center;
+    gap: 0.7rem !important;
+  }
+}
+
 :is(.anya-landing, .brutal-page, .marketing-canvas)
   .pricing-credit-card.pricing-credit-card--compact {
   padding: 1.15rem 1.2rem 1.2rem !important;
   min-height: 0;
+}
+
+:is(.anya-landing, .brutal-page, .marketing-canvas)
+  .pricing-credit-card--compact.pricing-credit-card--featured {
+  padding: 1.45rem 1.35rem 1.4rem !important;
+  z-index: 2;
+}
+
+@media (min-width: 1280px) {
+  :is(.anya-landing, .brutal-page, .marketing-canvas)
+    .pricing-credit-card--compact.pricing-credit-card--featured {
+    transform: scale(1.08);
+    transform-origin: center center;
+  }
+
+  :is(.anya-landing, .brutal-page, .marketing-canvas)
+    .pricing-credit-card--compact.pricing-credit-card--featured:hover {
+    transform: scale(1.1) translateY(-2px);
+  }
 }
 
 :is(.anya-landing, .brutal-page, .marketing-canvas)
