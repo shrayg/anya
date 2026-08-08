@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { osintJson, requireOsintAccess } from "@/lib/osint-api-auth";
+import {
+  finalizeOsintStreamResult,
+  osintJson,
+  redactOsintStreamPartial,
+  requireOsintAccess,
+} from "@/lib/osint-api-auth";
 import {
   applyDataBlacklistToPayload,
   warmDataBlacklistCache,
@@ -126,8 +131,8 @@ export async function GET(req: NextRequest) {
       onEvent,
     );
 
-  // Guests / teaser plans: full JSON so redactOsintTeaser stays consistent.
-  if (!wantsStream(req) || access.isGuest || access.blurResults) {
+  // Non-stream clients still get one buffered JSON response.
+  if (!wantsStream(req)) {
     try {
       const response = await withDeadline(
         runSearch(),
@@ -162,70 +167,98 @@ export async function GET(req: NextRequest) {
         current: null,
       };
 
-      const send = (event: BreachesOsintProgressEvent) => {
-        if (event.type === "partial" || event.type === "done") {
-          const result = applyDataBlacklistToPayload(
-            event.result,
-          ) as BreachesOsintResult;
+      const enqueue = (payload: unknown) => {
+        controller.enqueue(
+          encoder.encode(`${JSON.stringify(payload)}\n`),
+        );
+      };
 
-          if (hasUsefulBreaches(result)) {
-            bestPartial.current = result;
-          }
+      const sendPartial = (event: BreachesOsintProgressEvent) => {
+        if (event.type !== "partial") return;
 
-          controller.enqueue(
-            encoder.encode(`${JSON.stringify({ ...event, result })}\n`),
-          );
+        const blacklisted = applyDataBlacklistToPayload(
+          event.result,
+        ) as BreachesOsintResult;
 
-          return;
+        if (hasUsefulBreaches(blacklisted)) {
+          bestPartial.current = blacklisted;
         }
 
-        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+        enqueue({
+          ...event,
+          result: redactOsintStreamPartial(access, blacklisted),
+        });
       };
 
       try {
-        await withDeadline(runSearch(send), BREACHES_ROUTE_DEADLINE_MS);
+        const finalResult = await withDeadline(
+          runSearch(sendPartial),
+          BREACHES_ROUTE_DEADLINE_MS,
+        );
+        const blacklisted = applyDataBlacklistToPayload(
+          finalResult,
+        ) as BreachesOsintResult;
+
+        if (hasUsefulBreaches(blacklisted)) {
+          bestPartial.current = blacklisted;
+        }
+
+        const finalized = await finalizeOsintStreamResult(
+          access,
+          blacklisted,
+          {
+            moduleSlug: "breaches",
+            query,
+            req,
+          },
+        );
+
+        enqueue({
+          type: "done",
+          result: finalized,
+        });
       } catch (err) {
         const kept = bestPartial.current;
 
         // Prefer the best streamed partial over wiping the UI with softEmpty.
         if (err instanceof OsintTimeoutError && kept) {
-          controller.enqueue(
-            encoder.encode(
-              `${JSON.stringify({
-                type: "done",
-                result: {
-                  ...kept,
-                  message:
-                    kept.message ||
-                    "Lookup timed out; showing results collected so far.",
-                },
-              })}\n`,
-            ),
-          );
+          const finalized = await finalizeOsintStreamResult(access, kept, {
+            moduleSlug: "breaches",
+            query,
+            req,
+          });
+
+          enqueue({
+            type: "done",
+            result: {
+              ...finalized,
+              message:
+                (typeof finalized.message === "string" && finalized.message) ||
+                "Lookup timed out; showing results collected so far.",
+            },
+          });
         } else if (kept && hasUsefulBreaches(kept)) {
-          controller.enqueue(
-            encoder.encode(
-              `${JSON.stringify({
-                type: "done",
-                result: kept,
-              })}\n`,
-            ),
-          );
+          const finalized = await finalizeOsintStreamResult(access, kept, {
+            moduleSlug: "breaches",
+            query,
+            req,
+          });
+
+          enqueue({
+            type: "done",
+            result: finalized,
+          });
         } else {
           const message =
             err instanceof Error && err.message
               ? err.message
               : "Failed to search breach indexes";
 
-          controller.enqueue(
-            encoder.encode(
-              `${JSON.stringify({
-                type: "error",
-                error: message,
-                result: empty,
-              })}\n`,
-            ),
-          );
+          enqueue({
+            type: "error",
+            error: message,
+            result: empty,
+          });
         }
       } finally {
         controller.close();

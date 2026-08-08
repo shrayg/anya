@@ -490,6 +490,116 @@ export async function osintJson(
   );
 }
 
+/**
+ * Redact a progressive stream frame for guests / soft-lock plans.
+ * Does not create a vault — call {@link finalizeOsintStreamResult} on `done`.
+ */
+export function redactOsintStreamPartial(
+  access: OsintAccessOk,
+  data: unknown,
+): unknown {
+  const filtered = applyDataBlacklistToPayload(data);
+
+  if (access.blurResults) {
+    const redacted = redactOsintTeaser(filtered, { isGuest: access.isGuest });
+
+    if (redacted && typeof redacted === "object" && !Array.isArray(redacted)) {
+      return {
+        ...(redacted as Record<string, unknown>),
+        blurResults: true,
+        teaser: true,
+        premiumSectionsLocked: Boolean(access.softLockPremium),
+      };
+    }
+
+    return redacted;
+  }
+
+  if (access.softLockPremium) {
+    const redacted = redactPremiumFanoutSections(filtered);
+
+    if (redacted && typeof redacted === "object" && !Array.isArray(redacted)) {
+      return {
+        ...(redacted as Record<string, unknown>),
+        premiumSectionsLocked: true,
+      };
+    }
+
+    return redacted;
+  }
+
+  return filtered;
+}
+
+/**
+ * Final stream frame: vault stores the full (blacklisted) payload; client gets
+ * the same redaction as {@link osintJson} plus unlock tokens.
+ */
+export async function finalizeOsintStreamResult(
+  access: OsintAccessOk,
+  data: unknown,
+  options: {
+    moduleSlug: string;
+    query: string;
+    req?: NextRequest;
+  },
+): Promise<Record<string, unknown>> {
+  const filtered = applyDataBlacklistToPayload(data);
+  const needsVault =
+    access.blurResults || Boolean(access.softLockPremium);
+
+  if (!needsVault) {
+    return filtered && typeof filtered === "object" && !Array.isArray(filtered)
+      ? (filtered as Record<string, unknown>)
+      : { data: filtered };
+  }
+
+  let vaultFields: Record<string, unknown> = {};
+
+  try {
+    void purgeExpiredSearchVaults(20);
+    const ip = options.req ? clientIp(options.req) : "unknown";
+    const vault = await createSearchResultVault({
+      moduleSlug: options.moduleSlug,
+      query: options.query,
+      payload: filtered,
+      userId: access.userId,
+      ipHash: hashClientIp(ip),
+      unlockMode: access.blurResults ? "teaser" : "premium_section",
+    });
+    vaultFields = {
+      vaultId: vault.vaultId,
+      claimToken: vault.claimToken,
+      unlock: vault.unlock,
+      vaultExpiresAt: vault.expiresAt,
+    };
+  } catch (error) {
+    console.error("search vault create failed (stream):", error);
+  }
+
+  const redacted = access.blurResults
+    ? redactOsintTeaser(filtered, { isGuest: access.isGuest })
+    : redactPremiumFanoutSections(filtered);
+
+  if (redacted && typeof redacted === "object" && !Array.isArray(redacted)) {
+    return {
+      ...(redacted as Record<string, unknown>),
+      blurResults: Boolean(access.blurResults),
+      teaser: Boolean(access.blurResults),
+      premiumSectionsLocked: Boolean(access.softLockPremium),
+      ...vaultFields,
+    };
+  }
+
+  return {
+    data: redacted,
+    blurResults: Boolean(access.blurResults),
+    teaser: Boolean(access.blurResults),
+    premiumSectionsLocked: Boolean(access.softLockPremium),
+    ...vaultFields,
+  };
+}
+
 export async function requireAuthenticatedSession(): Promise<
   { userId: number; isAdmin?: boolean } | NextResponse
 > {

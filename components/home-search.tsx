@@ -36,6 +36,7 @@ import {
   type StarterSearchMode,
 } from "@/lib/starter-search";
 import { useTypingPlaceholder } from "@/lib/use-typing-placeholder";
+import { consumeOsintNdjsonStream } from "@/lib/osint-ndjson-client";
 import {
   normalizeEmail,
   type CombSearchResult,
@@ -141,6 +142,8 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const scrolledForResultsRef = useRef(false);
   const premiumControlRef = useRef<HTMLDivElement>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const [streamStatus, setStreamStatus] = useState<string | null>(null);
 
   const activePremiumOption = useMemo(
     () =>
@@ -189,6 +192,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     setVaultId(null);
     setClaimToken(null);
     setUnlockMeta(null);
+    setStreamStatus(null);
   };
 
   const captureVaultFromData = (
@@ -282,6 +286,10 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
   useEffect(() => {
     setIsMounted(true);
+
+    return () => {
+      searchAbortRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -562,6 +570,9 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     }
 
     setIsSearching(true);
+    searchAbortRef.current?.abort();
+    const abort = new AbortController();
+    searchAbortRef.current = abort;
 
     const scopeParam = route.scope
       ? `&scope=${encodeURIComponent(route.scope)}`
@@ -578,11 +589,254 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       ? `&type=${encodeURIComponent(breachType)}`
       : "";
 
+    const applyBreachesPayload = (
+      breachData: CombSearchResult & {
+        error?: string;
+        message?: string;
+        hasGodsEyeReport?: boolean;
+        hasBreachVipResults?: boolean;
+        csintCount?: number;
+        breachHubCount?: number;
+        osintCatCount?: number;
+        godseyeSearchCount?: number;
+        blurResults?: boolean;
+        premiumSectionsLocked?: boolean;
+        vaultId?: string;
+        claimToken?: string;
+      },
+      opts?: { allowShrink?: boolean },
+    ) => {
+      const credentials = Array.isArray(breachData.credentials)
+        ? breachData.credentials
+        : [];
+      const matchCount = credentials.length;
+
+      setCombResult((prev) => {
+        const prevCount = prev?.credentials?.length ?? 0;
+
+        if (!opts?.allowShrink && prev && matchCount < prevCount) {
+          return {
+            ...breachData,
+            credentials: prev.credentials,
+            returned: prevCount,
+            totalMatches: prevCount,
+          };
+        }
+
+        return {
+          ...breachData,
+          credentials,
+          returned: matchCount,
+          totalMatches: matchCount,
+        };
+      });
+      setResultCount((prev) => Math.max(prev, matchCount));
+
+      if (breachData.blurResults || breachData.premiumSectionsLocked) {
+        if (breachData.blurResults) setBlurResults(true);
+        captureVaultFromData(breachData as Record<string, unknown>, {
+          mode: starterMode,
+          query: searchQuery,
+          moduleSlug: route.moduleSlug,
+        });
+      }
+    };
+
+    const isBreachesEmpty = (
+      breachData: CombSearchResult & {
+        hasGodsEyeReport?: boolean;
+        hasBreachVipResults?: boolean;
+        csintCount?: number;
+        breachHubCount?: number;
+        osintCatCount?: number;
+        godseyeSearchCount?: number;
+      },
+    ) =>
+      (breachData.credentials?.length ?? 0) === 0 &&
+      !breachData.hasGodsEyeReport &&
+      !breachData.hasBreachVipResults &&
+      !(breachData.csintCount && breachData.csintCount > 0) &&
+      !(breachData.breachHubCount && breachData.breachHubCount > 0) &&
+      !(breachData.osintCatCount && breachData.osintCatCount > 0) &&
+      !(breachData.godseyeSearchCount && breachData.godseyeSearchCount > 0);
+
     try {
+      const wantsProgressive =
+        route.apiType === "breaches" || route.apiType === "discord";
+      const streamParam = wantsProgressive ? "&stream=1" : "";
       const response = await fetch(
-        `/api/osint/${route.apiType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${breachesTypeParam}`,
-        { credentials: "include" },
+        `/api/osint/${route.apiType}?query=${encodeURIComponent(searchQuery)}${scopeParam}${moduleParam}${breachesTypeParam}${streamParam}`,
+        {
+          credentials: "include",
+          signal: abort.signal,
+          headers: wantsProgressive
+            ? { Accept: "application/x-ndjson" }
+            : undefined,
+        },
       );
+
+      if (abort.signal.aborted) return;
+
+      const contentType = response.headers.get("content-type") ?? "";
+      const isNdjson =
+        wantsProgressive &&
+        contentType.includes("ndjson") &&
+        Boolean(response.body);
+
+      if (!response.ok && !isNdjson) {
+        const data = await response.json().catch(() => ({}));
+        setError(
+          sanitizePublicText(
+            (data as { error?: string }).error || "Search failed.",
+          ),
+        );
+
+        return;
+      }
+
+      if (isNdjson && route.apiType === "breaches") {
+        setStreamStatus("Fetching sources…");
+        let sawUseful = false;
+        let streamError: string | null = null;
+
+        await consumeOsintNdjsonStream(response, {
+          signal: abort.signal,
+          onPartial: (event) => {
+            const payload = event.result as CombSearchResult & {
+              blurResults?: boolean;
+              premiumSectionsLocked?: boolean;
+            };
+            if (!payload || typeof payload !== "object") return;
+
+            if (event.module) {
+              setStreamStatus(
+                `Adding ${event.module}${
+                  typeof event.done === "number" && typeof event.total === "number"
+                    ? ` (${event.done}/${event.total})`
+                    : ""
+                }…`,
+              );
+            }
+
+            if (!isBreachesEmpty(payload)) {
+              sawUseful = true;
+              setError("");
+              applyBreachesPayload(payload);
+            }
+          },
+          onDone: (event) => {
+            const payload = event.result as CombSearchResult & {
+              error?: string;
+              message?: string;
+              blurResults?: boolean;
+              premiumSectionsLocked?: boolean;
+            };
+            if (!payload || typeof payload !== "object") return;
+
+            applyBreachesPayload(payload, { allowShrink: false });
+
+            if (isBreachesEmpty(payload) && !sawUseful) {
+              setError(
+                payload.message ||
+                  payload.error ||
+                  "No results were found.",
+              );
+              setCombResult(null);
+            }
+          },
+          onError: (event) => {
+            streamError =
+              typeof event.error === "string"
+                ? event.error
+                : "Search failed.";
+          },
+        });
+
+        if (streamError && !sawUseful) {
+          setError(sanitizePublicText(streamError));
+        }
+
+        setStreamStatus(null);
+
+        return;
+      }
+
+      if (isNdjson && route.apiType === "discord") {
+        setStreamStatus("Fetching Discord sources…");
+        let sawProfile = false;
+        let streamError: string | null = null;
+
+        await consumeOsintNdjsonStream(response, {
+          signal: abort.signal,
+          onPartial: (event) => {
+            const payload = event.result as DiscordSearchResult & {
+              blurResults?: boolean;
+              premiumSectionsLocked?: boolean;
+              teaser?: boolean;
+            };
+            if (!payload || typeof payload !== "object") return;
+
+            if (event.module) {
+              setStreamStatus(`Adding ${event.module}…`);
+            }
+
+            if (payload.profile || payload.teaser) {
+              sawProfile = true;
+              setError("");
+              setDiscordResult(payload);
+              if (payload.blurResults || payload.premiumSectionsLocked) {
+                if (payload.blurResults) setBlurResults(true);
+                captureVaultFromData(payload as Record<string, unknown>, {
+                  mode: starterMode,
+                  query: searchQuery,
+                  moduleSlug: route.moduleSlug,
+                });
+              }
+            }
+          },
+          onDone: (event) => {
+            const payload = event.result as DiscordSearchResult & {
+              error?: string;
+              blurResults?: boolean;
+              premiumSectionsLocked?: boolean;
+              teaser?: boolean;
+            };
+            if (!payload || typeof payload !== "object") return;
+
+            if (!payload.profile && !payload.teaser && !sawProfile) {
+              setError(payload.error || "Could not load Discord profile.");
+              setDiscordResult(null);
+
+              return;
+            }
+
+            setDiscordResult(payload);
+            if (payload.blurResults || payload.premiumSectionsLocked) {
+              if (payload.blurResults) setBlurResults(true);
+              captureVaultFromData(payload as Record<string, unknown>, {
+                mode: starterMode,
+                query: searchQuery,
+                moduleSlug: route.moduleSlug,
+              });
+            }
+          },
+          onError: (event) => {
+            streamError =
+              typeof event.error === "string"
+                ? event.error
+                : "Search failed.";
+          },
+        });
+
+        if (streamError && !sawProfile) {
+          setError(sanitizePublicText(streamError));
+        }
+
+        setStreamStatus(null);
+
+        return;
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -626,20 +880,8 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           osintCatCount?: number;
           godseyeSearchCount?: number;
         };
-        const credentials = Array.isArray(breachData.credentials)
-          ? breachData.credentials
-          : [];
-        const matchCount = credentials.length;
-        const empty =
-          matchCount === 0 &&
-          !breachData.hasGodsEyeReport &&
-          !breachData.hasBreachVipResults &&
-          !(breachData.csintCount && breachData.csintCount > 0) &&
-          !(breachData.breachHubCount && breachData.breachHubCount > 0) &&
-          !(breachData.osintCatCount && breachData.osintCatCount > 0) &&
-          !(breachData.godseyeSearchCount && breachData.godseyeSearchCount > 0);
 
-        if (empty) {
+        if (isBreachesEmpty(breachData)) {
           setError(
             breachData.message || breachData.error || "No results were found.",
           );
@@ -647,13 +889,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           return;
         }
 
-        setCombResult({
-          ...breachData,
-          credentials,
-          returned: matchCount,
-          totalMatches: matchCount,
-        });
-        setResultCount(matchCount);
+        applyBreachesPayload(breachData, { allowShrink: true });
 
         return;
       }
@@ -691,10 +927,14 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           ? (data as { count: number }).count
           : formatted.length,
       );
-    } catch {
+    } catch (err) {
+      if (abort.signal.aborted) return;
       setError("Could not complete the search.");
     } finally {
-      setIsSearching(false);
+      if (!abort.signal.aborted) {
+        setIsSearching(false);
+        setStreamStatus(null);
+      }
     }
   };
 
@@ -854,7 +1094,11 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         type="submit"
       >
         {isSearching ? (
-          "Running…"
+          hasResultsSurface ? (
+            "Loading more…"
+          ) : (
+            "Running…"
+          )
         ) : (
           <>
             <span>
@@ -965,6 +1209,11 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           className="home-search-results home-search-results--enter"
           data-tour="home-search-results"
         >
+          {streamStatus ? (
+            <p className="mb-3 text-center text-xs text-zinc-500">
+              {streamStatus}
+            </p>
+          ) : null}
           <BreachesSearchResults
             balance={balance}
             blurNoticeIsGuest={auth.status === "guest"}

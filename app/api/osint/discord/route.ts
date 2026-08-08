@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { osintJson, requireOsintAccess } from "@/lib/osint-api-auth";
+import {
+  finalizeOsintStreamResult,
+  osintJson,
+  redactOsintStreamPartial,
+  requireOsintAccess,
+} from "@/lib/osint-api-auth";
 import {
   runDiscordOsintSearch,
   type DiscordOsintProgressEvent,
@@ -81,53 +86,72 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (access.isGuest || access.blurResults) {
-    try {
-      const response = await withDeadline(
-        runDiscordOsintSearch(query),
-        OSINT_ROUTE_DEADLINE_MS,
-      );
-
-      return osintJson(access, response, undefined, {
-        moduleSlug: "discord-id",
-        query,
-        req,
-      });
-    } catch (err) {
-      return osintFailureResponse(err, {
-        softEmpty,
-        fallbackMessage: "Failed to resolve Discord profile",
-      });
-    }
-  }
-
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (event: DiscordOsintProgressEvent) => {
-        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      const enqueue = (payload: unknown) => {
+        controller.enqueue(
+          encoder.encode(`${JSON.stringify(payload)}\n`),
+        );
+      };
+
+      let best: unknown = null;
+
+      const sendPartial = (event: DiscordOsintProgressEvent) => {
+        if (event.type !== "partial") return;
+
+        best = event.result;
+        enqueue({
+          ...event,
+          result: redactOsintStreamPartial(access, event.result),
+        });
       };
 
       try {
-        await withDeadline(
-          runDiscordOsintSearch(query, send),
+        const finalResult = await withDeadline(
+          runDiscordOsintSearch(query, sendPartial),
           OSINT_ROUTE_DEADLINE_MS,
         );
-      } catch (err) {
-        const message =
-          err instanceof Error && err.message
-            ? err.message
-            : "Failed to resolve Discord profile";
+        best = finalResult;
 
-        controller.enqueue(
-          encoder.encode(
-            `${JSON.stringify({
-              type: "error",
-              error: message,
-              result: softEmpty,
-            })}\n`,
-          ),
+        const finalized = await finalizeOsintStreamResult(
+          access,
+          finalResult,
+          {
+            moduleSlug: "discord-id",
+            query,
+            req,
+          },
         );
+
+        enqueue({
+          type: "done",
+          result: finalized,
+        });
+      } catch (err) {
+        if (best) {
+          const finalized = await finalizeOsintStreamResult(access, best, {
+            moduleSlug: "discord-id",
+            query,
+            req,
+          });
+
+          enqueue({
+            type: "done",
+            result: finalized,
+          });
+        } else {
+          const message =
+            err instanceof Error && err.message
+              ? err.message
+              : "Failed to resolve Discord profile";
+
+          enqueue({
+            type: "error",
+            error: message,
+            result: softEmpty,
+          });
+        }
       } finally {
         controller.close();
       }
