@@ -12793,21 +12793,6 @@
     0 28px 60px -36px rgba(0, 0, 0, 0.75);
 }
 
-.anya-final-card::after {
-  position: absolute;
-  top: -14rem;
-  right: -10rem;
-  width: 30rem;
-  height: 30rem;
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 22%, transparent);
-  border-radius: 50%;
-  content: "";
-  box-shadow:
-    0 0 0 4.5rem color-mix(in srgb, var(--anya-blush) 4%, transparent),
-    0 0 0 9rem color-mix(in srgb, var(--anya-blush) 2.5%, transparent);
-  pointer-events: none;
-}
-
 .anya-final-card > div:first-child {
   position: relative;
   z-index: 1;
