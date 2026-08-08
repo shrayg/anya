@@ -185,6 +185,7 @@ function isBreachHubRateLimitPayload(
     msg.includes("rate limit") ||
     msg.includes("too many requests") ||
     msg.includes("blocked_for") ||
+    msg.includes("quota") ||
     Boolean(parseBlockedSeconds(data))
   );
 }
@@ -2416,6 +2417,13 @@ export async function breachHubGet(
     throw new Error(publicServiceUnavailable());
   }
 
+  // Honor account-wide cooldown — do not hammer after rate-limit / quota.
+  if (isBreachHubCoolingDown()) {
+    throw new Error(
+      "Too many searches right now. Wait a minute and try again.",
+    );
+  }
+
   const resolved = resolvePath(path, pathParams);
   const cacheKey = providerCacheKey("breachhub", {
     path: resolved,
@@ -3972,6 +3980,8 @@ export function asLogId(record: Record<string, unknown>): string {
     asString(record.logId),
     asString(record.victim_id),
     asString(record.victimId),
+    asString(record.legacy_log_id),
+    asString(record.legacyLogId),
     asString(record.doc_id),
     asString(record.docId),
     asString(record.import_id),
@@ -4013,9 +4023,23 @@ export function asLogId(record: Record<string, unknown>): string {
       typeof nestedVal === "object" &&
       !Array.isArray(nestedVal)
     ) {
-      const nested = asLogId(nestedVal as Record<string, unknown>);
+      const nested = nestedVal as Record<string, unknown>;
+      // Prefer explicit nested log_id / id before machine_id fallbacks.
+      const nestedPrimary = [
+        asString(nested.log_id),
+        asString(nested.logId),
+        asString(nested.victim_id),
+        asString(nested.victimId),
+        asString(nested.id),
+      ];
 
-      if (nested) return nested;
+      for (const candidate of nestedPrimary) {
+        if (candidate && looksLikeVictimLogId(candidate)) return candidate;
+      }
+
+      const nestedDeep = asLogId(nested);
+
+      if (nestedDeep) return nestedDeep;
     }
   }
 
@@ -4385,27 +4409,70 @@ export async function fetchBreachHubStealerVictims(
   query: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<StealerArchiveEntry[]> {
-  if (!isBreachHubEnabled()) return [];
-
   const trimmed = query.trim();
 
   if (!trimmed) return [];
 
-  const perCall = Math.min(timeoutMs, 14_000);
-  const settled = await Promise.allSettled([
-    breachHubGet("/api/oathnet/victims", { query: trimmed }, perCall),
-    breachHubGet(
-      "/api/osintcat/machine-viewer/search",
-      { query: trimmed },
-      perCall,
-    ),
-  ]);
-
   const archives: StealerArchiveEntry[] = [];
+  const perCall = Math.min(timeoutMs, 14_000);
 
-  for (const result of settled) {
-    if (result.status !== "fulfilled") continue;
-    archives.push(...extractStealerArchives(result.value));
+  // Direct log / victim id → resolve one device for Machine view.
+  if (looksLikeVictimLogId(trimmed) && !EMAIL_RE.test(trimmed)) {
+    try {
+      const manifest = await fetchBreachHubVictimManifest(trimmed, perCall);
+
+      if (manifest?.logId) {
+        archives.push(manifest);
+      } else {
+        archives.push({ logId: trimmed, label: trimmed.slice(0, 16) });
+      }
+    } catch {
+      archives.push({ logId: trimmed, label: trimmed.slice(0, 16) });
+    }
+
+    return mergeStealerArchiveLists(archives);
+  }
+
+  const canBh = isBreachHubEnabled() && !isBreachHubCoolingDown();
+
+  if (canBh) {
+    const settled = await Promise.allSettled([
+      breachHubGet("/api/oathnet/victims", { query: trimmed }, perCall),
+      breachHubGet(
+        "/api/osintcat/machine-viewer/search",
+        { query: trimmed },
+        perCall,
+      ),
+    ]);
+
+    for (const result of settled) {
+      if (result.status !== "fulfilled") continue;
+      archives.push(...extractStealerArchives(result.value));
+    }
+  }
+
+  // Native victims search when BH is cooled / empty.
+  if (archives.length === 0) {
+    try {
+      const { fetchOathnetSanitized, hasDirectOathnetKey } = await import(
+        "@/lib/oathnet"
+      );
+
+      if (hasDirectOathnetKey()) {
+        const victims = await fetchOathnetSanitized(
+          { kind: "static", endpoint: "victims" },
+          { query: trimmed },
+          perCall,
+        );
+
+        archives.push(
+          ...extractStealerArchives({ results: victims.results }),
+          ...extractStealerArchives(victims.raw ?? {}),
+        );
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   return mergeStealerArchiveLists(archives);
@@ -4531,7 +4598,7 @@ export async function fetchBreachHubVictimManifest(
   timeoutMs = DEFAULT_TIMEOUT_MS,
   opts?: { machineId?: string },
 ): Promise<StealerArchiveEntry | null> {
-  if (!isBreachHubEnabled() || !logId.trim()) return null;
+  if (!logId.trim()) return null;
   if (!looksLikeVictimLogId(logId)) return null;
 
   const trimmed = logId.trim();
@@ -4546,6 +4613,8 @@ export async function fetchBreachHubVictimManifest(
   const errors: string[] = [];
   let bestFiles: StealerFileNode[] = [];
   let bestMeta: StealerArchiveEntry | null = null;
+
+  const canBh = isBreachHubEnabled() && !isBreachHubCoolingDown();
 
   const mergeBest = (entry: StealerArchiveEntry) => {
     const prev = bestMeta;
@@ -4571,10 +4640,42 @@ export async function fetchBreachHubVictimManifest(
 
   const preferMachineViewer =
     Boolean(machineId) ||
-    /^[a-f0-9]{24,128}$/i.test(trimmed) ||
-    (trimmed.length >= 32 && /^[a-f0-9-]+$/i.test(trimmed));
+    (/^[a-f0-9]{24,128}$/i.test(trimmed) && Boolean(machineId));
 
-  const tryOathNetManifest = async () => {
+  /** Native archive-provider manifest (bypasses BreachHub quota). */
+  const tryNativeManifest = async () => {
+    try {
+      const { fetchOathnetVictimManifestRaw, hasDirectOathnetKey } =
+        await import("@/lib/oathnet");
+
+      if (!hasDirectOathnetKey()) return false;
+
+      const data = await fetchOathnetVictimManifestRaw(trimmed, timeoutMs);
+
+      if (!data) {
+        errors.push("Archive provider has no file tree for this log id.");
+        return false;
+      }
+
+      const archives = extractStealerArchives(data);
+      const files = pickManifestTree(data);
+      const entry = buildManifestEntry(trimmed, data, files, archives[0]);
+
+      mergeBest(entry);
+      return files.length > 0;
+    } catch (err) {
+      errors.push(
+        err instanceof Error
+          ? err.message
+          : "Archive provider manifest failed",
+      );
+      return false;
+    }
+  };
+
+  const tryBhOathNetManifest = async () => {
+    if (!canBh) return false;
+
     try {
       const data = await breachHubGet(
         "/api/oathnet/victims/:log_id",
@@ -4597,12 +4698,13 @@ export async function fetchBreachHubVictimManifest(
   };
 
   const tryOsintCatTrees = async () => {
+    if (!canBh) return false;
+
     const perTree = Math.min(timeoutMs, 18_000);
 
     for (const id of browseIds) {
       if (bestFiles.length > 0) return true;
 
-      // Prefer treeview; fall back to machine info which sometimes embeds files.
       for (const path of [
         "/api/osintcat/machine-viewer/machines/:machine_id/files/treeview",
         "/api/osintcat/machine-viewer/machines/:machine_id/info",
@@ -4635,15 +4737,19 @@ export async function fetchBreachHubVictimManifest(
     return bestFiles.length > 0;
   };
 
-  // Hex / machine_id rows come from OsintCat machine-viewer — try that first.
-  // Short OathNet log tokens try OathNet first, then OsintCat fallback.
+  // Prefer native archive provider for log-id pivots (esp. when BH is cooled).
+  // Machine-viewer only when an explicit machineId is present and BH is live.
   if (preferMachineViewer) {
     const ok = await tryOsintCatTrees();
     if (ok) return bestMeta;
-    const oathOk = await tryOathNetManifest();
+    const nativeOk = await tryNativeManifest();
+    if (nativeOk) return bestMeta;
+    const oathOk = await tryBhOathNetManifest();
     if (oathOk) return bestMeta;
   } else {
-    const oathOk = await tryOathNetManifest();
+    const nativeOk = await tryNativeManifest();
+    if (nativeOk) return bestMeta;
+    const oathOk = await tryBhOathNetManifest();
     if (oathOk) return bestMeta;
     const ok = await tryOsintCatTrees();
     if (ok) return bestMeta;
@@ -4651,17 +4757,25 @@ export async function fetchBreachHubVictimManifest(
 
   if (bestFiles.length > 0) return bestMeta;
 
-  // Surface upstream errors (rate limit / 404 / vendor outage) instead of silent empty.
-  if (errors.length > 0 && !bestMeta) {
-    const joined = [...new Set(errors)].slice(0, 3).join(" · ");
-    throw new Error(joined);
-  }
+  // Metadata without files is still useful for Machine view chrome.
+  if (bestMeta) return bestMeta;
 
-  if (errors.length > 0 && bestMeta && !bestFiles.length) {
-    const joined = [...new Set(errors)].slice(0, 3).join(" · ");
+  if (errors.length > 0) {
+    const unique = [...new Set(errors)];
+    const allQuota = unique.every((e) =>
+      /quota|rate limit|too many searches|try again later/i.test(e),
+    );
+    const notFound = unique.some((e) =>
+      /no file tree|not found|victim not found/i.test(e),
+    );
+    const joined = unique.slice(0, 3).join(" · ");
+
     throw new Error(
-      joined ||
-        "File tree empty — machine index returned metadata without files.",
+      allQuota && !notFound
+        ? "Archive file listing is temporarily unavailable (provider quota). Try again later."
+        : notFound && allQuota
+          ? "No file tree for this device, and the mirror index is quota-limited. Try again later."
+          : joined || "File manifest is not available for this device.",
     );
   }
 
@@ -4677,12 +4791,28 @@ export async function fetchBreachHubVictimArchiveBinary(
   contentType: string;
   filename: string;
 } | null> {
-  const apiKey = getBreachHubApiKey();
-
-  if (!apiKey || !logId.trim() || !looksLikeVictimLogId(logId)) return null;
+  if (!logId.trim() || !looksLikeVictimLogId(logId)) return null;
 
   const trimmed = logId.trim();
   const filename = `stealer-${trimmed.slice(0, 12)}.zip`;
+
+  // Native archive provider first when BH is cooled / unavailable.
+  try {
+    const { fetchOathnetVictimArchiveBinary, hasDirectOathnetKey } =
+      await import("@/lib/oathnet");
+
+    if (hasDirectOathnetKey()) {
+      const native = await fetchOathnetVictimArchiveBinary(trimmed, timeoutMs);
+
+      if (native) return native;
+    }
+  } catch {
+    /* fall through to BreachHub mirrors */
+  }
+
+  const apiKey = getBreachHubApiKey();
+
+  if (!apiKey || isBreachHubCoolingDown()) return null;
 
   const tryBinaryUrl = async (url: string) => {
     const res = await fetchWithTimeout(url, {
@@ -4814,10 +4944,31 @@ export async function fetchBreachHubVictimFile(
   fileId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<{ content: string; filename?: string } | null> {
+  if (!logId.trim() || !fileId.trim()) return null;
+  if (!looksLikeVictimLogId(logId)) return null;
+
+  // Native archive provider first when available.
+  try {
+    const { fetchOathnetVictimFileRaw, hasDirectOathnetKey } = await import(
+      "@/lib/oathnet"
+    );
+
+    if (hasDirectOathnetKey()) {
+      const native = await fetchOathnetVictimFileRaw(
+        logId.trim(),
+        fileId.trim(),
+        timeoutMs,
+      );
+
+      if (native?.content) return native;
+    }
+  } catch {
+    /* fall through */
+  }
+
   const apiKey = getBreachHubApiKey();
 
-  if (!apiKey || !logId.trim() || !fileId.trim()) return null;
-  if (!looksLikeVictimLogId(logId)) return null;
+  if (!apiKey || isBreachHubCoolingDown()) return null;
 
   const url = new URL(
     `${BREACHHUB_BASE}/api/oathnet/victims/${encodeURIComponent(logId.trim())}/files/${encodeURIComponent(fileId.trim())}`,

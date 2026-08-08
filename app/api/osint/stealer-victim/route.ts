@@ -7,6 +7,7 @@ import {
   fetchBreachHubVictimManifest,
   isBreachHubEnabled,
 } from "@/lib/breachhub";
+import { hasDirectOathnetKey } from "@/lib/oathnet";
 import {
   OSINT_ROUTE_DEADLINE_MS,
   osintFailureResponse,
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   if (access instanceof NextResponse) return access;
 
-  if (!isBreachHubEnabled()) {
+  if (!isBreachHubEnabled() && !hasDirectOathnetKey()) {
     return NextResponse.json(
       { error: publicServiceUnavailable() },
       { status: 503 },

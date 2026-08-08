@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { extractStealerArchives } from "@/lib/breachhub";
 import {
   fetchOathnetSanitized,
   isOathnetEnabled,
@@ -12,14 +13,29 @@ import {
   withDeadline,
 } from "@/lib/osint-search-guard";
 import { publicServiceUnavailable } from "@/lib/public-branding";
+import {
+  archivesFromStealerResults,
+  mergeStealerArchives,
+} from "@/lib/stealer-logs-view";
 
 export const maxDuration = 60;
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
+function archivesForOathnetPayload(data: {
+  results: unknown[];
+  raw?: Record<string, unknown>;
+}) {
+  return mergeStealerArchives(
+    extractStealerArchives({ results: data.results }),
+    extractStealerArchives(data.raw ?? {}),
+    archivesFromStealerResults(data.results),
+  );
+}
+
 /**
  * GET /api/oathnet/<endpoint>
- * Full OathNet surface including victims/{log_id}[/files/{file_id}|/archive].
+ * Full specialty surface including victims/{log_id}[/files/{file_id}|/archive].
  * Plan gate: Ultimate / Enterprise only (`forceModuleSlug: "oathnet"`).
  * Tools are surfaced inside category modules — this route is the shared backend.
  */
@@ -43,7 +59,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
           ? `victims/${resolved.logId}/files/${resolved.fileId}`
           : `victims/${resolved.logId}/archive`;
 
-  // Dedicated OathNet surface is Ultimate / Enterprise only — do not honor
+  // Dedicated specialty surface is Ultimate / Enterprise only — do not honor
   // parent moduleSlug (breaches / stealer-logs / discord-id) to bypass the gate.
   const access = await requireOsintAccess(req, `oathnet/${endpointKey}`, {
     forceModuleSlug: "oathnet",
@@ -64,10 +80,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
   }
 
   // Path-param follow-ups don't need query string.
-  if (
-    resolved.kind === "static" &&
-    Object.keys(input).length === 0
-  ) {
+  if (resolved.kind === "static" && Object.keys(input).length === 0) {
     return NextResponse.json({ error: "Missing query." }, { status: 400 });
   }
 
@@ -84,12 +97,24 @@ export async function GET(req: NextRequest, context: RouteContext) {
       );
     }
 
+    const includeArchives =
+      resolved.kind === "victims-log" ||
+      (resolved.kind === "static" &&
+        (resolved.endpoint === "stealer" ||
+          resolved.endpoint === "victims" ||
+          resolved.endpoint === "stealer-subdomain"));
+
+    const archives = includeArchives
+      ? archivesForOathnetPayload(data)
+      : [];
+
     return NextResponse.json({
       count: data.count,
       results: data.results,
       query: data.query,
       source: data.source,
       endpoint: data.endpoint,
+      ...(archives.length ? { archives } : {}),
       ...(data.count ? {} : { message: "No results were found." }),
     });
   } catch (err) {

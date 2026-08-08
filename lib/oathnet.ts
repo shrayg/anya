@@ -707,3 +707,271 @@ export async function fetchOathnetSanitized(
   if (lastError instanceof Error) throw lastError;
   throw new Error(publicServiceUnavailable());
 }
+
+/**
+ * Native victim manifest / file / archive — bypasses BreachHub when the mirror
+ * is rate-limited or quota-blocked. Returns raw JSON (or binary for archive).
+ */
+export async function fetchOathnetVictimManifestRaw(
+  logId: string,
+  timeoutMs = BH_VENDOR_DEFAULT_TIMEOUT_MS,
+): Promise<Record<string, unknown> | null> {
+  const apiKey = getOathnetApiKey();
+  const trimmed = logId.trim();
+
+  if (!apiKey || !trimmed) return null;
+
+  try {
+    return await directOathnetNativeGet({
+      path: `/service/v2/victims/${encodeURIComponent(trimmed)}`,
+      params: {},
+      apiKey,
+      baseUrl: OATHNET_NATIVE_BASE_URL,
+      timeoutMs,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchOathnetVictimFileRaw(
+  logId: string,
+  fileId: string,
+  timeoutMs = BH_VENDOR_DEFAULT_TIMEOUT_MS,
+): Promise<{ content: string; filename?: string } | null> {
+  const apiKey = getOathnetApiKey();
+  const log = logId.trim();
+  const file = fileId.trim();
+
+  if (!apiKey || !log || !file) return null;
+
+  const url = new URL(
+    `${OATHNET_NATIVE_BASE_URL}/service/v2/victims/${encodeURIComponent(log)}/files/${encodeURIComponent(file)}`,
+  );
+  const started = Date.now();
+
+  try {
+    const res = await fetchWithTimeout(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "text/plain, application/json, */*",
+        "x-api-key": apiKey,
+        "User-Agent": "AnyaInt-oathnet/1.0",
+      },
+      cache: "no-store",
+      timeoutMs,
+    });
+    const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+    const text = await readResponseText(res, remaining);
+
+    if (!res.ok || !text) {
+      recordProviderRequest({
+        gateway: "oathnet",
+        path: `/service/v2/victims/${log}/files/${file}`,
+        method: "GET",
+        ok: false,
+        latencyMs: Date.now() - started,
+        statusCode: res.status,
+      });
+
+      return null;
+    }
+
+    recordProviderRequest({
+      gateway: "oathnet",
+      path: `/service/v2/victims/${log}/files/${file}`,
+      method: "GET",
+      ok: true,
+      latencyMs: Date.now() - started,
+      statusCode: res.status,
+    });
+
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+
+    if (
+      contentType.includes("text/plain") ||
+      contentType.includes("octet-stream") ||
+      (!contentType.includes("json") &&
+        !text.trimStart().startsWith("{") &&
+        !text.trimStart().startsWith("["))
+    ) {
+      return { content: text, filename: file };
+    }
+
+    try {
+      const data = JSON.parse(text) as Record<string, unknown>;
+
+      if (data.success === false) return null;
+
+      const pick = (record: Record<string, unknown>): string =>
+        (typeof record.content === "string" && record.content) ||
+        (typeof record.text === "string" && record.text) ||
+        (typeof record.data === "string" && record.data) ||
+        (typeof record.body === "string" && record.body) ||
+        "";
+
+      let content = pick(data);
+
+      if (
+        !content &&
+        data.data &&
+        typeof data.data === "object" &&
+        !Array.isArray(data.data)
+      ) {
+        content = pick(data.data as Record<string, unknown>);
+      }
+
+      if (!content) return null;
+
+      return {
+        content,
+        filename:
+          (typeof data.name === "string" && data.name) ||
+          (typeof data.filename === "string" && data.filename) ||
+          file,
+      };
+    } catch {
+      return { content: text, filename: file };
+    }
+  } catch {
+    recordProviderRequest({
+      gateway: "oathnet",
+      path: `/service/v2/victims/${log}/files/${file}`,
+      method: "GET",
+      ok: false,
+      latencyMs: Date.now() - started,
+      error: "Request failed",
+    });
+
+    return null;
+  }
+}
+
+export async function fetchOathnetVictimArchiveBinary(
+  logId: string,
+  timeoutMs = BH_VENDOR_DEFAULT_TIMEOUT_MS,
+): Promise<{
+  bytes: ArrayBuffer;
+  contentType: string;
+  filename: string;
+} | null> {
+  const apiKey = getOathnetApiKey();
+  const trimmed = logId.trim();
+
+  if (!apiKey || !trimmed) return null;
+
+  const filename = `stealer-${trimmed.slice(0, 12)}.zip`;
+  const url = new URL(
+    `${OATHNET_NATIVE_BASE_URL}/service/v2/victims/${encodeURIComponent(trimmed)}/archive`,
+  );
+  const started = Date.now();
+
+  try {
+    const res = await fetchWithTimeout(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/zip, application/octet-stream, application/json",
+        "x-api-key": apiKey,
+        "User-Agent": "AnyaInt-oathnet/1.0",
+      },
+      cache: "no-store",
+      timeoutMs,
+    });
+
+    if (!res.ok) {
+      recordProviderRequest({
+        gateway: "oathnet",
+        path: `/service/v2/victims/${trimmed}/archive`,
+        method: "GET",
+        ok: false,
+        latencyMs: Date.now() - started,
+        statusCode: res.status,
+      });
+
+      return null;
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+
+    if (
+      contentType.includes("application/json") ||
+      contentType.includes("text/json")
+    ) {
+      const text = await readResponseText(res, 8_000);
+      let data: Record<string, unknown> = {};
+
+      try {
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      } catch {
+        return null;
+      }
+
+      const downloadUrl =
+        (typeof data.download_url === "string" && data.download_url) ||
+        (typeof data.url === "string" && data.url) ||
+        (typeof data.archive_url === "string" && data.archive_url) ||
+        (typeof data.link === "string" && data.link) ||
+        "";
+
+      if (!downloadUrl) return null;
+
+      const fileRes = await fetchWithTimeout(downloadUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/zip, application/octet-stream",
+          "User-Agent": "AnyaInt-oathnet/1.0",
+        },
+        cache: "no-store",
+        timeoutMs: Math.max(8_000, timeoutMs - (Date.now() - started)),
+      });
+
+      if (!fileRes.ok) return null;
+
+      const bytes = await fileRes.arrayBuffer();
+
+      recordProviderRequest({
+        gateway: "oathnet",
+        path: `/service/v2/victims/${trimmed}/archive`,
+        method: "GET",
+        ok: true,
+        latencyMs: Date.now() - started,
+        statusCode: res.status,
+      });
+
+      return {
+        bytes,
+        contentType:
+          fileRes.headers.get("content-type") || "application/zip",
+        filename,
+      };
+    }
+
+    const bytes = await res.arrayBuffer();
+
+    recordProviderRequest({
+      gateway: "oathnet",
+      path: `/service/v2/victims/${trimmed}/archive`,
+      method: "GET",
+      ok: true,
+      latencyMs: Date.now() - started,
+      statusCode: res.status,
+    });
+
+    return {
+      bytes,
+      contentType: contentType || "application/zip",
+      filename,
+    };
+  } catch {
+    recordProviderRequest({
+      gateway: "oathnet",
+      path: `/service/v2/victims/${trimmed}/archive`,
+      method: "GET",
+      ok: false,
+      latencyMs: Date.now() - started,
+      error: "Request failed",
+    });
+
+    return null;
+  }
+}

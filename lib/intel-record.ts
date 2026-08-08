@@ -333,6 +333,8 @@ function flattenStealerMetaField(
     "logId",
     "victim_id",
     "victimId",
+    "legacy_log_id",
+    "legacyLogId",
     "doc_id",
     "docId",
     "import_id",
@@ -364,11 +366,13 @@ function flattenStealerMetaField(
         ? "log_id"
         : nestedKey === "victimId"
           ? "victim_id"
-          : nestedKey === "docId"
-            ? "doc_id"
-            : nestedKey === "importId"
-              ? "import_id"
-              : nestedKey;
+          : nestedKey === "legacyLogId"
+            ? "legacy_log_id"
+            : nestedKey === "docId"
+              ? "doc_id"
+              : nestedKey === "importId"
+                ? "import_id"
+                : nestedKey;
 
     if (setIfEmpty(into, outKey, nestedVal)) {
       wrote = true;

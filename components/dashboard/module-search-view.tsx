@@ -83,8 +83,11 @@ import { DiscordSearchResults } from "@/components/dashboard/discord-search-resu
 import { FivemSearchResults } from "@/components/dashboard/fivem-search-results";
 import { StealerLogsSearchResults } from "@/components/dashboard/stealer-logs-search-results";
 import type { StealerArchiveEntry } from "@/lib/breachhub";
+import { extractStealerArchives } from "@/lib/breachhub";
 import {
+  archivesFromStealerResults,
   extractStealerCredentialRows,
+  mergeStealerArchives,
   type StealerCredentialRow,
 } from "@/lib/stealer-logs-view";
 import { RobloxSearchResults } from "@/components/dashboard/roblox-search-results";
@@ -2651,7 +2654,11 @@ export function ModuleSearchView({
         const credentials = Array.isArray(vendor.credentials)
           ? vendor.credentials
           : extractStealerCredentialRows(results, searchQuery);
-        const archives = Array.isArray(vendor.archives) ? vendor.archives : [];
+        const archives = mergeStealerArchives(
+          Array.isArray(vendor.archives) ? vendor.archives : [],
+          extractStealerArchives({ results }),
+          archivesFromStealerResults(results),
+        );
 
         if (
           results.length === 0 &&

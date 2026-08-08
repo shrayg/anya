@@ -13,6 +13,7 @@ import {
   extractStealerArchives,
   fetchBreachHubSpecialty,
   fetchBreachHubStealerVictims,
+  looksLikeVictimLogId,
   type StealerArchiveEntry,
 } from "@/lib/breachhub";
 import {
@@ -133,6 +134,11 @@ export async function runStealerOsintSearch(
   const isDomain = Boolean(domain) || DOMAIN_RE.test(query);
   const isEmail = EMAIL_RE.test(query);
   const isIp = IPV4_RE.test(query) || query.includes(":");
+  const isVictimIdQuery =
+    !isEmail &&
+    !isDomain &&
+    !isIp &&
+    looksLikeVictimLogId(query);
 
   let combinedResults: unknown[] = [];
   let seeknowResults: unknown[] = [];
@@ -312,7 +318,7 @@ export async function runStealerOsintSearch(
       }
 
       try {
-        const [stealer, victims] = await Promise.allSettled([
+        const jobs: Array<Promise<unknown>> = [
           fetchOathnetSanitized(
             { kind: "static", endpoint: "stealer" },
             { query },
@@ -321,11 +327,42 @@ export async function runStealerOsintSearch(
             { kind: "static", endpoint: "victims" },
             { query },
           ),
-        ]);
+        ];
+
+        // Pasted log / victim id → also fetch that victim manifest directly.
+        if (isVictimIdQuery) {
+          jobs.push(
+            fetchOathnetSanitized(
+              { kind: "victims-log", logId: query },
+              { query },
+            ),
+          );
+        }
+
+        const settled = await Promise.allSettled(jobs);
+        const stealer = settled[0] as PromiseSettledResult<{
+          results?: unknown[];
+          raw?: Record<string, unknown>;
+        }>;
+        const victims = settled[1] as PromiseSettledResult<{
+          results?: unknown[];
+          raw?: Record<string, unknown>;
+        }>;
+        const victimLog = isVictimIdQuery
+          ? (settled[2] as PromiseSettledResult<{
+              results?: unknown[];
+              raw?: Record<string, unknown>;
+            }>)
+          : null;
 
         if (stealer.status === "fulfilled") {
           oathnetStealerResults = asResults(stealer.value);
           markSource("oathnet-stealer", oathnetStealerResults.length);
+          victimArchives = mergeStealerArchives(
+            victimArchives,
+            extractStealerArchives({ results: oathnetStealerResults }),
+            archivesFromStealerResults(oathnetStealerResults),
+          );
         } else {
           markSource("oathnet-stealer", 0, false);
         }
@@ -333,8 +370,22 @@ export async function runStealerOsintSearch(
         if (victims.status === "fulfilled") {
           oathnetVictimsResults = asResults(victims.value);
           markSource("oathnet-victims", oathnetVictimsResults.length);
+          victimArchives = mergeStealerArchives(
+            victimArchives,
+            extractStealerArchives({ results: oathnetVictimsResults }),
+            extractStealerArchives(victims.value.raw ?? {}),
+          );
         } else {
           markSource("oathnet-victims", 0, false);
+        }
+
+        if (victimLog?.status === "fulfilled") {
+          victimArchives = mergeStealerArchives(
+            victimArchives,
+            extractStealerArchives({ results: asResults(victimLog.value) }),
+            extractStealerArchives(victimLog.value.raw ?? {}),
+            archivesFromStealerResults(asResults(victimLog.value)),
+          );
         }
       } catch {
         markSource("oathnet-stealer", 0, false);
