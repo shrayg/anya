@@ -76,6 +76,22 @@ const nextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+  async redirects() {
+    return [
+      // OathNet hub removed — tools fan into category modules. Permanent so
+      // bookmarks / stale tabs never paint the old BREACHES/STEALER chip wall.
+      {
+        source: "/dashboard/search/oathnet",
+        destination: "/dashboard/search/stealer-logs",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/search/oathnet/:path*",
+        destination: "/dashboard/search/stealer-logs",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

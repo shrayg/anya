@@ -408,7 +408,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           ],
         },
       ),
-      // Legacy — hidden from hub; redirects to Stealer Logs (OathNet tools live in category modules).
+      // Legacy stub — INTENT_HUB_HIDDEN + next.config /oathnet redirect. No tools:
+      // chip wall must never render here; contribution is only via category modules.
       mod(
         "Stealer Intel",
         "OathNet",
@@ -416,6 +417,9 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "oathnet/breach",
         "Email, Discord ID, IP, domain, or gaming ID",
         "Merged into category modules — Ultimate+ OathNet runs inside Breaches, Stealer Logs, Discord, Username / Contact Profiles, IP, Steam, Xbox, Roblox, and Minecraft.",
+        undefined,
+        undefined,
+        { hideTools: true, tools: [] },
       ),
     ],
   },
