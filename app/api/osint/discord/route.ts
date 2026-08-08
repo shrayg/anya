@@ -11,6 +11,7 @@ import {
   type DiscordOsintProgressEvent,
 } from "@/lib/discord-osint-search";
 import type { DiscordRobloxLink } from "@/lib/discord-profile";
+import { canContributeOathnet } from "@/lib/oathnet";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import {
   OSINT_ROUTE_DEADLINE_MS,
@@ -69,7 +70,10 @@ export async function GET(req: NextRequest) {
   if (!wantsStream(req)) {
     try {
       const response = await withDeadline(
-        runDiscordOsintSearch(query),
+        runDiscordOsintSearch(query, {
+          includeOathnet: canContributeOathnet(access.plan),
+          plan: access.plan ?? null,
+        }),
         OSINT_ROUTE_DEADLINE_MS,
       );
 
@@ -109,7 +113,14 @@ export async function GET(req: NextRequest) {
 
       try {
         const finalResult = await withDeadline(
-          runDiscordOsintSearch(query, sendPartial),
+          runDiscordOsintSearch(
+            query,
+            {
+              includeOathnet: canContributeOathnet(access.plan),
+              plan: access.plan ?? null,
+            },
+            sendPartial,
+          ),
           OSINT_ROUTE_DEADLINE_MS,
         );
         best = finalResult;

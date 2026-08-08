@@ -37,6 +37,7 @@ import {
   publicServiceUnavailable,
 } from "@/lib/public-branding";
 import { recordProviderRequest } from "@/lib/provider-request-log";
+import { planHasUltimateModules, type PlanId } from "@/lib/plans";
 
 export const OATHNET_STATIC_ENDPOINTS = [
   "breach",
@@ -103,6 +104,13 @@ export function isOathnetEnabled(): boolean {
   );
 }
 
+/** Native / dedicated OathNet contribution — Ultimate or Enterprise only. */
+export function canContributeOathnet(plan: PlanId | null | undefined): boolean {
+  if (!plan) return false;
+
+  return planHasUltimateModules(plan) && isOathnetEnabled();
+}
+
 export function resolveOathnetPath(parts: string[]): OathnetResolved | null {
   const segs = parts.map((p) => p.trim()).filter(Boolean);
 
@@ -159,6 +167,7 @@ export function oathnetModuleSlug(resolved: OathnetResolved): string {
       return "domain";
     case "holehe":
     case "ghunt":
+      return "username";
     case "breach":
       return "breaches";
     default:

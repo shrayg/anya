@@ -33,6 +33,11 @@ import {
 } from "@/lib/discord-profile";
 import { fetchFivemIntel } from "@/lib/fivem-search";
 import { fetchOathnetDiscordToRoblox } from "@/lib/gateway-fallback";
+import {
+  canContributeOathnet,
+  fetchOathnetSanitized,
+} from "@/lib/oathnet";
+import type { PlanId } from "@/lib/plans";
 import { fetchGodsEyeSearchSafe, sanitizeGodsEyeSearch } from "@/lib/godseye";
 import {
   fetchOsintCatEndpoint,
@@ -52,6 +57,11 @@ export type DiscordOsintProgressEvent =
       result: DiscordSearchResult;
     }
   | { type: "done"; result: DiscordSearchResult };
+
+export type DiscordOsintSearchOpts = {
+  includeOathnet?: boolean;
+  plan?: PlanId | null;
+};
 
 function cordCatFivemRecords(query: CordCatQueryResponse | null) {
   const results = query?.fivem?.data?.results;
@@ -184,11 +194,24 @@ function isNonEmptySanitized(value: SanitizedBreachResponse): boolean {
 /**
  * Run the full Discord ID fan-out. Calls `onEvent` as each module settles so
  * callers can stream NDJSON / update UI progressively.
+ *
+ * Native OathNet userinfo / history / discord→roblox require Ultimate+.
  */
 export async function runDiscordOsintSearch(
   discordId: string,
-  onEvent?: (event: DiscordOsintProgressEvent) => void,
+  onEventOrOpts?:
+    | ((event: DiscordOsintProgressEvent) => void)
+    | DiscordOsintSearchOpts,
+  maybeOnEvent?: (event: DiscordOsintProgressEvent) => void,
 ): Promise<DiscordSearchResult> {
+  const opts: DiscordOsintSearchOpts =
+    onEventOrOpts && typeof onEventOrOpts === "object" ? onEventOrOpts : {};
+  const onEvent =
+    typeof onEventOrOpts === "function" ? onEventOrOpts : maybeOnEvent;
+  const includeOathnet =
+    opts.includeOathnet === true ||
+    (opts.plan ? canContributeOathnet(opts.plan) : false);
+
   const query = discordId.trim();
   let profile: DiscordSearchResult["profile"] | null = null;
   let osintLeaks: SanitizedBreachResponse = { count: 0, results: [] };
@@ -407,6 +430,7 @@ export async function runDiscordOsintSearch(
 
     // Enrichment payloads (guilds / connections / history). Specialty already
     // hits these for leak rows; these raw calls keep structured parsers fed.
+    // Ultimate+: prefer native OathNet userinfo / username history.
     Promise.all([
       fetchOsintCatDiscordStalker(query),
       fetchBreachHubRaw("discord-stalker", { query }).catch(() => null),
@@ -414,20 +438,38 @@ export async function runDiscordOsintSearch(
       fetchBreachHubRaw("seeknow-discord-user", {
         discord_id: query,
       }).catch(() => null),
-      fetchBreachHubRaw("oathnet-discord-userinfo", {
-        discord_id: query,
-      }).catch(() => null),
-      fetchBreachHubRaw("oathnet-discord-history", {
-        discord_id: query,
-      }).catch(() => null),
+      includeOathnet
+        ? fetchOathnetSanitized(
+            { kind: "static", endpoint: "discord-userinfo" },
+            { discord_id: query },
+          )
+            .then((data) => data.raw ?? data)
+            .catch(() =>
+              fetchBreachHubRaw("oathnet-discord-userinfo", {
+                discord_id: query,
+              }).catch(() => null),
+            )
+        : Promise.resolve(null),
+      includeOathnet
+        ? fetchOathnetSanitized(
+            { kind: "static", endpoint: "discord-username-history" },
+            { discord_id: query },
+          )
+            .then((data) => data.raw ?? data)
+            .catch(() =>
+              fetchBreachHubRaw("oathnet-discord-history", {
+                discord_id: query,
+              }).catch(() => null),
+            )
+        : Promise.resolve(null),
     ]).then(
       ([stalker, bhS, bhL, bhSeek, bhInfo, bhHist]) => {
         osintCatStalker = stalker;
         bhStalker = bhS;
         bhLookup = bhL;
         bhSeeknowUser = bhSeek;
-        bhUserInfo = bhInfo;
-        bhUsernameHistory = bhHist;
+        bhUserInfo = bhInfo as Record<string, unknown> | null;
+        bhUsernameHistory = bhHist as Record<string, unknown> | null;
         emit("enrichment");
       },
     ),

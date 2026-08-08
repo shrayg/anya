@@ -133,6 +133,7 @@ import {
 } from "@/lib/site-pentest-shared";
 import {
   checkModuleAccess,
+  planHasUltimateModules,
   RESIDENTIAL_PROXY_CREDIT_COST,
   resolveResidentialProxyBillingSlug,
   resolveUserPlan,
@@ -141,6 +142,7 @@ import {
 import {
   getAiModeForModule,
   getModuleFanOutBehavior,
+  isOathnetApiType,
   isPhoneQuery,
   resolveSearchApiPath,
   resolveSearchApiType,
@@ -1147,6 +1149,13 @@ export function ModuleSearchView({
       if (moduleDef.slug === "stealer-logs" && isDiscordSnowflake(trimmed)) {
         return "Discord IDs are not supported here. Use the Discord ID module.";
       }
+      if (
+        moduleDef.slug === "stealer-logs" &&
+        composed.primaryType === "domain" &&
+        !normalizeDomain(trimmed)
+      ) {
+        return "Enter a valid domain name (e.g. example.com).";
+      }
       if (moduleDef.slug === "discord-id" && !isDiscordSnowflake(trimmed)) {
         return "Enter a valid Discord ID (17–20 digits).";
       }
@@ -1331,7 +1340,18 @@ export function ModuleSearchView({
     // via the NDJSON paths below instead.
     const fanOutTools =
       fanOutBehavior.mode === "all-tools" && moduleDef.tools?.length
-        ? moduleDef.tools.filter((tool) => Boolean(tool.apiType) && !tool.aiMode)
+        ? moduleDef.tools.filter((tool) => {
+            if (!tool.apiType || tool.aiMode) return false;
+            // OathNet contribution is Ultimate / Enterprise only.
+            if (
+              isOathnetApiType(tool.apiType) &&
+              !planHasUltimateModules(plan)
+            ) {
+              return false;
+            }
+
+            return true;
+          })
         : [];
 
     if (fanOutTools.length > 1) {
@@ -3868,34 +3888,77 @@ export function ModuleSearchView({
               {moduleDef.tools &&
               moduleDef.tools.length > 0 &&
               !hideToolChips ? (
-                <div
-                  aria-label="Module tools"
-                  className="module-search-tools"
-                  role="toolbar"
-                >
-                  {moduleDef.tools.map((tool) => {
-                    const active = tool.id === selectedToolId;
-
-                    return (
-                      <button
-                        key={tool.id}
-                        aria-pressed={active}
-                        className={
-                          active
-                            ? "module-search-tool module-search-tool--active"
-                            : "module-search-tool"
-                        }
-                        type="button"
-                        onClick={() => {
-                          toolLockedRef.current = true;
-                          setSelectedToolId(tool.id);
-                        }}
+                moduleDef.toolGroups && moduleDef.toolGroups.length > 0 ? (
+                  <div
+                    aria-label="Module tools"
+                    className="module-search-tool-groups"
+                    role="toolbar"
+                  >
+                    {moduleDef.toolGroups.map((group) => (
+                      <div
+                        key={group.id}
+                        className="module-search-tool-group"
                       >
-                        {tool.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                        <p className="module-search-tool-group-label">
+                          {group.label}
+                        </p>
+                        <div className="module-search-tools module-search-tools--grouped">
+                          {group.tools.map((tool) => {
+                            const active = tool.id === selectedToolId;
+
+                            return (
+                              <button
+                                key={tool.id}
+                                aria-pressed={active}
+                                className={
+                                  active
+                                    ? "module-search-tool module-search-tool--active"
+                                    : "module-search-tool"
+                                }
+                                type="button"
+                                onClick={() => {
+                                  toolLockedRef.current = true;
+                                  setSelectedToolId(tool.id);
+                                }}
+                              >
+                                {tool.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    aria-label="Module tools"
+                    className="module-search-tools"
+                    role="toolbar"
+                  >
+                    {moduleDef.tools.map((tool) => {
+                      const active = tool.id === selectedToolId;
+
+                      return (
+                        <button
+                          key={tool.id}
+                          aria-pressed={active}
+                          className={
+                            active
+                              ? "module-search-tool module-search-tool--active"
+                              : "module-search-tool"
+                          }
+                          type="button"
+                          onClick={() => {
+                            toolLockedRef.current = true;
+                            setSelectedToolId(tool.id);
+                          }}
+                        >
+                          {tool.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )
               ) : null}
               {showsContactProfilesDeepToggle ? (
                 <label className="module-search-proxy-toggle mb-3 flex cursor-pointer items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-zinc-300">

@@ -527,7 +527,7 @@ export function defaultSearchFieldsForModule(
       ? "first-name"
       : moduleDef.hideFieldTypePicker
         ? "query"
-        : needsManual
+        : needsManual || moduleDef.forceFieldTypePicker
           ? (options[0]?.id ?? "email")
           : preferredAutoStartFieldType(options);
 

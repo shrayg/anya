@@ -40,13 +40,16 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   "seekria-footprint": { slug: "username", tool: "seekria-footprint" },
   "seekria-fivem": { slug: "fivem", tool: "seekria-fivem" },
   "seekria-minecraft": { slug: "minecraft", tool: "seekria-minecraft" },
-  "seekria-domain": { slug: "domain", tool: "seekria-domain" },
+  "seekria-domain": { slug: "stealer-logs" },
   "seekria-breaches": { slug: "breaches", tool: "seekria-email-breach" },
   "oathnet-roblox": { slug: "discord-id" },
   melissa: { slug: "contact-enrich", tool: "melissa" },
   /** Stealer-only vendors — never standalone hubs; fold into All stealer indexes. */
   "seeknow-stealer": { slug: "stealer-logs", tool: "all-stealers" },
   wentyn: { slug: "stealer-logs", tool: "all-stealers" },
+  /** Domain pivots live inside Stealer Logs (Domain field / auto-detect). */
+  domain: { slug: "stealer-logs" },
+  domains: { slug: "stealer-logs" },
   /** Breach specialty vendors fold into Breaches chips. */
   "seeknow-search": { slug: "breaches", tool: "seeknow-search" },
   leaksight: { slug: "breaches", tool: "leaksight" },
@@ -79,6 +82,28 @@ export type ModuleTool = {
   aiMode?: string;
 };
 
+/** Grouped tool chips (e.g. OathNet category sections). */
+export type ModuleToolGroup = {
+  id: string;
+  label: string;
+  tools: ModuleTool[];
+};
+
+/** Flatten `toolGroups` or fall back to flat `tools`. */
+export function getModuleTools(moduleDef: SearchModuleDef): ModuleTool[] {
+  if (moduleDef.toolGroups?.length) {
+    return moduleDef.toolGroups.flatMap((group) => group.tools);
+  }
+
+  return moduleDef.tools ?? [];
+}
+
+export function isOathnetApiType(apiType: string | null | undefined): boolean {
+  if (!apiType) return false;
+
+  return apiType === "oathnet" || apiType.startsWith("oathnet/");
+}
+
 /** Optional narrowing fields - empty means open-ended search. */
 export type ModuleOptionalFilter = {
   id: "state" | "city" | "county" | "zip" | "dob";
@@ -103,6 +128,12 @@ export type SearchModuleDef = {
   /** Optional in-module source tools (e.g. leak indexes vs court dockets). */
   tools?: ModuleTool[];
   /**
+   * When set, ModuleSearchView renders tools in labeled category sections
+   * instead of one flat chip wall (OathNet). `tools` should still be the
+   * flattened list for selection / fan-out / deep links.
+   */
+  toolGroups?: ModuleToolGroup[];
+  /**
    * Hide the tool-chip row in ModuleSearchView. Tools stay in the catalog for
    * default selection + legacy `?tool=` deep links (e.g. Breaches).
    */
@@ -115,6 +146,11 @@ export type SearchModuleDef = {
    * Set `false` to keep the chip picker (mutually exclusive modes).
    */
   fanOutAllTools?: boolean;
+  /**
+   * Force the field-type dropdown even when types are auto-detectable
+   * (e.g. Stealer Logs: pick Domain / Email / IP, or let auto-detect win).
+   */
+  forceFieldTypePicker?: boolean;
   /**
    * Hide the field-type chrome and multi-field adder.
    * Single query input (type still auto-detected where applicable).
@@ -222,8 +258,10 @@ function mod(
   extras?: Pick<
     SearchModuleDef,
     | "tools"
+    | "toolGroups"
     | "hideTools"
     | "fanOutAllTools"
+    | "forceFieldTypePicker"
     | "hideFieldTypePicker"
     | "singleSearchField"
     | "optionalFilters"
@@ -348,10 +386,11 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "stealer-logs",
         "stealer",
         "IP, email, or domain",
-        "One stealer search across stealer and combo indexes in a single fan-out.",
+        "Stealer + combo indexes, with Domain selectable or auto-detected (same domain pivots as the Domain module). OathNet stealer / victims / subdomains on Ultimate+.",
         undefined,
         undefined,
         {
+          forceFieldTypePicker: true,
           tools: [
             {
               id: "all-stealers",
@@ -361,93 +400,134 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           ],
         },
       ),
-      mod(
-        "Stealer Intel",
-        "OathNet",
-        "oathnet",
-        "oathnet/breach",
-        "Email, username, Discord ID, IP, domain, Steam, Xbox, Roblox, or Minecraft",
-        "Ultimate / Enterprise — native OathNet breach, stealer, victims, and OSINT point lookups (docs.oathnet.org).",
-        undefined,
-        undefined,
-        {
-          // Mutually exclusive tools (incompatible query shapes) — pick one chip.
-          fanOutAllTools: false,
-          singleSearchField: true,
-          tools: [
-            {
-              id: "oathnet-breach",
-              label: "Breach search",
-              apiType: "oathnet/breach",
-            },
-            {
-              id: "oathnet-stealer",
-              label: "Stealer search",
-              apiType: "oathnet/stealer",
-            },
-            {
-              id: "oathnet-victims",
-              label: "Victims search",
-              apiType: "oathnet/victims",
-            },
-            {
-              id: "oathnet-stealer-subdomain",
-              label: "Stealer subdomain",
-              apiType: "oathnet/stealer-subdomain",
-            },
-            {
-              id: "oathnet-extract-subdomain",
-              label: "Subdomain extract",
-              apiType: "oathnet/extract-subdomain",
-            },
-            {
-              id: "oathnet-holehe",
-              label: "Holehe",
-              apiType: "oathnet/holehe",
-            },
-            {
-              id: "oathnet-ghunt",
-              label: "GHunt",
-              apiType: "oathnet/ghunt",
-            },
-            {
-              id: "oathnet-discord-userinfo",
-              label: "Discord userinfo",
-              apiType: "oathnet/discord-userinfo",
-            },
-            {
-              id: "oathnet-discord-history",
-              label: "Discord username history",
-              apiType: "oathnet/discord-username-history",
-            },
-            {
-              id: "oathnet-ip",
-              label: "IP info",
-              apiType: "oathnet/ip-info",
-            },
-            {
-              id: "oathnet-steam",
-              label: "Steam",
-              apiType: "oathnet/steam",
-            },
-            {
-              id: "oathnet-xbox",
-              label: "Xbox",
-              apiType: "oathnet/xbox",
-            },
-            {
-              id: "oathnet-roblox-userinfo",
-              label: "Roblox",
-              apiType: "oathnet/roblox-userinfo",
-            },
-            {
-              id: "oathnet-mc-history",
-              label: "Minecraft history",
-              apiType: "oathnet/mc-history",
-            },
-          ],
-        },
-      ),
+      (() => {
+        const oathnetGroups: ModuleToolGroup[] = [
+          {
+            id: "breaches",
+            label: "Breaches",
+            tools: [
+              {
+                id: "oathnet-breach",
+                label: "Breach search",
+                apiType: "oathnet/breach",
+              },
+            ],
+          },
+          {
+            id: "stealer",
+            label: "Stealer",
+            tools: [
+              {
+                id: "oathnet-stealer",
+                label: "Stealer search",
+                apiType: "oathnet/stealer",
+              },
+              {
+                id: "oathnet-victims",
+                label: "Victims search",
+                apiType: "oathnet/victims",
+              },
+              {
+                id: "oathnet-stealer-subdomain",
+                label: "Stealer subdomain",
+                apiType: "oathnet/stealer-subdomain",
+              },
+              {
+                id: "oathnet-extract-subdomain",
+                label: "Subdomain extract",
+                apiType: "oathnet/extract-subdomain",
+              },
+            ],
+          },
+          {
+            id: "discord",
+            label: "Discord",
+            tools: [
+              {
+                id: "oathnet-discord-userinfo",
+                label: "Discord userinfo",
+                apiType: "oathnet/discord-userinfo",
+              },
+              {
+                id: "oathnet-discord-history",
+                label: "Discord username history",
+                apiType: "oathnet/discord-username-history",
+              },
+            ],
+          },
+          {
+            id: "identity",
+            label: "Identity / OSINT",
+            tools: [
+              {
+                id: "oathnet-holehe",
+                label: "Holehe",
+                apiType: "oathnet/holehe",
+              },
+              {
+                id: "oathnet-ghunt",
+                label: "GHunt",
+                apiType: "oathnet/ghunt",
+              },
+            ],
+          },
+          {
+            id: "ip",
+            label: "IP",
+            tools: [
+              {
+                id: "oathnet-ip",
+                label: "IP info",
+                apiType: "oathnet/ip-info",
+              },
+            ],
+          },
+          {
+            id: "gaming",
+            label: "Gaming",
+            tools: [
+              {
+                id: "oathnet-steam",
+                label: "Steam",
+                apiType: "oathnet/steam",
+              },
+              {
+                id: "oathnet-xbox",
+                label: "Xbox",
+                apiType: "oathnet/xbox",
+              },
+              {
+                id: "oathnet-roblox-userinfo",
+                label: "Roblox",
+                apiType: "oathnet/roblox-userinfo",
+              },
+              {
+                id: "oathnet-mc-history",
+                label: "Minecraft history",
+                apiType: "oathnet/mc-history",
+              },
+            ],
+          },
+        ];
+
+        return mod(
+          "Stealer Intel",
+          "OathNet",
+          "oathnet",
+          "oathnet/breach",
+          "Pick a category tool — email, Discord ID, IP, domain, Steam, Xbox, Roblox, or Minecraft",
+          "Ultimate / Enterprise — native OathNet lookups grouped by category (also fanned into Breaches, Stealer Logs, Discord, IP, Username, and gaming modules).",
+          undefined,
+          undefined,
+          {
+            // Mutually exclusive tools (incompatible query shapes) — pick one.
+            fanOutAllTools: false,
+            singleSearchField: true,
+            toolGroups: oathnetGroups,
+            tools: oathnetGroups.flatMap((group) => group.tools),
+          },
+        );
+      })(),
     ],
   },
   {
@@ -459,7 +539,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breaches",
         "breaches",
         "Email or username",
-        "Unified breach search across leak indexes, recovery data, email analysis, contact profiles, and email fraud signals.",
+        "Unified breach search across leak indexes, recovery data, email analysis, contact profiles, and email fraud signals (OathNet breach / Holehe / GHunt on Ultimate+).",
         undefined,
         undefined,
         {
@@ -814,6 +894,16 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Seekria footprint",
               apiType: "seekria/user-footprint",
             },
+            {
+              id: "oathnet-holehe",
+              label: "OathNet Holehe",
+              apiType: "oathnet/holehe",
+            },
+            {
+              id: "oathnet-ghunt",
+              label: "OathNet GHunt",
+              apiType: "oathnet/ghunt",
+            },
           ],
         },
       ),
@@ -1082,13 +1172,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
           ],
         },
       ),
+      // Legacy — hidden from hub; redirects to Stealer Logs (Domain field / auto-detect).
       mod(
         "Network",
         "Domain",
         "domain",
         "domains",
         "Domain name (e.g. example.com)",
-        "Stealer logs, breach data, and domain intelligence pivots.",
+        "Merged into Stealer Logs — select Domain or paste example.com to auto-detect; runs stealer + breach/domain pivots.",
         undefined,
         undefined,
         {

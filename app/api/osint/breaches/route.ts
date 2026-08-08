@@ -16,6 +16,7 @@ import {
   type BreachesOsintProgressEvent,
   type BreachesOsintResult,
 } from "@/lib/breaches-osint-search";
+import { canContributeOathnet } from "@/lib/oathnet";
 import { normalizeEmail } from "@/lib/proxynova-comb";
 import {
   OSINT_LONG_ROUTE_DEADLINE_MS,
@@ -127,6 +128,8 @@ export async function GET(req: NextRequest) {
         start,
         limit,
         kindHint,
+        includeOathnet: canContributeOathnet(access.plan),
+        plan: access.plan ?? null,
       },
       onEvent,
     );

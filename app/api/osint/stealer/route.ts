@@ -5,6 +5,7 @@ import {
   applyDataBlacklistToPayload,
   warmDataBlacklistCache,
 } from "@/lib/data-blacklist";
+import { canContributeOathnet } from "@/lib/oathnet";
 import { isDiscordSnowflake } from "@/lib/osintcat";
 import {
   OSINT_ROUTE_DEADLINE_MS,
@@ -60,10 +61,15 @@ export async function GET(req: NextRequest) {
     breachedData: null,
   };
 
+  const stealerOpts = {
+    includeOathnet: canContributeOathnet(access.plan),
+    plan: access.plan ?? null,
+  };
+
   if (!wantsStream(req)) {
     try {
       const response = await withDeadline(
-        runStealerOsintSearch(query),
+        runStealerOsintSearch(query, stealerOpts),
         OSINT_ROUTE_DEADLINE_MS,
       );
 
@@ -111,7 +117,7 @@ export async function GET(req: NextRequest) {
 
       try {
         await withDeadline(
-          runStealerOsintSearch(query, send),
+          runStealerOsintSearch(query, stealerOpts, send),
           OSINT_ROUTE_DEADLINE_MS,
         );
       } catch (err) {

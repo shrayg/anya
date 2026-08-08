@@ -200,8 +200,9 @@ const PROFESSIONAL_MODULE_DENY_REASON =
 
 /**
  * Ultimate / Enterprise exclusives — Professional and below see sidebar lock + API 403.
- * BreachHub-billed OathNet enrichment inside other modules may still run when BH is keyed;
- * the dedicated OathNet module and `/api/oathnet/*` require Ultimate+.
+ * Native OathNet contribution inside Breaches / Stealer / Discord / IP / gaming /
+ * Username also requires Ultimate+ (`canContributeOathnet`). The dedicated
+ * OathNet module and `/api/oathnet/*` force-gate on this slug set.
  */
 export const ULTIMATE_MODULE_SLUGS = new Set(["oathnet"]);
 

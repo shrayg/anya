@@ -53,7 +53,9 @@ export function ModuleSearchFields({
   const availableIds = options.map((option) => option.id);
   const hideTypePicker = Boolean(moduleDef.hideFieldTypePicker);
   const needsManualPicker =
-    !hideTypePicker && moduleNeedsManualFieldTypePicker(availableIds);
+    !hideTypePicker &&
+    (Boolean(moduleDef.forceFieldTypePicker) ||
+      moduleNeedsManualFieldTypePicker(availableIds));
   const showTypeChrome = !hideTypePicker;
   const singleInput =
     hideTypePicker || Boolean(moduleDef.singleSearchField);

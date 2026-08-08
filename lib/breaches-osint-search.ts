@@ -17,6 +17,11 @@ import {
   isBreachHubEnabled,
 } from "@/lib/breachhub";
 import {
+  canContributeOathnet,
+  fetchOathnetSanitized,
+} from "@/lib/oathnet";
+import type { PlanId } from "@/lib/plans";
+import {
   searchBreachVipForEmail,
   searchBreachVipForField,
   type BreachVipField,
@@ -102,6 +107,9 @@ export type BreachesOsintSearchOpts = {
   start?: number;
   limit?: number;
   kindHint?: string | null;
+  /** Ultimate+ native OathNet breach (+ Holehe/GHunt for email). */
+  includeOathnet?: boolean;
+  plan?: PlanId | null;
 };
 
 function credentialMergeKey(row: CombCredential): string {
@@ -364,6 +372,7 @@ export async function runBreachesOsintSearch(
   let breachHub: SanitizedBreachResponse | null = null;
   let csint: SanitizedBreachResponse | null = null;
   let osintCat: SanitizedBreachResponse | null = null;
+  let oathnet: SanitizedBreachResponse | null = null;
   let breachVipReturned = 0;
 
   let doneCount = 0;
@@ -372,6 +381,11 @@ export async function runBreachesOsintSearch(
   // Other: godseye-search + breachvip + breachhub (+ CSINT later).
   const initialDomain = resolveBreachKindHint(query, kindHint) === "domain";
   let moduleTotal = preferEmail ? 5 : initialDomain ? 4 : 3;
+  const includeOathnet =
+    opts.includeOathnet === true ||
+    (opts.plan ? canContributeOathnet(opts.plan) : false);
+
+  if (includeOathnet) moduleTotal += 1;
 
   const assemble = (): BreachesOsintResult => {
     const mergedCredentials = [
@@ -381,6 +395,7 @@ export async function runBreachesOsintSearch(
       csint ? csintRowsToCredentials(csint.results) : [],
       breachHub ? breachHubRowsToCredentials(breachHub.results) : [],
       osintCat ? breachHubRowsToCredentials(osintCat.results) : [],
+      oathnet ? breachHubRowsToCredentials(oathnet.results) : [],
     ].reduce(
       (acc, next) => mergeCredentials(acc, next),
       [] as CombCredential[],
@@ -607,6 +622,48 @@ export async function runBreachesOsintSearch(
     }
 
     await Promise.all(peerTasks);
+  }
+
+  if (includeOathnet) {
+    try {
+      const jobs: Array<Promise<SanitizedBreachResponse | null>> = [
+        fetchOathnetSanitized(
+          { kind: "static", endpoint: "breach" },
+          { query: preferEmail && email ? email : query },
+        ).catch(() => null),
+      ];
+
+      if (preferEmail && email) {
+        jobs.push(
+          fetchOathnetSanitized(
+            { kind: "static", endpoint: "holehe" },
+            { email },
+          ).catch(() => null),
+          fetchOathnetSanitized(
+            { kind: "static", endpoint: "ghunt" },
+            { email },
+          ).catch(() => null),
+        );
+      }
+
+      const settled = await Promise.all(jobs);
+      const parts = settled.filter(
+        (part): part is SanitizedBreachResponse =>
+          Boolean(part && (part.count > 0 || (part.results?.length ?? 0) > 0)),
+      );
+
+      if (parts.length > 0) {
+        oathnet = {
+          count: parts.reduce((sum, part) => sum + (part.count || 0), 0),
+          results: parts.flatMap((part) =>
+            Array.isArray(part.results) ? part.results : [],
+          ),
+        };
+      }
+    } catch {
+      oathnet = null;
+    }
+    emit("oathnet");
   }
 
   const finalResult = assemble();
