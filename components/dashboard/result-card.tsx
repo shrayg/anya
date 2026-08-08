@@ -87,6 +87,7 @@ export function ResultCardField({
             "anya-breach-value-text",
             humanReadable && !isToken && "anya-breach-value-text--human",
           )}
+          title={field.value.length > 48 ? field.value : undefined}
         >
           <BlurredValue forceBlur={blurResults} text={field.value} />
         </p>

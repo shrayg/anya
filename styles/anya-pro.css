@@ -1857,9 +1857,12 @@ pre,
   text-decoration: underline;
 }
 
-/* Align field labels with the blush theme used elsewhere in results */
+/* Align field labels with the ice theme used elsewhere in results */
 .anya-result-label {
-  color: color-mix(in srgb, var(--anya-blush) 72%, #a1a1aa);
+  color: #8b8b93;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-weight: 550;
 }
 
 .anya-result-card {

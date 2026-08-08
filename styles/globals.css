@@ -2230,11 +2230,11 @@
 }
 
 .anya-result-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(113, 113, 122, 1);
+  font-size: 0.66rem;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #8b8b93;
 }
 
 .anya-result-value {
@@ -2300,16 +2300,16 @@
 .anya-breach-card {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.7rem 0.75rem 0.75rem;
+  gap: 0.65rem;
+  padding: 0.8rem 0.85rem 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.65rem;
+  border-radius: 0.55rem;
   background: linear-gradient(
     165deg,
-    rgba(22, 22, 26, 0.96) 0%,
-    rgba(12, 12, 14, 0.98) 100%
+    rgba(18, 18, 22, 0.98) 0%,
+    rgba(8, 8, 10, 0.99) 100%
   );
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
 }
 
 .anya-breach-card-head {
@@ -2331,15 +2331,15 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  border-radius: 0.35rem;
+  border-radius: 0.3rem;
   padding: 0.18rem 0.45rem;
   font-size: 0.62rem;
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #fff;
-  background: color-mix(in srgb, var(--anya-blush) 42%, #3a1a22);
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 35%, transparent);
+  color: color-mix(in srgb, var(--anya-blush) 92%, #fff);
+  background: color-mix(in srgb, var(--anya-blush) 14%, #0c0c0e);
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 28%, transparent);
 }
 
 .anya-breach-id {
@@ -2383,7 +2383,7 @@
 .anya-breach-fields {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.45rem 0.55rem;
+  gap: 0.55rem 0.7rem;
 }
 
 @media (min-width: 480px) {
@@ -2405,13 +2405,13 @@
 
 .anya-breach-group-label {
   grid-column: 1 / -1;
-  margin-top: 0.35rem;
-  padding-top: 0.45rem;
+  margin: 0.15rem 0 0.35rem;
+  padding-top: 0.55rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
   color: #a1a1aa;
 }
 
@@ -2429,30 +2429,36 @@
 
 .anya-breach-field-label {
   display: block;
-  margin-bottom: 0.2rem;
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--anya-blush) 55%, #71717a);
+  margin-bottom: 0.28rem;
+  font-size: 0.66rem;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #8b8b93;
 }
 
 .anya-breach-value-box {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  border-radius: 0.35rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.35);
-  padding: 0.4rem 0.5rem;
+  gap: 0.4rem;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #0a0a0c;
+  padding: 0.48rem 0.55rem;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  transition: border-color 0.12s ease;
+}
+
+.anya-breach-value-box:hover {
+  border-color: color-mix(in srgb, var(--anya-blush) 18%, rgba(255, 255, 255, 0.1));
 }
 
 .anya-breach-value-box--accent {
-  border-color: color-mix(in srgb, var(--anya-blush) 30%, transparent);
+  border-color: color-mix(in srgb, var(--anya-blush) 32%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 5%, #0a0a0c);
 }
 
 .anya-breach-value-text {
@@ -2461,8 +2467,8 @@
   min-width: 0;
   max-width: 100%;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: 0.74rem;
+  line-height: 1.45;
   color: #f4f4f5;
   /* Horizontal text + ellipsis — never char-per-line from overflow-wrap:anywhere */
   overflow: hidden;
@@ -2473,13 +2479,13 @@
 }
 
 .anya-breach-value-box--human {
-  background: rgba(0, 0, 0, 0.22);
+  background: #0c0c0e;
 }
 
 .anya-breach-value-text--human {
   font-family: inherit;
-  font-size: 0.78rem;
-  line-height: 1.45;
+  font-size: 0.8rem;
+  line-height: 1.5;
   color: #e4e4e7;
 }
 
@@ -2506,16 +2512,20 @@
 
 .anya-result-sections {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.85rem;
   width: 100%;
   min-width: 0;
   grid-column: 1 / -1;
 }
 
+.anya-result-section {
+  min-width: 0;
+}
+
 .anya-result-section-fields {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.4rem 0.55rem;
+  gap: 0.55rem 0.75rem;
   width: 100%;
   min-width: 0;
 }
@@ -2527,13 +2537,17 @@
 }
 
 .anya-result-section-fields--advanced {
-  margin-top: 0.4rem;
+  margin-top: 0.15rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.28);
 }
 
 .anya-result-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.4rem;
   grid-column: 1 / -1;
 }
 
@@ -2541,13 +2555,13 @@
   display: inline-flex;
   align-items: center;
   max-width: 100%;
-  padding: 0.2rem 0.45rem;
-  border-radius: 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--anya-blush) 22%, transparent);
-  background: color-mix(in srgb, var(--anya-blush) 6%, rgba(0, 0, 0, 0.35));
+  padding: 0.22rem 0.5rem;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0a0a0c;
   color: #d4d4d8;
-  font-size: 0.68rem;
-  line-height: 1.3;
+  font-size: 0.7rem;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2556,35 +2570,49 @@
 .anya-result-more {
   grid-column: 1 / -1;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
 }
 
 .anya-result-more-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.65rem;
   width: 100%;
   margin: 0;
-  padding: 0.35rem 0.15rem;
+  padding: 0.5rem 0.15rem 0.35rem;
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
   background: transparent;
-  color: color-mix(in srgb, var(--anya-blush) 80%, #a1a1aa);
-  font-size: 0.68rem;
-  font-weight: 650;
-  letter-spacing: 0.04em;
+  color: #a1a1aa;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
   text-align: left;
+  transition: color 0.12s ease;
 }
 
 .anya-result-more-toggle:hover {
-  color: var(--anya-blush-hover);
+  color: color-mix(in srgb, var(--anya-blush) 88%, #fff);
+}
+
+.anya-result-more-toggle--open {
+  color: color-mix(in srgb, var(--anya-blush) 78%, #d4d4d8);
+}
+
+.anya-result-more-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
 }
 
 .anya-result-more-toggle svg {
   transition: transform 0.18s ease;
-  opacity: 0.75;
+  opacity: 0.7;
+  flex-shrink: 0;
 }
 
 .anya-result-more-toggle--open svg {
@@ -2595,25 +2623,32 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.15rem;
-  margin-left: 0.4rem;
-  padding: 0.05rem 0.35rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.35);
-  color: #a1a1aa;
-  font-size: 0.58rem;
-  font-weight: 600;
+  min-width: 1.25rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--anya-blush) 22%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 8%, #0a0a0c);
+  color: color-mix(in srgb, var(--anya-blush) 82%, #a1a1aa);
+  font-size: 0.62rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 
 .anya-breach-value-box .anya-result-copy {
   flex: 0 0 auto;
   flex-shrink: 0;
+  opacity: 0.72;
+}
+
+.anya-breach-value-box:hover .anya-result-copy,
+.anya-breach-value-box .anya-result-copy:focus-visible,
+.anya-breach-value-box .anya-result-copy--done {
+  opacity: 1;
 }
 
 .anya-breach-field--sensitive .anya-breach-value-box {
-  border-color: color-mix(in srgb, var(--anya-blush) 28%, transparent);
+  border-color: color-mix(in srgb, var(--anya-blush) 24%, transparent);
 }
 
 /* Shared result cards use the OathNet-inspired breach shell */
@@ -3726,11 +3761,11 @@
 }
 
 .anya-breaches-email-label-caption {
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: #71717a;
+  font-size: 0.64rem;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #8b8b93;
 }
 
 .anya-breaches-email-label-value {
@@ -3758,37 +3793,64 @@
 }
 
 .anya-result-card--dense.anya-breach-card {
-  gap: 0.4rem;
-  padding: 0.55rem 0.6rem 0.6rem;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem 0.75rem;
 }
 
 .anya-result-card--dense .anya-breach-card-head {
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 
 .anya-result-card--dense .anya-result-card-title {
-  font-size: 0.8rem;
+  font-size: 0.84rem;
 }
 
 .anya-result-card--dense .anya-result-card-subtitle {
-  font-size: 0.66rem;
+  font-size: 0.68rem;
 }
 
 .anya-result-card--dense .anya-breach-fields {
-  gap: 0.35rem 0.4rem;
+  gap: 0.5rem 0.65rem;
+}
+
+.anya-result-card--dense .anya-result-sections {
+  gap: 0.75rem;
+}
+
+.anya-result-card--dense .anya-result-section-fields {
+  gap: 0.5rem 0.7rem;
 }
 
 .anya-result-card--dense .anya-breach-field-label {
-  font-size: 0.54rem;
-  margin-bottom: 0.15rem;
+  font-size: 0.64rem;
+  margin-bottom: 0.24rem;
+  letter-spacing: 0.015em;
 }
 
 .anya-result-card--dense .anya-breach-value-box {
-  padding: 0.32rem 0.4rem;
+  padding: 0.42rem 0.5rem;
 }
 
 .anya-result-card--dense .anya-breach-value-text {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
+}
+
+.anya-result-card--dense .anya-result-section-fields--advanced {
+  padding: 0.55rem 0.6rem;
+}
+
+@media (max-width: 640px) {
+  .anya-result-section-fields--advanced {
+    padding: 0.5rem 0.45rem;
+  }
+
+  .anya-result-card--dense.anya-breach-card {
+    padding: 0.6rem 0.55rem 0.65rem;
+  }
+
+  .anya-breach-value-box {
+    padding: 0.4rem 0.45rem;
+  }
 }
 
 .anya-result-stack-actions--left,
@@ -3827,11 +3889,11 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--anya-blush) 70%, #a1a1aa);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #a1a1aa;
 }
 
 .anya-ip-intel-ip {
@@ -3871,10 +3933,10 @@
 
 .anya-ip-intel-chip-label {
   display: block;
-  font-size: 0.58rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #71717a;
+  font-size: 0.64rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #8b8b93;
 }
 
 .anya-ip-intel-chip-value {
@@ -4055,9 +4117,17 @@
 }
 
 .anya-result-copy--compact {
-  border-radius: 0.4rem;
-  padding: 0.2rem;
+  border-radius: 0.3rem;
+  padding: 0.22rem;
   gap: 0;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: transparent;
+}
+
+.anya-result-copy--compact:hover {
+  border-color: color-mix(in srgb, var(--anya-blush) 28%, transparent);
+  background: color-mix(in srgb, var(--anya-blush) 8%, transparent);
+  color: color-mix(in srgb, var(--anya-blush) 90%, #fff);
 }
 
 .anya-result-copy--done {
@@ -8247,11 +8317,11 @@
 }
 
 .discord-id-field-label {
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #71717a;
+  font-size: 0.66rem;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #8b8b93;
 }
 
 .discord-id-field-value {
@@ -9708,16 +9778,16 @@
 }
 
 .home-search-results .anya-breach-value-box {
-  padding: 0.28rem 0.4rem;
+  padding: 0.42rem 0.5rem;
 }
 
 .home-search-results .anya-breach-value-text {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: #fafafa;
 }
 
 .home-search-results .anya-breach-field-label {
-  color: color-mix(in srgb, var(--anya-blush) 65%, #a1a1aa);
+  color: #8b8b93;
 }
 
 .home-search {

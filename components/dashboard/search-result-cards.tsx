@@ -172,7 +172,7 @@ function RecordFieldsBody({
               setShowAdvanced((open) => !open);
             }}
           >
-            <span>
+            <span className="anya-result-more-toggle-label">
               {showAdvanced ? "Hide details" : "More details"}
               <span className="anya-result-more-count">
                 {advancedSection.fields.length}
