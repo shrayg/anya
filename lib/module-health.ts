@@ -13,6 +13,7 @@ import {
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { getOsintCatApiKey } from "@/lib/osintcat";
 import { probeInstagramAvailability } from "@/lib/instagram-search";
+import { listActiveMaintenanceSlugs } from "@/lib/module-maintenance";
 import { getCourtListenerToken } from "@/lib/us-records/courtlistener";
 import { getSkippedBreachHubEndpointIds } from "@/lib/provider-dedupe";
 import { recordProviderRequest } from "@/lib/provider-request-log";
@@ -572,6 +573,26 @@ function evaluateRuleLevel(
   return "degraded";
 }
 
+function applyMaintenanceOverrides(
+  modules: Record<string, boolean>,
+): Record<string, boolean> {
+  for (const slug of listActiveMaintenanceSlugs()) {
+    modules[slug] = false;
+  }
+
+  return modules;
+}
+
+function applyMaintenanceLevelOverrides(
+  modules: Record<string, ModuleHealthLevel>,
+): Record<string, ModuleHealthLevel> {
+  for (const slug of listActiveMaintenanceSlugs()) {
+    modules[slug] = "down";
+  }
+
+  return modules;
+}
+
 export function buildModuleHealthMap(
   providers: ProviderHealth,
 ): Record<string, boolean> {
@@ -581,7 +602,7 @@ export function buildModuleHealthMap(
     modules[slug] = evaluateRule(resolveModuleHealthRule(slug, rule), providers);
   }
 
-  return modules;
+  return applyMaintenanceOverrides(modules);
 }
 
 export function buildModuleHealthLevels(
@@ -596,7 +617,7 @@ export function buildModuleHealthLevels(
     );
   }
 
-  return modules;
+  return applyMaintenanceLevelOverrides(modules);
 }
 
 /**

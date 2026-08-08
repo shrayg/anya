@@ -4,8 +4,15 @@ import {
   hasHingeLiveCredentials,
   isHingeLiveEnabled,
 } from "@/lib/hinge-live/enabled";
+import { getModuleMaintenanceMessage } from "@/lib/module-maintenance";
 
 export function hingeLiveDisabledResponse(): NextResponse | null {
+  const maintenance = getModuleMaintenanceMessage("hinge-live");
+
+  if (maintenance) {
+    return NextResponse.json({ error: maintenance }, { status: 503 });
+  }
+
   if (!isHingeLiveEnabled()) {
     const hasCreds = hasHingeLiveCredentials();
     const needsProxy =

@@ -60,6 +60,10 @@ import {
   STARTER_MODULE_SLUGS,
 } from "@/lib/plans";
 import {
+  getModuleMaintenanceMessage,
+  isModuleUnderMaintenance,
+} from "@/lib/module-maintenance";
+import {
   clearSearchResume,
   readSearchResume,
   saveSearchResume,
@@ -151,6 +155,12 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     () =>
       HOME_PREMIUM_MODULE_OPTIONS.find((opt) => opt.id === premiumModule) ??
       null,
+    [premiumModule],
+  );
+
+  const premiumMaintenanceMessage = useMemo(
+    () =>
+      premiumModule ? getModuleMaintenanceMessage(premiumModule) : null,
     [premiumModule],
   );
 
@@ -459,6 +469,15 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
     // Class C premium module from homepage.
     if (premiumModule) {
+      if (isModuleUnderMaintenance(premiumModule)) {
+        setError(
+          getModuleMaintenanceMessage(premiumModule) ??
+            "This module is currently down and being repaired.",
+        );
+
+        return;
+      }
+
       if (auth.status !== "authenticated") {
         setError("Sign in to run premium credit modules.");
 
@@ -1090,7 +1109,10 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
                   <span>Included</span>
                   <small>Email · Phone · Username · Discord · Breaches</small>
                 </button>
-                {HOME_PREMIUM_MODULE_OPTIONS.map((opt) => (
+                {HOME_PREMIUM_MODULE_OPTIONS.map((opt) => {
+                  const optMaintenance = getModuleMaintenanceMessage(opt.id);
+
+                  return (
                   <button
                     key={opt.id}
                     aria-pressed={premiumModule === opt.id}
@@ -1100,18 +1122,21 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
                         "home-search-premium-option--active",
                     )}
                     role="menuitemradio"
-                    title={opt.hint}
+                    title={optMaintenance ?? opt.hint}
                     type="button"
                     onClick={() => {
                       setPremiumModule(opt.id);
-                      setError("");
+                      setError(optMaintenance ?? "");
                       setPremiumMenuOpen(false);
                     }}
                   >
                     <span>{opt.label}</span>
-                    <small>{opt.hint}</small>
+                    <small>
+                      {optMaintenance ? "Down · being repaired" : opt.hint}
+                    </small>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1120,7 +1145,12 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       <LiquidButton
         className="home-search-submit liquid-glass-button--accent"
         data-tour="home-search-submit"
-        disabled={!query.trim() || isSearching || auth.status === "loading"}
+        disabled={
+          !query.trim() ||
+          isSearching ||
+          auth.status === "loading" ||
+          Boolean(premiumMaintenanceMessage)
+        }
         type="submit"
       >
         {isSearching ? (
@@ -1201,8 +1231,10 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
           {premiumModule ? (
             <p className="home-search-premium-hint">
-              {activePremiumOption?.hint}
-              {auth.status === "guest"
+              {premiumMaintenanceMessage
+                ? premiumMaintenanceMessage
+                : activePremiumOption?.hint}
+              {!premiumMaintenanceMessage && auth.status === "guest"
                 ? " · Sign in required before Search."
                 : null}
             </p>

@@ -6,6 +6,7 @@ import {
   normalizeInstagramUsername,
   searchInstagram,
 } from "@/lib/instagram-search";
+import { getModuleMaintenanceMessage } from "@/lib/module-maintenance";
 import { requireOsintAccess } from "@/lib/osint-api-auth";
 
 /** Large follower exports can take several minutes while paginating. */
@@ -17,6 +18,12 @@ const DEFAULT_MAX_USERS = 500;
 const ABSOLUTE_MAX_USERS = 500;
 
 export async function GET(req: NextRequest) {
+  const maintenance = getModuleMaintenanceMessage("instagram-live");
+
+  if (maintenance) {
+    return NextResponse.json({ error: maintenance }, { status: 503 });
+  }
+
   // Live Instagram graph/session burns residential proxy.
   // Initial search: bill 1 credit (instagram-live).
   // followUp=1: enrich / progressive load after a paid search (panel access only).

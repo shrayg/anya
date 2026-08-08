@@ -144,6 +144,10 @@ import {
   shouldBlurResults,
 } from "@/lib/plans";
 import {
+  getModuleMaintenanceMessage,
+  isModuleUnderMaintenance,
+} from "@/lib/module-maintenance";
+import {
   getAiModeForModule,
   getModuleFanOutBehavior,
   isOathnetApiType,
@@ -691,6 +695,45 @@ export function ModuleSearchView({
     return access.reason || "This module is not available on your plan.";
   }, [balance, billingModuleSlug, plan]);
 
+  /** Live tools (or whole modules) flagged as under repair. */
+  const maintenanceMessage = useMemo(() => {
+    // Hinge Live (and any dedicated live slug) — whole module.
+    if (
+      moduleDef.slug === "hinge-live" ||
+      moduleDef.slug === "instagram-live"
+    ) {
+      return getModuleMaintenanceMessage(moduleDef.slug);
+    }
+
+    // Instagram page: only the Live OSINT tool is under repair.
+    if (moduleDef.slug === "instagram") {
+      if (!selectedToolId || selectedToolId === "instagram-live") {
+        return getModuleMaintenanceMessage("instagram-live");
+      }
+
+      return null;
+    }
+
+    if (selectedToolId && isModuleUnderMaintenance(selectedToolId)) {
+      return getModuleMaintenanceMessage(selectedToolId);
+    }
+
+    if (billingModuleSlug && isModuleUnderMaintenance(billingModuleSlug)) {
+      return getModuleMaintenanceMessage(billingModuleSlug);
+    }
+
+    return null;
+  }, [billingModuleSlug, moduleDef.slug, selectedToolId]);
+
+  /** Soft banner on Instagram even when a non-Live tool is selected. */
+  const maintenanceBanner =
+    maintenanceMessage ??
+    (moduleDef.slug === "instagram"
+      ? getModuleMaintenanceMessage("instagram-live")
+      : null);
+
+  const searchBlockedByMaintenance = Boolean(maintenanceMessage);
+
   const hasSelectableCards = useMemo(
     () =>
       records.length > 0 ||
@@ -1136,6 +1179,13 @@ export function ModuleSearchView({
 
     if (moduleLocked) {
       setError(moduleLocked);
+      setIsSearching(false);
+
+      return;
+    }
+
+    if (maintenanceMessage) {
+      setError(maintenanceMessage);
       setIsSearching(false);
 
       return;
@@ -3949,6 +3999,11 @@ export function ModuleSearchView({
                 "For lawful investigative and research use only. Not a consumer reporting agency and not for FCRA-covered decisions (credit, employment, housing, insurance). Results are composed from public government indexes and may be incomplete."}
             </p>
           ) : null}
+          {maintenanceBanner ? (
+            <p className="mt-3 border-l-2 border-rose-400/60 bg-rose-400/8 px-4 py-3 text-sm text-rose-100">
+              {maintenanceBanner}
+            </p>
+          ) : null}
           {moduleLocked && (
             <p className="mt-3 border-l-2 border-amber-400/60 bg-amber-400/8 px-4 py-3 text-sm text-amber-100">
               {moduleLocked}{" "}
@@ -3968,7 +4023,7 @@ export function ModuleSearchView({
               ) : null}
             </p>
           )}
-          {!moduleLocked && residentialProxyCostHint ? (
+          {!moduleLocked && !searchBlockedByMaintenance && residentialProxyCostHint ? (
             <p className="mt-3 border-l-2 border-sky-400/50 bg-sky-400/8 px-4 py-3 text-sm text-sky-100">
               {residentialProxyCostHint}{" "}
               <Link
@@ -4093,7 +4148,10 @@ export function ModuleSearchView({
                         className="home-search-submit liquid-glass-button--accent module-search-submit shrink-0"
                         data-tour="search-submit"
                         disabled={
-                          !query.trim() || isSearching || Boolean(moduleLocked)
+                          !query.trim() ||
+                          isSearching ||
+                          Boolean(moduleLocked) ||
+                          searchBlockedByMaintenance
                         }
                         type="submit"
                       >
@@ -4113,14 +4171,19 @@ export function ModuleSearchView({
                     canSubmit={
                       composedFields.hasInput &&
                       !isSearching &&
-                      !moduleLocked
+                      !moduleLocked &&
+                      !searchBlockedByMaintenance
                     }
-                    disabled={Boolean(moduleLocked)}
+                    disabled={
+                      Boolean(moduleLocked) || searchBlockedByMaintenance
+                    }
                     extraActions={
                       isPublicRecords ? (
                         <button
                           className="ui-btn shrink-0 sm:min-w-[6.5rem]"
-                          disabled={Boolean(moduleLocked)}
+                          disabled={
+                            Boolean(moduleLocked) || searchBlockedByMaintenance
+                          }
                           type="button"
                           onClick={() =>
                             setShowPublicRecordsOptions((open) => !open)

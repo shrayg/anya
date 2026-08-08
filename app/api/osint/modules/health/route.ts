@@ -8,6 +8,7 @@ import {
   type ModuleHealthLevel,
   type ProviderHealth,
 } from "@/lib/module-health";
+import { getActiveMaintenanceMap } from "@/lib/module-maintenance";
 import {
   readPersistedProviderHealth,
   writePersistedProviderHealth,
@@ -40,6 +41,7 @@ export async function GET() {
       providers: cache.providers,
       modules: cache.modules,
       levels: cache.levels,
+      maintenance: getActiveMaintenanceMap(),
     });
   }
 
@@ -62,6 +64,7 @@ export async function GET() {
     providers: cache.providers,
     modules: cache.modules,
     levels: cache.levels,
+    maintenance: getActiveMaintenanceMap(),
   });
 }
 
