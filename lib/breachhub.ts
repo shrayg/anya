@@ -3872,6 +3872,9 @@ export type StealerArchiveEntry = {
   logId: string;
   label?: string;
   machineId?: string;
+  /** OathNet victims-search id — not accepted by manifest path; resolve first. */
+  victimId?: string;
+  archiveHash?: string;
   os?: string;
   date?: string;
   malware?: string;
@@ -3886,6 +3889,9 @@ export type StealerArchiveEntry = {
   properties?: Record<string, unknown>;
   cookies?: unknown[];
   files?: StealerFileNode[];
+  /** Manifest refused (too large); archive download still available. */
+  archiveOnly?: boolean;
+  message?: string;
 };
 
 export type StealerFileNode = {
@@ -4347,7 +4353,17 @@ export function extractStealerArchives(
   const seen = new Set<string>();
 
   for (const row of rows) {
-    const logId = asLogId(row);
+    // Prefer explicit log_id — victim_id / archive_hash 404 on the manifest path.
+    const logId =
+      asString(row.log_id) ||
+      asString(row.logId) ||
+      asString(row.legacy_log_id) ||
+      asString(row.legacyLogId) ||
+      asLogId(row);
+    const victimId =
+      asString(row.victim_id) || asString(row.victimId) || undefined;
+    const archiveHash =
+      asString(row.archive_hash) || asString(row.archiveHash) || undefined;
 
     if (!logId || seen.has(logId)) continue;
     seen.add(logId);
@@ -4373,6 +4389,8 @@ export function extractStealerArchives(
         undefined,
       machineId:
         asString(row.machine_id) || asString(row.machineId) || undefined,
+      ...(victimId && victimId !== logId ? { victimId } : {}),
+      ...(archiveHash && archiveHash !== logId ? { archiveHash } : {}),
       os: asString(row.os) || asString(row.operating_system) || undefined,
       date:
         asString(row.date) ||
@@ -4502,6 +4520,10 @@ function mergeStealerArchiveLists(
       cookies: entry.cookies?.length ? entry.cookies : existing.cookies,
       summary: entry.summary ?? existing.summary,
       properties: entry.properties ?? existing.properties,
+      victimId: entry.victimId || existing.victimId,
+      archiveHash: entry.archiveHash || existing.archiveHash,
+      archiveOnly: entry.archiveOnly || existing.archiveOnly,
+      message: entry.message || existing.message,
     });
   }
 
@@ -4596,16 +4618,18 @@ function buildManifestEntry(
 export async function fetchBreachHubVictimManifest(
   logId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
-  opts?: { machineId?: string },
+  opts?: { machineId?: string; victimId?: string; archiveHash?: string },
 ): Promise<StealerArchiveEntry | null> {
   if (!logId.trim()) return null;
   if (!looksLikeVictimLogId(logId)) return null;
 
   const trimmed = logId.trim();
   const machineId = opts?.machineId?.trim() || "";
+  const victimId = opts?.victimId?.trim() || "";
+  const archiveHash = opts?.archiveHash?.trim() || "";
   const browseIds = [
     ...new Set(
-      [trimmed, machineId].filter(
+      [trimmed, machineId, victimId, archiveHash].filter(
         (id) => id && looksLikeVictimLogId(id) && !/^DESKTOP[-_]/i.test(id),
       ),
     ),
@@ -4613,6 +4637,8 @@ export async function fetchBreachHubVictimManifest(
   const errors: string[] = [];
   let bestFiles: StealerFileNode[] = [];
   let bestMeta: StealerArchiveEntry | null = null;
+  let archiveOnly = false;
+  let archiveOnlyMessage = "";
 
   const canBh = isBreachHubEnabled() && !isBreachHubCoolingDown();
 
@@ -4634,13 +4660,14 @@ export async function fetchBreachHubVictimManifest(
       cookies: entry.cookies?.length ? entry.cookies : prev?.cookies,
       summary: entry.summary ?? prev?.summary,
       properties: entry.properties ?? prev?.properties,
+      victimId: entry.victimId || prev?.victimId || victimId || undefined,
+      archiveHash:
+        entry.archiveHash || prev?.archiveHash || archiveHash || undefined,
+      archiveOnly: entry.archiveOnly || prev?.archiveOnly,
+      message: entry.message || prev?.message,
     };
     bestFiles = nextFiles;
   };
-
-  const preferMachineViewer =
-    Boolean(machineId) ||
-    (/^[a-f0-9]{24,128}$/i.test(trimmed) && Boolean(machineId));
 
   /** Native archive-provider manifest (bypasses BreachHub quota). */
   const tryNativeManifest = async () => {
@@ -4650,16 +4677,38 @@ export async function fetchBreachHubVictimManifest(
 
       if (!hasDirectOathnetKey()) return false;
 
-      const data = await fetchOathnetVictimManifestRaw(trimmed, timeoutMs);
+      const result = await fetchOathnetVictimManifestRaw(trimmed, timeoutMs, {
+        alternateIds: browseIds.filter((id) => id !== trimmed),
+      });
 
-      if (!data) {
+      if (!result) {
         errors.push("Archive provider has no file tree for this log id.");
         return false;
       }
 
+      if (result.archiveOnly) {
+        archiveOnly = true;
+        archiveOnlyMessage =
+          result.message ||
+          "File tree is too large to browse online. Download the full archive instead.";
+        mergeBest({
+          logId: result.logId || trimmed,
+          archiveOnly: true,
+          message: archiveOnlyMessage,
+          files: [],
+        });
+        return true;
+      }
+
+      const data = result.data;
       const archives = extractStealerArchives(data);
       const files = pickManifestTree(data);
-      const entry = buildManifestEntry(trimmed, data, files, archives[0]);
+      const entry = buildManifestEntry(
+        result.logId || trimmed,
+        data,
+        files,
+        archives[0],
+      );
 
       mergeBest(entry);
       return files.length > 0;
@@ -4676,25 +4725,33 @@ export async function fetchBreachHubVictimManifest(
   const tryBhOathNetManifest = async () => {
     if (!canBh) return false;
 
-    try {
-      const data = await breachHubGet(
-        "/api/oathnet/victims/:log_id",
-        {},
-        timeoutMs,
-        { log_id: trimmed },
-      );
-      const archives = extractStealerArchives(data);
-      const files = pickManifestTree(data);
-      const entry = buildManifestEntry(trimmed, data, files, archives[0]);
+    for (const id of browseIds) {
+      try {
+        const data = await breachHubGet(
+          "/api/oathnet/victims/:log_id",
+          {},
+          timeoutMs,
+          { log_id: id },
+        );
+        const archives = extractStealerArchives(data);
+        const files = pickManifestTree(data);
+        const entry = buildManifestEntry(
+          id,
+          data,
+          files,
+          archives[0] ?? bestMeta ?? undefined,
+        );
 
-      mergeBest(entry);
-      return files.length > 0;
-    } catch (err) {
-      errors.push(
-        err instanceof Error ? err.message : "Victim manifest failed",
-      );
-      return false;
+        mergeBest(entry);
+        if (files.length > 0) return true;
+      } catch (err) {
+        errors.push(
+          err instanceof Error ? err.message : "Victim manifest failed",
+        );
+      }
     }
+
+    return bestFiles.length > 0;
   };
 
   const tryOsintCatTrees = async () => {
@@ -4737,18 +4794,11 @@ export async function fetchBreachHubVictimManifest(
     return bestFiles.length > 0;
   };
 
-  // Prefer native archive provider for log-id pivots (esp. when BH is cooled).
-  // Machine-viewer only when an explicit machineId is present and BH is live.
-  if (preferMachineViewer) {
-    const ok = await tryOsintCatTrees();
-    if (ok) return bestMeta;
+  // Always prefer native archive provider first (esp. when BH is quota-cooled).
+  // OsintCat machine-viewer is secondary — never block Files on BH quota alone.
+  {
     const nativeOk = await tryNativeManifest();
-    if (nativeOk) return bestMeta;
-    const oathOk = await tryBhOathNetManifest();
-    if (oathOk) return bestMeta;
-  } else {
-    const nativeOk = await tryNativeManifest();
-    if (nativeOk) return bestMeta;
+    if (nativeOk && (bestFiles.length > 0 || archiveOnly)) return bestMeta;
     const oathOk = await tryBhOathNetManifest();
     if (oathOk) return bestMeta;
     const ok = await tryOsintCatTrees();
@@ -4757,11 +4807,15 @@ export async function fetchBreachHubVictimManifest(
 
   if (bestFiles.length > 0) return bestMeta;
 
+  if (archiveOnly && bestMeta) return bestMeta;
+
   // Metadata without files is still useful for Machine view chrome.
   if (bestMeta) return bestMeta;
 
   if (errors.length > 0) {
     const unique = [...new Set(errors)];
+    const { hasDirectOathnetKey } = await import("@/lib/oathnet");
+    const missingKey = !hasDirectOathnetKey();
     const allQuota = unique.every((e) =>
       /quota|rate limit|too many searches|try again later/i.test(e),
     );
@@ -4771,11 +4825,13 @@ export async function fetchBreachHubVictimManifest(
     const joined = unique.slice(0, 3).join(" · ");
 
     throw new Error(
-      allQuota && !notFound
-        ? "Archive file listing is temporarily unavailable (provider quota). Try again later."
-        : notFound && allQuota
-          ? "No file tree for this device, and the mirror index is quota-limited. Try again later."
-          : joined || "File manifest is not available for this device.",
+      missingKey && (notFound || allQuota)
+        ? "File manifest unavailable. Configure the archive provider API key on the server, or try again when the mirror index recovers."
+        : allQuota && !notFound
+          ? "Archive file listing is temporarily unavailable (provider quota). Try again later."
+          : notFound && allQuota
+            ? "No file tree for this device, and the mirror index is quota-limited. Try again later."
+            : joined || "File manifest is not available for this device.",
     );
   }
 
@@ -4785,7 +4841,7 @@ export async function fetchBreachHubVictimManifest(
 export async function fetchBreachHubVictimArchiveBinary(
   logId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
-  opts?: { machineId?: string },
+  opts?: { machineId?: string; victimId?: string; archiveHash?: string },
 ): Promise<{
   bytes: ArrayBuffer;
   contentType: string;
@@ -4795,6 +4851,11 @@ export async function fetchBreachHubVictimArchiveBinary(
 
   const trimmed = logId.trim();
   const filename = `stealer-${trimmed.slice(0, 12)}.zip`;
+  const alternateIds = [
+    opts?.machineId,
+    opts?.victimId,
+    opts?.archiveHash,
+  ].filter((id): id is string => Boolean(id?.trim()));
 
   // Native archive provider first when BH is cooled / unavailable.
   try {
@@ -4802,7 +4863,11 @@ export async function fetchBreachHubVictimArchiveBinary(
       await import("@/lib/oathnet");
 
     if (hasDirectOathnetKey()) {
-      const native = await fetchOathnetVictimArchiveBinary(trimmed, timeoutMs);
+      const native = await fetchOathnetVictimArchiveBinary(
+        trimmed,
+        timeoutMs,
+        { alternateIds },
+      );
 
       if (native) return native;
     }
@@ -4943,9 +5008,16 @@ export async function fetchBreachHubVictimFile(
   logId: string,
   fileId: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  opts?: { machineId?: string; victimId?: string; archiveHash?: string },
 ): Promise<{ content: string; filename?: string } | null> {
   if (!logId.trim() || !fileId.trim()) return null;
   if (!looksLikeVictimLogId(logId)) return null;
+
+  const alternateIds = [
+    opts?.machineId,
+    opts?.victimId,
+    opts?.archiveHash,
+  ].filter((id): id is string => Boolean(id?.trim()));
 
   // Native archive provider first when available.
   try {
@@ -4958,6 +5030,7 @@ export async function fetchBreachHubVictimFile(
         logId.trim(),
         fileId.trim(),
         timeoutMs,
+        { alternateIds },
       );
 
       if (native?.content) return native;

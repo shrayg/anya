@@ -133,7 +133,7 @@ function DeviceFileExplorerModal({
   }, [onClose]);
 
   const loadManifest = useCallback(async () => {
-    if (manifest?.files?.length) return;
+    if (manifest?.files?.length || manifest?.archiveOnly) return;
     setLoading(true);
     setError(null);
 
@@ -147,10 +147,17 @@ function DeviceFileExplorerModal({
       if (device.machineId?.trim()) {
         params.set("machineId", device.machineId.trim());
       }
+      if (device.victimId?.trim()) {
+        params.set("victimId", device.victimId.trim());
+      }
+      if (device.archiveHash?.trim()) {
+        params.set("archiveHash", device.archiveHash.trim());
+      }
 
       const res = await apiFetch(`/api/osint/stealer-victim?${params}`);
       const data = (await res.json()) as StealerArchiveEntry & {
         available?: boolean;
+        archiveOnly?: boolean;
         message?: string;
         error?: string;
       };
@@ -162,14 +169,21 @@ function DeviceFileExplorerModal({
         return;
       }
 
-      setManifest({ ...device, ...data, logId: device.logId });
+      setManifest({
+        ...device,
+        ...data,
+        logId: data.logId || device.logId,
+      });
+      if (data.archiveOnly && data.message) {
+        setError(data.message);
+      }
     } catch {
       setError("Could not load file manifest.");
       setManifest(device);
     } finally {
       setLoading(false);
     }
-  }, [device, manifest?.files?.length]);
+  }, [device, manifest?.files?.length, manifest?.archiveOnly]);
 
   useEffect(() => {
     void loadManifest();
@@ -189,13 +203,24 @@ function DeviceFileExplorerModal({
       setError(null);
 
       try {
-        const res = await apiFetch(
-          `/api/osint/stealer-victim?logId=${encodeURIComponent(device.logId)}&fileId=${encodeURIComponent(fileId)}&action=file&moduleSlug=stealer-logs${
-            device.machineId?.trim()
-              ? `&machineId=${encodeURIComponent(device.machineId.trim())}`
-              : ""
-          }`,
-        );
+        const fileParams = new URLSearchParams({
+          logId: device.logId,
+          fileId,
+          action: "file",
+          moduleSlug: "stealer-logs",
+        });
+
+        if (device.machineId?.trim()) {
+          fileParams.set("machineId", device.machineId.trim());
+        }
+        if (device.victimId?.trim()) {
+          fileParams.set("victimId", device.victimId.trim());
+        }
+        if (device.archiveHash?.trim()) {
+          fileParams.set("archiveHash", device.archiveHash.trim());
+        }
+
+        const res = await apiFetch(`/api/osint/stealer-victim?${fileParams}`);
         const data = (await res.json()) as {
           available?: boolean;
           content?: string;
@@ -705,6 +730,12 @@ export function StealerLogsSearchResults({
 
       if (deviceMatch?.machineId?.trim()) {
         params.set("machineId", deviceMatch.machineId.trim());
+      }
+      if (deviceMatch?.victimId?.trim()) {
+        params.set("victimId", deviceMatch.victimId.trim());
+      }
+      if (deviceMatch?.archiveHash?.trim()) {
+        params.set("archiveHash", deviceMatch.archiveHash.trim());
       }
 
       const res = await apiFetch(`/api/osint/stealer-victim?${params}`);

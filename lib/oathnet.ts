@@ -710,40 +710,324 @@ export async function fetchOathnetSanitized(
 
 /**
  * Native victim manifest / file / archive — bypasses BreachHub when the mirror
- * is rate-limited or quota-blocked. Returns raw JSON (or binary for archive).
+ * is rate-limited or quota-blocked.
+ *
+ * Docs (https://docs.oathnet.org/):
+ * - GET `/service/v2/victims/{log_id}` — file tree (64-hex log_id only)
+ * - GET `/service/v2/victims/{log_id}/files/{file_id}` — file body
+ * - GET `/service/v2/victims/{log_id}/archive` — ZIP stream
+ * - GET `/service/v2/victims/search?q=` — resolve victim_id → log_id
+ *
+ * `victim_id` and `archive_hash` are NOT accepted by the manifest path
+ * (404 / victim not found). Resolve via victims search first.
  */
+
+/** OathNet victim browse ids are 64-char hex (docs: invalid otherwise). */
+export function isOathnetVictimLogIdFormat(value: string): boolean {
+  return /^[a-f0-9]{64}$/i.test(value.trim());
+}
+
+export type OathnetVictimManifestResult = {
+  logId: string;
+  data: Record<string, unknown>;
+  /** Upstream refused the tree (too large) — archive download still works. */
+  archiveOnly?: boolean;
+  message?: string;
+};
+
+type NativeJsonHit = {
+  status: number;
+  data: Record<string, unknown>;
+  text: string;
+};
+
+async function nativeOathnetJsonGet(
+  path: string,
+  apiKey: string,
+  timeoutMs: number,
+): Promise<NativeJsonHit | null> {
+  const url = `${OATHNET_NATIVE_BASE_URL}${path}`;
+  const started = Date.now();
+
+  try {
+    const res = await fetchWithTimeout(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "x-api-key": apiKey,
+        "User-Agent": "AnyaInt-oathnet/1.0",
+      },
+      cache: "no-store",
+      timeoutMs,
+    });
+    const remaining = Math.max(2_000, timeoutMs - (Date.now() - started));
+    const text = await readResponseText(res, remaining);
+    let data: Record<string, unknown> = {};
+
+    try {
+      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    } catch {
+      data = {};
+    }
+
+    recordProviderRequest({
+      gateway: "oathnet",
+      path,
+      method: "GET",
+      ok: res.ok && data.success !== false,
+      latencyMs: Date.now() - started,
+      statusCode: res.status,
+    });
+
+    return { status: res.status, data, text };
+  } catch (err) {
+    recordProviderRequest({
+      gateway: "oathnet",
+      path,
+      method: "GET",
+      ok: false,
+      latencyMs: Date.now() - started,
+      error: err instanceof Error ? err.message : "Request failed",
+    });
+
+    return null;
+  }
+}
+
+function oathnetMessage(data: Record<string, unknown>): string {
+  return (
+    (typeof data.message === "string" && data.message) ||
+    (typeof data.error === "string" && data.error) ||
+    ""
+  );
+}
+
+function isTooManyFilesMessage(message: string): boolean {
+  return /too many files|download the archive|narrow the request/i.test(
+    message,
+  );
+}
+
+function uniqueBrowseIds(...values: Array<string | undefined | null>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    const id = (value || "").trim();
+
+    if (!id || seen.has(id)) continue;
+    if (!isOathnetVictimLogIdFormat(id) && !/^[a-zA-Z0-9_-]{12,128}$/.test(id)) {
+      continue;
+    }
+    seen.add(id);
+    out.push(id);
+  }
+
+  return out;
+}
+
+function logIdsFromSearchPayload(data: Record<string, unknown>): string[] {
+  const bag =
+    data.data && typeof data.data === "object" && !Array.isArray(data.data)
+      ? (data.data as Record<string, unknown>)
+      : data;
+  const items = Array.isArray(bag.items)
+    ? bag.items
+    : Array.isArray(bag.results)
+      ? bag.results
+      : Array.isArray(data.items)
+        ? data.items
+        : Array.isArray(data.results)
+          ? data.results
+          : [];
+  const ids: string[] = [];
+
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    for (const key of ["log_id", "logId", "legacy_log_id", "legacyLogId"] as const) {
+      const v = row[key];
+      if (typeof v === "string" && v.trim()) ids.push(v.trim());
+    }
+  }
+
+  return uniqueBrowseIds(...ids);
+}
+
+/**
+ * Resolve a browseable OathNet log_id from log_id / victim_id / other 64-hex
+ * candidates. Tries manifest directly, then victims/search, then stealer/search.
+ */
+export async function resolveOathnetVictimLogId(
+  candidates: string[],
+  timeoutMs = BH_VENDOR_DEFAULT_TIMEOUT_MS,
+): Promise<{ logId: string; archiveOnly?: boolean; message?: string } | null> {
+  const apiKey = getOathnetApiKey();
+
+  if (!apiKey) return null;
+
+  const ids = uniqueBrowseIds(...candidates);
+
+  if (ids.length === 0) return null;
+
+  const tryManifest = async (
+    id: string,
+  ): Promise<{ logId: string; archiveOnly?: boolean; message?: string } | null> => {
+    const hit = await nativeOathnetJsonGet(
+      `/service/v2/victims/${encodeURIComponent(id)}`,
+      apiKey,
+      timeoutMs,
+    );
+
+    if (!hit) return null;
+
+    const msg = oathnetMessage(hit.data);
+
+    if (hit.status === 200 && hit.data.success !== false) {
+      // Raw V2ManifestResponse has log_id + victim_tree (no success envelope).
+      if (
+        hit.data.victim_tree ||
+        hit.data.log_id ||
+        hit.data.log_name ||
+        Array.isArray(hit.data.files)
+      ) {
+        return {
+          logId:
+            (typeof hit.data.log_id === "string" && hit.data.log_id) || id,
+        };
+      }
+    }
+
+    if (isTooManyFilesMessage(msg)) {
+      return {
+        logId: id,
+        archiveOnly: true,
+        message:
+          "File tree is too large to browse online. Download the full archive instead.",
+      };
+    }
+
+    return null;
+  };
+
+  for (const id of ids) {
+    const direct = await tryManifest(id);
+    if (direct) return direct;
+  }
+
+  // victim_id / unknown hex → resolve to log_id via search.
+  for (const id of ids) {
+    const search = await nativeOathnetJsonGet(
+      `/service/v2/victims/search?q=${encodeURIComponent(id)}&page_size=5`,
+      apiKey,
+      Math.min(timeoutMs, 18_000),
+    );
+    const resolved = search ? logIdsFromSearchPayload(search.data) : [];
+
+    for (const logId of resolved) {
+      if (ids.includes(logId) && logId === id) continue;
+      const hit = await tryManifest(logId);
+      if (hit) return hit;
+    }
+
+    // Search hit alone is enough when we already know the log_id.
+    if (resolved[0]) {
+      const probe = await tryManifest(resolved[0]);
+      if (probe) return probe;
+      // Search found the device but manifest still refused — prefer archive.
+      return {
+        logId: resolved[0],
+        archiveOnly: true,
+        message:
+          "File tree is not available for browsing. Download the full archive instead.",
+      };
+    }
+  }
+
+  for (const id of ids) {
+    const stealer = await nativeOathnetJsonGet(
+      `/service/v2/stealer/search?q=${encodeURIComponent(id)}&page_size=5&has_log_id=true`,
+      apiKey,
+      Math.min(timeoutMs, 18_000),
+    );
+    const resolved = stealer ? logIdsFromSearchPayload(stealer.data) : [];
+
+    for (const logId of resolved) {
+      const hit = await tryManifest(logId);
+      if (hit) return hit;
+    }
+  }
+
+  return null;
+}
+
 export async function fetchOathnetVictimManifestRaw(
   logId: string,
   timeoutMs = BH_VENDOR_DEFAULT_TIMEOUT_MS,
-): Promise<Record<string, unknown> | null> {
+  opts?: { alternateIds?: string[] },
+): Promise<OathnetVictimManifestResult | null> {
   const apiKey = getOathnetApiKey();
   const trimmed = logId.trim();
 
   if (!apiKey || !trimmed) return null;
 
-  try {
-    return await directOathnetNativeGet({
-      path: `/service/v2/victims/${encodeURIComponent(trimmed)}`,
-      params: {},
-      apiKey,
-      baseUrl: OATHNET_NATIVE_BASE_URL,
-      timeoutMs,
-    });
-  } catch {
+  const resolved = await resolveOathnetVictimLogId(
+    [trimmed, ...(opts?.alternateIds || [])],
+    timeoutMs,
+  );
+
+  if (!resolved) return null;
+
+  if (resolved.archiveOnly) {
+    return {
+      logId: resolved.logId,
+      data: { log_id: resolved.logId, victim_tree: null },
+      archiveOnly: true,
+      message: resolved.message,
+    };
+  }
+
+  const hit = await nativeOathnetJsonGet(
+    `/service/v2/victims/${encodeURIComponent(resolved.logId)}`,
+    apiKey,
+    timeoutMs,
+  );
+
+  if (!hit || hit.status !== 200 || hit.data.success === false) {
+    if (hit && isTooManyFilesMessage(oathnetMessage(hit.data))) {
+      return {
+        logId: resolved.logId,
+        data: { log_id: resolved.logId },
+        archiveOnly: true,
+        message:
+          "File tree is too large to browse online. Download the full archive instead.",
+      };
+    }
+
     return null;
   }
+
+  return { logId: resolved.logId, data: hit.data };
 }
 
 export async function fetchOathnetVictimFileRaw(
   logId: string,
   fileId: string,
   timeoutMs = BH_VENDOR_DEFAULT_TIMEOUT_MS,
-): Promise<{ content: string; filename?: string } | null> {
+  opts?: { alternateIds?: string[] },
+): Promise<{ content: string; filename?: string; logId?: string } | null> {
   const apiKey = getOathnetApiKey();
-  const log = logId.trim();
   const file = fileId.trim();
 
-  if (!apiKey || !log || !file) return null;
+  if (!apiKey || !logId.trim() || !file) return null;
+
+  const resolved = await resolveOathnetVictimLogId(
+    [logId, ...(opts?.alternateIds || [])],
+    Math.min(timeoutMs, 20_000),
+  );
+  const log = (resolved?.logId || logId).trim();
+
+  if (!log) return null;
 
   const url = new URL(
     `${OATHNET_NATIVE_BASE_URL}/service/v2/victims/${encodeURIComponent(log)}/files/${encodeURIComponent(file)}`,
@@ -795,7 +1079,7 @@ export async function fetchOathnetVictimFileRaw(
         !text.trimStart().startsWith("{") &&
         !text.trimStart().startsWith("["))
     ) {
-      return { content: text, filename: file };
+      return { content: text, filename: file, logId: log };
     }
 
     try {
@@ -829,9 +1113,10 @@ export async function fetchOathnetVictimFileRaw(
           (typeof data.name === "string" && data.name) ||
           (typeof data.filename === "string" && data.filename) ||
           file,
+        logId: log,
       };
     } catch {
-      return { content: text, filename: file };
+      return { content: text, filename: file, logId: log };
     }
   } catch {
     recordProviderRequest({
@@ -850,15 +1135,24 @@ export async function fetchOathnetVictimFileRaw(
 export async function fetchOathnetVictimArchiveBinary(
   logId: string,
   timeoutMs = BH_VENDOR_DEFAULT_TIMEOUT_MS,
+  opts?: { alternateIds?: string[] },
 ): Promise<{
   bytes: ArrayBuffer;
   contentType: string;
   filename: string;
+  logId?: string;
 } | null> {
   const apiKey = getOathnetApiKey();
-  const trimmed = logId.trim();
 
-  if (!apiKey || !trimmed) return null;
+  if (!apiKey || !logId.trim()) return null;
+
+  const resolved = await resolveOathnetVictimLogId(
+    [logId, ...(opts?.alternateIds || [])],
+    Math.min(timeoutMs, 20_000),
+  );
+  const trimmed = (resolved?.logId || logId).trim();
+
+  if (!trimmed) return null;
 
   const filename = `stealer-${trimmed.slice(0, 12)}.zip`;
   const url = new URL(
@@ -943,6 +1237,7 @@ export async function fetchOathnetVictimArchiveBinary(
         contentType:
           fileRes.headers.get("content-type") || "application/zip",
         filename,
+        logId: trimmed,
       };
     }
 
@@ -961,6 +1256,7 @@ export async function fetchOathnetVictimArchiveBinary(
       bytes,
       contentType: contentType || "application/zip",
       filename,
+      logId: trimmed,
     };
   } catch {
     recordProviderRequest({

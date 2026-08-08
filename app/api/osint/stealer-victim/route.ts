@@ -22,15 +22,22 @@ export async function GET(req: NextRequest) {
 
   if (!isBreachHubEnabled() && !hasDirectOathnetKey()) {
     return NextResponse.json(
-      { error: publicServiceUnavailable() },
+      {
+        error: publicServiceUnavailable(),
+        message:
+          "Archive file access is not configured. Set the archive provider API key on the server.",
+      },
       { status: 503 },
     );
   }
 
   const logId = req.nextUrl.searchParams.get("logId")?.trim();
   const machineId = req.nextUrl.searchParams.get("machineId")?.trim();
+  const victimId = req.nextUrl.searchParams.get("victimId")?.trim();
+  const archiveHash = req.nextUrl.searchParams.get("archiveHash")?.trim();
   const fileId = req.nextUrl.searchParams.get("fileId")?.trim();
   const action = req.nextUrl.searchParams.get("action")?.trim() || "manifest";
+  const idOpts = { machineId, victimId, archiveHash };
 
   if (!logId) {
     return NextResponse.json({ error: "Missing logId" }, { status: 400 });
@@ -39,7 +46,7 @@ export async function GET(req: NextRequest) {
   try {
     if (action === "archive") {
       const archive = await withDeadline(
-        fetchBreachHubVictimArchiveBinary(logId, 45_000, { machineId }),
+        fetchBreachHubVictimArchiveBinary(logId, 45_000, idOpts),
         Math.max(OSINT_ROUTE_DEADLINE_MS, 50_000),
       );
 
@@ -47,7 +54,9 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
           logId,
           available: false,
-          message: "Archive download is not available for this device.",
+          message: !hasDirectOathnetKey()
+            ? "Archive download is not available. Configure the archive provider API key on the server, or try again later."
+            : "Archive download is not available for this device.",
         });
       }
 
@@ -67,7 +76,7 @@ export async function GET(req: NextRequest) {
       }
 
       const file = await withDeadline(
-        fetchBreachHubVictimFile(logId, fileId, 25_000),
+        fetchBreachHubVictimFile(logId, fileId, 25_000, idOpts),
         OSINT_ROUTE_DEADLINE_MS,
       );
 
@@ -94,7 +103,7 @@ export async function GET(req: NextRequest) {
     }
 
     const manifest = await withDeadline(
-      fetchBreachHubVictimManifest(logId, 25_000, { machineId }),
+      fetchBreachHubVictimManifest(logId, 25_000, idOpts),
       OSINT_ROUTE_DEADLINE_MS,
     );
 
@@ -103,23 +112,48 @@ export async function GET(req: NextRequest) {
         {
           logId,
           available: false,
-          message:
-            "File manifest is not available for this device. Upstream returned no victim tree.",
+          message: !hasDirectOathnetKey()
+            ? "File manifest is not available. Configure the archive provider API key on the server."
+            : "File manifest is not available for this device. Upstream returned no victim tree.",
           files: [],
         },
         { status: 502 },
       );
     }
 
+    if (manifest.archiveOnly) {
+      return NextResponse.json({
+        available: true,
+        archiveOnly: true,
+        logId: manifest.logId || logId,
+        label: manifest.label ?? null,
+        machineId: manifest.machineId ?? null,
+        victimId: manifest.victimId ?? victimId ?? null,
+        archiveHash: manifest.archiveHash ?? archiveHash ?? null,
+        os: manifest.os,
+        date: manifest.date,
+        malware: manifest.malware,
+        country: manifest.country,
+        credentials: manifest.credentials,
+        summary: manifest.summary,
+        properties: manifest.properties,
+        cookies: manifest.cookies,
+        files: [],
+        message:
+          manifest.message ||
+          "File tree is too large to browse online. Download the full archive instead.",
+      });
+    }
+
     if (!manifest.files?.length) {
       return NextResponse.json(
         {
-          logId,
+          logId: manifest.logId || logId,
           available: false,
           label: manifest.label ?? null,
           machineId: manifest.machineId ?? null,
           message:
-            "File manifest is empty for this device. Upstream responded but included no file tree (OsintCat machine index may be offline).",
+            "File manifest is empty for this device. Upstream responded but included no file tree.",
           files: [],
         },
         { status: 502 },
@@ -128,9 +162,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       available: true,
-      logId,
+      logId: manifest.logId || logId,
       label: manifest.label,
       machineId: manifest.machineId,
+      victimId: manifest.victimId ?? victimId ?? null,
+      archiveHash: manifest.archiveHash ?? archiveHash ?? null,
       os: manifest.os,
       date: manifest.date,
       malware: manifest.malware,

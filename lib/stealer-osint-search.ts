@@ -35,6 +35,7 @@ import {
   canContributeOathnet,
   fetchOathnetSanitized,
   isOathnetEnabled,
+  resolveOathnetVictimLogId,
 } from "@/lib/oathnet";
 import type { PlanId } from "@/lib/plans";
 import { mergeSanitizedResponses } from "@/lib/osintcat";
@@ -329,13 +330,18 @@ export async function runStealerOsintSearch(
           ),
         ];
 
-        // Pasted log / victim id → also fetch that victim manifest directly.
+        // Pasted log / victim id → resolve to browseable log_id then fetch manifest.
         if (isVictimIdQuery) {
           jobs.push(
-            fetchOathnetSanitized(
-              { kind: "victims-log", logId: query },
-              { query },
-            ),
+            (async () => {
+              const resolved = await resolveOathnetVictimLogId([query]);
+              const browseId = resolved?.logId || query;
+
+              return fetchOathnetSanitized(
+                { kind: "victims-log", logId: browseId },
+                { query: browseId },
+              );
+            })(),
           );
         }
 

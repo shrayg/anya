@@ -186,6 +186,10 @@ export function mergeStealerArchives(
         cookies: entry.cookies?.length ? entry.cookies : existing.cookies,
         summary: entry.summary ?? existing.summary,
         properties: entry.properties ?? existing.properties,
+        victimId: entry.victimId || existing.victimId,
+        archiveHash: entry.archiveHash || existing.archiveHash,
+        archiveOnly: entry.archiveOnly || existing.archiveOnly,
+        message: entry.message || existing.message,
       });
     }
   }
@@ -203,10 +207,22 @@ export function archivesFromStealerResults(
   for (const entry of results) {
     if (!entry || typeof entry !== "object") continue;
     const record = entry as Record<string, unknown>;
-    const logId = asLogId(record);
+    const logId =
+      asString(record.log_id) ||
+      asString(record.logId) ||
+      asString(record.legacy_log_id) ||
+      asString(record.legacyLogId) ||
+      asLogId(record);
 
     if (!logId || seen.has(logId)) continue;
     seen.add(logId);
+
+    const victimId =
+      asString(record.victim_id) || asString(record.victimId) || undefined;
+    const archiveHash =
+      asString(record.archive_hash) ||
+      asString(record.archiveHash) ||
+      undefined;
 
     archives.push({
       logId,
@@ -220,6 +236,8 @@ export function archivesFromStealerResults(
         undefined,
       machineId:
         asString(record.machine_id) || asString(record.machineId) || undefined,
+      ...(victimId && victimId !== logId ? { victimId } : {}),
+      ...(archiveHash && archiveHash !== logId ? { archiveHash } : {}),
       os: asString(record.os) || asString(record.device_os) || undefined,
       date:
         asString(record.date) ||
