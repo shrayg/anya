@@ -1,14 +1,19 @@
 /**
- * OathNet specialty client — BreachHub `/api/oathnet/*` + optional native API.
+ * OathNet specialty client — native oathnet.org + BreachHub `/api/oathnet/*`.
  *
- * Intended production path: `BREACHHUB_API_KEY` → BreachHub `/api/oathnet/*`
- * (see https://breachhub.org/docs). A direct `OATHNET_API_KEY` is optional and
- * only used when set; CSINT covers discord-to-roblox as a fallback.
+ * Docs (source of truth): https://docs.oathnet.org/
+ * - Base URL: `https://oathnet.org/api` (`OATHNET_BASE_URL`)
+ * - Auth: lowercase `x-api-key` header (`OATHNET_API_KEY`)
+ * - Prefer `/service/v2/*` for breach / stealer / victims; `/service/*` for OSINT
  *
- * Upstream priority:
- * 1. Direct `OATHNET_API_KEY` against oathnet.org (`x-api-key` + `/service/*`)
- * 2. BreachHub mirror `/api/oathnet/*` (primary for Anya)
- * 3. CSINT for discord-to-roblox only
+ * Product gate: dedicated dashboard module + `/api/oathnet/*` are Ultimate /
+ * Enterprise only. BreachHub-billed enrichment inside other modules may still
+ * call BH mirrors when `BREACHHUB_API_KEY` is set.
+ *
+ * Upstream priority when both keys exist:
+ * 1. Direct `OATHNET_API_KEY` → oathnet.org
+ * 2. BreachHub mirror `/api/oathnet/*`
+ * 3. CSINT for discord-to-roblox only (legacy path; not in current OpenAPI)
  *
  * Server-only — do not import from client modules.
  */

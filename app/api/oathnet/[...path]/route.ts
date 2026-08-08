@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   fetchOathnetSanitized,
   isOathnetEnabled,
-  oathnetModuleSlug,
   resolveOathnetPath,
 } from "@/lib/oathnet";
 import { requireOsintAccess } from "@/lib/osint-api-auth";
@@ -21,6 +20,7 @@ type RouteContext = { params: Promise<{ path: string[] }> };
 /**
  * GET /api/oathnet/<endpoint>
  * Full OathNet surface including victims/{log_id}[/files/{file_id}|/archive].
+ * Plan gate: Ultimate / Enterprise only (`forceModuleSlug: "oathnet"`).
  */
 export async function GET(req: NextRequest, context: RouteContext) {
   const { path: pathParts } = await context.params;
@@ -41,15 +41,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
         : resolved.kind === "victims-file"
           ? `victims/${resolved.logId}/files/${resolved.fileId}`
           : `victims/${resolved.logId}/archive`;
-  const fallback = oathnetModuleSlug(resolved);
-  let access = await requireOsintAccess(req, `oathnet/${endpointKey}`);
 
-  if (access instanceof NextResponse && access.status === 400) {
-    access = await requireOsintAccess(req, fallback);
-  }
-  if (access instanceof NextResponse && access.status === 400) {
-    access = await requireOsintAccess(req, "stealer-logs");
-  }
+  // Dedicated OathNet surface is Ultimate / Enterprise only — do not honor
+  // parent moduleSlug (breaches / stealer-logs / discord-id) to bypass the gate.
+  const access = await requireOsintAccess(req, `oathnet/${endpointKey}`, {
+    forceModuleSlug: "oathnet",
+  });
   if (access instanceof NextResponse) return access;
 
   if (!isOathnetEnabled()) {

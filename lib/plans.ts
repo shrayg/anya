@@ -198,6 +198,20 @@ export const PROFESSIONAL_MODULE_SLUGS = new Set([
 const PROFESSIONAL_MODULE_DENY_REASON =
   "IntelX, Stealer Logs, Crypto Intel, Passport, LATAM Country DB, NotAliveX Social, AR Renaper, Google Docs Intel, Ganknow, and FiveM require Professional or higher.";
 
+/**
+ * Ultimate / Enterprise exclusives — Professional and below see sidebar lock + API 403.
+ * BreachHub-billed OathNet enrichment inside other modules may still run when BH is keyed;
+ * the dedicated OathNet module and `/api/oathnet/*` require Ultimate+.
+ */
+export const ULTIMATE_MODULE_SLUGS = new Set(["oathnet"]);
+
+const ULTIMATE_MODULE_DENY_REASON =
+  "OathNet requires Ultimate or Enterprise.";
+
+export function planHasUltimateModules(plan: PlanId): boolean {
+  return plan === "ultimate" || plan === "enterprise";
+}
+
 /** Public-records modules require Professional panel access (not Free/Starter homepage set). */
 export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
   "public-records",
@@ -218,6 +232,7 @@ export const PUBLIC_RECORDS_MODULE_SLUGS = new Set([
 export const MODULE_CLASS_P = new Set([
   ...AI_MODULE_SLUGS,
   ...PUBLIC_RECORDS_MODULE_SLUGS,
+  ...ULTIMATE_MODULE_SLUGS,
   "crypto-intel",
   "crypto-wallet",
   "crypto-address",
@@ -336,9 +351,10 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "500 searches per day",
       "Full dashboard / panel access",
       "Professional modules: IntelX, Stealer Logs, Crypto Intel, Passport, LATAM Country DB, NotAliveX Social, AR Renaper, Google Docs Intel, Ganknow & FiveM",
-      "All other panel modules except unrestricted AI",
+      "All other panel modules except unrestricted AI and OathNet",
       "Restricted AI Intelligence",
       "5 IntelX searches per day included",
+      "OathNet requires Ultimate or Enterprise",
     ],
   },
   {
@@ -353,6 +369,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Full dashboard / panel access",
       "Full AI Intelligence access",
       "IntelX & Stealer Logs included",
+      "OathNet specialty module included",
       "All Professional modules (Crypto Intel, Passport, LATAM / NotAliveX, Google Docs Intel, Ganknow, FiveM)",
     ],
   },
@@ -368,6 +385,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Unlimited searches",
       "Dedicated support & SLA",
       "Team seats & onboarding",
+      "OathNet specialty module included",
       "All Professional modules included",
       "Priority feature requests",
     ],
@@ -631,6 +649,13 @@ export function checkModuleAccess(
   // Residential proxy billing applies to all paid panel plans (incl. Ultimate).
   const proxyGate = checkResidentialProxyAccess(moduleSlug, balance);
 
+  if (ULTIMATE_MODULE_SLUGS.has(moduleSlug) && !planHasUltimateModules(plan)) {
+    return {
+      allowed: false,
+      reason: ULTIMATE_MODULE_DENY_REASON,
+    };
+  }
+
   if (moduleSlug === SEARCH_UNLOCK_MODULE_SLUG) {
     if (plan === "free" || plan === "starter" || planClearsIncludedModules(plan)) {
       if (balance < SEARCH_UNLOCK_CREDIT_COST) {
@@ -825,6 +850,7 @@ export function getPlanLedgerRows(
         { label: "Daily searches", value: searches },
         { label: "Dashboard", value: "Full" },
         { label: "Modules", value: "Professional" },
+        { label: "OathNet", value: "Ultimate+" },
         { label: "IntelX included", value: "5 / day" },
         { label: "AI access", value: "Restricted" },
       ];
@@ -833,6 +859,7 @@ export function getPlanLedgerRows(
         { label: "Daily searches", value: searches, accent: true },
         { label: "Dashboard", value: "Full" },
         { label: "AI access", value: "Full" },
+        { label: "OathNet", value: "Included", accent: true },
         { label: "Modules", value: "All included", accent: true },
       ];
     case "enterprise":
@@ -840,6 +867,7 @@ export function getPlanLedgerRows(
         { label: "Daily searches", value: searches, accent: true },
         { label: "Support", value: "Dedicated SLA" },
         { label: "Seats", value: "Team onboarding" },
+        { label: "OathNet", value: "Included", accent: true },
         { label: "Modules", value: "All included", accent: true },
       ];
     default:

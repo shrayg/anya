@@ -165,6 +165,8 @@ const FAN_OUT_CHIP_OPT_OUT_SLUGS = new Set([
   "crypto-intel",
   // SEON email / phone / IP / BIN require incompatible query shapes.
   "fraud-footprint",
+  // OathNet tools use incompatible params (q / email / discord_id / ip / domain).
+  "oathnet",
 ]);
 
 /**
@@ -355,6 +357,93 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               id: "all-stealers",
               label: "All stealer indexes",
               apiType: "stealer",
+            },
+          ],
+        },
+      ),
+      mod(
+        "Stealer Intel",
+        "OathNet",
+        "oathnet",
+        "oathnet/breach",
+        "Email, username, Discord ID, IP, domain, Steam, Xbox, Roblox, or Minecraft",
+        "Ultimate / Enterprise — native OathNet breach, stealer, victims, and OSINT point lookups (docs.oathnet.org).",
+        undefined,
+        undefined,
+        {
+          // Mutually exclusive tools (incompatible query shapes) — pick one chip.
+          fanOutAllTools: false,
+          singleSearchField: true,
+          tools: [
+            {
+              id: "oathnet-breach",
+              label: "Breach search",
+              apiType: "oathnet/breach",
+            },
+            {
+              id: "oathnet-stealer",
+              label: "Stealer search",
+              apiType: "oathnet/stealer",
+            },
+            {
+              id: "oathnet-victims",
+              label: "Victims search",
+              apiType: "oathnet/victims",
+            },
+            {
+              id: "oathnet-stealer-subdomain",
+              label: "Stealer subdomain",
+              apiType: "oathnet/stealer-subdomain",
+            },
+            {
+              id: "oathnet-extract-subdomain",
+              label: "Subdomain extract",
+              apiType: "oathnet/extract-subdomain",
+            },
+            {
+              id: "oathnet-holehe",
+              label: "Holehe",
+              apiType: "oathnet/holehe",
+            },
+            {
+              id: "oathnet-ghunt",
+              label: "GHunt",
+              apiType: "oathnet/ghunt",
+            },
+            {
+              id: "oathnet-discord-userinfo",
+              label: "Discord userinfo",
+              apiType: "oathnet/discord-userinfo",
+            },
+            {
+              id: "oathnet-discord-history",
+              label: "Discord username history",
+              apiType: "oathnet/discord-username-history",
+            },
+            {
+              id: "oathnet-ip",
+              label: "IP info",
+              apiType: "oathnet/ip-info",
+            },
+            {
+              id: "oathnet-steam",
+              label: "Steam",
+              apiType: "oathnet/steam",
+            },
+            {
+              id: "oathnet-xbox",
+              label: "Xbox",
+              apiType: "oathnet/xbox",
+            },
+            {
+              id: "oathnet-roblox-userinfo",
+              label: "Roblox",
+              apiType: "oathnet/roblox-userinfo",
+            },
+            {
+              id: "oathnet-mc-history",
+              label: "Minecraft history",
+              apiType: "oathnet/mc-history",
             },
           ],
         },
@@ -2454,6 +2543,7 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "seon-ip": "seon/ip",
   "seon-bin": "seon/bin",
   breachbase: "breaches",
+  oathnet: "oathnet/breach",
   "oathnet-roblox": "oathnet-roblox",
   "contact-enrich": "contact-enrich",
   propertyradar: "propertyradar/search",
@@ -2684,6 +2774,7 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   "threat-brief": true,
   intelx: true,
   "stealer-logs": true,
+  oathnet: true,
   breaches: true,
   phone: true,
   username: true,
