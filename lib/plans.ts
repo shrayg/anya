@@ -201,13 +201,17 @@ const PROFESSIONAL_MODULE_DENY_REASON =
 /**
  * Ultimate / Enterprise exclusives — Professional and below see sidebar lock + API 403.
  * Native OathNet contribution inside Breaches / Stealer / Discord / IP / gaming /
- * Username also requires Ultimate+ (`canContributeOathnet`). The dedicated
- * OathNet module and `/api/oathnet/*` force-gate on this slug set.
+ * Username / Contact Profiles requires Ultimate+ (`canContributeOathnet`).
+ * Dedicated `/api/oathnet/*` force-gates on this slug set (no standalone hub page).
  */
-export const ULTIMATE_MODULE_SLUGS = new Set(["oathnet"]);
+export const ULTIMATE_MODULE_SLUGS = new Set([
+  "oathnet",
+  "holehe",
+  "ghunt",
+]);
 
 const ULTIMATE_MODULE_DENY_REASON =
-  "OathNet requires Ultimate or Enterprise.";
+  "This module requires Ultimate or Enterprise.";
 
 export function planHasUltimateModules(plan: PlanId): boolean {
   return plan === "ultimate" || plan === "enterprise";

@@ -1349,6 +1349,22 @@ export function ModuleSearchView({
             ) {
               return false;
             }
+            // Holehe / GHunt require an email address.
+            if (
+              (tool.apiType === "oathnet/holehe" ||
+                tool.apiType === "oathnet/ghunt") &&
+              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(searchQuery)
+            ) {
+              return false;
+            }
+            // Domain-only OathNet pivots.
+            if (
+              (tool.apiType === "oathnet/stealer-subdomain" ||
+                tool.apiType === "oathnet/extract-subdomain") &&
+              !/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(searchQuery)
+            ) {
+              return false;
+            }
 
             return true;
           })
@@ -3888,77 +3904,34 @@ export function ModuleSearchView({
               {moduleDef.tools &&
               moduleDef.tools.length > 0 &&
               !hideToolChips ? (
-                moduleDef.toolGroups && moduleDef.toolGroups.length > 0 ? (
-                  <div
-                    aria-label="Module tools"
-                    className="module-search-tool-groups"
-                    role="toolbar"
-                  >
-                    {moduleDef.toolGroups.map((group) => (
-                      <div
-                        key={group.id}
-                        className="module-search-tool-group"
+                <div
+                  aria-label="Module tools"
+                  className="module-search-tools"
+                  role="toolbar"
+                >
+                  {moduleDef.tools.map((tool) => {
+                    const active = tool.id === selectedToolId;
+
+                    return (
+                      <button
+                        key={tool.id}
+                        aria-pressed={active}
+                        className={
+                          active
+                            ? "module-search-tool module-search-tool--active"
+                            : "module-search-tool"
+                        }
+                        type="button"
+                        onClick={() => {
+                          toolLockedRef.current = true;
+                          setSelectedToolId(tool.id);
+                        }}
                       >
-                        <p className="module-search-tool-group-label">
-                          {group.label}
-                        </p>
-                        <div className="module-search-tools module-search-tools--grouped">
-                          {group.tools.map((tool) => {
-                            const active = tool.id === selectedToolId;
-
-                            return (
-                              <button
-                                key={tool.id}
-                                aria-pressed={active}
-                                className={
-                                  active
-                                    ? "module-search-tool module-search-tool--active"
-                                    : "module-search-tool"
-                                }
-                                type="button"
-                                onClick={() => {
-                                  toolLockedRef.current = true;
-                                  setSelectedToolId(tool.id);
-                                }}
-                              >
-                                {tool.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div
-                    aria-label="Module tools"
-                    className="module-search-tools"
-                    role="toolbar"
-                  >
-                    {moduleDef.tools.map((tool) => {
-                      const active = tool.id === selectedToolId;
-
-                      return (
-                        <button
-                          key={tool.id}
-                          aria-pressed={active}
-                          className={
-                            active
-                              ? "module-search-tool module-search-tool--active"
-                              : "module-search-tool"
-                          }
-                          type="button"
-                          onClick={() => {
-                            toolLockedRef.current = true;
-                            setSelectedToolId(tool.id);
-                          }}
-                        >
-                          {tool.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )
+                        {tool.label}
+                      </button>
+                    );
+                  })}
+                </div>
               ) : null}
               {showsContactProfilesDeepToggle ? (
                 <label className="module-search-proxy-toggle mb-3 flex cursor-pointer items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-zinc-300">

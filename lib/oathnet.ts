@@ -6,13 +6,15 @@
  * - Auth: lowercase `x-api-key` header (`OATHNET_API_KEY`)
  * - Prefer `/service/v2/*` for breach / stealer / victims; `/service/*` for OSINT
  *
- * Product gate: dedicated dashboard module + `/api/oathnet/*` are Ultimate /
- * Enterprise only. BreachHub-billed enrichment inside other modules may still
- * call BH mirrors when `BREACHHUB_API_KEY` is set.
+ * Product gate: `/api/oathnet/*` and in-module contribution are Ultimate /
+ * Enterprise only. There is no standalone OathNet dashboard hub — tools fan
+ * into Breaches, Stealer Logs, Discord, Username / Contact Profiles, IP, and
+ * gaming modules. BreachHub-billed enrichment may still call BH mirrors when
+ * `BREACHHUB_API_KEY` is set.
  *
  * Upstream priority when both keys exist:
  * 1. Direct `OATHNET_API_KEY` → oathnet.org
- * 2. BreachHub mirror `/api/oathnet/*`
+ * 2. BreachHub mirror `/api/oathnet/*` (also used if native fails)
  * 3. CSINT for discord-to-roblox only (legacy path; not in current OpenAPI)
  *
  * Server-only — do not import from client modules.
@@ -166,8 +168,9 @@ export function oathnetModuleSlug(resolved: OathnetResolved): string {
     case "extract-subdomain":
       return "domain";
     case "holehe":
+      return "holehe";
     case "ghunt":
-      return "username";
+      return "ghunt";
     case "breach":
       return "breaches";
     default:
@@ -609,8 +612,36 @@ export async function fetchOathnetSanitized(
     throw new Error(publicServiceUnavailable());
   }
 
-  try {
-    if (canDirect) {
+  const tryBh = async (): Promise<OathnetSearchResult | null> => {
+    if (!canBh) return null;
+
+    try {
+      const { data, source } = await fetchBhMirroredGet({
+        gateway: "oathnet",
+        path: built.path,
+        params: built.params,
+        pathParams: built.pathParams,
+        enabled: true,
+        timeoutMs,
+      });
+      const sanitized = rowsFromBhPayload(data, built.queryLabel);
+
+      return {
+        ...sanitized,
+        query: built.queryLabel,
+        endpoint: endpointLabel,
+        source,
+        raw: data,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  let lastError: unknown = null;
+
+  if (canDirect) {
+    try {
       const native = toNativeOathnetRequest(built);
 
       if (!native) {
@@ -626,11 +657,24 @@ export async function fetchOathnetSanitized(
       });
       const sanitized = rowsFromBhPayload(data, built.queryLabel);
 
-      if (sanitized.count === 0) {
-        const csintFallback = await tryCsint();
-
-        if (csintFallback) return csintFallback;
+      if (sanitized.count > 0) {
+        return {
+          ...sanitized,
+          query: built.queryLabel,
+          endpoint: endpointLabel,
+          source: "direct",
+          raw: data,
+        };
       }
+
+      // Empty native hit — try BH / CSINT before returning empty.
+      const bhEmpty = await tryBh();
+
+      if (bhEmpty && bhEmpty.count > 0) return bhEmpty;
+
+      const csintEmpty = await tryCsint();
+
+      if (csintEmpty) return csintEmpty;
 
       return {
         ...sanitized,
@@ -639,35 +683,27 @@ export async function fetchOathnetSanitized(
         source: "direct",
         raw: data,
       };
+    } catch (err) {
+      lastError = err;
     }
+  }
 
-    const { data, source } = await fetchBhMirroredGet({
-      gateway: "oathnet",
-      path: built.path,
-      params: built.params,
-      pathParams: built.pathParams,
-      enabled: canBh,
-      timeoutMs,
-    });
-    const sanitized = rowsFromBhPayload(data, built.queryLabel);
+  const bhResult = await tryBh();
 
-    if (sanitized.count === 0) {
+  if (bhResult) {
+    if (bhResult.count === 0) {
       const csintFallback = await tryCsint();
 
       if (csintFallback) return csintFallback;
     }
 
-    return {
-      ...sanitized,
-      query: built.queryLabel,
-      endpoint: endpointLabel,
-      source,
-      raw: data,
-    };
-  } catch (err) {
-    const csintFallback = await tryCsint();
-
-    if (csintFallback) return csintFallback;
-    throw err;
+    return bhResult;
   }
+
+  const csintFallback = await tryCsint();
+
+  if (csintFallback) return csintFallback;
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error(publicServiceUnavailable());
 }

@@ -401,17 +401,6 @@ export function getModuleSearchFieldOptions(
     return uniqueOptions([IP, EMAIL, DOMAIN, COMMON_QUERY]);
   }
 
-  if (slug === "oathnet") {
-    return uniqueOptions([
-      EMAIL,
-      USERNAME,
-      DISCORD,
-      IP,
-      DOMAIN,
-      COMMON_QUERY,
-    ]);
-  }
-
   if (slug === "breaches" || slug === "breachbase") {
     return uniqueOptions([EMAIL, DOMAIN, USERNAME]);
   }
@@ -426,6 +415,10 @@ export function getModuleSearchFieldOptions(
 
   if (slug === "username" || slug === "account-finder" || slug === "handle-sweep") {
     return uniqueOptions([USERNAME, EMAIL, PHONE, COMMON_QUERY]);
+  }
+
+  if (slug === "holehe" || slug === "ghunt") {
+    return uniqueOptions([EMAIL, COMMON_QUERY]);
   }
 
   if (slug === "discord-id" || slug === "fivem" || slug === "oathnet-roblox") {

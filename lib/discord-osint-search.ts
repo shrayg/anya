@@ -195,7 +195,7 @@ function isNonEmptySanitized(value: SanitizedBreachResponse): boolean {
  * Run the full Discord ID fan-out. Calls `onEvent` as each module settles so
  * callers can stream NDJSON / update UI progressively.
  *
- * Native OathNet userinfo / history / discord→roblox require Ultimate+.
+ * Native OathNet userinfo / history / discord→roblox (linked accounts) require Ultimate+.
  */
 export async function runDiscordOsintSearch(
   discordId: string,
@@ -399,13 +399,6 @@ export async function runDiscordOsintSearch(
         emit("breachvip");
       }),
 
-    fetchOathnetDiscordToRoblox(query)
-      .catch(() => null)
-      .then((value) => {
-        robloxLink = value;
-        emit("roblox");
-      }),
-
     fetchFivemIntel(query)
       .catch(() => ({ searchData: null, records: [] as unknown[] }))
       .then((value) => {
@@ -428,9 +421,8 @@ export async function runDiscordOsintSearch(
         emit("fivem-indexes");
       }),
 
-    // Enrichment payloads (guilds / connections / history). Specialty already
-    // hits these for leak rows; these raw calls keep structured parsers fed.
-    // Ultimate+: prefer native OathNet userinfo / username history.
+    // Enrichment: stalker/lookup + Ultimate+ OathNet userinfo, username
+    // history, and linked accounts (discord→roblox) in parallel.
     Promise.all([
       fetchOsintCatDiscordStalker(query),
       fetchBreachHubRaw("discord-stalker", { query }).catch(() => null),
@@ -473,6 +465,34 @@ export async function runDiscordOsintSearch(
         emit("enrichment");
       },
     ),
+
+    // Linked accounts (Discord→Roblox) — prefers native OathNet when Ultimate+.
+    (includeOathnet
+      ? fetchOathnetSanitized(
+          { kind: "static", endpoint: "discord-to-roblox" },
+          { discord_id: query },
+        )
+          .then((data) => {
+            if (data.raw && typeof data.raw === "object") {
+              return data.raw as Record<string, unknown>;
+            }
+            if (
+              data.count > 0 &&
+              Array.isArray(data.results) &&
+              data.results[0] &&
+              typeof data.results[0] === "object"
+            ) {
+              return data.results[0] as Record<string, unknown>;
+            }
+
+            return null;
+          })
+          .catch(() => fetchOathnetDiscordToRoblox(query).catch(() => null))
+      : fetchOathnetDiscordToRoblox(query).catch(() => null)
+    ).then((value) => {
+      robloxLink = value;
+      emit("roblox");
+    }),
   ];
 
   await Promise.allSettled(tasks);

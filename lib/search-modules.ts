@@ -43,6 +43,12 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   "seekria-domain": { slug: "stealer-logs" },
   "seekria-breaches": { slug: "breaches", tool: "seekria-email-breach" },
   "oathnet-roblox": { slug: "discord-id" },
+  /**
+   * OathNet is not a standalone hub — tools live in Breaches / Stealer Logs /
+   * Discord / Username / IP / gaming. Old /dashboard/search/oathnet URLs land
+   * on Stealer Logs (primary stealer contribution).
+   */
+  oathnet: { slug: "stealer-logs" },
   melissa: { slug: "contact-enrich", tool: "melissa" },
   /** Stealer-only vendors — never standalone hubs; fold into All stealer indexes. */
   "seeknow-stealer": { slug: "stealer-logs", tool: "all-stealers" },
@@ -82,19 +88,8 @@ export type ModuleTool = {
   aiMode?: string;
 };
 
-/** Grouped tool chips (e.g. OathNet category sections). */
-export type ModuleToolGroup = {
-  id: string;
-  label: string;
-  tools: ModuleTool[];
-};
-
-/** Flatten `toolGroups` or fall back to flat `tools`. */
+/** Flatten tools for selection / fan-out / deep links. */
 export function getModuleTools(moduleDef: SearchModuleDef): ModuleTool[] {
-  if (moduleDef.toolGroups?.length) {
-    return moduleDef.toolGroups.flatMap((group) => group.tools);
-  }
-
   return moduleDef.tools ?? [];
 }
 
@@ -127,12 +122,6 @@ export type SearchModuleDef = {
   comingSoon?: boolean;
   /** Optional in-module source tools (e.g. leak indexes vs court dockets). */
   tools?: ModuleTool[];
-  /**
-   * When set, ModuleSearchView renders tools in labeled category sections
-   * instead of one flat chip wall (OathNet). `tools` should still be the
-   * flattened list for selection / fan-out / deep links.
-   */
-  toolGroups?: ModuleToolGroup[];
   /**
    * Hide the tool-chip row in ModuleSearchView. Tools stay in the catalog for
    * default selection + legacy `?tool=` deep links (e.g. Breaches).
@@ -201,8 +190,6 @@ const FAN_OUT_CHIP_OPT_OUT_SLUGS = new Set([
   "crypto-intel",
   // SEON email / phone / IP / BIN require incompatible query shapes.
   "fraud-footprint",
-  // OathNet tools use incompatible params (q / email / discord_id / ip / domain).
-  "oathnet",
 ]);
 
 /**
@@ -258,7 +245,6 @@ function mod(
   extras?: Pick<
     SearchModuleDef,
     | "tools"
-    | "toolGroups"
     | "hideTools"
     | "fanOutAllTools"
     | "forceFieldTypePicker"
@@ -391,143 +377,46 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         undefined,
         {
           forceFieldTypePicker: true,
+          // Keep chip picker: All indexes (server fan-out) vs individual OathNet tools.
+          fanOutAllTools: false,
           tools: [
             {
               id: "all-stealers",
               label: "All stealer indexes",
               apiType: "stealer",
             },
+            {
+              id: "oathnet-stealer",
+              label: "OathNet stealer",
+              apiType: "oathnet/stealer",
+            },
+            {
+              id: "oathnet-victims",
+              label: "OathNet victims",
+              apiType: "oathnet/victims",
+            },
+            {
+              id: "oathnet-stealer-subdomain",
+              label: "OathNet stealer subdomain",
+              apiType: "oathnet/stealer-subdomain",
+            },
+            {
+              id: "oathnet-extract-subdomain",
+              label: "OathNet subdomain extract",
+              apiType: "oathnet/extract-subdomain",
+            },
           ],
         },
       ),
-      (() => {
-        const oathnetGroups: ModuleToolGroup[] = [
-          {
-            id: "breaches",
-            label: "Breaches",
-            tools: [
-              {
-                id: "oathnet-breach",
-                label: "Breach search",
-                apiType: "oathnet/breach",
-              },
-            ],
-          },
-          {
-            id: "stealer",
-            label: "Stealer",
-            tools: [
-              {
-                id: "oathnet-stealer",
-                label: "Stealer search",
-                apiType: "oathnet/stealer",
-              },
-              {
-                id: "oathnet-victims",
-                label: "Victims search",
-                apiType: "oathnet/victims",
-              },
-              {
-                id: "oathnet-stealer-subdomain",
-                label: "Stealer subdomain",
-                apiType: "oathnet/stealer-subdomain",
-              },
-              {
-                id: "oathnet-extract-subdomain",
-                label: "Subdomain extract",
-                apiType: "oathnet/extract-subdomain",
-              },
-            ],
-          },
-          {
-            id: "discord",
-            label: "Discord",
-            tools: [
-              {
-                id: "oathnet-discord-userinfo",
-                label: "Discord userinfo",
-                apiType: "oathnet/discord-userinfo",
-              },
-              {
-                id: "oathnet-discord-history",
-                label: "Discord username history",
-                apiType: "oathnet/discord-username-history",
-              },
-            ],
-          },
-          {
-            id: "identity",
-            label: "Identity / OSINT",
-            tools: [
-              {
-                id: "oathnet-holehe",
-                label: "Holehe",
-                apiType: "oathnet/holehe",
-              },
-              {
-                id: "oathnet-ghunt",
-                label: "GHunt",
-                apiType: "oathnet/ghunt",
-              },
-            ],
-          },
-          {
-            id: "ip",
-            label: "IP",
-            tools: [
-              {
-                id: "oathnet-ip",
-                label: "IP info",
-                apiType: "oathnet/ip-info",
-              },
-            ],
-          },
-          {
-            id: "gaming",
-            label: "Gaming",
-            tools: [
-              {
-                id: "oathnet-steam",
-                label: "Steam",
-                apiType: "oathnet/steam",
-              },
-              {
-                id: "oathnet-xbox",
-                label: "Xbox",
-                apiType: "oathnet/xbox",
-              },
-              {
-                id: "oathnet-roblox-userinfo",
-                label: "Roblox",
-                apiType: "oathnet/roblox-userinfo",
-              },
-              {
-                id: "oathnet-mc-history",
-                label: "Minecraft history",
-                apiType: "oathnet/mc-history",
-              },
-            ],
-          },
-        ];
-
-        return mod(
-          "Stealer Intel",
-          "OathNet",
-          "oathnet",
-          "oathnet/breach",
-          "Pick a category tool — email, Discord ID, IP, domain, Steam, Xbox, Roblox, or Minecraft",
-          "Ultimate / Enterprise — native OathNet lookups grouped by category (also fanned into Breaches, Stealer Logs, Discord, IP, Username, and gaming modules).",
-          undefined,
-          undefined,
-          {
-            // Mutually exclusive tools (incompatible query shapes) — pick one.
-            fanOutAllTools: false,
-            singleSearchField: true,
-            toolGroups: oathnetGroups,
-            tools: oathnetGroups.flatMap((group) => group.tools),
-          },
-        );
-      })(),
+      // Legacy — hidden from hub; redirects to Stealer Logs (OathNet tools live in category modules).
+      mod(
+        "Stealer Intel",
+        "OathNet",
+        "oathnet",
+        "oathnet/breach",
+        "Email, Discord ID, IP, domain, or gaming ID",
+        "Merged into category modules — Ultimate+ OathNet runs inside Breaches, Stealer Logs, Discord, Username / Contact Profiles, IP, Steam, Xbox, Roblox, and Minecraft.",
+      ),
     ],
   },
   {
@@ -894,16 +783,6 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
               label: "Seekria footprint",
               apiType: "seekria/user-footprint",
             },
-            {
-              id: "oathnet-holehe",
-              label: "OathNet Holehe",
-              apiType: "oathnet/holehe",
-            },
-            {
-              id: "oathnet-ghunt",
-              label: "OathNet GHunt",
-              apiType: "oathnet/ghunt",
-            },
           ],
         },
       ),
@@ -1099,6 +978,33 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
     ],
   },
   {
+    title: "Identity / OSINT",
+    items: [
+      mod(
+        "Identity / OSINT",
+        "Holehe",
+        "holehe",
+        "oathnet/holehe",
+        "Email address",
+        "Ultimate / Enterprise — check which services an email is registered on (OathNet Holehe).",
+        undefined,
+        undefined,
+        { singleSearchField: true },
+      ),
+      mod(
+        "Identity / OSINT",
+        "GHunt",
+        "ghunt",
+        "oathnet/ghunt",
+        "Gmail address",
+        "Ultimate / Enterprise — Google account OSINT via OathNet GHunt.",
+        undefined,
+        undefined,
+        { singleSearchField: true },
+      ),
+    ],
+  },
+  {
     title: "Public Records",
     items: [
       mod(
@@ -1123,7 +1029,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "ip",
         "ip",
         "IPv4 address",
-        "Geolocate, enrich, and cross-reference IP intelligence.",
+        "Geolocate, enrich, and cross-reference IP intelligence (OathNet IP on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1476,13 +1382,12 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "discord-id",
         "discord",
         "Discord ID",
-        "One Discord ID search — live profile plus SeekNow, Seekria, Reconly, CordCat, OathNet, and leak indexes in a single fan-out.",
+        "One Discord ID search — live profile, OathNet userinfo + username history + linked accounts (Ultimate+), and leak indexes in a single fan-out.",
         undefined,
         undefined,
         {
           // Chips hidden: Run always hits Discord OSINT fan-out (tools[0]),
-          // which already covers history / export / snowflake / roblox /
-          // DataVoid / OathNet via BreachHub specialty + enrichment.
+          // which covers userinfo / history / linked Roblox / DataVoid / OathNet.
           fanOutAllTools: true,
           tools: [
             {
@@ -1507,8 +1412,8 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "discord-to-roblox",
-              label: "Discord → Roblox",
-              apiType: "oathnet-roblox",
+              label: "Linked accounts",
+              apiType: "oathnet/discord-to-roblox",
             },
             {
               id: "datavoid-discord",
@@ -1757,7 +1662,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "roblox",
         "roblox",
         "Roblox username",
-        "Lookup Roblox profiles and cross-platform links.",
+        "Lookup Roblox profiles and cross-platform links (OathNet Roblox on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1806,7 +1711,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "minecraft",
         "minecraft",
         "Minecraft username or UUID",
-        "Search Minecraft breach and OSINT indexes.",
+        "Search Minecraft breach and OSINT indexes (OathNet MC history on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1856,7 +1761,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "steam",
         "breach",
         "Steam ID or profile link",
-        "Find Steam IDs, aliases, and linked accounts.",
+        "Find Steam IDs, aliases, and linked accounts (OathNet Steam on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1876,7 +1781,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "xbox",
         "breachhub",
         "Gamertag or Xbox ID",
-        "Xbox gamertag and profile intelligence.",
+        "Xbox gamertag and profile intelligence (OathNet Xbox on Ultimate+).",
         undefined,
         undefined,
         {
@@ -2635,6 +2540,8 @@ const SLUG_API_ROUTES: Record<string, string> = {
   "seon-bin": "seon/bin",
   breachbase: "breaches",
   oathnet: "oathnet/breach",
+  holehe: "oathnet/holehe",
+  ghunt: "oathnet/ghunt",
   "oathnet-roblox": "oathnet-roblox",
   "contact-enrich": "contact-enrich",
   propertyradar: "propertyradar/search",
@@ -2866,6 +2773,8 @@ export const MODULE_OPERATIONAL: Record<string, boolean> = {
   intelx: true,
   "stealer-logs": true,
   oathnet: true,
+  holehe: true,
+  ghunt: true,
   breaches: true,
   phone: true,
   username: true,

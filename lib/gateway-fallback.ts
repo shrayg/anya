@@ -11,6 +11,11 @@ import {
   isBreachHubEnabled,
 } from "@/lib/breachhub";
 import {
+  fetchOathnetSanitized,
+  hasDirectOathnetKey,
+  isOathnetEnabled,
+} from "@/lib/oathnet";
+import {
   fetchCsintIntelx,
   fetchCsintIntelxWithBuckets,
   fetchCsintMelissaLookup,
@@ -65,11 +70,32 @@ function shodanHasData(data: Record<string, unknown>): boolean {
   return ports.length > 0 || hostnames.length > 0 || services.length > 0;
 }
 
-/** OathNet Discord→Roblox: BreachHub first, CSINT only after fail/empty. */
+/** OathNet Discord→Roblox: native key first, then BreachHub, then CSINT. */
 export async function fetchOathnetDiscordToRoblox(
   discordId: string,
   timeoutMs = 18_000,
 ): Promise<Record<string, unknown> | null> {
+  if (hasDirectOathnetKey() && isOathnetEnabled()) {
+    try {
+      const data = await fetchOathnetSanitized(
+        { kind: "static", endpoint: "discord-to-roblox" },
+        { discord_id: discordId },
+        timeoutMs,
+      );
+      const raw =
+        data.raw && typeof data.raw === "object"
+          ? (data.raw as Record<string, unknown>)
+          : null;
+
+      if (raw) return raw;
+      if (data.count > 0 && Array.isArray(data.results) && data.results[0]) {
+        return data.results[0] as Record<string, unknown>;
+      }
+    } catch {
+      // fall through to BH / CSINT
+    }
+  }
+
   const { value } = await withPrimaryFallback(
     async () => {
       if (!isBreachHubEnabled()) return null;

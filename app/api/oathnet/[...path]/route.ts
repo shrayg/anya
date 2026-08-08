@@ -21,6 +21,7 @@ type RouteContext = { params: Promise<{ path: string[] }> };
  * GET /api/oathnet/<endpoint>
  * Full OathNet surface including victims/{log_id}[/files/{file_id}|/archive].
  * Plan gate: Ultimate / Enterprise only (`forceModuleSlug: "oathnet"`).
+ * Tools are surfaced inside category modules — this route is the shared backend.
  */
 export async function GET(req: NextRequest, context: RouteContext) {
   const { path: pathParts } = await context.params;
