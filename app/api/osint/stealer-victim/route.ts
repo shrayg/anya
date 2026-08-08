@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
           logId,
           available: false,
           message:
-            "File manifest is not available for this device. Upstream returned no victim tree (OathNet + OsintCat machine-viewer).",
+            "File manifest is not available for this device. Upstream returned no victim tree.",
           files: [],
         },
         { status: 502 },

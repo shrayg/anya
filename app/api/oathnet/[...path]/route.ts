@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   if (!resolved) {
     return NextResponse.json(
-      { error: "Unknown OathNet endpoint." },
+      { error: "Unknown endpoint." },
       { status: 404 },
     );
   }
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     if (resolved.kind === "static" && !data.query) {
       return NextResponse.json(
-        { error: "Missing required OathNet parameter." },
+        { error: "Missing required parameter." },
         { status: 400 },
       );
     }

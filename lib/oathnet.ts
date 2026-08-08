@@ -645,7 +645,7 @@ export async function fetchOathnetSanitized(
       const native = toNativeOathnetRequest(built);
 
       if (!native) {
-        throw new Error(publicSearchError("Unsupported OathNet endpoint."));
+        throw new Error(publicSearchError("Unsupported endpoint."));
       }
 
       const data = await directOathnetNativeGet({

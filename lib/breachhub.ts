@@ -4590,7 +4590,7 @@ export async function fetchBreachHubVictimManifest(
       return files.length > 0;
     } catch (err) {
       errors.push(
-        err instanceof Error ? err.message : "OathNet manifest failed",
+        err instanceof Error ? err.message : "Victim manifest failed",
       );
       return false;
     }

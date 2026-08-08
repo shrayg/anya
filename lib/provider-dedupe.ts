@@ -139,7 +139,7 @@ export type VendorGatewayRow = {
 /** Static primary/fallback map for docs / health UI. */
 export const VENDOR_GATEWAY_PRIMARIES: VendorGatewayRow[] = [
   {
-    vendor: "OathNet",
+    vendor: "Identity intel",
     primary: "breachhub",
     fallback: "csint",
     notes: "BH first; CSINT only after BH fail/empty",

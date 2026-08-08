@@ -282,8 +282,8 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
   breachvip: "Comb index",
   /** Unique multi-source remainder after direct CSINT/OsintCat/BreachVIP. */
   breachhub: "Multi-source",
-  /** BreachHub `/api/oathnet/*` vendor — shown so ops can see red/green. */
-  oathnet: "OathNet",
+  /** BreachHub `/api/oathnet/*` specialty vendor — shown so ops can see red/green. */
+  oathnet: "Identity intel",
   csint: "Enrichment",
   cordcat: "Discord",
   builtin: "Built-in",

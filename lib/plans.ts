@@ -356,10 +356,10 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "500 searches per day",
       "Full dashboard / panel access",
       "Professional modules: IntelX, Stealer Logs, Crypto Intel, Passport, LATAM Country DB, NotAliveX Social, AR Renaper, Google Docs Intel, Ganknow & FiveM",
-      "All other panel modules except unrestricted AI and OathNet",
+      "All other panel modules except unrestricted AI and premium identity intel",
       "Restricted AI Intelligence",
       "5 IntelX searches per day included",
-      "OathNet requires Ultimate or Enterprise",
+      "Premium identity / gaming intel requires Ultimate or Enterprise",
     ],
   },
   {
@@ -374,7 +374,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Full dashboard / panel access",
       "Full AI Intelligence access",
       "IntelX & Stealer Logs included",
-      "OathNet specialty module included",
+      "Premium identity & gaming intel included",
       "All Professional modules (Crypto Intel, Passport, LATAM / NotAliveX, Google Docs Intel, Ganknow, FiveM)",
     ],
   },
@@ -390,7 +390,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Unlimited searches",
       "Dedicated support & SLA",
       "Team seats & onboarding",
-      "OathNet specialty module included",
+      "Premium identity & gaming intel included",
       "All Professional modules included",
       "Priority feature requests",
     ],
@@ -855,7 +855,7 @@ export function getPlanLedgerRows(
         { label: "Daily searches", value: searches },
         { label: "Dashboard", value: "Full" },
         { label: "Modules", value: "Professional" },
-        { label: "OathNet", value: "Ultimate+" },
+        { label: "Identity intel", value: "Ultimate+" },
         { label: "IntelX included", value: "5 / day" },
         { label: "AI access", value: "Restricted" },
       ];
@@ -864,7 +864,7 @@ export function getPlanLedgerRows(
         { label: "Daily searches", value: searches, accent: true },
         { label: "Dashboard", value: "Full" },
         { label: "AI access", value: "Full" },
-        { label: "OathNet", value: "Included", accent: true },
+        { label: "Identity intel", value: "Included", accent: true },
         { label: "Modules", value: "All included", accent: true },
       ];
     case "enterprise":
@@ -872,7 +872,7 @@ export function getPlanLedgerRows(
         { label: "Daily searches", value: searches, accent: true },
         { label: "Support", value: "Dedicated SLA" },
         { label: "Seats", value: "Team onboarding" },
-        { label: "OathNet", value: "Included", accent: true },
+        { label: "Identity intel", value: "Included", accent: true },
         { label: "Modules", value: "All included", accent: true },
       ];
     default:

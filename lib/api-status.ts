@@ -170,9 +170,9 @@ const CSINT_ENDPOINTS: Array<{
   {
     id: "csint-oathnet-d2r",
     path: "/oathnet/discord-to-roblox",
-    name: "OathNet Discord→Roblox",
+    name: "Discord→Roblox",
     description: "Discord ID to Roblox account mapping.",
-    vendor: "OathNet",
+    vendor: "Identity intel",
     mirrored: true,
   },
   {
@@ -250,10 +250,18 @@ const CSINT_ENDPOINTS: Array<{
 
 function titleFromId(id: string): string {
   return id
+    .replace(/^oathnet[-_]?/i, "")
     .split(/[-_]/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+/** Never surface the OathNet vendor string in admin / health UI. */
+function scrubVendorBrand(label: string): string {
+  if (/oath\s*net/i.test(label)) return "Identity intel";
+
+  return label;
 }
 
 function normalizePath(path: string): string {
@@ -309,10 +317,11 @@ async function loadBreachHubOpenApi(): Promise<OpenApiCache> {
         );
         const method = methods[0] ?? "get";
         const op = ops[method] ?? {};
-        const vendor =
+        const vendor = scrubVendorBrand(
           Array.isArray(op.tags) && typeof op.tags[0] === "string"
             ? op.tags[0]
-            : titleFromId(path.split("/").filter(Boolean).slice(-1)[0] ?? "API");
+            : titleFromId(path.split("/").filter(Boolean).slice(-1)[0] ?? "API"),
+        );
 
         byPath.set(normalizePath(path), {
           method: method.toUpperCase(),
@@ -567,15 +576,15 @@ export async function buildApiStatusPayload(): Promise<ApiStatusPayload> {
     ),
     buildGatewayRow(
       "gateway-oathnet",
-      "OathNet (via BreachHub)",
-      "OathNet vendor health via BreachHub /api/oathnet/*.",
+      "Identity intel",
+      "Specialty identity / gaming intel health via BreachHub mirror.",
       "https://breachhub.org/api/oathnet/ip-info",
       "GET",
       bhVersion,
       byId.get("oathnet"),
       isBreachHubEnabled(),
       oathnetLast,
-      "Shown separately so ops can see OathNet red/green",
+      "Shown separately so ops can see identity-intel red/green",
     ),
   ];
 
@@ -590,7 +599,9 @@ export async function buildApiStatusPayload(): Promise<ApiStatusPayload> {
     const meta = openapi.byPath.get(normalizePath(endpoint.path));
     const last = getProviderRequest("breachhub", endpoint.path, "GET");
     const isSkipped = skipped.has(endpoint.id);
-    const vendor = meta?.vendor ?? titleFromId(endpoint.id);
+    const vendor = scrubVendorBrand(
+      meta?.vendor ?? titleFromId(endpoint.id),
+    );
     const derived = isSkipped
       ? {
           status: "maintenance" as const,
@@ -684,7 +695,7 @@ export function probeIdForGateway(gateway: string): ProviderId | null {
     "GodsEye Export": "godseye-export",
     BreachVIP: "breachvip",
     CordCat: "cordcat",
-    "OathNet (via BreachHub)": "oathnet",
+    "Identity intel": "oathnet",
   };
 
   return map[gateway] ?? null;

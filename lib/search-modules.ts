@@ -372,12 +372,12 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "stealer-logs",
         "stealer",
         "IP, email, or domain",
-        "Stealer + combo indexes, with Domain selectable or auto-detected (same domain pivots as the Domain module). OathNet stealer / victims / subdomains on Ultimate+.",
+        "Stealer + combo indexes, with Domain selectable or auto-detected (same domain pivots as the Domain module). Extra stealer / victims / subdomain tools on Ultimate+.",
         undefined,
         undefined,
         {
           forceFieldTypePicker: true,
-          // Keep chip picker: All indexes (server fan-out) vs individual OathNet tools.
+          // Keep chip picker: All indexes (server fan-out) vs individual specialty tools.
           fanOutAllTools: false,
           tools: [
             {
@@ -387,36 +387,35 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "oathnet-stealer",
-              label: "OathNet stealer",
+              label: "Stealer search",
               apiType: "oathnet/stealer",
             },
             {
               id: "oathnet-victims",
-              label: "OathNet victims",
+              label: "Victims search",
               apiType: "oathnet/victims",
             },
             {
               id: "oathnet-stealer-subdomain",
-              label: "OathNet stealer subdomain",
+              label: "Stealer subdomain",
               apiType: "oathnet/stealer-subdomain",
             },
             {
               id: "oathnet-extract-subdomain",
-              label: "OathNet subdomain extract",
+              label: "Subdomain extract",
               apiType: "oathnet/extract-subdomain",
             },
           ],
         },
       ),
-      // Legacy stub — INTENT_HUB_HIDDEN + next.config /oathnet redirect. No tools:
-      // chip wall must never render here; contribution is only via category modules.
+      // Legacy stub — INTENT_HUB_HIDDEN + next.config redirect. No tools / no brand.
       mod(
         "Stealer Intel",
-        "OathNet",
+        "Specialty lookup",
         "oathnet",
         "oathnet/breach",
         "Email, Discord ID, IP, domain, or gaming ID",
-        "Merged into category modules — Ultimate+ OathNet runs inside Breaches, Stealer Logs, Discord, Username / Contact Profiles, IP, Steam, Xbox, Roblox, and Minecraft.",
+        "Merged into category modules — Ultimate+ specialty tools run inside Breaches, Stealer Logs, Discord, Username / Contact Profiles, IP, Steam, Xbox, Roblox, and Minecraft.",
         undefined,
         undefined,
         { hideTools: true, tools: [] },
@@ -432,7 +431,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "breaches",
         "breaches",
         "Email or username",
-        "Unified breach search across leak indexes, recovery data, email analysis, contact profiles, and email fraud signals (OathNet breach / Holehe / GHunt on Ultimate+).",
+        "Unified breach search across leak indexes, recovery data, email analysis, contact profiles, and email fraud signals (breach / Holehe / GHunt on Ultimate+).",
         undefined,
         undefined,
         {
@@ -481,17 +480,17 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "oathnet-breach",
-              label: "OathNet breach",
+              label: "Breach search",
               apiType: "oathnet/breach",
             },
             {
               id: "oathnet-holehe",
-              label: "OathNet Holehe",
+              label: "Holehe",
               apiType: "oathnet/holehe",
             },
             {
               id: "oathnet-ghunt",
-              label: "OathNet GHunt",
+              label: "GHunt",
               apiType: "oathnet/ghunt",
             },
             {
@@ -990,7 +989,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "holehe",
         "oathnet/holehe",
         "Email address",
-        "Ultimate / Enterprise — check which services an email is registered on (OathNet Holehe).",
+        "Ultimate / Enterprise — check which services an email is registered on.",
         undefined,
         undefined,
         { singleSearchField: true },
@@ -1001,7 +1000,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "ghunt",
         "oathnet/ghunt",
         "Gmail address",
-        "Ultimate / Enterprise — Google account OSINT via OathNet GHunt.",
+        "Ultimate / Enterprise — Google account OSINT via GHunt.",
         undefined,
         undefined,
         { singleSearchField: true },
@@ -1033,7 +1032,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "ip",
         "ip",
         "IPv4 address",
-        "Geolocate, enrich, and cross-reference IP intelligence (OathNet IP on Ultimate+).",
+        "Geolocate, enrich, and cross-reference IP intelligence (extra IP intel on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1056,7 +1055,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "oathnet-ip",
-              label: "OathNet IP",
+              label: "IP intel",
               apiType: "oathnet/ip-info",
             },
             {
@@ -1117,7 +1116,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "oathnet-extract-subdomain",
-              label: "OathNet subdomain extract",
+              label: "Subdomain extract",
               apiType: "oathnet/extract-subdomain",
             },
           ],
@@ -1386,7 +1385,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "discord-id",
         "discord",
         "Discord ID",
-        "One Discord ID search — live profile, OathNet userinfo + username history + linked accounts (Ultimate+), and leak indexes in a single fan-out.",
+        "One Discord ID search — live profile, userinfo + username history + linked accounts (Ultimate+), and leak indexes in a single fan-out.",
         undefined,
         undefined,
         {
@@ -1426,12 +1425,12 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "oathnet-discord-userinfo",
-              label: "OathNet userinfo",
+              label: "Userinfo",
               apiType: "oathnet/discord-userinfo",
             },
             {
               id: "oathnet-discord-history",
-              label: "OathNet username history",
+              label: "Username history",
               apiType: "oathnet/discord-username-history",
             },
           ],
@@ -1666,7 +1665,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "roblox",
         "roblox",
         "Roblox username",
-        "Lookup Roblox profiles and cross-platform links (OathNet Roblox on Ultimate+).",
+        "Lookup Roblox profiles and cross-platform links (extra Roblox intel on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1694,7 +1693,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "oathnet-roblox-userinfo",
-              label: "OathNet Roblox",
+              label: "Roblox links",
               apiType: "oathnet/roblox-userinfo",
             },
           ],
@@ -1715,7 +1714,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "minecraft",
         "minecraft",
         "Minecraft username or UUID",
-        "Search Minecraft breach and OSINT indexes (OathNet MC history on Ultimate+).",
+        "Search Minecraft breach and OSINT indexes (MC history on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1753,7 +1752,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "oathnet-mc-history",
-              label: "OathNet MC history",
+              label: "MC history",
               apiType: "oathnet/mc-history",
             },
           ],
@@ -1765,7 +1764,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "steam",
         "breach",
         "Steam ID or profile link",
-        "Find Steam IDs, aliases, and linked accounts (OathNet Steam on Ultimate+).",
+        "Find Steam IDs, aliases, and linked accounts (extra Steam intel on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1773,7 +1772,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             { id: "steam-indexes", label: "Leak indexes", apiType: "breach" },
             {
               id: "oathnet-steam",
-              label: "OathNet Steam",
+              label: "Steam intel",
               apiType: "oathnet/steam",
             },
           ],
@@ -1785,7 +1784,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "xbox",
         "breachhub",
         "Gamertag or Xbox ID",
-        "Xbox gamertag and profile intelligence (OathNet Xbox on Ultimate+).",
+        "Xbox gamertag and profile intelligence (extra Xbox intel on Ultimate+).",
         undefined,
         undefined,
         {
@@ -1802,7 +1801,7 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
             },
             {
               id: "oathnet-xbox",
-              label: "OathNet Xbox",
+              label: "Xbox intel",
               apiType: "oathnet/xbox",
             },
           ],
