@@ -62,6 +62,8 @@ export async function GET(req: NextRequest) {
   };
 
   const stealerOpts = {
+    // Ultimate+: Stealer search / Victims / subdomain run in the same
+    // one-search fan-out as core stealer indexes (native identity-intel).
     includeOathnet: canContributeOathnet(access.plan),
     plan: access.plan ?? null,
   };

@@ -372,13 +372,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "stealer-logs",
         "stealer",
         "IP, email, or domain",
-        "Stealer + combo indexes, with Domain selectable or auto-detected (same domain pivots as the Domain module). Extra stealer / victims / subdomain tools on Ultimate+.",
+        "One search across stealer indexes — credentials, victims, and subdomain pivots (Ultimate+). Domain selectable or auto-detected.",
         undefined,
         undefined,
         {
           forceFieldTypePicker: true,
-          // Keep chip picker: All indexes (server fan-out) vs individual specialty tools.
-          fanOutAllTools: false,
+          // Chips hidden: Run always hits stealer server fan-out (tools[0]),
+          // which covers indexes + Stealer / Victims / subdomain (Ultimate+).
+          fanOutAllTools: true,
           tools: [
             {
               id: "all-stealers",

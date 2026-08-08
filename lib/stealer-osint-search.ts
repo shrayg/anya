@@ -34,7 +34,6 @@ import {
 import {
   canContributeOathnet,
   fetchOathnetSanitized,
-  isOathnetEnabled,
   resolveOathnetVictimLogId,
 } from "@/lib/oathnet";
 import type { PlanId } from "@/lib/plans";
@@ -81,7 +80,10 @@ export type StealerOsintProgressEvent =
   | { type: "done"; result: StealerOsintResult };
 
 export type StealerOsintSearchOpts = {
-  /** Ultimate+ native OathNet contribution (stealer / victims / subdomain). */
+  /**
+   * Ultimate+ identity-intel contribution in the one-search stealer fan-out:
+   * Stealer search, Victims search, Stealer subdomain, Subdomain extract.
+   */
   includeOathnet?: boolean;
   plan?: PlanId | null;
 };
@@ -113,7 +115,9 @@ function asResults(
  * Run the full stealer fan-out. Calls `onEvent` as each module settles so
  * callers can stream NDJSON / update UI progressively.
  *
- * OathNet stealer / victims / subdomain require Ultimate+ (`includeOathnet`).
+ * All stealer indexes always includes Ultimate+ specialty tools when gated
+ * (`includeOathnet`): Stealer search, Victims search, Stealer subdomain,
+ * Subdomain extract (domain queries).
  */
 export async function runStealerOsintSearch(
   rawQuery: string,
@@ -126,9 +130,10 @@ export async function runStealerOsintSearch(
     onEventOrOpts && typeof onEventOrOpts === "object" ? onEventOrOpts : {};
   const onEvent =
     typeof onEventOrOpts === "function" ? onEventOrOpts : maybeOnEvent;
+  // Match Breaches: honor explicit flag OR Ultimate+ plan gate.
   const includeOathnet =
-    opts.includeOathnet === true &&
-    (opts.plan ? canContributeOathnet(opts.plan) : isOathnetEnabled());
+    opts.includeOathnet === true ||
+    (opts.plan ? canContributeOathnet(opts.plan) : false);
 
   const domain = normalizeDomain(rawQuery);
   const query = domain ?? rawQuery.trim();
@@ -156,9 +161,9 @@ export async function runStealerOsintSearch(
 
   const sources: Record<string, { ok: boolean; count: number }> = {};
 
-  // Domain adds Comb. Always emit oathnet-extract + domain-specialty slots
-  // (no-op when not applicable) so progressive totals stay honest.
-  const MODULE_TOTAL = isDomain ? 11 : 10;
+  // Domain adds Comb. Specialty stealer-search / victims-search always get
+  // their own slots; subdomain + extract + domain-specialty no-op when N/A.
+  const MODULE_TOTAL = isDomain ? 12 : 11;
   let doneCount = 0;
 
   await warmDataBlacklistCache();
@@ -312,18 +317,38 @@ export async function runStealerOsintSearch(
 
     (async () => {
       if (!includeOathnet) {
-        markSource("oathnet-stealer", 0, false);
-        markSource("oathnet-victims", 0, false);
-        emit("oathnet");
+        markSource("stealer-search", 0, false);
+        emit("stealer-search");
+        return;
+      }
+
+      try {
+        const data = await fetchOathnetSanitized(
+          { kind: "static", endpoint: "stealer" },
+          { query },
+        );
+        oathnetStealerResults = asResults(data);
+        markSource("stealer-search", oathnetStealerResults.length);
+        victimArchives = mergeStealerArchives(
+          victimArchives,
+          extractStealerArchives({ results: oathnetStealerResults }),
+          archivesFromStealerResults(oathnetStealerResults),
+        );
+      } catch {
+        markSource("stealer-search", 0, false);
+      }
+      emit("stealer-search");
+    })(),
+
+    (async () => {
+      if (!includeOathnet) {
+        markSource("victims-search", 0, false);
+        emit("victims-search");
         return;
       }
 
       try {
         const jobs: Array<Promise<unknown>> = [
-          fetchOathnetSanitized(
-            { kind: "static", endpoint: "stealer" },
-            { query },
-          ),
           fetchOathnetSanitized(
             { kind: "static", endpoint: "victims" },
             { query },
@@ -346,43 +371,27 @@ export async function runStealerOsintSearch(
         }
 
         const settled = await Promise.allSettled(jobs);
-        const stealer = settled[0] as PromiseSettledResult<{
-          results?: unknown[];
-          raw?: Record<string, unknown>;
-        }>;
-        const victims = settled[1] as PromiseSettledResult<{
+        const victims = settled[0] as PromiseSettledResult<{
           results?: unknown[];
           raw?: Record<string, unknown>;
         }>;
         const victimLog = isVictimIdQuery
-          ? (settled[2] as PromiseSettledResult<{
+          ? (settled[1] as PromiseSettledResult<{
               results?: unknown[];
               raw?: Record<string, unknown>;
             }>)
           : null;
 
-        if (stealer.status === "fulfilled") {
-          oathnetStealerResults = asResults(stealer.value);
-          markSource("oathnet-stealer", oathnetStealerResults.length);
-          victimArchives = mergeStealerArchives(
-            victimArchives,
-            extractStealerArchives({ results: oathnetStealerResults }),
-            archivesFromStealerResults(oathnetStealerResults),
-          );
-        } else {
-          markSource("oathnet-stealer", 0, false);
-        }
-
         if (victims.status === "fulfilled") {
           oathnetVictimsResults = asResults(victims.value);
-          markSource("oathnet-victims", oathnetVictimsResults.length);
+          markSource("victims-search", oathnetVictimsResults.length);
           victimArchives = mergeStealerArchives(
             victimArchives,
             extractStealerArchives({ results: oathnetVictimsResults }),
             extractStealerArchives(victims.value.raw ?? {}),
           );
         } else {
-          markSource("oathnet-victims", 0, false);
+          markSource("victims-search", 0, false);
         }
 
         if (victimLog?.status === "fulfilled") {
@@ -394,16 +403,15 @@ export async function runStealerOsintSearch(
           );
         }
       } catch {
-        markSource("oathnet-stealer", 0, false);
-        markSource("oathnet-victims", 0, false);
+        markSource("victims-search", 0, false);
       }
-      emit("oathnet");
+      emit("victims-search");
     })(),
 
     (async () => {
       if (!includeOathnet || !isDomain) {
-        markSource("oathnet-subdomain", 0, false);
-        emit("oathnet-subdomain");
+        markSource("stealer-subdomain", 0, false);
+        emit("stealer-subdomain");
         return;
       }
 
@@ -413,17 +421,17 @@ export async function runStealerOsintSearch(
           { query },
         );
         oathnetSubdomainResults = asResults(data);
-        markSource("oathnet-subdomain", oathnetSubdomainResults.length);
+        markSource("stealer-subdomain", oathnetSubdomainResults.length);
       } catch {
-        markSource("oathnet-subdomain", 0, false);
+        markSource("stealer-subdomain", 0, false);
       }
-      emit("oathnet-subdomain");
+      emit("stealer-subdomain");
     })(),
 
     (async () => {
       if (!includeOathnet || !isDomain) {
-        markSource("oathnet-extract", 0, false);
-        emit("oathnet-extract");
+        markSource("subdomain-extract", 0, false);
+        emit("subdomain-extract");
         return;
       }
 
@@ -433,11 +441,11 @@ export async function runStealerOsintSearch(
           { domain: query, query },
         );
         oathnetExtractResults = asResults(data);
-        markSource("oathnet-extract", oathnetExtractResults.length);
+        markSource("subdomain-extract", oathnetExtractResults.length);
       } catch {
-        markSource("oathnet-extract", 0, false);
+        markSource("subdomain-extract", 0, false);
       }
-      emit("oathnet-extract");
+      emit("subdomain-extract");
     })(),
 
     (async () => {

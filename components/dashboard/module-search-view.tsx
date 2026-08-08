@@ -315,12 +315,30 @@ export function ModuleSearchView({
     }
 
     const fromUrl = searchParams.get("tool")?.trim();
-    const validTool = moduleDef.tools?.find((t) => t.id === fromUrl);
+    const validTool = moduleDef.tools?.find((t) => {
+      if (t.id !== fromUrl) return false;
+      // Specialty identity-intel deep links require Ultimate+.
+      if (
+        t.apiType &&
+        isOathnetApiType(t.apiType) &&
+        !planHasUltimateModules(plan)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
     const initial = validTool?.id ?? moduleDef.tools?.[0]?.id ?? "";
 
     setSelectedToolId(initial);
     toolLockedRef.current = Boolean(validTool);
-  }, [moduleDef.slug, moduleDef.tools, fanOutBehavior.mode, searchParams]);
+  }, [
+    moduleDef.slug,
+    moduleDef.tools,
+    fanOutBehavior.mode,
+    searchParams,
+    plan,
+  ]);
 
   useEffect(() => {
     setSearchFields(defaultSearchFieldsForModule(moduleDef));
@@ -3917,6 +3935,15 @@ export function ModuleSearchView({
                   role="toolbar"
                 >
                   {moduleDef.tools.map((tool) => {
+                    // Specialty identity-intel chips are Ultimate / Enterprise only.
+                    if (
+                      tool.apiType &&
+                      isOathnetApiType(tool.apiType) &&
+                      !planHasUltimateModules(plan)
+                    ) {
+                      return null;
+                    }
+
                     const active = tool.id === selectedToolId;
 
                     return (
