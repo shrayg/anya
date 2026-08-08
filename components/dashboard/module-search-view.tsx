@@ -789,27 +789,10 @@ export function ModuleSearchView({
 
   const searchProgressStatus = useMemo(() => {
     if (!isSearching) return null;
-    if (discordProgressLabel.trim()) return discordProgressLabel;
-    if (instagramProgressLabel.trim()) return instagramProgressLabel;
-
-    const boundId = boundJobIdRef.current;
-    const job =
-      (boundId ? jobs.find((entry) => entry.id === boundId) : undefined) ??
-      getLatestJobForModule(moduleDef.slug);
-
-    if (job?.status === "running" && job.progressLabel?.trim()) {
-      return job.progressLabel;
-    }
-
-    return null;
-  }, [
-    discordProgressLabel,
-    getLatestJobForModule,
-    instagramProgressLabel,
-    isSearching,
-    jobs,
-    moduleDef.slug,
-  ]);
+    // Keep the composer calm — no provider/module names under the search bar.
+    // Detailed fan-out labels still live on Discord/Instagram result panels.
+    return "Searching…";
+  }, [isSearching]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const scrolledForResultsRef = useRef(false);
@@ -4215,6 +4198,7 @@ export function ModuleSearchView({
 
               <SearchProgressBar
                 active={isSearching}
+                hasResults={hasResultsSurface}
                 progress={searchProgressRatio}
                 status={searchProgressStatus}
               />
@@ -4500,6 +4484,7 @@ export function ModuleSearchView({
               {records.length > 0 ? (
                 <SearchResultCards
                   blurResults={blurResults}
+                  pageSize={Math.max(records.length, 1)}
                   records={records}
                   selectedExportIndex={selectedExportIndex}
                   totalCount={resultCount}

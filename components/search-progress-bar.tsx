@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId } from "react";
 import clsx from "clsx";
 
-const DEFAULT_STAGES = [
-  "Querying indexes…",
-  "Merging hits…",
-  "Resolving sources…",
-  "Correlating signals…",
-  "Waiting on providers…",
-] as const;
-
-const STAGE_ROTATE_MS = 2600;
+const SEARCHING_COPY = "Searching…";
+const STILL_SEARCHING_COPY =
+  "Still searching while you check your results…";
 
 export type SearchProgressBarProps = {
   active: boolean;
-  /** Live status from a stream/job; when empty, stages rotate. */
+  /** Live status from a stream/job; ignored when `hasResults` is true. */
   status?: string | null;
+  /**
+   * When partial/final results are already on screen, prefer calm copy
+   * instead of provider names or rotating stage lines.
+   */
+  hasResults?: boolean;
   /**
    * 0–1 when tied to stream partials (`done/total`).
    * Omit / null for an indeterminate pulse — never invent precise %.
@@ -37,44 +36,19 @@ function clampRatio(value: number): number {
 export function SearchProgressBar({
   active,
   status = null,
+  hasResults = false,
   progress = null,
   className = "",
 }: SearchProgressBarProps) {
   const labelId = useId();
-  const [stageIndex, setStageIndex] = useState(0);
-  const [reducedMotion, setReducedMotion] = useState(false);
 
   const hasRatio =
     typeof progress === "number" && Number.isFinite(progress) && progress >= 0;
   const ratio = hasRatio ? clampRatio(progress) : null;
   const liveStatus = typeof status === "string" ? status.trim() : "";
-  const displayStatus = liveStatus || DEFAULT_STAGES[stageIndex];
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => setReducedMotion(mq.matches);
-
-    apply();
-    mq.addEventListener("change", apply);
-
-    return () => mq.removeEventListener("change", apply);
-  }, []);
-
-  useEffect(() => {
-    if (!active) {
-      setStageIndex(0);
-
-      return;
-    }
-
-    if (liveStatus || reducedMotion) return;
-
-    const id = window.setInterval(() => {
-      setStageIndex((i) => (i + 1) % DEFAULT_STAGES.length);
-    }, STAGE_ROTATE_MS);
-
-    return () => window.clearInterval(id);
-  }, [active, liveStatus, reducedMotion]);
+  const displayStatus = hasResults
+    ? STILL_SEARCHING_COPY
+    : liveStatus || SEARCHING_COPY;
 
   if (!active) return null;
 

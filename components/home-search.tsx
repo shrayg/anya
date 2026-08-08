@@ -719,7 +719,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       }
 
       if (isNdjson && route.apiType === "breaches") {
-        setStreamStatus("Fetching sources…");
+        setStreamStatus("Searching…");
         let sawUseful = false;
         let streamError: string | null = null;
 
@@ -732,15 +732,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             };
             if (!payload || typeof payload !== "object") return;
 
-            if (event.module) {
-              setStreamStatus(
-                `Adding ${event.module}${
-                  typeof event.done === "number" && typeof event.total === "number"
-                    ? ` (${event.done}/${event.total})`
-                    : ""
-                }…`,
-              );
-            }
             if (
               typeof event.done === "number" &&
               typeof event.total === "number" &&
@@ -795,7 +786,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       }
 
       if (isNdjson && route.apiType === "discord") {
-        setStreamStatus("Fetching Discord sources…");
+        setStreamStatus("Searching…");
         let sawProfile = false;
         let streamError: string | null = null;
 
@@ -809,14 +800,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             };
             if (!payload || typeof payload !== "object") return;
 
-            if (event.module) {
-              const progress =
-                typeof event.done === "number" &&
-                typeof event.total === "number"
-                  ? ` (${event.done}/${event.total})`
-                  : "";
-              setStreamStatus(`Adding ${event.module}${progress}…`);
-            }
             if (
               typeof event.done === "number" &&
               typeof event.total === "number" &&
@@ -1244,6 +1227,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
           <SearchProgressBar
             active={isSearching}
+            hasResults={hasResultsSurface}
             progress={streamProgress}
             status={streamStatus}
           />
@@ -1335,7 +1319,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             defaultExpanded="first"
             dense
             moduleSlug="breaches"
-            pageSize={10}
+            pageSize={Math.max(records.length, 1)}
             records={records}
             totalCount={resultCount}
             unlock={unlockMeta}
