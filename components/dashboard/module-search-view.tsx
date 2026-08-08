@@ -52,6 +52,7 @@ import {
 
 import { apiFetch } from "@/lib/csrf-client";
 import { SearchBarTour } from "@/components/search-bar-tour";
+import { SearchProgressBar } from "@/components/search-progress-bar";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { SpecularButton } from "@/components/ui/specular-button";
 import { BreachesSearchResults } from "@/components/dashboard/breaches-search-results";
@@ -481,6 +482,9 @@ export function ModuleSearchView({
   const instagramLoadGenRef = useRef(0);
   const [discordLoadingMore, setDiscordLoadingMore] = useState(false);
   const [discordProgressLabel, setDiscordProgressLabel] = useState("");
+  const [searchProgressRatio, setSearchProgressRatio] = useState<number | null>(
+    null,
+  );
   const [structuredResult, setStructuredResult] =
     useState<StructuredResult | null>(null);
   const [rawResult, setRawResult] = useState("");
@@ -580,6 +584,7 @@ export function ModuleSearchView({
     setInstagramProgressLabel("");
     setDiscordLoadingMore(false);
     setDiscordProgressLabel("");
+    setSearchProgressRatio(null);
     setStructuredResult(null);
     setRawResult("");
     setLastSearchLabel("");
@@ -615,6 +620,7 @@ export function ModuleSearchView({
 
       if (snap) applySnapshot(snap);
       setIsSearching(false);
+      setSearchProgressRatio(null);
 
       return;
     }
@@ -656,6 +662,7 @@ export function ModuleSearchView({
 
       if (snap) applySnapshot(snap);
       setIsSearching(false);
+      setSearchProgressRatio(null);
 
       return;
     }
@@ -663,12 +670,14 @@ export function ModuleSearchView({
     if (job.status === "error") {
       setError(job.error || "Search failed.");
       setIsSearching(false);
+      setSearchProgressRatio(null);
 
       return;
     }
 
     if (job.status === "cancelled") {
       setIsSearching(false);
+      setSearchProgressRatio(null);
     }
   }, [applySnapshot, jobs]);
 
@@ -733,6 +742,30 @@ export function ModuleSearchView({
     robloxResult,
     stealerResult,
     structuredResult,
+  ]);
+
+  const searchProgressStatus = useMemo(() => {
+    if (!isSearching) return null;
+    if (discordProgressLabel.trim()) return discordProgressLabel;
+    if (instagramProgressLabel.trim()) return instagramProgressLabel;
+
+    const boundId = boundJobIdRef.current;
+    const job =
+      (boundId ? jobs.find((entry) => entry.id === boundId) : undefined) ??
+      getLatestJobForModule(moduleDef.slug);
+
+    if (job?.status === "running" && job.progressLabel?.trim()) {
+      return job.progressLabel;
+    }
+
+    return null;
+  }, [
+    discordProgressLabel,
+    getLatestJobForModule,
+    instagramProgressLabel,
+    isSearching,
+    jobs,
+    moduleDef.slug,
   ]);
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -1289,6 +1322,7 @@ export function ModuleSearchView({
       if (isMountedRef.current) {
         applySnapshot(snap);
         setIsSearching(false);
+        setSearchProgressRatio(null);
       }
     };
 
@@ -1305,6 +1339,7 @@ export function ModuleSearchView({
       if (isMountedRef.current) {
         setError(message);
         setIsSearching(false);
+        setSearchProgressRatio(null);
       }
     };
 
@@ -1987,6 +2022,13 @@ export function ModuleSearchView({
 
                   setDiscordProgressLabel(label);
                   setJobProgress(jobId, label);
+                  if (
+                    typeof event.done === "number" &&
+                    typeof event.total === "number" &&
+                    event.total > 0
+                  ) {
+                    setSearchProgressRatio(event.done / event.total);
+                  }
 
                   if (discordHasSignal(event.result)) {
                     setEmptyResult("");
@@ -2226,6 +2268,14 @@ export function ModuleSearchView({
                     typeof event.total === "number"
                       ? `Stealer OSINT · ${moduleLabel} (${event.done}/${event.total})`
                       : `Stealer OSINT · ${moduleLabel}`;
+
+                  if (
+                    typeof event.done === "number" &&
+                    typeof event.total === "number" &&
+                    event.total > 0
+                  ) {
+                    setSearchProgressRatio(event.done / event.total);
+                  }
 
                   applyStealerPayload(event.result, { progress });
                 }
@@ -2513,6 +2563,14 @@ export function ModuleSearchView({
                     typeof event.total === "number"
                       ? `Breaches · ${moduleLabel} (${event.done}/${event.total})`
                       : `Breaches · ${moduleLabel}`;
+
+                  if (
+                    typeof event.done === "number" &&
+                    typeof event.total === "number" &&
+                    event.total > 0
+                  ) {
+                    setSearchProgressRatio(event.done / event.total);
+                  }
 
                   applyBreachesPayload(finalBreaches ?? event.result, {
                     progress,
@@ -4091,6 +4149,12 @@ export function ModuleSearchView({
                   />
                 )}
               </form>
+
+              <SearchProgressBar
+                active={isSearching}
+                progress={searchProgressRatio}
+                status={searchProgressStatus}
+              />
 
               {isPublicRecords ? (
                 <PublicRecordsOptionsPanel

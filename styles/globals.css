@@ -9621,6 +9621,95 @@
   width: 100%;
 }
 
+/* Slim search progress — ice-blue on void; under composer while searching */
+.search-progress {
+  --sp-blush: var(--anya-blush, #c3d3e6);
+  width: 100%;
+  margin-top: 0.85rem;
+  animation: search-progress-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.search-progress__track {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.search-progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sp-blush) 35%, transparent),
+    var(--sp-blush),
+    color-mix(in srgb, var(--sp-blush) 55%, white)
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--sp-blush) 40%, transparent);
+  transition: width 0.28s ease-out;
+}
+
+.search-progress__fill--pulse {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  animation: search-progress-pulse 1.45s ease-in-out infinite;
+}
+
+.search-progress__status {
+  margin: 0.55rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: color-mix(in srgb, var(--sp-blush) 72%, #a1a1aa);
+  text-align: center;
+}
+
+.module-search-composer .search-progress {
+  margin-top: 1rem;
+  padding-inline: 0.15rem;
+}
+
+.module-search-composer .search-progress__status {
+  text-align: left;
+}
+
+@keyframes search-progress-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes search-progress-pulse {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-progress {
+    animation: none;
+  }
+
+  .search-progress__fill--pulse {
+    width: 55%;
+    left: 22.5%;
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
 .home-search-input-wrap {
   position: relative;
   display: flex;

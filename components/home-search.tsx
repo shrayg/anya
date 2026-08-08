@@ -29,6 +29,7 @@ import {
 import { StealerLogsSearchResults } from "@/components/dashboard/stealer-logs-search-results";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { LiquidGlassCard } from "@/components/ui/liquid-glass";
+import { SearchProgressBar } from "@/components/search-progress-bar";
 import { getHubSections } from "@/lib/search-modules";
 import {
   STARTER_SEARCH_MODES,
@@ -144,6 +145,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const premiumControlRef = useRef<HTMLDivElement>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
+  const [streamProgress, setStreamProgress] = useState<number | null>(null);
 
   const activePremiumOption = useMemo(
     () =>
@@ -193,6 +195,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     setClaimToken(null);
     setUnlockMeta(null);
     setStreamStatus(null);
+    setStreamProgress(null);
   };
 
   const captureVaultFromData = (
@@ -570,6 +573,8 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
     }
 
     setIsSearching(true);
+    setStreamStatus(null);
+    setStreamProgress(null);
     searchAbortRef.current?.abort();
     const abort = new AbortController();
     searchAbortRef.current = abort;
@@ -717,6 +722,13 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
                 }…`,
               );
             }
+            if (
+              typeof event.done === "number" &&
+              typeof event.total === "number" &&
+              event.total > 0
+            ) {
+              setStreamProgress(event.done / event.total);
+            }
 
             if (!isBreachesEmpty(payload)) {
               sawUseful = true;
@@ -733,6 +745,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             };
             if (!payload || typeof payload !== "object") return;
 
+            setStreamProgress(1);
             applyBreachesPayload(payload, { allowShrink: false });
 
             if (isBreachesEmpty(payload) && !sawUseful) {
@@ -757,6 +770,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         }
 
         setStreamStatus(null);
+        setStreamProgress(null);
 
         return;
       }
@@ -777,7 +791,19 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             if (!payload || typeof payload !== "object") return;
 
             if (event.module) {
-              setStreamStatus(`Adding ${event.module}…`);
+              const progress =
+                typeof event.done === "number" &&
+                typeof event.total === "number"
+                  ? ` (${event.done}/${event.total})`
+                  : "";
+              setStreamStatus(`Adding ${event.module}${progress}…`);
+            }
+            if (
+              typeof event.done === "number" &&
+              typeof event.total === "number" &&
+              event.total > 0
+            ) {
+              setStreamProgress(event.done / event.total);
             }
 
             if (payload.profile || payload.teaser) {
@@ -802,6 +828,8 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
               teaser?: boolean;
             };
             if (!payload || typeof payload !== "object") return;
+
+            setStreamProgress(1);
 
             if (!payload.profile && !payload.teaser && !sawProfile) {
               setError(payload.error || "Could not load Discord profile.");
@@ -833,6 +861,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         }
 
         setStreamStatus(null);
+        setStreamProgress(null);
 
         return;
       }
@@ -934,6 +963,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       if (!abort.signal.aborted) {
         setIsSearching(false);
         setStreamStatus(null);
+        setStreamProgress(null);
       }
     }
   };
@@ -1179,6 +1209,12 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           ) : null}
 
           {searchBar}
+
+          <SearchProgressBar
+            active={isSearching}
+            progress={streamProgress}
+            status={streamStatus}
+          />
         </form>
       </LiquidGlassCard>
 
@@ -1209,11 +1245,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           className="home-search-results home-search-results--enter"
           data-tour="home-search-results"
         >
-          {streamStatus ? (
-            <p className="mb-3 text-center text-xs text-zinc-500">
-              {streamStatus}
-            </p>
-          ) : null}
           <BreachesSearchResults
             balance={balance}
             blurNoticeIsGuest={auth.status === "guest"}
