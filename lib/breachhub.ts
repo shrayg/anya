@@ -5350,11 +5350,29 @@ export async function fetchBreachHubRaw(
 export async function probeBreachHub(): Promise<boolean> {
   if (!isBreachHubEnabled()) return false;
 
+  // Cooldown means the gateway is configured and recently answered — not offline.
+  // Probing again during a 429 window was painting every BreachHub module red.
+  if (isBreachHubCoolingDown()) return true;
+
   try {
     const data = await breachHubGet("/api/status", {}, 8_000);
 
-    return Boolean(data.summary || data.sources || data.status || data.success);
-  } catch {
+    if (data && typeof data === "object") return true;
+
+    return Boolean(data?.summary || data?.sources || data?.status || data?.success);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message.toLowerCase() : "";
+
+    if (
+      msg.includes("too many searches") ||
+      msg.includes("rate limit") ||
+      msg.includes("wait a minute") ||
+      msg.includes("quota") ||
+      msg.includes("temporarily unavailable")
+    ) {
+      return true;
+    }
+
     return false;
   }
 }

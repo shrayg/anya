@@ -17,6 +17,14 @@ export type SiteAnnouncement = {
 
 export const SITE_ANNOUNCEMENTS: readonly SiteAnnouncement[] = [
   {
+    id: "2026-08-09-status-dots",
+    title: "Module status & search recovery",
+    body: "We fixed false offline dots on many specialty modules and cleaned up opaque homepage search errors. Instagram Live and Hinge Live remain under repair. If a lookup is slow or empty, wait a minute and try again — some indexes briefly rate-limit under load.",
+    signOff: "Your Anya team <3",
+    date: "2026-08-09",
+    kind: "status",
+  },
+  {
     id: "2026-08-server-load",
     title: "Searches may take longer",
     body: "Searches may take a little longer right now — our servers are catching up with all of you. We're working hard to get things back to normal as soon as we can. Thank you so much for your patience.",

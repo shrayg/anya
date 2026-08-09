@@ -202,12 +202,38 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
   "notalivex-renaper": { kind: "any", providers: ["breachhub"] },
   "google-docs": { kind: "any", providers: ["breachhub"] },
   ganknow: { kind: "any", providers: ["breachhub"] },
+  /** Specialty modules that were missing rules → status dots always red. */
+  reconly: { kind: "any", providers: ["breachhub"] },
+  medal: { kind: "any", providers: ["breachhub"] },
+  memory: { kind: "any", providers: ["breachhub"] },
+  propertyradar: { kind: "any", providers: ["breachhub"] },
+  melissa: { kind: "any", providers: ["csint", "breachhub"] },
+  checko: { kind: "any", providers: ["breachhub"] },
+  "seeknow-search": { kind: "any", providers: ["breachhub"] },
+  "seeknow-stealer": { kind: "any", providers: ["breachhub"] },
+  wentyn: { kind: "any", providers: ["breachhub"] },
+  leaksight: { kind: "any", providers: ["breachhub"] },
+  inf0sec: { kind: "any", providers: ["breachhub"] },
+  datavoid: { kind: "any", providers: ["breachhub"] },
+  "seekria-breaches": { kind: "any", providers: ["breachhub"] },
+  "seekria-discord": { kind: "any", providers: ["breachhub"] },
+  "seekria-roblox": { kind: "any", providers: ["breachhub"] },
+  "seekria-minecraft": { kind: "any", providers: ["breachhub"] },
+  "seekria-fivem": { kind: "any", providers: ["breachhub"] },
+  "seekria-ip": { kind: "any", providers: ["breachhub"] },
+  "seekria-domain": { kind: "any", providers: ["breachhub"] },
+  "seekria-footprint": { kind: "any", providers: ["breachhub"] },
+  /** Ultimate identity tools — native OathNet key or BreachHub mirror. */
+  oathnet: { kind: "any", providers: ["oathnet"] },
+  holehe: { kind: "any", providers: ["oathnet"] },
+  ghunt: { kind: "any", providers: ["oathnet"] },
   playstation: { kind: "off" },
   telegram: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
-  instagram: { kind: "any", providers: ["instagram", "godseye"] },
+  instagram: { kind: "any", providers: ["instagram", "godseye", "breachhub"] },
   snapchat: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
   tiktok: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
-  "tiktok-recon": { kind: "any", providers: ["csint"] },
+  /** Live recon is CSINT; SeekNow/Seekria chips still need BreachHub. */
+  "tiktok-recon": { kind: "any", providers: ["csint", "breachhub"] },
   "share-resolver": { kind: "any", providers: ["csint"] },
   twitter: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
   reddit: { kind: "any", providers: ["godseye", "csint", "breachhub"] },
@@ -226,19 +252,9 @@ export const MODULE_HEALTH_RULES: Record<string, ModuleHealthRule> = {
 };
 
 /**
- * Modules where BreachHub only mirrored CSINT for this surface — after dedupe,
- * count CSINT when configured, else BreachHub. Avoids two greens for one vendor.
- */
-const CSINT_MIRROR_MODULE_SLUGS = new Set([
-  "shodan-host",
-  "contact-enrich",
-  "fraud-footprint",
-]);
-
-/**
- * Resolve which gateways count for a module after provider dedupe.
- * Prefer configured directs; do not treat BreachHub as a second green for the
- * same underlying vendor when that mirror is skipped at search time.
+ * Resolve which gateways count for a module.
+ * Keep CSINT + BreachHub together for mirror surfaces — if CSINT is configured
+ * but probing red (rate-limit / timeout), BreachHub fallback still means green.
  */
 export function resolveModuleHealthRule(
   slug: string,
@@ -246,18 +262,7 @@ export function resolveModuleHealthRule(
 ): ModuleHealthRule {
   if (rule.kind === "off" || rule.kind === "all") return rule;
 
-  let providers = [...rule.providers];
-
-  if (CSINT_MIRROR_MODULE_SLUGS.has(slug)) {
-    if (isCsintEnabled()) {
-      providers = providers.filter((id) => id !== "breachhub");
-    } else if (isBreachHubEnabled()) {
-      providers = providers.filter((id) => id !== "csint");
-    }
-  }
-
-  // Breach.vip is always the primary for that vendor; BreachHub breachvip is skipped.
-  // Keep both in multi-source modules (BreachHub still adds unique indexes).
+  const providers = [...rule.providers];
 
   if (providers.length === 0) return { kind: "off" };
 
@@ -671,9 +676,10 @@ export function isModuleOperationalFromMap(
     return modules[slug] ?? false;
   }
 
+  // Unknown slug (no health rule yet) — do not treat as confirmed offline.
   const rule = MODULE_HEALTH_RULES[slug];
 
-  if (!rule) return false;
+  if (!rule) return true;
   if (rule.kind === "off") return false;
 
   return false;
@@ -682,10 +688,15 @@ export function isModuleOperationalFromMap(
 export function moduleLevelFromMap(
   slug: string,
   modules: Record<string, ModuleHealthLevel> | null | undefined,
-): ModuleHealthLevel {
+): ModuleHealthLevel | null {
   if (modules && slug in modules) {
     return modules[slug] ?? "down";
   }
 
-  return "down";
+  const rule = MODULE_HEALTH_RULES[slug];
+
+  if (!rule) return null;
+  if (rule.kind === "off") return "down";
+
+  return null;
 }

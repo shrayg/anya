@@ -2056,11 +2056,26 @@ export async function fetchCsintIntelxWithBuckets(
 
 export async function probeCsint(): Promise<boolean> {
   if (!isCsintEnabled()) return false;
+
+  // Abuse cooldown ≠ offline — keep Enrichment / CSINT-backed modules green.
+  if (isCsintCoolingDown()) return true;
+
   try {
     await csintPost("/status", {}, 8_000);
 
     return true;
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message.toLowerCase() : "";
+
+    if (
+      msg.includes("rate limit") ||
+      msg.includes("temporarily blocked") ||
+      msg.includes("quota") ||
+      msg.includes("too many")
+    ) {
+      return true;
+    }
+
     return false;
   }
 }

@@ -18,6 +18,7 @@ import {
 } from "@/lib/breaches-osint-search";
 import { canContributeOathnet } from "@/lib/oathnet";
 import { normalizeEmail } from "@/lib/proxynova-comb";
+import { sanitizePublicError } from "@/lib/public-branding";
 import {
   OSINT_LONG_ROUTE_DEADLINE_MS,
   OsintTimeoutError,
@@ -252,10 +253,10 @@ export async function GET(req: NextRequest) {
             result: finalized,
           });
         } else {
-          const message =
-            err instanceof Error && err.message
-              ? err.message
-              : "Failed to search breach indexes";
+          const message = sanitizePublicError(
+            err instanceof Error ? err.message : null,
+            "Failed to search breach indexes. Try again in a moment.",
+          );
 
           enqueue({
             type: "error",

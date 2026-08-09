@@ -42,7 +42,7 @@ import {
   normalizeEmail,
   type CombSearchResult,
 } from "@/lib/proxynova-comb";
-import { sanitizePublicText } from "@/lib/public-branding";
+import { sanitizePublicError } from "@/lib/public-branding";
 import {
   AutofillDecoyFields,
   SEARCH_AUTOFILL_SHIELD,
@@ -513,7 +513,9 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         const data = await response.json();
 
         if (!response.ok) {
-          setError(sanitizePublicText(data.error || "Premium search failed."));
+          setError(
+            sanitizePublicError(data.error, "Premium search failed."),
+          );
 
           return;
         }
@@ -710,8 +712,9 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       if (!response.ok && !isNdjson) {
         const data = await response.json().catch(() => ({}));
         setError(
-          sanitizePublicText(
-            (data as { error?: string }).error || "Search failed.",
+          sanitizePublicError(
+            (data as { error?: string }).error,
+            "Search failed. Try again or contact support.",
           ),
         );
 
@@ -771,12 +774,12 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             streamError =
               typeof event.error === "string"
                 ? event.error
-                : "Search failed.";
+                : "Search failed. Try again or contact support.";
           },
         });
 
         if (streamError && !sawUseful) {
-          setError(sanitizePublicText(streamError));
+          setError(sanitizePublicError(streamError));
         }
 
         setStreamStatus(null);
@@ -854,12 +857,12 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             streamError =
               typeof event.error === "string"
                 ? event.error
-                : "Search failed.";
+                : "Search failed. Try again or contact support.";
           },
         });
 
         if (streamError && !sawProfile) {
-          setError(sanitizePublicText(streamError));
+          setError(sanitizePublicError(streamError));
         }
 
         setStreamStatus(null);
@@ -871,7 +874,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(sanitizePublicText(data.error || "Search failed."));
+        setError(sanitizePublicError(data.error));
 
         return;
       }

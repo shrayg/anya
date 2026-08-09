@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { publicSearchError } from "@/lib/public-branding";
+import {
+  publicSearchError,
+  sanitizePublicError,
+} from "@/lib/public-branding";
 
 /** Per-provider upstream budget (headers + body). Stay under Cloudflare ~100s. */
 export const OSINT_PROVIDER_TIMEOUT_MS = 28_000;
@@ -185,9 +188,12 @@ export function isSoftProviderFailure(err: unknown): boolean {
 }
 
 export function osintErrorMessage(err: unknown, fallback?: string): string {
-  if (err instanceof Error && err.message.trim()) return err.message.trim();
+  const raw =
+    err instanceof Error && err.message.trim()
+      ? err.message.trim()
+      : "";
 
-  return fallback ?? publicSearchError();
+  return sanitizePublicError(raw, fallback ?? publicSearchError());
 }
 
 /**

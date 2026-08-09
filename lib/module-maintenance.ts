@@ -32,14 +32,6 @@ export const MODULE_MAINTENANCE_FLAGS: Record<string, ModuleMaintenanceEntry> =
     },
   };
 
-/**
- * Dashboard module slugs whose status dots follow a Live maintenance flag.
- * (Instagram Live lives under the `instagram` module page.)
- */
-const HEALTH_SLUG_ALIASES: Record<string, string> = {
-  instagram: "instagram-live",
-};
-
 function envMaintenanceCleared(slug: string): boolean {
   const key = `MODULE_MAINTENANCE_${slug.replace(/-/g, "_").toUpperCase()}`;
   const raw = process.env[key]?.trim().toLowerCase();
@@ -54,10 +46,6 @@ function resolveMaintenanceKey(slug: string): string | null {
 
   if (!normalized) return null;
   if (normalized in MODULE_MAINTENANCE_FLAGS) return normalized;
-
-  const alias = HEALTH_SLUG_ALIASES[normalized];
-
-  if (alias && alias in MODULE_MAINTENANCE_FLAGS) return alias;
 
   return null;
 }
@@ -93,18 +81,14 @@ export function getModuleMaintenanceMessage(
 
 /** Slugs that should force health `down` while maintenance is active. */
 export function listActiveMaintenanceSlugs(): string[] {
-  const out = new Set<string>();
+  const out: string[] = [];
 
   for (const [slug, entry] of Object.entries(MODULE_MAINTENANCE_FLAGS)) {
     if (!entry.active || envMaintenanceCleared(slug)) continue;
-    out.add(slug);
-
-    for (const [moduleSlug, alias] of Object.entries(HEALTH_SLUG_ALIASES)) {
-      if (alias === slug) out.add(moduleSlug);
-    }
+    out.push(slug);
   }
 
-  return [...out];
+  return out;
 }
 
 /** Map of slug → message for health / status APIs. */

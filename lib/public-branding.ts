@@ -12,7 +12,7 @@ export const PUBLIC_INTEL_SOURCE = siteConfig.name;
  * Keep in sync with INTERNAL_SOURCE_LABELS in intel-record.ts.
  */
 const PROVIDER_PATTERN =
-  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|breachhub|breach\s*hub|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|hudsonrock|hudson\s*rock|xosint|seekria|seeknow|see-?know|room\s*101|room101|wentyn|telegram|checko|memory\.lol|memorylol|nbrs|reconly|propertyradar|property\s*radar|anya\.search|anya search|anya crypto ai|anya /gi;
+  /godseye(?:\.cat)?|osintcat|osint\s*cat|breach\.?vip|breachvip|breach\s*vip|breachhub|breach\s*hub|proxynova|csint\.?pro|csint(?:\s+tools)?|snusbase|snus\s*base|snowfale|breachbase|breach\s*base|oathnet|oath\s*net|seon|hackcheck|hack\s*check|intelvault|leakosint|intelfetch|inf0sec|infodra|akula|leaksight|leakcheck|leak\s*check|ithil|crowsint|melissa|shodan|cord\.?cat|cordcat|intelx(?:\.io)?|intelligence\s*x|infostealer|info\s*stealer|hudsonrock|hudson\s*rock|xosint|seekria|seeknow|see-?know|room\s*101|room101|wentyn|telegram|checko|memory\.lol|memorylol|nbrs|reconly|propertyradar|property\s*radar|anya\.search|anya search|anya crypto ai/gi;
 
 const POWERED_BY_PROVIDER =
   /powered\s+by\s+(?:csint(?:\.pro)?(?:\s+tools)?|godseye|osintcat|shodan|intelx|oathnet|snusbase|breachvip|breachhub|breachbase|seon|cordcat|leakcheck|hackcheck)[^,.\n]*/gi;
@@ -75,12 +75,13 @@ function stripProviderNames(text: string): string {
     .replace(/Infostealer[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Info\s*stealer[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
     .replace(/Room\s*101[^,.\n]*/gi, PUBLIC_INTEL_SOURCE)
+    // Normalize legacy product spellings only — do not strip live brand copy
+    // (a broad /Anya…/ replace was turning outage messages into "AnyaAI.").
     .replace(/Anya\.search/gi, PUBLIC_BRAND)
-    .replace(/Anya [A-Za-z ]+/gi, PUBLIC_AI_LABEL)
-    // Collapse legacy Anya.Int / AnyaInt / keep product name as PUBLIC_BRAND.
+    .replace(/Anya\s+Crypto\s+AI/gi, PUBLIC_AI_LABEL)
+    .replace(/Anya\s+Search/gi, PUBLIC_BRAND)
     .replace(/Anya\.Int/gi, PUBLIC_BRAND)
     .replace(/AnyaInt/gi, PUBLIC_BRAND)
-    .replace(/Anya(?!\.Int\b)/gi, PUBLIC_BRAND)
     .replace(/GODSEYE_API_KEY/gi, "intelligence API key")
     .replace(/OSINTCAT_API_KEY/gi, "intelligence API key")
     .replace(/CSINT_API_KEY/gi, "intelligence API key")
@@ -112,6 +113,8 @@ export function sanitizePublicText(text: string): string {
   const original = text.trim();
   const cleaned = stripProviderNames(text)
     .replace(/\s{2,}/g, " ")
+    .replace(/\s([.,;:!?])/g, "$1")
+    .replace(/([.!?]){2,}/g, "$1")
     .trim();
 
   // Provider-only strings must not become the product brand (fake credentials / Source ads).
@@ -120,6 +123,31 @@ export function sanitizePublicText(text: string): string {
     original.toLowerCase() !== PUBLIC_INTEL_SOURCE.toLowerCase()
   ) {
     return "";
+  }
+
+  return cleaned;
+}
+
+/**
+ * Sanitize an error for UI display. Never returns empty / punctuation-only
+ * leftovers after provider redaction (those became "Search failed. . .").
+ */
+export function sanitizePublicError(
+  text: string | null | undefined,
+  fallback = "Search failed. Try again or contact support.",
+): string {
+  const cleaned = sanitizePublicText(text ?? "").trim();
+
+  if (!cleaned || cleaned.length < 3 || /^[.\s•·-]+$/.test(cleaned)) {
+    return fallback;
+  }
+
+  // Provider redaction can leave "Search failed. Anya." — prefer a real sentence.
+  if (
+    /^(search failed\.?\s*)?anya\.?$/i.test(cleaned) ||
+    /^search failed\.?\s*anya\b/i.test(cleaned)
+  ) {
+    return fallback;
   }
 
   return cleaned;
