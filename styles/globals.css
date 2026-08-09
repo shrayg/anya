@@ -9623,7 +9623,7 @@
 
 /* Slim search progress — ice-blue on void; under composer while searching */
 .search-progress {
-  --sp-blush: var(--anya-blush, #c3d3e6);
+  --sp-ice: #c3d3e6;
   width: 100%;
   margin-top: 0.85rem;
   animation: search-progress-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -9632,30 +9632,67 @@
 .search-progress__track {
   position: relative;
   width: 100%;
-  height: 2px;
+  height: 3px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Soft always-on ice wash so the track never reads as a dead hairline */
+.search-progress__track--indeterminate {
+  background: color-mix(in srgb, var(--sp-ice) 16%, rgba(255, 255, 255, 0.05));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sp-ice) 12%, transparent);
+}
+
+.search-progress__track--determinate {
+  background: color-mix(in srgb, var(--sp-ice) 10%, rgba(255, 255, 255, 0.05));
 }
 
 .search-progress__fill {
+  position: relative;
+  z-index: 1;
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--sp-blush) 35%, transparent),
-    var(--sp-blush),
-    color-mix(in srgb, var(--sp-blush) 55%, white)
+    color-mix(in srgb, var(--sp-ice) 40%, transparent),
+    var(--sp-ice),
+    color-mix(in srgb, var(--sp-ice) 55%, white)
   );
-  box-shadow: 0 0 10px color-mix(in srgb, var(--sp-blush) 40%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--sp-ice) 45%, transparent);
   transition: width 0.28s ease-out;
 }
 
-.search-progress__fill--pulse {
+/* Indeterminate: wide band that stays on-screen longer + soft breath */
+.search-progress__fill--indeterminate {
   position: absolute;
   inset: 0 auto 0 0;
-  width: 38%;
-  animation: search-progress-pulse 1.45s ease-in-out infinite;
+  width: 42%;
+  animation:
+    search-progress-slide 1.25s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite,
+    search-progress-breathe 1.8s ease-in-out infinite;
+}
+
+/* Continuous highlight sweep — visible in both determinate + indeterminate */
+.search-progress__glint {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 28%;
+  border-radius: 999px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--sp-ice) 35%, transparent) 35%,
+    color-mix(in srgb, var(--sp-ice) 85%, white) 50%,
+    color-mix(in srgb, var(--sp-ice) 35%, transparent) 65%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  animation: search-progress-glint 1.55s linear infinite;
 }
 
 .search-progress__status {
@@ -9664,7 +9701,7 @@
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: none;
-  color: color-mix(in srgb, var(--sp-blush) 72%, #a1a1aa);
+  color: color-mix(in srgb, var(--sp-ice) 72%, #a1a1aa);
   text-align: center;
 }
 
@@ -9688,12 +9725,36 @@
   }
 }
 
-@keyframes search-progress-pulse {
+@keyframes search-progress-slide {
   0% {
-    transform: translateX(-120%);
+    transform: translateX(-30%);
   }
   100% {
-    transform: translateX(320%);
+    transform: translateX(270%);
+  }
+}
+
+@keyframes search-progress-glint {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0.55;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(420%);
+    opacity: 0.55;
+  }
+}
+
+@keyframes search-progress-breathe {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
   }
 }
 
@@ -9702,11 +9763,16 @@
     animation: none;
   }
 
-  .search-progress__fill--pulse {
-    width: 55%;
-    left: 22.5%;
+  .search-progress__fill--indeterminate {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0.7;
     animation: none;
-    opacity: 0.85;
+  }
+
+  .search-progress__glint {
+    display: none;
   }
 }
 

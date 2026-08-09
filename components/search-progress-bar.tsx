@@ -32,6 +32,7 @@ function clampRatio(value: number): number {
 /**
  * Slim ice-blue search progress under the composer.
  * Determinate when stream partials expose done/total; otherwise indeterminate.
+ * A continuous glint keeps the bar visibly moving in both modes.
  */
 export function SearchProgressBar({
   active,
@@ -63,20 +64,23 @@ export function SearchProgressBar({
         aria-hidden
         className={clsx(
           "search-progress__track",
-          ratio == null && "search-progress__track--indeterminate",
+          ratio == null
+            ? "search-progress__track--indeterminate"
+            : "search-progress__track--determinate",
         )}
       >
         <div
           className={clsx(
             "search-progress__fill",
-            ratio == null && "search-progress__fill--pulse",
+            ratio == null && "search-progress__fill--indeterminate",
           )}
           style={
             ratio != null
-              ? { width: `${Math.max(6, Math.round(ratio * 100))}%` }
+              ? { width: `${Math.max(8, Math.round(ratio * 100))}%` }
               : undefined
           }
         />
+        <span className="search-progress__glint" />
       </div>
       <p className="search-progress__status" id={labelId}>
         {displayStatus}
