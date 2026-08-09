@@ -64,6 +64,8 @@ export const INTENT_UNIFIED_REDIRECTS: Record<
   "combo-lookup": { slug: "breaches" },
   /** Email Analyzer runs beside Breaches results for email queries. */
   "email-analyze": { slug: "breaches" },
+  /** Password Search folded into Breaches (password queries on the breach hub). */
+  "password-search": { slug: "breaches" },
 };
 
 /** Sidebar hides these — they remain in the catalog for redirects / deep links. */
@@ -659,13 +661,14 @@ export const SEARCH_MODULE_SECTIONS: SearchModuleSection[] = [
         "Email, username, or phone",
         "Merged into Breaches — Seekria breach indexes are tool chips on the primary Breaches hub.",
       ),
+      // Legacy — hidden from hub; redirects to Breaches
       mod(
         "Breach & Leaks",
         "Password Search",
         "password-search",
         "breach",
         "Plaintext or leaked password",
-        "Find accounts and leaks tied to a password string.",
+        "Merged into Breaches — search passwords on the primary Breaches hub.",
       ),
       // Legacy — hidden from hub; redirects to Breaches (analyzer runs on email queries)
       mod(

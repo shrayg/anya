@@ -1297,9 +1297,6 @@ export function ModuleSearchView({
       if (moduleDef.slug === "hash-lookup" && trimmed.length < 8) {
         return "Enter a valid hash (at least 8 characters).";
       }
-      if (moduleDef.slug === "password-search" && trimmed.length < 3) {
-        return "Enter a password to search (at least 3 characters).";
-      }
       if (moduleDef.slug === "name-search" && trimmed.length < 2) {
         return "Enter a name to search (at least 2 characters).";
       }

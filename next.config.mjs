@@ -90,6 +90,17 @@ const nextConfig = {
         destination: "/dashboard/search/stealer-logs",
         permanent: true,
       },
+      // Password Search removed — fold into Breaches hub.
+      {
+        source: "/dashboard/search/password-search",
+        destination: "/dashboard/search/breaches",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/search/password-search/:path*",
+        destination: "/dashboard/search/breaches",
+        permanent: true,
+      },
     ];
   },
   async headers() {
