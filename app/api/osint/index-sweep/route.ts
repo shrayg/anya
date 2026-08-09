@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Missing query. Example email: name@company.com — or a phone number.",
+          "Enter an email or phone number to run Index Sweep.",
       },
       { status: 400 },
     );

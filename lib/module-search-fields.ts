@@ -323,6 +323,8 @@ function opt(
 }
 
 const COMMON_QUERY = opt("query", "Query", "Search target…");
+/** Query-row placeholder for modules that only accept email or phone. */
+const EMAIL_OR_PHONE_QUERY = opt("query", "Query", "Email or phone…");
 const EMAIL = opt("email", "Email", "name@example.com");
 const PHONE = opt("phone", "Phone", "+1 555 0100");
 const USERNAME = opt("username", "Username", "handle");
@@ -405,8 +407,12 @@ export function getModuleSearchFieldOptions(
     return uniqueOptions([EMAIL, DOMAIN, USERNAME]);
   }
 
-  if (slug === "email-analyze" || slug === "email-presence") {
+  if (slug === "email-analyze") {
     return uniqueOptions([EMAIL, PHONE, COMMON_QUERY]);
+  }
+
+  if (slug === "email-presence" || slug === "index-sweep") {
+    return uniqueOptions([EMAIL, PHONE, EMAIL_OR_PHONE_QUERY]);
   }
 
   if (slug === "phone" || slug === "phone-index") {

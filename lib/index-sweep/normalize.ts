@@ -3,7 +3,7 @@ import type { IndexSweepQueryKind } from "@/lib/index-sweep/types";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const INDEX_SWEEP_INVALID_MESSAGE =
-  "Enter an email (name@domain.tld) or a phone number with at least 10 digits.";
+  "You need a valid email (name@domain.tld) or phone number (at least 10 digits) to run this search.";
 
 export function detectIndexSweepKind(raw: string): IndexSweepQueryKind | null {
   const trimmed = raw.trim();

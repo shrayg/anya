@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Missing query. Enter an email or phone number for Contact Profiles.",
+          "Enter an email or phone number to run Contact Profiles.",
       },
       { status: 400 },
     );

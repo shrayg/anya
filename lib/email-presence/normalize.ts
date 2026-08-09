@@ -47,7 +47,7 @@ export type NormalizedContact =
     };
 
 export const CONTACT_PRESENCE_INVALID_MESSAGE =
-  "Enter a valid email (name@domain.tld) or phone number (at least 8 digits).";
+  "You need a valid email (name@domain.tld) or phone number (at least 8 digits) to run this search.";
 
 export function normalizeContactInput(
   raw: string,
