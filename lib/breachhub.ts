@@ -5357,9 +5357,8 @@ export async function probeBreachHub(): Promise<boolean> {
   try {
     const data = await breachHubGet("/api/status", {}, 8_000);
 
-    if (data && typeof data === "object") return true;
-
-    return Boolean(data?.summary || data?.sources || data?.status || data?.success);
+    // Any JSON object from /api/status means the gateway is reachable.
+    return Boolean(data && typeof data === "object");
   } catch (err) {
     const msg = err instanceof Error ? err.message.toLowerCase() : "";
 
