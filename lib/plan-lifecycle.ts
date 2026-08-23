@@ -48,10 +48,17 @@ export async function syncUserPlanLifecycle(userId: number) {
       professionalTier: true,
       investigatorTier: true,
       enterpriseTier: true,
+      isAdmin: true,
+      staffRole: true,
     },
   });
 
   if (!user) return null;
+
+  // Workspace admins keep max-plan access regardless of subscription expiry.
+  if (user.isAdmin || user.staffRole === "admin") {
+    return user;
+  }
 
   const isPaid =
     user.plan !== "free" ||

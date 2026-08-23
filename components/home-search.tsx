@@ -9,12 +9,16 @@ import {
   AtSign,
   ChevronDown,
   Database,
+  FileKey2,
   Hash,
+  Layers,
   LockKeyhole,
   Phone,
   Search,
   Sparkles,
   User,
+  Wrench,
+  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 
@@ -26,11 +30,12 @@ import {
   InstagramSearchResults,
   type InstagramSearchPayload,
 } from "@/components/dashboard/instagram-search-results";
+import { PlatformBrandIcon } from "@/components/dashboard/platform-brand-icon";
 import { StealerLogsSearchResults } from "@/components/dashboard/stealer-logs-search-results";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { LiquidGlassCard } from "@/components/ui/liquid-glass";
 import { SearchProgressBar } from "@/components/search-progress-bar";
-import { getHubSections } from "@/lib/search-modules";
+import { getHubSections, isPhoneQuery } from "@/lib/search-modules";
 import {
   STARTER_SEARCH_MODES,
   resolveStarterSearchRoute,
@@ -42,6 +47,8 @@ import {
   normalizeEmail,
   type CombSearchResult,
 } from "@/lib/proxynova-comb";
+import { isDiscordSnowflake } from "@/lib/osintcat";
+import { normalizeInstagramUsername } from "@/lib/instagram-username";
 import { sanitizePublicError } from "@/lib/public-branding";
 import {
   AutofillDecoyFields,
@@ -53,8 +60,6 @@ import {
   checkModuleAccess,
   hasWorkspaceDashboardAccess,
   HOME_PREMIUM_MODULE_OPTIONS,
-  PAY_PER_USE_COST,
-  RESIDENTIAL_PROXY_CREDIT_COST,
   resolveUserPlan,
   shouldBlurResults,
   STARTER_MODULE_SLUGS,
@@ -98,6 +103,98 @@ const MODE_ICONS: Record<StarterSearchMode, ElementType> = {
   breaches: Database,
 };
 
+const PREMIUM_MODULE_ICONS: Record<string, LucideIcon> = {
+  "stealer-logs": FileKey2,
+};
+
+function getHomeSearchFormatWarning(opts: {
+  mode: StarterSearchMode;
+  premiumModule: string | null;
+  query: string;
+}): string | null {
+  const trimmed = opts.query.trim();
+
+  if (!trimmed) return null;
+
+  if (opts.premiumModule === "instagram-live") {
+    if (!normalizeInstagramUsername(trimmed)) {
+      return "This doesn't look like a valid Instagram username. Is this correct?";
+    }
+
+    return null;
+  }
+
+  if (opts.premiumModule === "hinge-live") {
+    if (trimmed.length < 2) {
+      return "This Hinge query looks too short. Is this correct?";
+    }
+
+    return null;
+  }
+
+  if (opts.premiumModule) {
+    return null;
+  }
+
+  switch (opts.mode) {
+    case "email": {
+      if (!trimmed.includes("@")) {
+        return "This email is missing an @. Is this correct?";
+      }
+
+      if (!normalizeEmail(trimmed)) {
+        return "This doesn't look like a valid email. Is this correct?";
+      }
+
+      return null;
+    }
+    case "discord": {
+      if (!isDiscordSnowflake(trimmed)) {
+        return "Discord IDs are usually 17–20 digits. Is this correct?";
+      }
+
+      return null;
+    }
+    case "phone": {
+      if (!isPhoneQuery(trimmed)) {
+        return "Phone numbers usually need 10–15 digits. Is this correct?";
+      }
+
+      return null;
+    }
+    case "username": {
+      const handle = trimmed.replace(/^@/, "");
+
+      if (handle.length < 2) {
+        return "Usernames are usually at least 2 characters. Is this correct?";
+      }
+
+      if (trimmed.includes("@") && trimmed.includes(".")) {
+        return "This looks more like an email than a username. Is this correct?";
+      }
+
+      return null;
+    }
+    case "breaches": {
+      if (
+        /[a-z0-9._%+-]+$/i.test(trimmed) &&
+        !trimmed.includes("@") &&
+        /\b(gmail|yahoo|hotmail|outlook|icloud|proton)\b/i.test(trimmed)
+      ) {
+        return "This looks like an email without an @. Is this correct?";
+      }
+
+      if (trimmed.includes("@") && !normalizeEmail(trimmed)) {
+        return "This doesn't look like a valid email. Is this correct?";
+      }
+
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
 const LOCKED_MODULES = getHubSections().flatMap((section) =>
   section.items.filter(
     (module) =>
@@ -116,6 +213,8 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const [starterMode, setStarterMode] = useState<StarterSearchMode>("email");
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
+  const [formatConfirm, setFormatConfirm] = useState<string | null>(null);
+  const formatConfirmedRef = useRef(false);
   const [records, setRecords] = useState<FormattedRecord[]>([]);
   const [resultCount, setResultCount] = useState(0);
   const [discordResult, setDiscordResult] =
@@ -147,6 +246,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const scrolledForResultsRef = useRef(false);
   const premiumControlRef = useRef<HTMLDivElement>(null);
+  const searchFormRef = useRef<HTMLFormElement>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [streamProgress, setStreamProgress] = useState<number | null>(null);
@@ -187,11 +287,38 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
   const balance =
     auth.status === "authenticated" ? (auth.user.balance ?? 0) : 0;
 
+  const userPlan =
+    auth.status === "authenticated" ? resolveUserPlan(auth.user) : "free";
+
   const premiumCostLabel = useMemo(() => {
     if (!premiumModule) return null;
-    if (premiumModule === "stealer-logs") return `${PAY_PER_USE_COST} credits`;
-    return `${RESIDENTIAL_PROXY_CREDIT_COST} credit`;
-  }, [premiumModule]);
+
+    const accessCheck = checkModuleAccess(userPlan, premiumModule, {
+      balance,
+    });
+
+    if (!accessCheck.requiresBalance || !accessCheck.balanceCost) return null;
+
+    const cost = accessCheck.balanceCost;
+    return `${cost} credit${cost === 1 ? "" : "s"}`;
+  }, [premiumModule, userPlan, balance]);
+
+  const premiumHint = useMemo(() => {
+    if (!premiumModule) return null;
+
+    const accessCheck = checkModuleAccess(userPlan, premiumModule, {
+      balance,
+    });
+
+    if (accessCheck.allowed && !accessCheck.requiresBalance) {
+      return "Included on your plan";
+    }
+
+    return (
+      HOME_PREMIUM_MODULE_OPTIONS.find((opt) => opt.id === premiumModule)
+        ?.hint ?? null
+    );
+  }, [premiumModule, userPlan, balance]);
 
   const clearResults = () => {
     setRecords([]);
@@ -455,9 +582,31 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
 
     const trimmed = query.trim();
 
-    if (!trimmed) return;
+    if (!trimmed) {
+      formatConfirmedRef.current = false;
+      setFormatConfirm(null);
+      setError("Please input something first.");
+
+      return;
+    }
 
     if (auth.status === "loading") return;
+
+    const formatWarning = getHomeSearchFormatWarning({
+      mode: starterMode,
+      premiumModule,
+      query: trimmed,
+    });
+
+    if (formatWarning && !formatConfirmedRef.current) {
+      setError("");
+      setFormatConfirm(formatWarning);
+
+      return;
+    }
+
+    formatConfirmedRef.current = false;
+    setFormatConfirm(null);
 
     const isGuest = auth.status === "guest";
     const route = resolveStarterSearchRoute(starterMode, trimmed);
@@ -636,16 +785,22 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         ? breachData.credentials
         : [];
       const matchCount = credentials.length;
+      const reportedTotal =
+        typeof breachData.totalMatches === "number" &&
+        Number.isFinite(breachData.totalMatches)
+          ? breachData.totalMatches
+          : matchCount;
 
       setCombResult((prev) => {
         const prevCount = prev?.credentials?.length ?? 0;
+        const prevTotal = prev?.totalMatches ?? 0;
 
         if (!opts?.allowShrink && prev && matchCount < prevCount) {
           return {
             ...breachData,
             credentials: prev.credentials,
             returned: prevCount,
-            totalMatches: prevCount,
+            totalMatches: Math.max(prevTotal, reportedTotal, prevCount),
           };
         }
 
@@ -653,10 +808,10 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           ...breachData,
           credentials,
           returned: matchCount,
-          totalMatches: matchCount,
+          totalMatches: Math.max(reportedTotal, matchCount, prevTotal),
         };
       });
-      setResultCount((prev) => Math.max(prev, matchCount));
+      setResultCount((prev) => Math.max(prev, matchCount, reportedTotal));
 
       if (breachData.blurResults || breachData.premiumSectionsLocked) {
         if (breachData.blurResults) setBlurResults(true);
@@ -735,18 +890,32 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             };
             if (!payload || typeof payload !== "object") return;
 
+            if (!isBreachesEmpty(payload)) {
+              if (!sawUseful) {
+                // Stage 1 complete � first useful paint hits 100%.
+                setStreamProgress(1);
+                setStreamStatus("First results ready - loading more...");
+              }
+              sawUseful = true;
+              setError("");
+              applyBreachesPayload(payload);
+            }
+
             if (
               typeof event.done === "number" &&
               typeof event.total === "number" &&
               event.total > 0
             ) {
-              setStreamProgress(event.done / event.total);
-            }
-
-            if (!isBreachesEmpty(payload)) {
-              sawUseful = true;
-              setError("");
-              applyBreachesPayload(payload);
+              if (sawUseful) {
+                // Stage 2 � remaining modules after first hit.
+                setStreamProgress(event.done / event.total);
+                setStreamStatus(
+                  `Loading more sources - ${event.done}/${event.total}`,
+                );
+              } else {
+                // Stage 1 climbs toward first paint (cap under 100%).
+                setStreamProgress(Math.min(0.92, event.done / event.total));
+              }
             }
           },
           onDone: (event) => {
@@ -989,7 +1158,11 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         type="text"
         value={query}
         onBlur={() => setInputFocused(false)}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setFormatConfirm(null);
+          formatConfirmedRef.current = false;
+        }}
         onFocus={(event) => {
           setInputFocused(true);
           unlockAutofillShield(event);
@@ -1075,54 +1248,106 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
               </div>
             ) : (
               <div className="home-search-premium-menu-card">
-                <p className="home-search-premium-menu-heading">
-                  Activate premium modules
-                </p>
-                <button
-                  aria-pressed={!premiumModule}
-                  className={clsx(
-                    "home-search-premium-option",
-                    !premiumModule && "home-search-premium-option--active",
-                  )}
-                  role="menuitemradio"
-                  type="button"
-                  onClick={() => {
-                    setPremiumModule(null);
-                    setError("");
-                    setPremiumMenuOpen(false);
-                  }}
-                >
-                  <span>Included</span>
-                  <small>Email · Phone · Username · Discord · Breaches</small>
-                </button>
-                {HOME_PREMIUM_MODULE_OPTIONS.map((opt) => {
-                  const optMaintenance = getModuleMaintenanceMessage(opt.id);
-
-                  return (
+                <p className="home-search-premium-menu-heading">Modules</p>
+                <div className="home-search-premium-option-list" role="none">
                   <button
-                    key={opt.id}
-                    aria-pressed={premiumModule === opt.id}
+                    aria-pressed={!premiumModule}
                     className={clsx(
                       "home-search-premium-option",
-                      premiumModule === opt.id &&
-                        "home-search-premium-option--active",
+                      !premiumModule && "home-search-premium-option--active",
                     )}
                     role="menuitemradio"
-                    title={optMaintenance ?? opt.hint}
                     type="button"
                     onClick={() => {
-                      setPremiumModule(opt.id);
-                      setError(optMaintenance ?? "");
+                      setPremiumModule(null);
+                      setError("");
+                      setFormatConfirm(null);
+                      formatConfirmedRef.current = false;
                       setPremiumMenuOpen(false);
                     }}
                   >
-                    <span>{opt.label}</span>
-                    <small>
-                      {optMaintenance ? "Down · being repaired" : opt.hint}
-                    </small>
+                    <span
+                      aria-hidden
+                      className="home-search-premium-option-icon"
+                    >
+                      <Layers className="size-4" strokeWidth={1.75} />
+                    </span>
+                    <span className="home-search-premium-option-copy">
+                      <span className="home-search-premium-option-label">
+                        Included
+                      </span>
+                      <small className="home-search-premium-option-meta">
+                        Email, phone, username, Discord, breaches
+                      </small>
+                    </span>
                   </button>
-                  );
-                })}
+                  {HOME_PREMIUM_MODULE_OPTIONS.map((opt) => {
+                    const optMaintenance = getModuleMaintenanceMessage(opt.id);
+                    const Icon = PREMIUM_MODULE_ICONS[opt.id] ?? Database;
+
+                    return (
+                      <button
+                        key={opt.id}
+                        aria-pressed={premiumModule === opt.id}
+                        className={clsx(
+                          "home-search-premium-option",
+                          premiumModule === opt.id &&
+                            "home-search-premium-option--active",
+                          optMaintenance &&
+                            "home-search-premium-option--down",
+                        )}
+                        role="menuitemradio"
+                        title={optMaintenance ?? opt.hint}
+                        type="button"
+                        onClick={() => {
+                          setPremiumModule(opt.id);
+                          setError(optMaintenance ?? "");
+                          setFormatConfirm(null);
+                          formatConfirmedRef.current = false;
+                          setPremiumMenuOpen(false);
+                        }}
+                      >
+                        <span
+                          aria-hidden
+                          className="home-search-premium-option-icon"
+                        >
+                          {opt.id === "instagram-live" ? (
+                            <PlatformBrandIcon
+                              className="size-4"
+                              muted
+                              name="Instagram"
+                            />
+                          ) : opt.id === "hinge-live" ? (
+                            <PlatformBrandIcon
+                              className="size-4"
+                              muted
+                              name="Hinge"
+                            />
+                          ) : (
+                            <Icon className="size-4" strokeWidth={1.75} />
+                          )}
+                        </span>
+                        <span className="home-search-premium-option-copy">
+                          <span className="home-search-premium-option-label">
+                            {opt.label}
+                            {optMaintenance ? (
+                              <Wrench
+                                aria-hidden
+                                className="home-search-premium-option-status size-3"
+                                strokeWidth={2}
+                              />
+                            ) : null}
+                          </span>
+                          <small className="home-search-premium-option-meta">
+                            {optMaintenance
+                              ? "Down · being repaired"
+                              : opt.hint}
+                          </small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -1132,7 +1357,6 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         className="home-search-submit liquid-glass-button--accent"
         data-tour="home-search-submit"
         disabled={
-          !query.trim() ||
           isSearching ||
           auth.status === "loading" ||
           Boolean(premiumMaintenanceMessage)
@@ -1175,6 +1399,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
         shadowIntensity="sm"
       >
         <form
+          ref={searchFormRef}
           autoComplete="off"
           className="home-search-form"
           onSubmit={handleSearch}
@@ -1205,6 +1430,8 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
                       setStarterMode(mode.id);
                       setPremiumModule(null);
                       setError("");
+                      setFormatConfirm(null);
+                      formatConfirmedRef.current = false;
                     }}
                   >
                     <Icon className="size-4" />
@@ -1219,7 +1446,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
             <p className="home-search-premium-hint">
               {premiumMaintenanceMessage
                 ? premiumMaintenanceMessage
-                : activePremiumOption?.hint}
+                : premiumHint}
               {!premiumMaintenanceMessage && auth.status === "guest"
                 ? " · Sign in required before Search."
                 : null}
@@ -1227,15 +1454,44 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
           ) : null}
 
           {searchBar}
-
-          <SearchProgressBar
-            active={isSearching}
-            hasResults={hasResultsSurface}
-            progress={streamProgress}
-            status={streamStatus}
-          />
         </form>
       </LiquidGlassCard>
+
+      <SearchProgressBar
+        active={isSearching}
+        hasResults={hasResultsSurface}
+        progress={streamProgress}
+        status={streamStatus}
+      />
+
+      {formatConfirm ? (
+        <div className="home-search-confirm" role="status">
+          <p className="home-search-confirm-message">{formatConfirm}</p>
+          <div className="home-search-confirm-actions">
+            <button
+              className="home-search-confirm-btn home-search-confirm-btn--yes"
+              type="button"
+              onClick={() => {
+                formatConfirmedRef.current = true;
+                setFormatConfirm(null);
+                searchFormRef.current?.requestSubmit();
+              }}
+            >
+              Yes
+            </button>
+            <button
+              className="home-search-confirm-btn home-search-confirm-btn--no"
+              type="button"
+              onClick={() => {
+                formatConfirmedRef.current = false;
+                setFormatConfirm(null);
+              }}
+            >
+              No
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {error ? <p className="home-search-error">{error}</p> : null}
 

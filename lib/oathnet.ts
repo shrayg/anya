@@ -233,8 +233,17 @@ export function buildOathnetParams(
     case "victims": {
       const q = pick("query", "q", "term");
 
+      if (!q) return null;
+
       // BreachHub mirror uses `query`; native mapper remaps to `q`.
-      return q ? { path, params: { query: q }, queryLabel: q } : null;
+      const params: Record<string, string> = { query: q };
+      const pageSize = pick("page_size", "pageSize");
+      const cursor = pick("cursor");
+
+      if (pageSize) params.page_size = pageSize;
+      if (cursor) params.cursor = cursor;
+
+      return { path, params, queryLabel: q };
     }
     case "stealer-subdomain":
     case "extract-subdomain": {
@@ -345,7 +354,16 @@ export function toNativeOathnetRequest(built: {
     case "breach": {
       const q = p.query || p.q;
 
-      return q ? { path: "/service/v2/breach/search", params: { q } } : null;
+      if (!q) return null;
+
+      const params: Record<string, string> = {
+        q,
+        page_size: p.page_size || p.pageSize || "500",
+      };
+
+      if (p.cursor) params.cursor = p.cursor;
+
+      return { path: "/service/v2/breach/search", params };
     }
     case "stealer": {
       const q = p.query || p.q;
@@ -556,6 +574,92 @@ export async function probeOathNet(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+
+/** Paginate OathNet breach search; preserve `meta.total` as indexTotal. */
+export async function fetchOathnetBreachPaginated(
+  query: string,
+  opts?: {
+    maxPages?: number;
+    maxRows?: number;
+    pageSize?: number;
+    timeoutMs?: number;
+  },
+): Promise<SanitizedBreachResponse> {
+  const maxPages = Math.max(1, Math.min(opts?.maxPages ?? 6, 12));
+  const maxRows = Math.max(100, Math.min(opts?.maxRows ?? 3_000, 10_000));
+  const pageSize = Math.max(50, Math.min(opts?.pageSize ?? 500, 1_000));
+  const timeoutMs = opts?.timeoutMs ?? BH_VENDOR_DEFAULT_TIMEOUT_MS;
+
+  const allResults: unknown[] = [];
+  let indexTotal = 0;
+  let cursor: string | undefined;
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const input: Record<string, string> = {
+      query,
+      page_size: String(pageSize),
+    };
+    if (cursor) input.cursor = cursor;
+
+    const pageResult = await fetchOathnetSanitized(
+      { kind: "static", endpoint: "breach" },
+      input,
+      timeoutMs,
+    ).catch(() => null);
+
+    if (!pageResult) break;
+
+    indexTotal = Math.max(
+      indexTotal,
+      pageResult.indexTotal ?? 0,
+      pageResult.count ?? 0,
+      pageResult.results?.length ?? 0,
+    );
+
+    if (Array.isArray(pageResult.results) && pageResult.results.length > 0) {
+      allResults.push(...pageResult.results);
+    }
+
+    const raw = pageResult.raw;
+    let next: string | undefined;
+    if (raw && typeof raw === "object") {
+      const root = raw as Record<string, unknown>;
+      const data =
+        root.data && typeof root.data === "object" && !Array.isArray(root.data)
+          ? (root.data as Record<string, unknown>)
+          : root;
+      const meta =
+        data.meta && typeof data.meta === "object" && !Array.isArray(data.meta)
+          ? (data.meta as Record<string, unknown>)
+          : null;
+      if (typeof meta?.total === "number") {
+        indexTotal = Math.max(indexTotal, meta.total);
+      }
+      const candidate =
+        data.next_cursor ??
+        data.nextCursorMark ??
+        meta?.next_cursor ??
+        meta?.nextCursorMark ??
+        root.next_cursor ??
+        root.nextCursorMark;
+      if (typeof candidate === "string" && candidate.trim()) {
+        next = candidate.trim();
+      }
+    }
+
+    if (!next || allResults.length >= maxRows) break;
+    cursor = next;
+  }
+
+  const scrubbed = allResults.slice(0, maxRows);
+
+  return {
+    count: scrubbed.length,
+    results: scrubbed,
+    ...(indexTotal > scrubbed.length ? { indexTotal } : {}),
+  };
 }
 
 export async function fetchOathnetSanitized(

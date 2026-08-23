@@ -91,11 +91,15 @@ export function BreachesSearchResults({
   }, [ips]);
 
   // Always derive from credential rows — never trust provider index ads.
-  const matchCount = result.credentials.length;
-  const shownCount = matchCount;
+  const shownCount = result.credentials.length;
+  const matchCount = Math.max(
+    shownCount,
+    typeof result.totalMatches === "number" ? result.totalMatches : 0,
+    typeof result.returned === "number" ? result.returned : 0,
+  );
 
   return (
-    <div className="anya-result-stack anya-result-stack--breaches">
+    <div className="anya-result-stack anya-result-stack--breaches home-search-results-stagger">
       <div className="anya-result-stack--breaches-stats grid gap-1.5 sm:grid-cols-2">
         <ResultStatStrip
           label="Total matches"

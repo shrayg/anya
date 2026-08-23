@@ -66,6 +66,49 @@ export function sanitizeBhVendorError(message: string): string {
   return cleaned;
 }
 
+function extractAdvertisedIndexTotal(payload: unknown): number | undefined {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return undefined;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const nested =
+    record.data && typeof record.data === "object" && !Array.isArray(record.data)
+      ? (record.data as Record<string, unknown>)
+      : null;
+  const metaCandidates = [record.meta, nested?.meta];
+
+  for (const meta of metaCandidates) {
+    if (!meta || typeof meta !== "object" || Array.isArray(meta)) continue;
+
+    const total = (meta as Record<string, unknown>).total;
+
+    if (typeof total === "number" && Number.isFinite(total) && total >= 0) {
+      return total;
+    }
+  }
+
+  for (const key of [
+    "found_total",
+    "total_entries",
+    "total",
+    "found",
+    "breaches",
+  ] as const) {
+    for (const source of [record, nested]) {
+      if (!source) continue;
+
+      const value = source[key];
+
+      if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+        return value;
+      }
+    }
+  }
+
+  return undefined;
+}
+
 export function rowsFromBhPayload(
   payload: unknown,
   query: string,
@@ -104,7 +147,16 @@ export function rowsFromBhPayload(
     }
   }
 
-  return { count: results.length, results };
+  const advertised = extractAdvertisedIndexTotal(payload);
+  const rowCount = results.length;
+
+  return {
+    count: rowCount,
+    results,
+    ...(typeof advertised === "number" && advertised > rowCount
+      ? { indexTotal: advertised }
+      : {}),
+  };
 }
 
 async function parseJsonResponse(

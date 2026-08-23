@@ -404,7 +404,7 @@ export async function searchProxynovaComb(
     source: "Breached Data",
     query,
     // Surface rows we actually return — never Comb's advertised index size.
-    totalMatches: credentials.length,
+    totalMatches: Math.max(credentials.length, providerIndexCount),
     returned: credentials.length,
     start,
     credentials,

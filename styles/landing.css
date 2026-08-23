@@ -567,15 +567,30 @@
   font-family: var(--font-anya-mono), monospace;
 }
 
-.anya-landing .home-search-premium-option span {
+.anya-landing .home-search-premium-option-icon {
+  border-radius: 0;
+  border-color: rgba(195, 211, 230, 0.28);
+  background: rgba(195, 211, 230, 0.06);
+  color: #d7d2d7;
+}
+
+.anya-landing .home-search-premium-option--active .home-search-premium-option-icon {
+  border-color: rgba(255, 159, 205, 0.55);
+  background: rgba(255, 159, 205, 0.14);
+  color: #ffe3f1;
+}
+
+.anya-landing .home-search-premium-option-label {
   font-size: 0.66rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.anya-landing .home-search-premium-option small {
+.anya-landing .home-search-premium-option-meta {
   color: #827e83;
   font-size: 0.52rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 .anya-landing .home-search-premium-option--active {
@@ -738,6 +753,46 @@
   color: #d0e0f0;
   font-family: var(--font-anya-mono), monospace;
   font-size: 0.65rem;
+}
+
+.anya-landing .home-search-confirm {
+  margin: 0;
+  border: 1px solid rgba(195, 211, 230, 0.45);
+  border-top: 0;
+  border-left: 1px solid rgba(195, 211, 230, 0.45);
+  padding: 0.75rem;
+  background: rgba(255, 159, 205, 0.08);
+  font-family: var(--font-anya-mono), monospace;
+}
+
+.anya-landing .home-search-confirm-actions {
+  display: inline-flex;
+  gap: 0.45rem;
+}
+
+.anya-landing .home-search-confirm-message {
+  color: #e8e4e8;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+}
+
+.anya-landing .home-search-confirm-btn {
+  border-radius: 0;
+  font-family: var(--font-anya-mono), monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.anya-landing .home-search-confirm-btn--yes {
+  border-color: rgba(255, 159, 205, 0.72);
+  background: rgba(255, 159, 205, 0.16);
+  color: #ffe3f1;
+}
+
+.anya-landing .home-search-confirm-btn--no {
+  border-color: rgba(195, 211, 230, 0.45);
+  background: rgba(195, 211, 230, 0.08);
 }
 
 .anya-landing .home-search-results {

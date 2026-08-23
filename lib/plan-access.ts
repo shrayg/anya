@@ -52,6 +52,8 @@ async function buildUserPlanContext(userId: number) {
       planEndsAt: true,
       cancelAtPeriodEnd: true,
       billingInterval: true,
+      isAdmin: true,
+      staffRole: true,
     },
   });
 

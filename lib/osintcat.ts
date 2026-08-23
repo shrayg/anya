@@ -42,8 +42,14 @@ function sanitizeOsintCatError(message: string): string {
 export type OsintCatResponse = Record<string, unknown>;
 
 export type SanitizedBreachResponse = {
+  /** Rows actually present in `results`. */
   count: number;
   results: unknown[];
+  /**
+   * Provider-advertised index size when larger than returned rows
+   * (e.g. OathNet `meta.total` ≈ 20k while one page returns ~100).
+   */
+  indexTotal?: number;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -121,16 +127,42 @@ export function mergeSanitizedResponses(
   ...responses: SanitizedBreachResponse[]
 ): SanitizedBreachResponse {
   const results: unknown[] = [];
+  let indexTotal = 0;
 
   for (const response of responses) {
+    indexTotal = Math.max(
+      indexTotal,
+      response.indexTotal ?? 0,
+      response.count ?? 0,
+      Array.isArray(response.results) ? response.results.length : 0,
+    );
+
     for (const entry of response.results) {
       results.push(entry);
     }
   }
 
   const scrubbed = dedupeIntelResults(scrubIntelResults(results));
+  const rowCount = scrubbed.length;
 
-  return { count: scrubbed.length, results: scrubbed };
+  return {
+    count: rowCount,
+    results: scrubbed,
+    ...(indexTotal > rowCount ? { indexTotal } : {}),
+  };
+}
+
+/** Best-known index size for a sanitized payload (rows or advertised). */
+export function sanitizedIndexTotal(
+  response: SanitizedBreachResponse | null | undefined,
+): number {
+  if (!response) return 0;
+
+  return Math.max(
+    response.indexTotal ?? 0,
+    response.count ?? 0,
+    Array.isArray(response.results) ? response.results.length : 0,
+  );
 }
 
 export async function fetchOsintCat(

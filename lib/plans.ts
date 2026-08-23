@@ -532,6 +532,9 @@ export type UserPlanRecord = {
   enterpriseTier?: boolean;
   apiAccess?: boolean | null;
   billingInterval?: string | null;
+  /** Workspace admins always resolve to Enterprise (max plan). */
+  isAdmin?: boolean | null;
+  staffRole?: string | null;
 };
 
 export function normalizePlanId(
@@ -555,6 +558,10 @@ export function isPlanId(value: string | null | undefined): value is PlanId {
 }
 
 export function resolveUserPlan(user: UserPlanRecord): PlanId {
+  if (user.isAdmin || user.staffRole === "admin") {
+    return "enterprise";
+  }
+
   const candidates: PlanId[] = ["free"];
 
   const normalized = normalizePlanId(user.plan ?? null);
@@ -651,8 +658,12 @@ export function checkModuleAccess(
   const balance = options?.balance ?? 0;
   const intelxUsedToday = options?.intelxUsedToday ?? 0;
 
-  // Residential proxy billing applies to all paid panel plans (incl. Ultimate).
-  const proxyGate = checkResidentialProxyAccess(moduleSlug, balance);
+  // Residential proxy billing applies to paid panel plans except Enterprise
+  // (max plan — all tools included, no per-search credit burn).
+  const proxyGate =
+    plan === "enterprise"
+      ? null
+      : checkResidentialProxyAccess(moduleSlug, balance);
 
   if (ULTIMATE_MODULE_SLUGS.has(moduleSlug) && !planHasUltimateModules(plan)) {
     return {
@@ -695,7 +706,11 @@ export function checkModuleAccess(
     };
   }
 
-  if (plan === "enterprise" || plan === "ultimate") {
+  if (plan === "enterprise") {
+    return { allowed: true };
+  }
+
+  if (plan === "ultimate") {
     if (proxyGate) return proxyGate;
 
     return { allowed: true };

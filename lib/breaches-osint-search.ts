@@ -18,8 +18,10 @@ import {
 } from "@/lib/breachhub";
 import {
   canContributeOathnet,
+  fetchOathnetBreachPaginated,
   fetchOathnetSanitized,
 } from "@/lib/oathnet";
+import { sanitizedIndexTotal } from "@/lib/osintcat";
 import type { PlanId } from "@/lib/plans";
 import {
   searchBreachVipForEmail,
@@ -406,11 +408,20 @@ export async function runBreachesOsintSearch(
       getCachedBlacklistSet(),
     );
 
+    const indexTotal = Math.max(
+      credentials.length,
+      sanitizedIndexTotal(oathnet),
+      sanitizedIndexTotal(breachHub),
+      sanitizedIndexTotal(godseyeSearch),
+      sanitizedIndexTotal(csint),
+      sanitizedIndexTotal(osintCat),
+    );
+
     return {
       ...(preferEmail && email
         ? {
             query: email,
-            totalMatches: credentials.length,
+            totalMatches: indexTotal,
             returned: credentials.length,
             start,
             credentials,
@@ -418,7 +429,7 @@ export async function runBreachesOsintSearch(
           }
         : {
             ...emptyComb(query, start),
-            totalMatches: credentials.length,
+            totalMatches: indexTotal,
             returned: credentials.length,
             credentials,
           }),
@@ -627,10 +638,11 @@ export async function runBreachesOsintSearch(
   if (includeOathnet) {
     try {
       const jobs: Array<Promise<SanitizedBreachResponse | null>> = [
-        fetchOathnetSanitized(
-          { kind: "static", endpoint: "breach" },
-          { query: preferEmail && email ? email : query },
-        ).catch(() => null),
+        fetchOathnetBreachPaginated(preferEmail && email ? email : query, {
+          maxPages: 6,
+          maxRows: 3_000,
+          pageSize: 500,
+        }).catch(() => null),
       ];
 
       if (preferEmail && email) {
@@ -653,11 +665,17 @@ export async function runBreachesOsintSearch(
       );
 
       if (parts.length > 0) {
+        const mergedResults = parts.flatMap((part) =>
+          Array.isArray(part.results) ? part.results : [],
+        );
+        const indexTotal = Math.max(
+          mergedResults.length,
+          ...parts.map((part) => sanitizedIndexTotal(part)),
+        );
         oathnet = {
-          count: parts.reduce((sum, part) => sum + (part.count || 0), 0),
-          results: parts.flatMap((part) =>
-            Array.isArray(part.results) ? part.results : [],
-          ),
+          count: mergedResults.length,
+          results: mergedResults,
+          ...(indexTotal > mergedResults.length ? { indexTotal } : {}),
         };
       }
     } catch {

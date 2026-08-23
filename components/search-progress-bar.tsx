@@ -3,22 +3,17 @@
 import { useId } from "react";
 import clsx from "clsx";
 
-const SEARCHING_COPY = "Searching…";
-const STILL_SEARCHING_COPY =
-  "Still searching while you check your results…";
+const SEARCHING_COPY = "Searching�";
+const FIRST_HIT_COPY = "First results ready";
+const ENRICHING_COPY = "Loading more sources�";
 
 export type SearchProgressBarProps = {
   active: boolean;
-  /** Live status from a stream/job; ignored when `hasResults` is true. */
   status?: string | null;
-  /**
-   * When partial/final results are already on screen, prefer calm copy
-   * instead of provider names or rotating stage lines.
-   */
   hasResults?: boolean;
   /**
-   * 0–1 when tied to stream partials (`done/total`).
-   * Omit / null for an indeterminate pulse — never invent precise %.
+   * 0�1 when tied to stream partials.
+   * Stage 1 snaps to 1 on first results; stage 2 uses remaining module progress.
    */
   progress?: number | null;
   className?: string;
@@ -30,9 +25,8 @@ function clampRatio(value: number): number {
 }
 
 /**
- * Slim ice-blue search progress under the composer.
- * Determinate when stream partials expose done/total; otherwise indeterminate.
- * A continuous glint keeps the bar visibly moving in both modes.
+ * Bright search progress under the composer (not inside the glass card).
+ * Stage 1 fills to 100% on first useful result; stage 2 continues for more sources.
  */
 export function SearchProgressBar({
   active,
@@ -43,28 +37,60 @@ export function SearchProgressBar({
 }: SearchProgressBarProps) {
   const labelId = useId();
 
+  if (!active) return null;
+
   const hasRatio =
     typeof progress === "number" && Number.isFinite(progress) && progress >= 0;
   const ratio = hasRatio ? clampRatio(progress) : null;
   const liveStatus = typeof status === "string" ? status.trim() : "";
+  const phase = hasResults ? "enriching" : "searching";
   const displayStatus = hasResults
-    ? STILL_SEARCHING_COPY
+    ? liveStatus || ENRICHING_COPY
     : liveStatus || SEARCHING_COPY;
-
-  if (!active) return null;
+  const fillRatio = hasResults
+    ? ratio == null
+      ? null
+      : Math.max(0.12, ratio)
+    : ratio == null
+      ? null
+      : Math.max(0.08, Math.min(ratio, 0.92));
 
   return (
     <div
       aria-busy="true"
       aria-labelledby={labelId}
-      className={clsx("search-progress", className)}
+      className={clsx(
+        "search-progress",
+        `search-progress--${phase}`,
+        className,
+      )}
+      data-phase={phase}
       role="status"
     >
+      <div className="search-progress__stages" aria-hidden>
+        <span
+          className={clsx(
+            "search-progress__stage",
+            !hasResults && "search-progress__stage--active",
+            hasResults && "search-progress__stage--done",
+          )}
+        >
+          1 � Find
+        </span>
+        <span
+          className={clsx(
+            "search-progress__stage",
+            hasResults && "search-progress__stage--active",
+          )}
+        >
+          2 � Enrich
+        </span>
+      </div>
+
       <div
-        aria-hidden
         className={clsx(
           "search-progress__track",
-          ratio == null
+          fillRatio == null
             ? "search-progress__track--indeterminate"
             : "search-progress__track--determinate",
         )}
@@ -72,18 +98,22 @@ export function SearchProgressBar({
         <div
           className={clsx(
             "search-progress__fill",
-            ratio == null && "search-progress__fill--indeterminate",
+            fillRatio == null && "search-progress__fill--indeterminate",
+            hasResults && "search-progress__fill--enriching",
           )}
           style={
-            ratio != null
-              ? { width: `${Math.max(8, Math.round(ratio * 100))}%` }
+            fillRatio != null
+              ? { width: `${Math.round(fillRatio * 100)}%` }
               : undefined
           }
         />
         <span className="search-progress__glint" />
       </div>
+
       <p className="search-progress__status" id={labelId}>
-        {displayStatus}
+        {hasResults && fillRatio != null && fillRatio >= 0.99
+          ? FIRST_HIT_COPY
+          : displayStatus}
       </p>
     </div>
   );
