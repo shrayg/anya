@@ -3,16 +3,16 @@
 import { useId } from "react";
 import clsx from "clsx";
 
-const SEARCHING_COPY = "Searching�";
+const SEARCHING_COPY = "Searching...";
 const FIRST_HIT_COPY = "First results ready";
-const ENRICHING_COPY = "Loading more sources�";
+const ENRICHING_COPY = "Loading more sources...";
 
 export type SearchProgressBarProps = {
   active: boolean;
   status?: string | null;
   hasResults?: boolean;
   /**
-   * 0�1 when tied to stream partials.
+   * 0-1 when tied to stream partials.
    * Stage 1 snaps to 1 on first results; stage 2 uses remaining module progress.
    */
   progress?: number | null;
@@ -67,7 +67,7 @@ export function SearchProgressBar({
       data-phase={phase}
       role="status"
     >
-      <div className="search-progress__stages" aria-hidden>
+      <div aria-hidden className="search-progress__stages">
         <span
           className={clsx(
             "search-progress__stage",
@@ -75,7 +75,7 @@ export function SearchProgressBar({
             hasResults && "search-progress__stage--done",
           )}
         >
-          1 � Find
+          1. Find
         </span>
         <span
           className={clsx(
@@ -83,7 +83,7 @@ export function SearchProgressBar({
             hasResults && "search-progress__stage--active",
           )}
         >
-          2 � Enrich
+          2. Enrich
         </span>
       </div>
 

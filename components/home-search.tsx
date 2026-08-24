@@ -877,7 +877,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       }
 
       if (isNdjson && route.apiType === "breaches") {
-        setStreamStatus("Searching…");
+        setStreamStatus("Searching...");
         let sawUseful = false;
         let streamError: string | null = null;
 
@@ -958,7 +958,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       }
 
       if (isNdjson && route.apiType === "discord") {
-        setStreamStatus("Searching…");
+        setStreamStatus("Searching...");
         let sawProfile = false;
         let streamError: string | null = null;
 
@@ -1365,7 +1365,7 @@ export function HomeSearch({ lockedModules }: HomeSearchProps = {}) {
       >
         {isSearching ? (
           hasResultsSurface ? (
-            "Loading more…"
+            "Loading more..."
           ) : (
             "Running…"
           )
