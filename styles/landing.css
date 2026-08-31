@@ -744,6 +744,17 @@
   box-shadow: inset 0 -2px 0 var(--anya-pink);
 }
 
+.anya-landing .search-progress {
+  margin-top: 0.95rem;
+  padding-inline: 0;
+  border: 0;
+  background: transparent;
+}
+
+.anya-landing .search-progress__track {
+  height: 4px;
+}
+
 .anya-landing .home-search-error {
   margin: 0;
   border: 1px solid rgba(195, 211, 230, 0.45);

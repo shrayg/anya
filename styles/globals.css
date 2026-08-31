@@ -9621,146 +9621,158 @@
   width: 100%;
 }
 
-/* Slim search progress — ice-blue on void; under composer while searching */
-.search-progress--enriching .search-progress__fill {
-  background: linear-gradient(
-    90deg,
-    #22d3ee 0%,
-    #7dd3fc 40%,
-    #e0f2fe 72%,
-    #ffffff 100%
-  );
-}
-
+/* Search progress — a borderless readout that floats below the composer. */
 .search-progress {
-  --sp-ice: #7ec8ff;
-  --sp-glow: #b6e3ff;
+  --sp-blush: var(--anya-blush, #c3d3e6);
   width: 100%;
-  margin-top: 0.85rem;
-  animation: search-progress-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  margin-top: 1.05rem;
+  padding: 0.15rem 0.1rem 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: search-progress-in 0.28s ease-out both;
 }
 
-.search-progress__stages {
+.search-progress__rail {
   display: flex;
-  gap: 0.55rem;
-  margin-bottom: 0.45rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 0.55rem;
 }
 
-.search-progress__stage {
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.search-progress__step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  color: rgba(161, 161, 170, 0.4);
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.search-progress__step:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.search-progress__step-meta {
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 0.54rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1;
   text-transform: uppercase;
-  color: rgba(161, 161, 170, 0.72);
 }
 
-.search-progress__stage--active {
-  color: var(--sp-glow);
-  text-shadow: 0 0 12px color-mix(in srgb, var(--sp-ice) 55%, transparent);
+.search-progress__step strong {
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
-.search-progress__stage--done {
-  color: color-mix(in srgb, var(--sp-ice) 70%, #86efac);
+.search-progress__step--active {
+  color: var(--sp-blush);
+}
+
+.search-progress__step--done {
+  color: rgba(195, 211, 230, 0.55);
+}
+
+.search-progress__step--idle {
+  opacity: 0.62;
 }
 
 .search-progress__track {
   position: relative;
   width: 100%;
-  height: 6px;
+  height: 5px;
   overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(126, 200, 255, 0.18);
-}
-
-.search-progress__track--indeterminate {
-  background: color-mix(in srgb, var(--sp-ice) 18%, rgba(255, 255, 255, 0.06));
-}
-
-.search-progress__track--determinate {
-  background: color-mix(in srgb, var(--sp-ice) 12%, rgba(255, 255, 255, 0.05));
+  background: color-mix(in srgb, var(--sp-blush) 13%, transparent);
 }
 
 .search-progress__fill {
   position: relative;
-  z-index: 1;
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    #3b9eff 0%,
-    var(--sp-ice) 45%,
-    #ffffff 78%,
-    var(--sp-glow) 100%
-  );
-  box-shadow:
-    0 0 16px color-mix(in srgb, var(--sp-ice) 75%, transparent),
-    0 0 28px color-mix(in srgb, var(--sp-glow) 45%, transparent);
-  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--sp-blush);
+  transition: width 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.search-progress__fill--enriching {
-  background: linear-gradient(
-    90deg,
-    #22d3ee 0%,
-    #7dd3fc 40%,
-    #e0f2fe 72%,
-    #ffffff 100%
-  );
-}
-
-.search-progress__fill--indeterminate {
+.search-progress__fill::after {
+  content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 42%;
-  animation:
-    search-progress-slide 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite,
-    search-progress-breathe 1.5s ease-in-out infinite;
-}
-
-.search-progress__glint {
-  position: absolute;
-  z-index: 2;
   top: 0;
-  bottom: 0;
-  left: 0;
-  width: 32%;
-  border-radius: 999px;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.15) 35%,
-    rgba(255, 255, 255, 0.85) 50%,
-    rgba(255, 255, 255, 0.15) 65%,
-    transparent 100%
-  );
-  mix-blend-mode: screen;
-  animation: search-progress-glint 1.25s linear infinite;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: #fff;
+}
+
+.search-progress__fill--pulse {
+  animation: search-progress-pulse 1.2s ease-in-out infinite;
+}
+
+.search-progress__footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
 }
 
 .search-progress__status {
-  margin: 0.55rem 0 0;
-  font-size: 0.74rem;
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: rgba(195, 211, 230, 0.66);
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 0.56rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.search-progress__status-mark {
+  width: 4px;
+  height: 4px;
+  flex: 0 0 4px;
+  background: var(--sp-blush);
+  animation: search-progress-blink 1.1s steps(1, end) infinite;
+}
+
+.search-progress__percent {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--sp-blush);
+  font-family: var(--font-anya-mono), ui-monospace, monospace;
+  font-size: 0.84rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0.03em;
-  color: color-mix(in srgb, var(--sp-glow) 82%, #e4e4e7);
-  text-align: center;
+  line-height: 1;
+}
+
+.search-progress__percent span {
+  margin-left: 0.06rem;
+  color: rgba(195, 211, 230, 0.55);
+  font-size: 0.68rem;
 }
 
 .module-search-composer .search-progress {
-  margin-top: 1rem;
-  padding-inline: 0.15rem;
-}
-
-.module-search-composer .search-progress__status {
-  text-align: left;
+  padding-inline: 0;
 }
 
 @keyframes search-progress-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(3px);
   }
   to {
     opacity: 1;
@@ -9768,54 +9780,32 @@
   }
 }
 
-@keyframes search-progress-slide {
-  0% {
-    transform: translateX(-30%);
-  }
-  100% {
-    transform: translateX(270%);
-  }
-}
-
-@keyframes search-progress-glint {
-  0% {
-    transform: translateX(-120%);
-    opacity: 0.55;
-  }
-  40% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(420%);
-    opacity: 0.55;
-  }
-}
-
-@keyframes search-progress-breathe {
+@keyframes search-progress-pulse {
   0%,
   100% {
-    opacity: 0.8;
+    opacity: 0.72;
   }
   50% {
     opacity: 1;
   }
 }
 
+@keyframes search-progress-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0.3;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .search-progress {
+  .search-progress,
+  .search-progress__fill--pulse,
+  .search-progress__status-mark {
     animation: none;
-  }
-
-  .search-progress__fill--indeterminate {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    opacity: 0.7;
-    animation: none;
-  }
-
-  .search-progress__glint {
-    display: none;
   }
 }
 
