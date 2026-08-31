@@ -13,7 +13,8 @@ const outputDirectory = path.join(
   root,
   "output",
   "ads",
-  "gendered-relationship",
+  "campaigns",
+  "cheating",
 );
 const docsDirectory = path.join(root, "docs", "ads");
 
@@ -22,7 +23,7 @@ function quoteCsv(value: string | number | undefined) {
 }
 
 function assetPath(campaign: RelationshipCampaign, format: "4x5" | "square") {
-  return `output/ads/gendered-relationship/${campaign.audience}/${campaign.slug}-${format}.png`;
+  return `output/ads/campaigns/cheating/${campaign.audience}/${campaign.slug}-${format}.png`;
 }
 
 const manifest = GENDERED_RELATIONSHIP_CAMPAIGNS.map((campaign) => ({

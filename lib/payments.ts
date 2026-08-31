@@ -5,6 +5,7 @@ export type PaymentType =
   | "balance_topup"
   | "module_usage"
   | "api_access"
+  | "search_unlock"
   | "manual";
 
 type RecordPaymentInput = {

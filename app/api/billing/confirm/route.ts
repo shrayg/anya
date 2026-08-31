@@ -21,14 +21,17 @@ async function fulfillFromOrderId(orderId: string) {
     return { ok: false as const, reason: "order_not_found" };
   }
 
-  const state = order.state;
   const tenders = order.tenders ?? [];
-  const paid =
-    state === "OPEN" ||
-    state === "COMPLETED" ||
-    tenders.some((t) => Boolean(t.id));
+  const paymentId = tenders.find((tender) => tender.paymentId)?.paymentId;
 
-  if (!paid) {
+  if (!paymentId) {
+    return { ok: false as const, reason: "payment_not_found" };
+  }
+
+  const paymentRes = await client.payments.get({ paymentId });
+  const squarePayment = paymentRes.payment;
+
+  if (squarePayment?.status !== "COMPLETED") {
     return { ok: false as const, reason: "not_paid" };
   }
 
@@ -52,16 +55,31 @@ async function fulfillFromOrderId(orderId: string) {
           ? "credits"
           : byOrder.type === "api_access"
             ? "api_access"
-            : "subscription",
+            : byOrder.type === "search_unlock"
+              ? "search_unlock"
+              : "subscription",
       planId: byOrder.plan ?? undefined,
       interval: byOrder.interval ?? undefined,
       provider: "square",
+      vaultId:
+        byOrder.type === "search_unlock"
+          ? (byOrder.plan ?? undefined)
+          : undefined,
+      returnTo:
+        byOrder.type === "search_unlock"
+          ? (byOrder.interval ?? undefined)
+          : undefined,
+      unlockPriceUsd:
+        byOrder.type === "search_unlock" ? byOrder.amount : undefined,
     };
 
     // packId recovery for credits from description / pending row alone is enough
     if (byOrder.type === "balance_topup") {
-      const { CREDIT_PACK_NAME_IDS, CUSTOM_CREDIT_PACK_ID, clampCustomCredits } =
-        await import("@/lib/plans");
+      const {
+        CREDIT_PACK_NAME_IDS,
+        CUSTOM_CREDIT_PACK_ID,
+        clampCustomCredits,
+      } = await import("@/lib/plans");
       const packMatch = byOrder.description.match(
         /^(Starter Pack|Plus Pack|Agency Pack|Investigator Pack|Ops Pack|Custom credits)/,
       );
@@ -79,17 +97,10 @@ async function fulfillFromOrderId(orderId: string) {
     }
   }
 
-  // Try payment note from linked payment objects
-  if (!meta && tenders[0]?.paymentId) {
-    try {
-      const payRes = await client.payments.get({
-        paymentId: tenders[0].paymentId,
-      });
+  const noteMeta = decodeBillingMeta(squarePayment.note ?? undefined);
 
-      meta = decodeBillingMeta(payRes.payment?.note ?? undefined);
-    } catch {
-      // ignore
-    }
+  if (noteMeta) {
+    meta = noteMeta;
   }
 
   if (!meta) {
@@ -98,12 +109,12 @@ async function fulfillFromOrderId(orderId: string) {
 
   meta = { ...meta, provider: meta.provider ?? "square" };
 
-  const amountCents = Number(order.totalMoney?.amount ?? 0);
+  const amountCents = Number(squarePayment.amountMoney?.amount ?? 0);
 
   return fulfillBillingPayment({
     meta,
     checkoutSessionId: byOrder?.stripeSessionId || orderId,
-    paymentReferenceId: tenders[0]?.paymentId ?? orderId,
+    paymentReferenceId: squarePayment.id ?? paymentId,
     amountCents,
   });
 }
@@ -134,9 +145,7 @@ export async function GET(request: NextRequest) {
     }
 
     if ("type" in result && result.type === "api_access") {
-      return NextResponse.redirect(
-        `${baseUrl}/account?billing=success`,
-      );
+      return NextResponse.redirect(`${baseUrl}/account?billing=success`);
     }
 
     const returnTo =
@@ -148,10 +157,9 @@ export async function GET(request: NextRequest) {
 
     if (returnTo) {
       const sep = returnTo.includes("?") ? "&" : "?";
-      const withBilling =
-        returnTo.includes("billing=")
-          ? returnTo
-          : `${returnTo}${sep}billing=success`;
+      const withBilling = returnTo.includes("billing=")
+        ? returnTo
+        : `${returnTo}${sep}billing=success`;
 
       return NextResponse.redirect(`${baseUrl}${withBilling}`);
     }

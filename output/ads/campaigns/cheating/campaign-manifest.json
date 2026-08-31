@@ -37,8 +37,8 @@
     "headline": "See who the number connects to",
     "extraFormat": "square",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/women/women-who-is-he-texting-midnight-4x5.png",
-      "square": "output/ads/gendered-relationship/women/women-who-is-he-texting-midnight-square.png"
+      "primary4x5": "output/ads/campaigns/cheating/women/women-who-is-he-texting-midnight-4x5.png",
+      "square": "output/ads/campaigns/cheating/women/women-who-is-he-texting-midnight-square.png"
     }
   },
   {
@@ -78,7 +78,7 @@
     "caption": "The contact name is only one clue. Search the number and review the public profiles and handles that connect.",
     "headline": "Look beyond the saved name",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/women/women-who-is-she-in-his-phone-4x5.png",
+      "primary4x5": "output/ads/campaigns/cheating/women/women-who-is-she-in-his-phone-4x5.png",
       "square": null
     }
   },
@@ -119,7 +119,7 @@
     "caption": "When the same name keeps appearing, a public-source search can help you understand which profiles and identifiers connect.",
     "headline": "Connect the public signals",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/women/women-why-her-name-keeps-showing-4x5.png",
+      "primary4x5": "output/ads/campaigns/cheating/women/women-why-her-name-keeps-showing-4x5.png",
       "square": null
     }
   },
@@ -160,7 +160,7 @@
     "caption": "Anya connects public profile and contact signals so you can review the identity context without relying on a guess.",
     "headline": "Start with the number",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/women/women-is-he-talking-to-someone-else-4x5.png",
+      "primary4x5": "output/ads/campaigns/cheating/women/women-is-he-talking-to-someone-else-4x5.png",
       "square": null
     }
   },
@@ -201,7 +201,7 @@
     "caption": "Search the phone number and review the public names, profiles, and related handles that appear in the source trail.",
     "headline": "See what connects to the number",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/women/women-who-keeps-calling-him-back-4x5.png",
+      "primary4x5": "output/ads/campaigns/cheating/women/women-who-keeps-calling-him-back-4x5.png",
       "square": null
     }
   },
@@ -243,8 +243,8 @@
     "headline": "See who the number connects to",
     "extraFormat": "square",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/men/men-who-is-she-texting-midnight-4x5.png",
-      "square": "output/ads/gendered-relationship/men/men-who-is-she-texting-midnight-square.png"
+      "primary4x5": "output/ads/campaigns/cheating/men/men-who-is-she-texting-midnight-4x5.png",
+      "square": "output/ads/campaigns/cheating/men/men-who-is-she-texting-midnight-square.png"
     }
   },
   {
@@ -284,7 +284,7 @@
     "caption": "The contact name is only one clue. Search the number and review the public profiles and handles that connect.",
     "headline": "Look beyond the saved name",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/men/men-who-is-he-in-her-phone-4x5.png",
+      "primary4x5": "output/ads/campaigns/cheating/men/men-who-is-he-in-her-phone-4x5.png",
       "square": null
     }
   },
@@ -325,7 +325,7 @@
     "caption": "When the same name keeps appearing, a public-source search can help you understand which profiles and identifiers connect.",
     "headline": "Connect the public signals",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/men/men-why-his-name-keeps-showing-4x5.png",
+      "primary4x5": "output/ads/campaigns/cheating/men/men-why-his-name-keeps-showing-4x5.png",
       "square": null
     }
   },
@@ -366,7 +366,7 @@
     "caption": "Anya connects public profile and contact signals so you can review the identity context without relying on a guess.",
     "headline": "Start with the number",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/men/men-is-she-talking-to-someone-else-4x5.png",
+      "primary4x5": "output/ads/campaigns/cheating/men/men-is-she-talking-to-someone-else-4x5.png",
       "square": null
     }
   },
@@ -407,7 +407,7 @@
     "caption": "Search the phone number and review the public names, profiles, and related handles that appear in the source trail.",
     "headline": "See what connects to the number",
     "assets": {
-      "primary4x5": "output/ads/gendered-relationship/men/men-who-keeps-calling-her-back-4x5.png",
+      "primary4x5": "output/ads/campaigns/cheating/men/men-who-keeps-calling-her-back-4x5.png",
       "square": null
     }
   }

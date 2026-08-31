@@ -7,6 +7,7 @@ import {
   encodeBillingMeta,
   resolveBillingProvider,
 } from "@/lib/billing-meta";
+import { CHEATING_REPORT_UNLOCK_PRICE_USD } from "@/lib/cheating-funnel-offer";
 import {
   createOxapayInvoice,
   isOxapayConfigured,
@@ -31,6 +32,7 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { sanitizeReturnTo } from "@/lib/search-resume";
+import { getSearchVaultMeta } from "@/lib/search-result-vault";
 import { recordPayment } from "@/lib/payments";
 import {
   dollarsToCents,
@@ -137,7 +139,7 @@ async function finalizeCheckout(input: {
     orderId,
     description: `${input.name} — ${input.description}`,
     callbackUrl: oxapayCallbackUrl(input.requestUrl),
-    returnUrl: oxapayReturnUrl(input.requestUrl),
+    returnUrl: oxapayReturnUrl(input.requestUrl, meta.returnTo),
     email: input.email,
   });
 
@@ -214,6 +216,63 @@ export async function POST(request: NextRequest) {
     typeof body.intent === "string" ? body.intent.slice(0, 40) : undefined;
 
   try {
+    if (type === "search_unlock") {
+      if (!vaultId || !returnTo) {
+        return NextResponse.json(
+          { error: "This report unlock has expired. Run the search again." },
+          { status: 400 },
+        );
+      }
+
+      const vault = await getSearchVaultMeta(vaultId);
+
+      if (
+        !vault ||
+        vault.claimed ||
+        new Date(vault.expiresAt).getTime() < Date.now() ||
+        vault.unlock.creditCost !== CHEATING_REPORT_UNLOCK_PRICE_USD
+      ) {
+        return NextResponse.json(
+          { error: "This report is no longer available for purchase." },
+          { status: 410 },
+        );
+      }
+
+      const payment = await recordPayment({
+        userId,
+        amount: CHEATING_REPORT_UNLOCK_PRICE_USD,
+        type: "search_unlock",
+        plan: vaultId,
+        interval: returnTo,
+        status: "pending",
+        description: "Private report unlock — awaiting payment confirmation",
+      });
+
+      const meta: BillingMeta = {
+        paymentId: String(payment?.id ?? ""),
+        userId: String(userId),
+        type: "search_unlock",
+        provider,
+        returnTo,
+        vaultId,
+        intent: "unlock_search",
+        unlockPriceUsd: CHEATING_REPORT_UNLOCK_PRICE_USD,
+      };
+
+      const result = await finalizeCheckout({
+        provider,
+        paymentId: payment?.id,
+        name: "Anya Private Report",
+        description: "One-time private report unlock",
+        amountDollars: CHEATING_REPORT_UNLOCK_PRICE_USD,
+        meta,
+        baseUrl,
+        requestUrl: request.url,
+      });
+
+      return NextResponse.json(result);
+    }
+
     if (type === "subscription") {
       const planId = normalizePlanId(
         typeof body.planId === "string" ? body.planId : undefined,
@@ -298,10 +357,7 @@ export async function POST(request: NextRequest) {
 
         const requested = Math.round(rawCustom);
 
-        if (
-          requested < CUSTOM_CREDIT_MIN ||
-          requested > CUSTOM_CREDIT_MAX
-        ) {
+        if (requested < CUSTOM_CREDIT_MIN || requested > CUSTOM_CREDIT_MAX) {
           return NextResponse.json(
             {
               error: `Choose between ${CUSTOM_CREDIT_MIN} and ${CUSTOM_CREDIT_MAX} credits`,

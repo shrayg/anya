@@ -62,10 +62,22 @@ async function metaFromPaymentNote(
         ? "credits"
         : byOrder.type === "api_access"
           ? "api_access"
-          : "subscription",
+          : byOrder.type === "search_unlock"
+            ? "search_unlock"
+            : "subscription",
     planId: byOrder.plan ?? undefined,
     interval: byOrder.interval ?? undefined,
     provider: "square",
+    vaultId:
+      byOrder.type === "search_unlock"
+        ? (byOrder.plan ?? undefined)
+        : undefined,
+    returnTo:
+      byOrder.type === "search_unlock"
+        ? (byOrder.interval ?? undefined)
+        : undefined,
+    unlockPriceUsd:
+      byOrder.type === "search_unlock" ? byOrder.amount : undefined,
   };
 
   if (byOrder.type === "balance_topup") {
@@ -104,17 +116,22 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text();
   const signature = request.headers.get("x-square-hmacsha256-signature");
 
-  if (signatureKey) {
-    const valid = verifySquareSignature(
-      rawBody,
-      signature,
-      signatureKey,
-      notificationUrl,
+  if (!signatureKey) {
+    return NextResponse.json(
+      { error: "Square webhook signature is not configured" },
+      { status: 503 },
     );
+  }
 
-    if (!valid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
+  const valid = verifySquareSignature(
+    rawBody,
+    signature,
+    signatureKey,
+    notificationUrl,
+  );
+
+  if (!valid) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   let event: {
@@ -172,38 +189,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (event.type === "order.updated") {
-      const order = event.data?.object?.order as
-        | {
-            id?: string;
-            state?: string;
-            totalMoney?: { amount?: number | string };
-            tenders?: Array<{ paymentId?: string }>;
-          }
-        | undefined;
-
-      if (
-        order?.id &&
-        (order.state === "OPEN" || order.state === "COMPLETED")
-      ) {
-        const meta = await metaFromPaymentNote(undefined, order.id);
-
-        if (meta) {
-          const pending = meta.paymentId
-            ? await prisma.payment.findUnique({
-                where: { id: Number(meta.paymentId) },
-              })
-            : null;
-
-          await fulfillBillingPayment({
-            meta,
-            checkoutSessionId: pending?.stripeSessionId || order.id,
-            paymentReferenceId: order.tenders?.[0]?.paymentId ?? order.id,
-            amountCents: Number(order.totalMoney?.amount ?? 0),
-          });
-        }
-      }
-    }
+    // Do not fulfill from order.updated: an OPEN/COMPLETED order is not proof
+    // that its tender settled. payment.updated with status COMPLETED is the
+    // authoritative event for delivering a paid report.
   } catch (err) {
     console.error("[square webhook] fulfillment failed", err);
 

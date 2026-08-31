@@ -37,6 +37,8 @@ export type CreateVaultInput = {
   ipHash?: string | null;
   unlockMode?: "teaser" | "premium_section";
   resultCount?: number;
+  /** Server-selected one-time credit price for a dedicated funnel offer. */
+  creditCost?: number;
 };
 
 export type CreateVaultResult = {
@@ -65,11 +67,11 @@ export function hashClientIp(ip: string): string {
 function buildUnlockMeta(
   moduleSlug: string,
   resultCount?: number,
+  creditCostOverride?: number,
 ): VaultUnlockMeta {
   const accessClass = getModuleAccessClass(moduleSlug);
   const allowCreditUnlock = creditsCanUnlockModuleClass(accessClass);
-  const planRequired: PlanId =
-    accessClass === "S" ? "starter" : "professional";
+  const planRequired: PlanId = accessClass === "S" ? "starter" : "professional";
   const reasons: string[] = [];
 
   if (accessClass === "S") {
@@ -79,14 +81,22 @@ function buildUnlockMeta(
       "This section is included on Professional+. Unlock with 1 credit or upgrade.",
     );
   } else if (accessClass === "P") {
-    reasons.push("This module requires Professional or higher (credits alone cannot unlock).");
+    reasons.push(
+      "This module requires Professional or higher (credits alone cannot unlock).",
+    );
   } else {
     reasons.push("This search requires credits or a qualifying plan.");
   }
 
   return {
     reasons,
-    creditCost: allowCreditUnlock ? SEARCH_UNLOCK_CREDIT_COST : 0,
+    creditCost: allowCreditUnlock
+      ? typeof creditCostOverride === "number" &&
+        Number.isFinite(creditCostOverride) &&
+        creditCostOverride > 0
+        ? creditCostOverride
+        : SEARCH_UNLOCK_CREDIT_COST
+      : 0,
     planRequired: accessClass === "P" ? "professional" : planRequired,
     allowCreditUnlock,
     accessClass,
@@ -113,9 +123,12 @@ export async function createSearchResultVault(
 ): Promise<CreateVaultResult> {
   const claimToken = randomBytes(24).toString("hex");
   const claimTokenHash = hashToken(claimToken);
-  const resultCount =
-    input.resultCount ?? extractResultCount(input.payload);
-  const unlock = buildUnlockMeta(input.moduleSlug, resultCount);
+  const resultCount = input.resultCount ?? extractResultCount(input.payload);
+  const unlock = buildUnlockMeta(
+    input.moduleSlug,
+    resultCount,
+    input.creditCost,
+  );
   const expiresAt = new Date(Date.now() + SEARCH_VAULT_TTL_MS);
   const id = randomBytes(16).toString("hex");
 
@@ -196,18 +209,30 @@ export async function claimSearchResultVault(input: {
   });
 
   if (!row) {
-    return { ok: false, error: "Search unlock expired or not found.", status: 404 };
+    return {
+      ok: false,
+      error: "Search unlock expired or not found.",
+      status: 404,
+    };
   }
 
   if (row.expiresAt.getTime() < Date.now()) {
-    return { ok: false, error: "This search unlock has expired. Run the search again.", status: 410 };
+    return {
+      ok: false,
+      error: "This search unlock has expired. Run the search again.",
+      status: 410,
+    };
   }
 
   if (row.claimTokenHash !== hashToken(input.claimToken)) {
     return { ok: false, error: "Invalid unlock token.", status: 403 };
   }
 
-  if (row.claimedAt && row.claimedByUserId && row.claimedByUserId !== input.userId) {
+  if (
+    row.claimedAt &&
+    row.claimedByUserId &&
+    row.claimedByUserId !== input.userId
+  ) {
     return {
       ok: false,
       error: "This search was already unlocked on another account.",
@@ -220,7 +245,11 @@ export async function claimSearchResultVault(input: {
   try {
     payload = JSON.parse(row.payload);
   } catch {
-    return { ok: false, error: "Stored search payload is corrupt.", status: 500 };
+    return {
+      ok: false,
+      error: "Stored search payload is corrupt.",
+      status: 500,
+    };
   }
 
   // Already claimed by this user — return payload without re-charging.
@@ -239,8 +268,7 @@ export async function claimSearchResultVault(input: {
     moduleSlug: row.moduleSlug,
   });
 
-  const plan =
-    "plan" in auth && auth.plan ? auth.plan : ("free" as PlanId);
+  const plan = "plan" in auth && auth.plan ? auth.plan : ("free" as PlanId);
   const planOk = planMeetsModuleClass(plan, accessClass);
   const allowCredits =
     row.allowCreditUnlock && creditsCanUnlockModuleClass(accessClass);
@@ -283,9 +311,22 @@ export async function claimSearchResultVault(input: {
     }
 
     const cost =
-      "balanceCost" in unlockAuth && unlockAuth.balanceCost
-        ? unlockAuth.balanceCost
+      typeof row.creditCost === "number" && row.creditCost > 0
+        ? row.creditCost
         : SEARCH_UNLOCK_CREDIT_COST;
+
+    if (
+      !("balance" in unlockAuth) ||
+      typeof unlockAuth.balance !== "number" ||
+      unlockAuth.balance < cost
+    ) {
+      return {
+        ok: false,
+        error: `Unlocking this report costs $${cost.toFixed(2)}.`,
+        status: 403,
+        requiresBalance: true,
+      };
+    }
 
     await recordSearchUsage(input.userId, SEARCH_UNLOCK_MODULE_SLUG, cost);
     chargedCredits = cost;
@@ -306,6 +347,74 @@ export async function claimSearchResultVault(input: {
     moduleSlug: row.moduleSlug,
     chargedCredits,
   };
+}
+
+export async function fulfillPurchasedSearchVault(
+  input: {
+    vaultId: string;
+    userId: number;
+  },
+  tx: {
+    searchResultVault: {
+      findUnique: typeof prisma.searchResultVault.findUnique;
+      updateMany: typeof prisma.searchResultVault.updateMany;
+    };
+  } = prisma,
+) {
+  const row = await tx.searchResultVault.findUnique({
+    where: { id: input.vaultId },
+  });
+
+  if (!row || row.expiresAt.getTime() < Date.now()) {
+    return { ok: false as const, reason: "vault_expired" as const };
+  }
+
+  if (row.claimedByUserId && row.claimedByUserId !== input.userId) {
+    return {
+      ok: false as const,
+      reason: "vault_claimed_by_another_user" as const,
+    };
+  }
+
+  if (row.claimedAt && row.claimedByUserId === input.userId) {
+    return { ok: true as const, alreadyUnlocked: true };
+  }
+
+  const claimed = await tx.searchResultVault.updateMany({
+    where: {
+      id: row.id,
+      claimedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    data: {
+      claimedAt: new Date(),
+      claimedByUserId: input.userId,
+      userId: row.userId ?? input.userId,
+    },
+  });
+
+  if (claimed.count === 1) {
+    return { ok: true as const, alreadyUnlocked: false };
+  }
+
+  // Lost the race to another worker — re-check ownership.
+  const again = await tx.searchResultVault.findUnique({
+    where: { id: row.id },
+    select: { claimedAt: true, claimedByUserId: true },
+  });
+
+  if (again?.claimedAt && again.claimedByUserId === input.userId) {
+    return { ok: true as const, alreadyUnlocked: true };
+  }
+
+  if (again?.claimedByUserId && again.claimedByUserId !== input.userId) {
+    return {
+      ok: false as const,
+      reason: "vault_claimed_by_another_user" as const,
+    };
+  }
+
+  return { ok: false as const, reason: "vault_expired" as const };
 }
 
 /** Best-effort delete of expired vaults (call from claim/create occasionally). */

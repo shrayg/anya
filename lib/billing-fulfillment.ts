@@ -1,5 +1,6 @@
 import type { BillingMeta } from "@/lib/billing-meta";
 
+import { CHEATING_REPORT_UNLOCK_PRICE_USD } from "@/lib/cheating-funnel-offer";
 import {
   API_PRODUCT,
   CREDIT_PACKS,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/plans";
 import { notifyPaymentDiscord } from "@/lib/discord-payments-webhook";
 import { computePlanEndsAt } from "@/lib/plan-lifecycle";
+import { fulfillPurchasedSearchVault } from "@/lib/search-result-vault";
 import { prisma } from "@/prisma/client";
 
 export type FulfillBillingInput = {
@@ -96,13 +98,132 @@ export async function fulfillBillingPayment(input: FulfillBillingInput) {
       : null);
 
   if (existing?.status === "completed") {
-    return { ok: true as const, alreadyFulfilled: true };
+    return {
+      ok: true as const,
+      alreadyFulfilled: true,
+      type: meta.type,
+      returnTo: meta.returnTo,
+      vaultId: meta.vaultId,
+    };
   }
 
   const amount =
     amountCents != null ? amountCents / 100 : (existing?.amount ?? 0);
 
   const via = paidViaLabel(meta);
+
+  if (meta.type === "search_unlock") {
+    if (!meta.vaultId || amount < CHEATING_REPORT_UNLOCK_PRICE_USD) {
+      return { ok: false as const, reason: "invalid_report_payment" };
+    }
+
+    const description = markPaidDescription(
+      existing?.description,
+      meta,
+      `Private report unlock — ${via}`,
+    );
+
+    const outcome = await prisma.$transaction(async (tx) => {
+      if (existing) {
+        const fresh = await tx.payment.findUnique({
+          where: { id: existing.id },
+          select: { status: true },
+        });
+
+        if (fresh?.status === "completed") {
+          return {
+            alreadyFulfilled: true as const,
+            vaultOk: true as const,
+          };
+        }
+      }
+
+      const vault = await fulfillPurchasedSearchVault(
+        { vaultId: meta.vaultId!, userId },
+        tx,
+      );
+
+      if (existing) {
+        const paid = await tx.payment.updateMany({
+          where: { id: existing.id, status: "pending" },
+          data: {
+            status: "completed",
+            stripeSessionId: checkoutSessionId,
+            stripePaymentIntentId: paymentReferenceId ?? undefined,
+            description: vault.ok
+              ? description
+              : `${description} (vault expired; value issued as account credit)`,
+          },
+        });
+
+        if (paid.count === 0) {
+          return {
+            alreadyFulfilled: true as const,
+            vaultOk: true as const,
+          };
+        }
+      } else {
+        await tx.payment.create({
+          data: {
+            userId,
+            amount,
+            type: "search_unlock",
+            plan: meta.vaultId,
+            interval: meta.returnTo,
+            status: "completed",
+            description: vault.ok
+              ? description
+              : `${description} (vault expired; value issued as account credit)`,
+            stripeSessionId: checkoutSessionId,
+            stripePaymentIntentId: paymentReferenceId ?? undefined,
+          },
+        });
+      }
+
+      if (!vault.ok) {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            balance: {
+              increment: CHEATING_REPORT_UNLOCK_PRICE_USD,
+            },
+          },
+        });
+      }
+
+      return {
+        alreadyFulfilled: false as const,
+        vaultOk: vault.ok,
+      };
+    });
+
+    if (outcome.alreadyFulfilled) {
+      return {
+        ok: true as const,
+        alreadyFulfilled: true,
+        type: "search_unlock" as const,
+        returnTo: meta.returnTo,
+        vaultId: meta.vaultId,
+      };
+    }
+
+    await sendPaymentNotification({
+      userId,
+      amount,
+      type: "search_unlock",
+      description,
+      paymentId: existing?.id ?? paymentId,
+      providerRef: paymentReferenceId ?? checkoutSessionId,
+    });
+
+    return {
+      ok: true as const,
+      type: "search_unlock" as const,
+      returnTo: meta.returnTo,
+      vaultId: meta.vaultId,
+      creditedFallback: !outcome.vaultOk,
+    };
+  }
 
   if (meta.type === "subscription") {
     const planId = normalizePlanId(meta.planId ?? existing?.plan);

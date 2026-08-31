@@ -1,7 +1,7 @@
 export type BillingMeta = {
   paymentId: string;
   userId: string;
-  type: "subscription" | "credits" | "api_access";
+  type: "subscription" | "credits" | "api_access" | "search_unlock";
   planId?: string;
   interval?: string;
   packId?: string;
@@ -14,6 +14,7 @@ export type BillingMeta = {
   /** Teaser vault to claim after credits/plan purchase. */
   vaultId?: string;
   intent?: "unlock_search" | "module_run" | string;
+  unlockPriceUsd?: number;
 };
 
 export type BillingProvider = "square" | "oxapay";

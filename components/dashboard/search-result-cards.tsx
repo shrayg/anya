@@ -219,6 +219,7 @@ export function SearchResultCards({
   unlock,
   balance = 0,
   onUnlocked,
+  unlockReturnTo,
 }: {
   records: FormattedRecord[];
   blurResults?: boolean;
@@ -250,6 +251,7 @@ export function SearchResultCards({
   } | null;
   balance?: number;
   onUnlocked?: (payload: unknown) => void;
+  unlockReturnTo?: string;
 }) {
   const safePageSize = Math.max(1, pageSize);
   const [expanded, setExpanded] = useState<Set<number>>(() =>
@@ -480,6 +482,7 @@ export function SearchResultCards({
           unlock={unlock}
           vaultId={vaultId}
           onUnlocked={onUnlocked}
+          returnTo={unlockReturnTo}
         />
       ) : null}
     </div>

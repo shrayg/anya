@@ -6,7 +6,10 @@ import {
   warmDataBlacklistCache,
 } from "@/lib/data-blacklist";
 import { authorizeSearch } from "@/lib/plan-access";
-import { redactOsintTeaser, redactPremiumFanoutSections } from "@/lib/osint-teaser-redact";
+import {
+  redactOsintTeaser,
+  redactPremiumFanoutSections,
+} from "@/lib/osint-teaser-redact";
 import {
   planClearsIncludedModules,
   shouldBlurResults,
@@ -361,7 +364,12 @@ export async function requireOsintAccess(
 
     await warmDataBlacklistCache();
 
-    return { userId: null, blurResults: true, isGuest: true, softLockPremium: true };
+    return {
+      userId: null,
+      blurResults: true,
+      isGuest: true,
+      softLockPremium: true,
+    };
   }
 
   const access = await authorizeSearch({
@@ -378,8 +386,7 @@ export async function requireOsintAccess(
 
   const userId = session.userId as number;
   const query = req.nextUrl.searchParams.get("query")?.trim();
-  const plan: PlanId =
-    "plan" in access && access.plan ? access.plan : "free";
+  const plan: PlanId = "plan" in access && access.plan ? access.plan : "free";
 
   // Silent safety flag — never block the OSINT response.
   if (query && assessSearchQueryForSafety(query).flagged) {
@@ -419,13 +426,13 @@ export async function osintJson(
     moduleSlug?: string;
     query?: string;
     req?: NextRequest;
+    unlockCreditCost?: number;
   },
 ): Promise<NextResponse> {
   await warmDataBlacklistCache();
   const filtered = applyDataBlacklistToPayload(data);
 
-  const needsVault =
-    access.blurResults || Boolean(access.softLockPremium);
+  const needsVault = access.blurResults || Boolean(access.softLockPremium);
 
   if (!needsVault) {
     return NextResponse.json(filtered, init);
@@ -448,6 +455,7 @@ export async function osintJson(
       userId: access.userId,
       ipHash: hashClientIp(ip),
       unlockMode: access.blurResults ? "teaser" : "premium_section",
+      creditCost: options?.unlockCreditCost,
     });
     vaultId = vault.vaultId;
     claimToken = vault.claimToken;
@@ -550,8 +558,7 @@ export async function finalizeOsintStreamResult(
   },
 ): Promise<Record<string, unknown>> {
   const filtered = applyDataBlacklistToPayload(data);
-  const needsVault =
-    access.blurResults || Boolean(access.softLockPremium);
+  const needsVault = access.blurResults || Boolean(access.softLockPremium);
 
   if (!needsVault) {
     return filtered && typeof filtered === "object" && !Array.isArray(filtered)

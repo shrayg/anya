@@ -3,6 +3,7 @@ import type { BillingMeta } from "@/lib/billing-meta";
 import { NextRequest, NextResponse } from "next/server";
 
 import { fulfillBillingPayment } from "@/lib/billing-fulfillment";
+import { CHEATING_REPORT_UNLOCK_PRICE_USD } from "@/lib/cheating-funnel-offer";
 import {
   type OxapayWebhookPayload,
   isOxapayConfigured,
@@ -40,10 +41,19 @@ function metaFromPaymentRow(row: {
         ? "credits"
         : row.type === "api_access"
           ? "api_access"
-          : "subscription",
+          : row.type === "search_unlock"
+            ? "search_unlock"
+            : "subscription",
     planId: row.plan ?? undefined,
     interval: row.interval ?? undefined,
     provider: "oxapay",
+    vaultId: row.type === "search_unlock" ? (row.plan ?? undefined) : undefined,
+    returnTo:
+      row.type === "search_unlock" ? (row.interval ?? undefined) : undefined,
+    unlockPriceUsd:
+      row.type === "search_unlock"
+        ? CHEATING_REPORT_UNLOCK_PRICE_USD
+        : undefined,
   };
 
   if (row.type === "balance_topup") {

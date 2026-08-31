@@ -12,10 +12,7 @@ import {
   SEARCH_UNLOCK_CREDIT_COST,
   getCreditPackTotal,
 } from "@/lib/plans";
-import {
-  buildAuthHref,
-  buildPricingCreditsHref,
-} from "@/lib/search-resume";
+import { buildAuthHref, buildPricingCreditsHref } from "@/lib/search-resume";
 
 type UnlockMeta = {
   reasons?: string[];
@@ -33,6 +30,7 @@ export function SearchUnlockPanel({
   balance = 0,
   onUnlocked,
   returnTo = "/#search",
+  funnelOfferPrice,
 }: {
   isGuest: boolean;
   vaultId?: string | null;
@@ -41,6 +39,7 @@ export function SearchUnlockPanel({
   balance?: number;
   onUnlocked?: (payload: unknown) => void;
   returnTo?: string;
+  funnelOfferPrice?: number;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -118,7 +117,10 @@ export function SearchUnlockPanel({
     }
   };
 
-  const startCreditCheckout = async (packId: string, creditsAmount?: number) => {
+  const startCreditCheckout = async (
+    packId: string,
+    creditsAmount?: number,
+  ) => {
     setBusy(true);
     setError("");
 
@@ -162,6 +164,113 @@ export function SearchUnlockPanel({
     }
   };
 
+  const startReportCheckout = async (provider: "square" | "oxapay") => {
+    setBusy(true);
+    setError("");
+
+    try {
+      const res = await apiFetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "search_unlock",
+          provider,
+          returnTo,
+          vaultId: vaultId ?? undefined,
+          intent: "unlock_search",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(
+          typeof data.error === "string"
+            ? data.error
+            : "Could not start secure checkout.",
+        );
+
+        return;
+      }
+
+      if (typeof data.url === "string" && data.url) {
+        window.location.assign(data.url);
+
+        return;
+      }
+
+      setError("Checkout did not return a payment URL.");
+    } catch {
+      setError("Could not start secure checkout.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (typeof funnelOfferPrice === "number" && funnelOfferPrice > 0) {
+    return (
+      <div className="funnel-unlock-panel">
+        <div className="funnel-unlock-price">
+          <span>ONE-TIME REPORT UNLOCK</span>
+          <strong>${funnelOfferPrice.toFixed(0)}</strong>
+        </div>
+        <p className="funnel-unlock-copy">
+          Everything returned by this search is organized in one private report,
+          including a confirmed no-match when no public records were found.
+        </p>
+
+        {isGuest ? (
+          <div className="funnel-unlock-actions">
+            <Link className="ui-btn ui-btn-primary" href={authHref}>
+              Create account to unlock · ${funnelOfferPrice.toFixed(0)}
+            </Link>
+            <Link className="ui-btn ui-btn-ghost" href={loginHref}>
+              Already have an account? Sign in
+            </Link>
+          </div>
+        ) : canUnlockWithBalance ? (
+          <button
+            className="ui-btn ui-btn-primary funnel-unlock-open"
+            disabled={busy}
+            type="button"
+            onClick={() => void claim(true)}
+          >
+            {busy
+              ? "Opening your report…"
+              : `Open my full report · $${funnelOfferPrice.toFixed(0)} credits`}
+          </button>
+        ) : (
+          <div className="funnel-unlock-actions">
+            <button
+              className="ui-btn ui-btn-primary"
+              disabled={busy}
+              type="button"
+              onClick={() => void startReportCheckout("square")}
+            >
+              {busy
+                ? "Opening checkout…"
+                : `Pay $${funnelOfferPrice.toFixed(0)} by card`}
+            </button>
+            <button
+              className="ui-btn ui-btn-ghost"
+              disabled={busy}
+              type="button"
+              onClick={() => void startReportCheckout("oxapay")}
+            >
+              Pay ${funnelOfferPrice.toFixed(0)} with crypto
+            </button>
+          </div>
+        )}
+
+        <p className="funnel-unlock-note">
+          {canUnlockWithBalance
+            ? `Uses $${funnelOfferPrice.toFixed(0)} from your account balance. One unlock. No subscription.`
+            : "One payment. No subscription. Secure checkout through Square or OxaPay."}
+        </p>
+        {error ? <p className="funnel-unlock-error">{error}</p> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="results-blur-notice search-unlock-panel">
       <p className="results-blur-notice-text">{reason}</p>
@@ -175,36 +284,34 @@ export function SearchUnlockPanel({
       <div className="mt-3 flex flex-wrap gap-2">
         {isGuest ? (
           <>
-            <Link className="ui-btn ui-btn--accent text-sm" href={authHref}>
+            <Link className="ui-btn ui-btn-primary text-sm" href={authHref}>
               Create account
             </Link>
-            <Link className="ui-btn text-sm" href={loginHref}>
+            <Link className="ui-btn ui-btn-ghost text-sm" href={loginHref}>
               Sign in
             </Link>
-            <Link className="ui-btn text-sm" href={planHref}>
+            <Link className="ui-btn ui-btn-ghost text-sm" href={planHref}>
               View plans
             </Link>
           </>
         ) : (
           <>
-            <Link className="ui-btn text-sm" href={planHref}>
+            <Link className="ui-btn ui-btn-ghost text-sm" href={planHref}>
               Upgrade plan
             </Link>
             {allowCredits ? (
               canUnlockWithBalance ? (
                 <button
-                  className="ui-btn ui-btn--accent text-sm"
+                  className="ui-btn ui-btn-primary text-sm"
                   disabled={busy}
                   type="button"
                   onClick={() => void claim(true)}
                 >
-                  {busy
-                    ? "Unlocking…"
-                    : `Unlock · ${creditCost} credit`}
+                  {busy ? "Unlocking…" : `Unlock · ${creditCost} credit`}
                 </button>
               ) : (
                 <button
-                  className="ui-btn ui-btn--accent text-sm"
+                  className="ui-btn ui-btn-primary text-sm"
                   disabled={busy}
                   type="button"
                   onClick={() => setShowPacks(true)}
@@ -217,9 +324,7 @@ export function SearchUnlockPanel({
         )}
       </div>
 
-      {error ? (
-        <p className="mt-2 text-sm text-amber-200">{error}</p>
-      ) : null}
+      {error ? <p className="mt-2 text-sm text-amber-200">{error}</p> : null}
 
       {showPacks && !isGuest ? (
         <div className="mt-4 space-y-3 rounded-md border border-white/10 bg-black/20 p-3">
@@ -231,7 +336,7 @@ export function SearchUnlockPanel({
             {CREDIT_PACKS.map((pack) => (
               <button
                 key={pack.id}
-                className="ui-btn text-sm"
+                className="ui-btn ui-btn-ghost text-sm"
                 disabled={busy}
                 type="button"
                 onClick={() => void startCreditCheckout(pack.id)}
@@ -250,12 +355,14 @@ export function SearchUnlockPanel({
                 type="number"
                 value={customCredits}
                 onChange={(event) =>
-                  setCustomCredits(Number(event.target.value) || CUSTOM_CREDIT_MIN)
+                  setCustomCredits(
+                    Number(event.target.value) || CUSTOM_CREDIT_MIN,
+                  )
                 }
               />
             </label>
             <button
-              className="ui-btn text-sm"
+              className="ui-btn ui-btn-ghost text-sm"
               disabled={busy}
               type="button"
               onClick={() =>
@@ -264,7 +371,10 @@ export function SearchUnlockPanel({
             >
               Buy custom
             </button>
-            <Link className="text-xs text-anya-accent underline" href={pricingHref}>
+            <Link
+              className="text-xs text-anya-accent underline"
+              href={pricingHref}
+            >
               Full pricing
             </Link>
           </div>

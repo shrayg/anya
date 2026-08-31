@@ -9,6 +9,7 @@ export function ResultsBlurNotice({
   unlock,
   balance = 0,
   onUnlocked,
+  returnTo = "/#search",
 }: {
   isGuest?: boolean;
   vaultId?: string | null;
@@ -22,6 +23,7 @@ export function ResultsBlurNotice({
   } | null;
   balance?: number;
   onUnlocked?: (payload: unknown) => void;
+  returnTo?: string;
 }) {
   if (vaultId && claimToken) {
     return (
@@ -32,6 +34,7 @@ export function ResultsBlurNotice({
         unlock={unlock}
         vaultId={vaultId}
         onUnlocked={onUnlocked}
+        returnTo={returnTo}
       />
     );
   }
@@ -43,7 +46,7 @@ export function ResultsBlurNotice({
           Results are blurred.{" "}
           <Link
             className="results-blur-notice-link"
-            href="/auth?action=register&next=%2F%23search"
+            href={`/auth?action=register&next=${encodeURIComponent(returnTo)}`}
           >
             Create an account
           </Link>{" "}

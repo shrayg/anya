@@ -13,6 +13,11 @@ export type PlatformSearchConfig = {
 
 /** Module slugs routed through breach search with platform-specific scopes. */
 export const PLATFORM_SEARCH_BY_SLUG: Record<string, PlatformSearchConfig> = {
+  email: {
+    osintCatEndpoint: "breach",
+    godseyeType: "email",
+    breachVipField: "email",
+  },
   username: {
     osintCatEndpoint: "breach",
     godseyeType: "username",

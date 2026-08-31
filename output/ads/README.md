@@ -20,3 +20,7 @@ Use the PNG files as the final delivery format. JPG files are retained as high-q
 - Run `npm run ads:manifest` to rebuild the CSV, JSON, and campaign matrix.
 
 The rendered product interface is generated from React and CSS. No Anya product screenshot is baked into the ad.
+
+## Cheating ad funnels
+
+The ten gender-tailored standalone destination URLs, their matching assets, Meta URL-parameter template, and report-delivery setup are documented in `campaigns/cheating/README.md`.

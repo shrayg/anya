@@ -83,6 +83,7 @@ export function sanitizeReturnTo(raw: string | null | undefined): string | null 
   if (decoded === "/" || decoded.startsWith("/?")) return decoded.split("#")[0] || "/";
   if (decoded.startsWith("/pricing")) return decoded;
   if (decoded.startsWith("/auth")) return null;
+  if (decoded.startsWith("/go/cheating/")) return decoded.split("#")[0];
 
   // Absolute same-origin paths only.
   if (decoded.startsWith("/") && !decoded.startsWith("//")) {

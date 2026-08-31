@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
+import { sanitizeReturnTo } from "@/lib/search-resume";
 import { getAppBaseUrl } from "@/lib/square";
 
 const OXAPAY_API = "https://api.oxapay.com/v1";
@@ -129,8 +130,14 @@ export function oxapayCallbackUrl(requestUrl?: string): string {
   return `${getAppBaseUrl(requestUrl)}/api/billing/oxapay/webhook`;
 }
 
-export function oxapayReturnUrl(requestUrl?: string): string {
-  return `${getAppBaseUrl(requestUrl)}/pricing?billing=pending`;
+export function oxapayReturnUrl(
+  requestUrl?: string,
+  returnTo?: string,
+): string {
+  const safeReturnTo = sanitizeReturnTo(returnTo) ?? "/pricing";
+  const separator = safeReturnTo.includes("?") ? "&" : "?";
+
+  return `${getAppBaseUrl(requestUrl)}${safeReturnTo}${separator}billing=pending`;
 }
 
 export type OxapayWebhookPayload = {
