@@ -11,7 +11,7 @@ on:
 jobs:
   challenge-ttl:
     runs-on: ubuntu-latest
-    if: github.repository == 'fillingorders/anya.int'
+    if: github.repository == 'shrayg/anya'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

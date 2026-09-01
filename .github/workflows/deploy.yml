@@ -13,7 +13,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.repository == 'fillingorders/anya.int'
+    if: github.repository == 'shrayg/anya'
 
     steps:
       - name: Deploy over SSH

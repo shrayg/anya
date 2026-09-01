@@ -33,8 +33,8 @@ Built with **Next.js 16**, **Prisma + SQLite**, and server-side intelligence pro
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/anya.int.git
-cd anya.int
+git clone https://github.com/shrayg/anya.git
+cd anya
 npm install
 ```
 

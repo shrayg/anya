@@ -29,7 +29,7 @@ echo "   echo '$(cat "${KEY_FILE}.pub")' >> /root/.ssh/authorized_keys"
 echo "================================================================"
 echo
 echo " STEP 2 — Add GitHub repository secrets"
-echo " https://github.com/fillingorders/anya.int/settings/secrets/actions"
+echo " https://github.com/shrayg/anya/settings/secrets/actions"
 echo
 echo "   VPS_HOST          = your server IP or domain"
 echo "   VPS_USER          = root (or deploy user)"

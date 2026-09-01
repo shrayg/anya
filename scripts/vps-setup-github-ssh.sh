@@ -3,7 +3,7 @@
 # Creates a deploy key so the server can `git pull` from GitHub.
 set -euo pipefail
 
-REPO_SSH="git@github.com:fillingorders/anya.int.git"
+REPO_SSH="git@github.com:shrayg/anya.git"
 APP_DIR="${APP_DIR:-/var/www/anya.int}"
 DEPLOY_USER="${DEPLOY_USER:-$(whoami)}"
 KEY_DIR="${HOME}/.ssh"
@@ -48,7 +48,7 @@ chmod 644 "${KEY_DIR}/known_hosts"
 echo
 echo "================================================================"
 echo " ADD THIS PUBLIC KEY TO GITHUB (Deploy key — read-only is fine)"
-echo " https://github.com/fillingorders/anya.int/settings/keys"
+echo " https://github.com/shrayg/anya/settings/keys"
 echo " Title: anya-int-vps-$(hostname)"
 echo "================================================================"
 echo
